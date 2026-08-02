@@ -58,28 +58,39 @@ npm install
 run-tudo.cmd
 ```
 
-Sobe os três processos na ordem certa — vigilância, motor, dashboard — cada um
-com seu supervisor. A ordem importa: a vigilância precisa estar no ar antes do
-motor, senão o primeiro ciclo dele cai para a varredura estreita.
+Sobe os quatro processos na ordem certa — vigilância, custódia, motor, dashboard
+— cada um com seu supervisor. A ordem importa: a vigilância precisa estar no ar
+antes do motor, senão o primeiro ciclo dele cai para a varredura estreita.
 
 ### Ou separadamente
 
 ```bash
 node src/cli/vigilancia.ts --equity 100 --intervalo 5   # varre o mercado inteiro
-npm run spread                                          # motor 24h, US$ 100, 5x
+npm run custodia                                        # saúde das exchanges
+npm run spread                                          # motor, US$ 100, 5x
 node src/dashboard/server.ts                            # painel em :8787
 ```
 
-Supervisionados com reinício automático: `run-vigilancia.cmd`, `run-spread.cmd`,
-`run-dashboard.cmd`.
+Supervisionados com reinício automático: `run-vigilancia.cmd`,
+`run-custodia.cmd`, `run-spread.cmd`, `run-dashboard.cmd`.
+
+> **O motor pode ficar sem abrir posição, e isso é o comportamento correto.**
+> Ele só monta um par que já tenha vivido o suficiente para pagar o próprio
+> custo de montagem. Quando o log diz `valor esperado barrou N candidatas`, o
+> mercado não está oferecendo nada que pague o atrito nesta escala de taxa. Ver
+> [QUANTO-RENDE.md](docs/QUANTO-RENDE.md#o-portão-de-valor-esperado).
 
 ### Análise
 
 ```bash
+npm test                    # 56 testes das travas de risco e seleção
+npm run semanas             # projeção semana a semana, com custo de rotação
+npm run ruina               # 20 mil simulações contra choques de preço
+npm run execucao            # maker × taker, com o risco de perna solta
+npm run custodia            # saúde das exchanges, uma verificação
 npm run spread:scan         # varredura de 10 exchanges × 32 ativos
-npm run spread:verificar    # liquidez real no livro + análise de ruína
-npm run spread:maximizar    # testa alavancas de otimização
-npm run projecao            # projeção semana a semana com aportes
+npm run spread:verificar    # liquidez real no livro
+npm run projecao            # projeção com aportes (superada por `semanas`)
 ```
 
 ### Trilha direcional

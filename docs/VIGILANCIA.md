@@ -149,9 +149,61 @@ troca aceita conscientemente, porque a alternativa medida — perseguir o spread
 instantâneo — paga custo de montagem em posição que morre antes do primeiro
 pagamento de funding.
 
-A própria vigilância mede se essa troca está certa. A estatística de ciclo de
-vida reporta a duração mediana e a fração de spreads que duraram menos de 2 h. Se
-essa fração passar de 60%, o log diz explicitamente que perseguir não paga.
+---
+
+## A estatística de ciclo de vida já mentiu — e eu repeti a mentira
+
+Vale registrar, porque foi o erro mais caro do projeto.
+
+A vigilância fechava um ciclo na **primeira** varredura em que o par não
+aparecia. Parecia conservador. Só que os pares **piscam**: uma leitura falha,
+uma exchange demora a responder, um par cai abaixo do volume mínimo por um
+instante. Medido em 44 varreduras:
+
+```
+KAITO  38/44   ●●●●●●●●●●●●●●●●●●●·●●●···●··●●●●●●●●●●●●●●●
+XAUT   38/44   ·●●·●●●●·●·●●●●●●●●●●●·●●●●●●●●●●●·●●●●●●●●●
+AAVE   31/44   ············●●●●●●●●●·●●●●●●●●●●●●●●●●●●●●●●
+```
+
+O log então reportava, com toda a confiança:
+
+> duração mediana 0,1h · **100% duraram menos de 2h** — a maioria é
+> transitória, perseguir não paga o custo de montagem
+
+**Isso media o bug, não o mercado.** Os spreads duravam; a contabilidade deles é
+que não. E eu apresentei o número como se fosse uma descoberta sobre o mercado.
+
+Pior: o motor lia a mesma ausência como "spread inverteu" e fechava a posição.
+Oito fechamentos em duas horas e meia, US$ 2,30 de prejuízo — funding de US$ 0,17
+contra US$ 2,48 de custo.
+
+### As correções
+
+1. **Tolerância de 3 faltas seguidas** (`TOLERANCIA_FALTAS`) antes de declarar um
+   par morto. São 15 minutos, menos que o ciclo de 5 do motor, então um spread
+   que morre de verdade continua sendo detectado a tempo.
+2. **Segunda trava no motor**, exigindo 2 ciclos de ausência — para o caso de a
+   vigilância reiniciar e perder estado.
+3. **O aviso de amostra curta** no próprio log: a estatística agora exige 10
+   fechamentos para aparecer, e abaixo de 100 varreduras imprime
+   `⚠ amostra curta — não tire conclusão sobre o mercado`.
+
+Os padrões reais de KAITO e XAUT entraram nos testes como literais, para que a
+regressão não volte.
+
+---
+
+## O que substituiu a heurística
+
+A pontuação `spread × consistência²` ordenava bem entre pares parecidos e era
+cega para o que decidiu o resultado real: **se o par vive o bastante para pagar
+o próprio custo de montagem**.
+
+O critério agora é valor esperado em dólares, descrito em
+[QUANTO-RENDE.md](QUANTO-RENDE.md#o-portão-de-valor-esperado). A consistência
+continua entrando — mas como insumo da estimativa de vida, não como um expoente
+escolhido a dedo.
 
 ---
 

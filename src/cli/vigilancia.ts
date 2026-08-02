@@ -83,15 +83,32 @@ async function passada() {
     }
   }
 
-  // ciclo de vida: responde se vale perseguir spread transitório
-  if (st.fechadas >= 3) {
+  // ── ciclo de vida ────────────────────────────────────────────────────────
+  //
+  // Esta estatística já mentiu uma vez, e vale registrar como.
+  //
+  // Antes da tolerância a faltas, um ciclo era fechado na PRIMEIRA varredura em
+  // que o par não aparecia. Como os pares piscam (KAITO apareceu em 38 de 44
+  // varreduras, com buracos de uma e duas), o número reportado era "duração
+  // mediana 0,1h · 100% duraram menos de 2h · perseguir não paga o custo".
+  //
+  // Isso media o bug, não o mercado. E eu apresentei como se fosse mercado.
+  //
+  // Agora a contagem só fecha após TOLERANCIA_FALTAS ausências seguidas, mas a
+  // amostra ainda é curta — por isso o aviso abaixo exige 10 fechamentos e diz
+  // quantas varreduras existem, para que ninguém (inclusive eu) leia uma
+  // conclusão forte a partir de meia hora de dado.
+  if (st.fechadas >= 10) {
+    const amostraFina = estado.varreduras < 100;
     console.log(
-      `\n  CICLO DE VIDA · ${st.vivas} vivas · ${st.fechadas} já fecharam\n` +
+      `\n  CICLO DE VIDA · ${st.vivas} vivas · ${st.fechadas} já fecharam · ${estado.varreduras} varreduras\n` +
       `    duração mediana ${st.duracaoMedianaHoras.toFixed(1)}h · máxima ${st.duracaoMaxHoras.toFixed(1)}h\n` +
       `    ${(st.fracaoCurtas * 100).toFixed(0)}% duraram menos de 2h` +
-      (st.fracaoCurtas > 0.6
-        ? ' — a maioria é transitória, perseguir não paga o custo de montagem'
-        : ' — há spreads que se sustentam'),
+      (amostraFina
+        ? `\n    ⚠ amostra curta — não tire conclusão sobre o mercado com menos de 100 varreduras`
+        : st.fracaoCurtas > 0.6
+          ? ' — a maioria é transitória, e o portão de valor esperado vai barrar quase tudo'
+          : ' — há spreads que se sustentam'),
     );
   }
 

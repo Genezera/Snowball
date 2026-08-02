@@ -1,5 +1,13 @@
 # Quanto rende, semana a semana
 
+> **Leia primeiro.** As projeções deste documento assumem que a posição
+> sobrevive o tempo todo, e essa premissa provou ser falsa em operação. A conta
+> que realmente decide está na seção
+> [O portão de valor esperado](#o-portão-de-valor-esperado), no fim — e ela é
+> muito mais restritiva que qualquer cenário abaixo. As tabelas continuam aqui
+> porque a análise de rotação segue válida, não porque o resultado se confirmou.
+
+
 > Com US$ 100, depois com mais US$ 100 no mês seguinte. E por que o número que
 > decide isso não é o APR.
 
@@ -118,21 +126,22 @@ tocar no APR. Subir o APR de 20% para 36% dá $14,26; baixar a rotação de 1/se
 para zero dá $10,87 — **da mesma ordem de grandeza, e muito mais sob controle.**
 
 É exatamente para isso que a vigilância do mercado inteiro existe: não para achar
-o maior número, mas para achar um par **que dure**. Por isso o ranking pesa
-consistência ao quadrado.
+o maior número, mas para achar um par **que dure**.
 
 ---
 
 ## Ainda não medido
 
-A frequência real de rotação **ainda não tem medição válida**. O motor rodou 6,1
-horas e fez 1 troca, o que daria 27,8 por semana — mas essa troca foi causada
-pela mudança de fonte de dados (SEI vinha da varredura antiga de 32 ativos e não
-aparece no ranking do mercado inteiro), não por uma inversão genuína de spread.
+A frequência real de rotação **continua sem medição válida**, e por um motivo
+diferente do que eu supunha quando escrevi esta seção.
 
-Extrapolar dela seria inventar. A vigilância registra duração de cada
-oportunidade justamente para produzir esse número em alguns dias de operação.
-Quando houver, esta tabela é refeita com a linha certa em vez de um cenário.
+A primeira suspeita era que a única troca observada tinha vindo da mudança de
+fonte de dados. Depois vieram oito trocas em 9,3 horas, e a causa real apareceu:
+**a vigilância fechava um par na primeira varredura em que ele não aparecia, e
+os pares piscam.** Detalhes em [VIGILANCIA.md](VIGILANCIA.md).
+
+Ou seja, tudo que este projeto mediu sobre duração de spread até 02/08/2026 mede
+um bug. A medição limpa começa depois da correção, e leva dias.
 
 ---
 
@@ -144,8 +153,9 @@ Três travas, todas já em produção:
 2. **A troca precisa se pagar em menos de 7 dias.** O motor compara o ganho
    diário extra do candidato contra o custo de $0,50 e só troca se o payback for
    menor que uma semana.
-3. **Consistência ao quadrado na seleção** — um spread visto em metade das
-   observações vale um quarto de um que sempre aparece.
+3. **Portão de valor esperado na entrada** — não monta um par que não viva o
+   suficiente para pagar o próprio custo. É a trava que faltava, e a ausência
+   dela é o que explica o prejuízo. Ver a seção final.
 
 A exceção, deliberada: quando o spread **inverte** (o par some da varredura, que
 só devolve spreads positivos), o motor fecha na hora, sem esperar os 3 dias.
@@ -172,3 +182,105 @@ O que faz o número crescer, em ordem de impacto:
 2. **Capital** — o ganho escala linear com o notional, e o ponto de empate não
    piora.
 3. **APR** — o menos controlável dos três. Depende do mercado, não do código.
+
+---
+
+## O portão de valor esperado
+
+Tudo acima assume que a posição fica montada a semana inteira. Em operação real
+isso não aconteceu — e a conta que explica por quê é mais simples que qualquer
+projeção.
+
+```
+custo ida e volta = notional × taxa × 4
+receita por 8h    = notional × spread
+```
+
+**O notional se cancela.** Ele multiplica os dois termos, então não muda o sinal
+do resultado — só a escala. Isso tem uma consequência que contradiz boa parte do
+esforço anterior do projeto: **alavancagem e capital não decidem se uma operação
+vale a pena.** Só taxa, spread e tempo de vida decidem.
+
+Quanto tempo uma posição precisa viver só para empatar:
+
+| APR | payback com taker 0,05% | com maker 0,02% |
+|---|---|---|
+| 20% | **3,6 dias** | 1,5 dias |
+| 35% | **2,1 dias** | 0,8 dia |
+| 50% | 1,5 dias | 0,6 dia |
+| 76% | 1,0 dia | 0,4 dia |
+
+O motor abria posições que precisavam de dois dias e as fechava em horas. Nunca
+perguntou se o par duraria o suficiente. Resultado das oito posições abertas
+antes do portão existir:
+
+| | |
+|---|---|
+| funding recebido | **+US$ 0,17** |
+| custos pagos | **−US$ 2,48** |
+| resultado | **−US$ 2,30** em 9,3 horas |
+
+Nenhuma das oito deu lucro. Nenhuma exceção — é por isso que o portão remove
+apenas perdedoras e não fere a regra de nunca remover trade lucrativo.
+
+### A regra atual
+
+```
+valor = notional × spread × pagamentos(vida esperada) − notional × taxa × 4
+```
+
+A vida esperada usa Lindy amortecido pela consistência: um spread vivo há T
+horas com consistência c tende a viver mais `T × c`. É grosseiro, e é
+conservador na direção certa — subestima pares bons e não superestima pares
+ruins, que é o erro que custa dinheiro.
+
+O motor só monta se a folga for de 1,5× o payback. Ordenação e portão usam a
+mesma grandeza (valor por hora de capital ocupado), então não existe o caso de a
+ordem preferir um par que o filtro rejeita.
+
+### O que isso produz na prática
+
+```
+valor esperado barrou 5 candidatas · melhor candidata AAVE ·
+vida esperada 2.1h contra payback de 84.8h · valor esperado −US$ 0,163
+```
+
+Capital intacto, nenhuma posição montada. **Não abrir é um resultado, não uma
+falha.** Afrouxar o portão para "ver algo acontecer" é exatamente o que custou
+os US$ 2,30.
+
+### E o maker, que eu tinha vendido como a solução
+
+Modelado em `npm run execucao`. Ordem limite não garante execução, e uma perna
+executada sem a outra deixa uma posição **direcional a 5x** — o oposto do que a
+estrutura existe para fazer.
+
+| preenchimento | custo esperado | vs taker |
+|---|---|---|
+| 70% | $0,6786 | **+171%** |
+| 80% | $0,4375 | +75% |
+| 90% | $0,2500 | **0%** — empata |
+| 95% | $0,1711 | −32% |
+| 100% | $0,1000 | −60% |
+
+Com 80% de preenchimento, **32% das tentativas** terminam com uma perna solta
+para desfazer, e o seguro come o desconto inteiro. Os 2,5× de melhoria só
+existem com execução quase certa.
+
+---
+
+## O que mudaria o resultado
+
+Em ordem de impacto, e nenhum depende de escrever mais código:
+
+1. **Um regime de funding melhor.** A 76% de APR o payback cai para 1 dia. É a
+   variável que mais move o resultado e a menos controlável.
+2. **Tempo de observação.** Pares que sobrevivem dias cruzam o portão sozinhos.
+   A vigilância precisa acumular dado limpo, o que só começou depois da correção
+   do piscar.
+3. **Taxa menor por volume.** As exchanges reduzem taker com volume mensal. Não
+   é acessível nesta escala de capital, mas é o caminho que não carrega o risco
+   de perna solta do maker.
+
+O que **não** mudaria: mais alavancagem ou mais capital. O payback não depende
+de nenhum dos dois.

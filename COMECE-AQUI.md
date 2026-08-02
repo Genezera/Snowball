@@ -1,194 +1,164 @@
 # Comece aqui
 
-Renan — resumo do que aconteceu enquanto você dormia, em uma página.
+Renan — o projeto em uma página, atualizado em **02/08/2026**.
 
 ---
 
-## A resposta curta
+## Onde está agora
 
-**A premissa do vídeo está errada, mas as estratégias não são lixo.**
+**Tudo parado**, a pedido. Capital de paper em **US$ 100,00**, intacto.
 
-As 5 estratégias têm edge bruto real (profit factor 1,22–1,25 — meus números
-batem com os dele). O problema é aritmético e específico:
+Nenhuma ordem foi enviada a nenhuma exchange, em nenhum momento deste projeto.
+Tudo é leitura de mercado e simulação.
+
+Quando ligado, o motor está **barrando todas as candidatas** — e isso é o
+comportamento correto, não uma falha. Ele só monta um par que já tenha vivido o
+suficiente para pagar o próprio custo de montagem.
 
 ```
-edge bruto por trade          ≈ +0,15 R
-custo por trade (taker)       ≈ −0,16 R
-                                --------
-resultado líquido em 5 min    ≈ −0,01 R
+valor esperado barrou 5 candidatas · melhor candidata AAVE ·
+vida esperada 2.1h contra payback de 84.8h · valor esperado −US$ 0,163
 ```
 
-O edge é engolido pela taxa por uma margem mínima. Isso não se resolve mexendo
-na estratégia — resolve-se **mudando o timeframe**, porque a taxa é um pedágio
-fixo por trade e o que muda com o timeframe é o tamanho do movimento capturado.
-
-**Em 4 horas, funciona.** `body-breakout` (a estratégia do COIN) deu expectancy
-positiva out-of-sample nos 5 ativos testados:
-
-| Ativo | Expectancy OOS | Retorno | Drawdown | Eficiência WF |
-|---|---|---|---|---|
-| BTC | +0,198R | 15,7% | 5,4% | 0,86 |
-| ETH | +0,154R | 17,1% | 9,0% | 0,99 |
-| TRX | +0,133R | 11,2% | 5,3% | 1,40 |
-| DOT | +0,118R | 13,8% | 7,4% | 0,22 |
-| SOL | +0,042R | 4,7% | 11,4% | 0,34 |
-
-Consistência entre 5 ativos independentes é muito mais difícil de conseguir por
-acaso do que uma célula sortuda. Foi exatamente isso que faltou em 5 minutos,
-onde 24 de 25 testes reprovaram.
-
-E isso bate com o único número crível do vídeo inteiro: BTC **4h**, PF 1,71,
-Sharpe 0,80 — validado pelo próprio autor via trader.dev.
-
-## E há uma segunda saída: ações
-
-Corretora de varejo nos EUA cobra **comissão zero**. A taxa que mata o scalping
-de 5 minutos em cripto simplesmente não existe lá. Em F (Ford), 5 minutos, com
-spread e slippage realistas:
-
-| Estratégia | Profit factor | Expectancy | Trades |
-|---|---|---|---|
-| body-breakout | **2,006** | +0,398R | 59 |
-| momentum-breakout | 1,647 | +0,337R | 78 |
-
-Amostra de 60 pregões (limite da fonte gratuita), então é indício direcional e
-não conclusão. Em COIN o resultado é bem mais fraco (PF 1,008).
-
-**O padrão que amarra tudo:** `body-breakout` é a melhor estratégia em cripto 4h
-(positiva em 5 de 5 ativos) **e** em ações 5min (positiva em 2 de 2). E
-`ma-cross` falha em absolutamente todos os mercados e timeframes testados.
-Consistência assim, em mercados com microestrutura completamente diferente, é
-muito mais informativa do que qualquer número isolado.
-
 ---
 
-## A prova de que os 5381% não são reais
+## A conta que decide tudo
 
-Três evidências independentes, todas encontradas nos materiais que você mandou:
+Levou o projeto inteiro para chegar aqui, e ela cabe em três linhas:
 
-1. **A spec do trader.dev exige comissão zero.** A ferramenta
-   `get_pine_codegen_rules` manda: *"Broker header MUST use commission=0,
-   percent_of_equity=100"*. Todo número do leaderboard deles é a custo zero com
-   100% do capital composto. É isso que produz os +172 bilhões por cento.
+```
+custo ida e volta = notional × taxa × 4
+receita por 8h    = notional × spread
+```
 
-2. **O dashboard deles admite.** "Forward positive 65 / forward negative 59"
-   (cara ou coroa), "Proof state: BLOCKED", "NO live track record yet", "0/2
-   honest in-sample gates passing", "promising — unproven".
+**O notional se cancela.** Ele multiplica os dois termos, então não muda o sinal
+do resultado — só a escala.
 
-3. **A estratégia dos 5381% tem Sharpe 0,376.** Está na tela do vídeo, ao lado
-   do número grande. Lucro total ≈280M contra perda total ≈215M — o resultado é
-   a diferença pequena entre dois números enormes.
+Isso contradiz boa parte do esforço anterior: **alavancagem e capital não decidem
+se uma operação vale a pena.** Só taxa, spread e tempo de vida decidem.
 
-Meu walk-forward chegou à mesma conclusão de forma independente, antes de eu ver
-qualquer uma dessas três coisas.
+Quanto tempo uma posição precisa viver só para empatar:
 
----
-
-## Quanto isso rende de verdade
-
-Com $100, risco 0,5% por trade, expectancy 0,15R e o ritmo do 4h (~12
-trades/mês):
-
-| | 3 anos |
+| APR do spread | payback |
 |---|---|
-| Mediana | **$138** |
-| Pessimista (p5) | $117 |
-| Otimista (p95) | $163 |
-| Risco de ruína | 0,0% |
+| 20% | **3,6 dias** |
+| 35% | **2,1 dias** |
+| 76% | 1,0 dia |
 
-Capital mínimo viável: **$15,50** (abaixo disso a posição não atinge o notional
-mínimo da Binance e você é forçado a arriscar mais do que o plano permite — é
-assim que conta pequena morre).
-
-A bola de neve é real, mas lenta com capital mínimo. **A alavanca certa para
-acelerar é rodar em vários ativos em paralelo** (BTC+ETH+TRX triplica o número
-de trades), **não aumentar o risco por trade.**
+O motor abria posições que precisavam de dois dias e fechava em horas. Foi por
+isso que perdeu dinheiro.
 
 ---
 
-## O ML adaptativo: metade funciona
+## O que aconteceu, em ordem
 
-Você pediu um ML que lê o mercado em tempo real e aplica a melhor estratégia.
-Construí, testei em 5 ativos, e o resultado se separa limpo em duas camadas:
+**1. O vídeo estava errado, mas as estratégias não eram lixo.** Profit factor
+1,22–1,25, batendo com os números do autor. Só que o edge (+0,15R) era menor que
+o custo (−0,16R) em 5 minutos. Em 4 horas o `body-breakout` deu expectancy
+positiva out-of-sample nos 5 ativos testados; em 5 minutos, 24 de 25 testes
+reprovaram.
 
-| Camada | Pergunta | Veredito |
-|---|---|---|
-| **Seleção de estratégia** | qual estratégia rodar neste mercado? | **funciona** — descartou `ma-cross` em 100% dos casos e apontou as que prestam usando só dados passados |
-| **Filtro por trade** | tomar ou não este sinal? | **não funciona** — ajuda num ativo, atrapalha em outro |
+Sobre os 5381%: a spec do trader.dev **exige** `commission=0`, o dashboard deles
+admite "Proof state: BLOCKED / NO live track record", e a estratégia do número
+grande tem Sharpe 0,376. Detalhes em [docs/O-QUE-FALHOU.md](docs/O-QUE-FALHOU.md).
 
-O alocador completo perdeu para a melhor estratégia isolada em **5 de 5 ativos**.
-O diagnóstico está no ETH: ele escolheu a estratégia certa
-(`momentum-breakout`) e ainda entregou +34,3% contra os +56,3% que ela faz
-sozinha — o filtro estava removendo trades lucrativos.
+**2. Direcional não entrega lucro semanal.** O melhor candidato dava 45,1% de
+semanas positivas, com a semana mediana negativa. Não é defeito da estratégia —
+é o que significa prever preço.
 
-**Não ajustei até passar.** Seria o sobreajuste que o projeto inteiro existe
-para detectar.
+**3. O pivô: parar de prever, começar a cobrar.** Arbitragem de funding
+delta-neutra. Duas pernas que se cancelam em preço, vendida onde o funding é
+alto e comprada onde é baixo. Exposição a preço **zero por construção**. Medido
+em 180 dias: 48 de 48 semanas positivas.
 
-A metade que funciona virou ferramenta utilizável:
+**4. O mercado inteiro, não uma lista minha.** 3.492 pares em 5 exchanges a cada
+5 minutos, via endpoints em massa — 13,8 segundos por varredura.
+
+**5. As travas contra ruína.** Distância de liquidação por perna, piso de
+capital em catraca, evacuação por saúde de exchange, teto de 40% de exposição
+por exchange. Teste de ruína: 99,97% de liquidação sem proteção contra 0,03% com
+ela — e a proteção **pagou** US$ 15,99 na mediana em vez de custar.
+
+**6. O prejuízo, e as duas causas.** Nove horas de operação: **−US$ 2,30**.
+Ambas as causas eram minhas.
+
+---
+
+## Os dois erros que custaram dinheiro
+
+Registrados porque são o conteúdo mais útil do projeto.
+
+**Os pares não invertiam — piscavam.** KAITO apareceu em 38 de 44 varreduras,
+com buracos de uma e duas. A vigilância fechava o ciclo na **primeira** ausência
+e o motor lia isso como "spread inverteu". Cada buraco de cinco minutos virava
+um fechamento de US$ 0,08 a US$ 0,25.
+
+Pior: a estatística que eu te apresentei com confiança — *"100% duraram menos de
+2h, perseguir não paga o custo"* — **media o meu bug, não o mercado.**
+
+**Não havia portão de payback.** O motor nunca perguntava se o par viveria o
+suficiente para pagar o próprio custo. Das oito posições abertas, **zero deram
+lucro** — funding de US$ 0,17 contra US$ 2,48 de custo.
+
+---
+
+## O que isso significa para os US$ 100
+
+Sendo direto: **nesta escala de taxa, o mercado das últimas horas não ofereceu
+nada que pague o próprio atrito.**
+
+Não é o sistema quebrado. É o sistema medindo corretamente e dizendo não.
+
+Três coisas mudariam isso, e nenhuma depende de escrever mais código:
+
+1. **Um regime de funding melhor.** A 76% de APR o payback cai para 1 dia. É a
+   variável que mais move o resultado e a menos controlável.
+2. **Tempo de observação.** Pares que sobrevivem dias cruzam o portão sozinhos.
+   A vigilância só começou a acumular dado limpo depois da correção do piscar.
+3. **Taxa menor por volume.** Não acessível nesta escala de capital.
+
+O que **não** mudaria: mais alavancagem ou mais capital.
+
+E o maker, que eu cheguei a apresentar como a solução, **não é**: ordem limite
+não garante execução, e uma perna sem a outra vira posição direcional a 5x. Só
+compensa acima de 90% de preenchimento.
+
+---
+
+## Como ligar de volta
 
 ```bash
-node src/cli/pool.ts
+run-tudo.cmd
 ```
 
-Ela responde "qual estratégia deveria estar rodando agora", por ativo. Rode uma
-vez por mês ou trimestre — não a cada barra. Saída de hoje: ETH →
-`momentum-breakout`; SOL e DOT → `body-breakout`; **BTC e TRX → não operar
-nada**. Detalhes em [docs/ADAPTATIVO.md](docs/ADAPTATIVO.md).
-
-Descoberta técnica relevante: as features de regime (Efficiency Ratio de
-Kaufman, autocorrelação de retornos, razão de volatilidade) levaram a AUC a
-0,54–0,75, contra 0,53–0,55 do meta-labeling anterior. Elas são informativas —
-o problema é convertê-las em decisão de trade individual.
-
----
-
-## O que fazer quando acordar, em ordem
-
-1. **Rotacione a chave de API do trader.dev.** Você colou uma chave no chat,
-   então ela está no histórico da conversa. Gere outra no dashboard.
-
-2. **Reinicie o Claude Code.** O MCP trader.dev está registrado e vai conectar
-   sozinho. (Eu já consegui usá-lo nesta sessão via `tools/traderdev.mjs`, que
-   fala SSE direto — mas com o restart fica nativo.)
-
-3. **Leia `docs/RESULTADOS.md`.** Todos os números, com a configuração exata que
-   os produziu.
-
-4. **Decida sobre o paper trading.** O candidato é `body-breakout` em 4h. O
-   comando está abaixo. São 90 dias — não tem atalho, e é o único teste que mede
-   o que o backtest não consegue (preenchimento real de ordem limite, latência,
-   seleção adversa).
+Quatro processos: vigilância, custódia, motor, dashboard em `localhost:8787`.
 
 ```bash
-node src/cli/live.ts --symbol "BTC/USDT:USDT" --timeframe 4h --strategy body-breakout --mode paper
+npm test            # 56 testes das travas de risco e seleção
+npm run ruina       # 20 mil simulações contra choques de preço
+npm run execucao    # maker × taker, com o risco de perna solta
+npm run semanas     # projeção semana a semana
 ```
 
 ---
 
-## O que eu não fiz, e por quê
+## Onde ler mais
 
-- **Nada foi aprovado para dinheiro real.** O portão de paper trading não foi
-  cumprido, e ele não pode ser pulado.
-- **Não ajustei o modelo de ML até ele passar.** AUC ficou em 0,53–0,55 (fraco
-  mas real). Continuar mexendo até passar seria exatamente o sobreajuste que o
-  projeto inteiro existe para detectar.
-- **Não testei as ações (F, COIN, ALTR).** O ccxt só cobre cripto. É o maior
-  buraco do projeto — está em `docs/BACKLOG.md` como B4.
-- **Não modelei seleção adversa em ordem limite.** Todo o resultado com custo
-  maker depende de você ser preenchido, e ordem limite perde justamente os
-  rompimentos bons. É a maior fonte de otimismo não medido. Backlog B6.
+| Documento | Para quê |
+|---|---|
+| [docs/QUANTO-RENDE.md](docs/QUANTO-RENDE.md) | a conta de payback e as projeções |
+| [docs/PROTECAO-RUINA.md](docs/PROTECAO-RUINA.md) | as travas de risco e o teste de ruína |
+| [docs/VIGILANCIA.md](docs/VIGILANCIA.md) | a varredura do mercado inteiro |
+| [docs/DELTA-NEUTRO.md](docs/DELTA-NEUTRO.md) | por que a estratégia é essa |
+| [docs/CRONOLOGIA.md](docs/CRONOLOGIA.md) | tudo, fase a fase |
+| [docs/O-QUE-FALHOU.md](docs/O-QUE-FALHOU.md) | o que foi testado e descartado |
 
 ---
 
-## Documentação
+## Regras permanentes deste projeto
 
-| Documento | Conteúdo |
-|---|---|
-| [README.md](README.md) | O que é o projeto, como usar, arquitetura |
-| [docs/PEDIDOS.md](docs/PEDIDOS.md) | Cada coisa que você pediu, com status |
-| [docs/EVOLUCAO.md](docs/EVOLUCAO.md) | Diário: cada descoberta e o que mudou por causa dela |
-| [docs/RESULTADOS.md](docs/RESULTADOS.md) | Todos os números medidos |
-| [docs/ESTRATEGIAS.md](docs/ESTRATEGIAS.md) | As 5 estratégias, regras exatas da tela |
-| [docs/MCP.md](docs/MCP.md) | trader.dev: como usar e o que não acreditar |
-| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Cada módulo e as decisões não óbvias |
-| [docs/BACKLOG.md](docs/BACKLOG.md) | O que falta, priorizado |
+1. **Nada vai para dinheiro real** sem 90 dias de paper trading.
+2. **Nada que remova trades lucrativos** entra em produção sem medição — só
+   documentado como experimento.
+3. **Um número que não sobrevive ao teste não é reportado como descoberta.** O
+   caso do "100% duraram menos de 2h" é o lembrete de por quê.

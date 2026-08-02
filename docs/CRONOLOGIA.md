@@ -486,10 +486,83 @@ vez.
 
 ---
 
+## Fase 15 — Proteção contra ruína, e dois erros do próprio teste
+
+O motor eliminava risco de preço e deixava o operacional descoberto: nenhum
+circuit breaker, nenhum piso, nenhuma trava de liquidação.
+
+A política saiu de uma assimetria de custo: transferir margem custa ~US$ 0,01,
+ser liquidado custa ~US$ 50. Mil vezes. Então transfere-se cedo e sempre, e isso
+não remove trade lucrativo nenhum — o dinheiro só muda de exchange.
+
+O teste de ruína (20 mil simulações) deu 99,97% de liquidação sem proteção
+contra 0,03% com ela, e a proteção **pagou** US$ 15,99 na mediana em vez de
+custar.
+
+Mas o teste errou duas vezes, e as duas foram achadas olhando resultados sem
+sentido físico:
+
+1. Fechar estava bloqueado por transferência em trânsito, produzindo um degrau
+   de 0,08% para 42,27% entre 20 e 40 min de latência.
+2. A margem era reconstruída a partir de um preço de referência resetado a cada
+   transferência. Com valor zero transferido, o reset apagava a deriva — e 8x e
+   10x apareciam **mais seguros** que 5x. O mesmo bug estava no motor.
+
+---
+
+## Fase 16 — Custódia e diluição
+
+O risco que a estrutura não cobre: metade do capital em cada exchange. Não há
+hedge, mas há **detectar** (saque suspenso aparece nos dados antes da notícia),
+**preferir** (exchange maior entre spreads parecidos) e **diluir**.
+
+A diluição exigiu descobrir que "três posições" não dilui nada por si só — as
+três poderiam usar as mesmas duas exchanges. Quem dilui é o **teto de 40% por
+exchange**. Concentração caiu de 50% para 33,7%.
+
+---
+
+## Fase 17 — O prejuízo, e as duas causas
+
+Nove horas de operação limpa: **−US$ 2,30**. Funding de US$ 0,17 contra US$ 2,48
+de custo. Oito posições, todas no vermelho, nenhuma exceção.
+
+**Primeira causa: os pares não invertiam, piscavam.** KAITO apareceu em 38 de 44
+varreduras, com buracos de uma e duas. A vigilância fechava o ciclo na primeira
+ausência e o motor lia isso como "spread inverteu".
+
+Isso contaminou mais que o resultado. A estatística que eu havia apresentado com
+confiança — *"100% duraram menos de 2h, perseguir não paga o custo"* — **media o
+bug, não o mercado.**
+
+**Segunda causa: não havia portão de payback.** Montar e desmontar custa
+`notional × taxa × 4`; cada funding rende `notional × spread`. O notional se
+cancela, então **alavancagem e capital não decidem se uma operação vale a pena.**
+Só taxa, spread e tempo de vida. A 35% de APR, uma posição precisa viver 2,1
+dias só para empatar — e elas viviam horas.
+
+O critério de seleção passou a ser valor esperado em dólares, substituindo a
+heurística `spread × consistência²`. Ordenação e portão passaram a usar a mesma
+grandeza.
+
+**E o maker, que eu tinha vendido como a solução, não é.** Modelado: ordem
+limite não garante execução, e uma perna sem a outra é posição direcional a 5x.
+Com 80% de preenchimento, 32% das tentativas terminam com perna solta, e o
+seguro come o desconto. Maker só compensa acima de 90% de preenchimento.
+
+---
+
 ## Estado atual
 
 **Nada aprovado para dinheiro real.** O portão de 90 dias de paper trading
 continua de pé.
+
+**Tudo parado** em 02/08/2026, a pedido, com capital intacto em US$ 100,00 e o
+motor barrando todas as candidatas por valor esperado negativo.
+
+**A medição limpa ainda não existe.** Tudo que o projeto mediu sobre duração de
+spread até 02/08/2026 media o bug do piscar. O relógio começa do zero na próxima
+execução.
 
 **Candidato principal:** `body-breakout` em 4h, agora com suporte de 8 de 12
 ativos numa varredura sistemática — não mais em 5 ativos escolhidos a dedo.

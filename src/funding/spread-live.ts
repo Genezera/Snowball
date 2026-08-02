@@ -83,8 +83,6 @@ export interface OpcoesSpread {
   spreadMinimo: number;
   /** dias mínimos antes de considerar troca */
   diasMinimos: number;
-  /** fração da margem que dispara transferência entre exchanges */
-  gatilhoTransferencia: number;
   /** piso absoluto de capital: abaixo disso o motor para de vez */
   pisoAbsoluto: number;
   /** fração do pico que o piso móvel acompanha (catraca) */
@@ -108,7 +106,9 @@ export const OPCOES_PADRAO: OpcoesSpread = {
   taxaPerp: 0.0005,
   spreadMinimo: 0.00002,
   diasMinimos: 3,
-  gatilhoTransferencia: 0.5,
+  // `gatilhoTransferencia` foi removido: disparava por fração de margem
+  // consumida, uma proxy que ignorava a margem de manutenção. Substituído pelos
+  // limiares de distância de liquidação em protecao.ts.
   // 80% do capital inicial. Perder 20% numa estrutura que não tem exposição a
   // preço significa que alguma premissa quebrou — não que o mercado andou.
   pisoAbsoluto: 80,
