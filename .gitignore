@@ -1,0 +1,27 @@
+# dependências
+node_modules/
+
+# séries de preço baixadas — 136 MB, reproduzíveis com `npm run download`
+data/
+
+# estado de execução: posições abertas, diários, logs
+spread/
+renda/
+paper/
+state/
+models/
+research/
+
+# relatórios gerados
+reports/
+
+# saídas temporárias de execução
+*.log
+*.txt
+!requirements.txt
+
+# segredos — nunca versionar
+.env
+.env.*
+*.key
+credentials.json

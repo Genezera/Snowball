@@ -1,0 +1,40 @@
+{
+  "name": "snowball",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Pesquisa quantitativa + execucao para estrategias de scalping, com validacao honesta antes de qualquer dinheiro real.",
+  "scripts": {
+    "download": "node src/cli/download.ts",
+    "backtest": "node src/cli/backtest.ts",
+    "validate": "node src/cli/validate.ts",
+    "optimize": "node src/cli/optimize.ts",
+    "ml": "node src/cli/ml.ts",
+    "capital": "node src/cli/capital.ts",
+    "team": "node src/cli/team.ts --equity 100",
+    "spread": "node src/cli/spread-live.ts --equity 100 --alavancagem 5",
+    "spread:scan": "node src/cli/spread.ts --equity 100 --alavancagem 5",
+    "spread:verificar": "node src/cli/verificar.ts --equity 100 --alavancagem 5",
+    "spread:maximizar": "node src/cli/maxdiario.ts --equity 100",
+    "projecao": "node src/cli/projecao.ts --equity 100 --aporte 100",
+    "paper": "node src/cli/paper.ts --equity 100",
+    "watch": "node src/cli/watch.ts",
+    "volml": "node src/cli/volml.ts",
+    "final": "node src/cli/final.ts --equity 100 --aporte 100",
+    "plan": "node src/cli/plan.ts --equity 100",
+    "portfolio": "node src/cli/portfolio.ts --equity 100 --concurrent 3",
+    "mine": "node tools/td-mine.mjs",
+    "scan": "node src/cli/scan.ts",
+    "pool": "node src/cli/pool.ts",
+    "adaptive": "node src/cli/adaptive.ts",
+    "stocks": "node src/cli/stocks.ts",
+    "live": "node src/cli/live.ts",
+    "mcp": "node src/mcp/server.ts",
+    "td:tools": "node tools/traderdev.mjs tools",
+    "td:screen": "node tools/td-screen.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "ccxt": "^4.5.70"
+  }
+}
