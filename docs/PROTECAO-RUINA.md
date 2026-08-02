@@ -212,12 +212,88 @@ em ordem melhor. Isso importa porque a projeção mostrou que reduzir rotação 
 
 ---
 
+## Risco de custódia
+
+Este é o único caminho conhecido para perda **total**, e merece seção própria.
+Metade do capital fica em cada exchange. Nenhuma das duas pernas protege contra
+a exchange congelar saque ou quebrar — delta-neutro protege contra o mercado,
+não contra a contraparte.
+
+Não existe hedge. Existem três coisas menores, e vale chamá-las pelo nome:
+
+| ação | o que faz | estado |
+|---|---|---|
+| **detectar** | congelamento aparece nos dados antes da notícia | ✅ implementado |
+| **preferir** | entre spreads parecidos, escolher exchange maior | ✅ implementado |
+| **diluir** | dividir entre mais exchanges reduz o dano por evento | ❌ exige múltiplas posições |
+
+### O que dá para ler sem chave de API
+
+Medido em 02/08/2026:
+
+| exchange | `fetchStatus` | saque de USDT público |
+|---|---|---|
+| binance | ✅ `status=ok` | ❌ exige chave |
+| bybit | ✅ `status=ok` | ❌ exige chave |
+| okx | ✅ `status=ok` | ❌ exige chave |
+| gate | ❌ ausente | ✅ saque em 21/24 redes |
+| bitget | ❌ ausente | ✅ saque em 12/12 redes |
+
+Cada exchange tem pelo menos um sinal. **Nenhuma tem os dois.** A cobertura é
+parcial, e o código admite isso em vez de fingir.
+
+### `ok` e `desconhecido` são coisas diferentes
+
+A distinção é o ponto do desenho. Um monitor que devolve "ok" quando na verdade
+não verificou nada é pior que não ter monitor — produz confiança sem base.
+
+Por isso `desconhecido` **não bloqueia**. Se bloqueasse, binance, bybit e okx
+sairiam do universo permanentemente, e o motor pararia por falta de informação
+em vez de por presença de risco.
+
+Bloqueia apenas `evacuar` (saque suspenso, ou menos de um terço das redes
+abertas) e `degradado` (status reportado como fora do ar).
+
+### Peso de custódia — desempate, não veredito
+
+```
+binance 0,10 · okx 0,15 · bybit 0,20 · bitget 0,35 · gate 0,35 · mexc 0,45
+```
+
+Isto **não** é avaliação de solvência — não há dado para isso. É ordenação
+grosseira por tamanho e tempo de mercado, usada só para desempatar. O risco de
+uma operação é a **média** dos dois pesos, porque metade do capital está em cada
+uma:
+
+| par | risco | pontuação ajustada (bruta 1,0) |
+|---|---|---|
+| binance→okx | 0,125 | 0,938 |
+| bybit→binance | 0,150 | 0,925 |
+| gate→bitget | 0,350 | 0,825 |
+
+O desconto é de 6% a 17% — reordena, não domina. E não elimina ninguém: a regra
+permanente do projeto proíbe remover trades lucrativos sem medição, e um peso
+grosseiro não é medição.
+
+### Evacuação
+
+Se a exchange onde a posição **está** for sinalizada, o motor fecha no ciclo
+seguinte, registrando `EVACUA <par> — <motivo>`. Custa US$ 0,50. É barato
+comparado a descobrir pela notícia.
+
+O monitor roda a cada 15 minutos (`npm run custodia`), persiste em
+`vigilancia/custodia.json`, e o motor trata dado com mais de 1 hora como
+ausência de dado — mesma regra da ponte da vigilância.
+
+---
+
 ## O que continua sem trava
 
-Nenhum código protege contra:
-
-- **Falência de exchange ou congelamento de saque.** Metade do capital está em
-  cada uma. O único mitigante é dividir entre mais exchanges — não implementado.
+- **Falência efetiva.** Detectar saque suspenso dá uma janela de evacuação, não
+  uma garantia. Uma quebra súbita não avisa.
+- **Concentração.** Com uma posição por vez, 50% do capital está em cada
+  exchange. Diluir exige múltiplas posições simultâneas em pares de exchanges
+  distintos — o próximo passo, não implementado.
 - **Gap sem negociação.** Se o preço salta sem livro no meio, não há como fechar
   no caminho.
 - **Falha de API.** O motor cego não protege nada.

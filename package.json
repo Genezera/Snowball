@@ -34,7 +34,8 @@
     "td:screen": "node tools/td-screen.mjs",
     "semanas": "node src/cli/semanas.ts --equity 100 --aporte 100 --weeks 8",
     "test": "node --test \"src/**/*.test.ts\"",
-    "ruina": "node src/cli/ruina.ts --equity 100 --alavancagem 5"
+    "ruina": "node src/cli/ruina.ts --equity 100 --alavancagem 5",
+    "custodia": "node src/cli/custodia.ts --intervalo 15"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

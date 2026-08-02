@@ -22,6 +22,7 @@ import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
 import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso } from './protecao.ts';
+import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 
 export interface PosicaoSpread {
   symbol: string;
@@ -231,6 +232,53 @@ export class MotorSpread {
       this.estado.fonteAnterior = fonte;
     }
     if (!ops.length) { this.log('nenhuma oportunidade agora'); return; }
+
+    // ── risco de custódia ───────────────────────────────────────────────
+    //
+    // O risco que a estrutura delta-neutra não cobre: metade do capital está em
+    // cada exchange, e nenhuma perna protege contra a exchange congelar saque.
+    //
+    // Duas ações, de peso muito diferente:
+    //   BLOQUEAR   exchange com saque suspenso sai do conjunto. Isso remove
+    //              oportunidade, e só se justifica porque a alternativa é
+    //              mandar dinheiro para dentro de algo que não devolve.
+    //   REORDENAR  entre spreads parecidos, prefere exchanges maiores. Não
+    //              elimina ninguém — só desempata.
+    //
+    // `desconhecido` NÃO bloqueia: binance, bybit e okx não expõem o estado do
+    // saque sem chave de API, e tratar isso como problema pararia o motor por
+    // falta de informação em vez de por presença de risco.
+    const saude = lerSaude();
+    if (Object.keys(saude).length) {
+      const antes = ops.length;
+      ops = ops.filter((o) => podeOperar(saude, o.exchangeShort, o.exchangeLong).pode);
+      if (ops.length < antes) {
+        this.log(`custódia: ${antes - ops.length} de ${antes} oportunidades bloqueadas por saúde de exchange`);
+      }
+      ops = [...ops].sort((a, b) =>
+        pontuacaoAjustada(b.pontuacao, b.exchangeShort, b.exchangeLong) -
+        pontuacaoAjustada(a.pontuacao, a.exchangeShort, a.exchangeLong));
+      if (!ops.length) { this.log('nenhuma oportunidade em exchange saudável'); return; }
+    }
+
+    // evacuação: a exchange onde o dinheiro ESTÁ foi sinalizada
+    if (this.estado.posicao) {
+      const p = this.estado.posicao;
+      const veredicto = podeOperar(saude, p.exchangeShort, p.exchangeLong);
+      if (Object.keys(saude).length && !veredicto.pode) {
+        const custoSaida = p.notionalPorPerna * this.o.taxaPerp * 2;
+        this.estado.capital -= custoSaida;
+        this.estado.custosTotal += custoSaida;
+        this.log(`EVACUA ${p.symbol.replace('/USDT:USDT', '')} — ${veredicto.motivo} · custo US$ ${custoSaida.toFixed(3)}`);
+        this.diario('fecha', {
+          symbol: p.symbol, motivo: 'custódia: ' + veredicto.motivo,
+          custo: custoSaida, fundingAcumulado: p.fundingAcumulado, capital: this.estado.capital,
+        });
+        this.estado.posicao = null;
+        this.salvar();
+        return;
+      }
+    }
 
     // ── sem posição: abre na melhor ─────────────────────────────────────
     if (!this.estado.posicao) {

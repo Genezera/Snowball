@@ -14,6 +14,7 @@ REM ---------------------------------------------------------------------------
 cd /d "%~dp0"
 
 start "Snowball Vigilancia" /min cmd /c run-vigilancia.cmd
+start "Snowball Custodia" /min cmd /c run-custodia.cmd
 timeout /t 25 /nobreak > nul
 start "Snowball Motor" /min cmd /c run-spread.cmd
 timeout /t 5 /nobreak > nul
