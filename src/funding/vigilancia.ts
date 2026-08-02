@@ -157,26 +157,58 @@ export async function observar(opts: {
 }
 
 /**
+ * Limite inferior do intervalo de Wilson para uma proporção.
+ *
+ * Responde "qual o menor valor de consistência que esta amostra sustenta com
+ * 95% de confiança", em vez de tomar a proporção observada ao pé da letra.
+ *
+ * Isto existe por causa de um caso real. MU entrou no ranking com consistência
+ * de 100% em TRÊS observações e venceu KAITO, que tinha 86% em seis. O motor
+ * montou MU, o par sumiu doze minutos depois, e a troca custou US$ 0,50 — mais
+ * de meia semana de renda no cenário central.
+ *
+ * Cem por cento de três amostras não é cem por cento; é ignorância. Wilson
+ * penaliza amostra pequena sem descartá-la, e converge para a proporção
+ * observada conforme as observações se acumulam. Com 3 de 3 devolve 0,44; com
+ * 30 de 30 devolve 0,88.
+ */
+export function consistenciaAjustada(consistencia: number, observacoes: number, z = 1.96): number {
+  const n = Math.max(1, observacoes);
+  const p = Math.min(1, Math.max(0, consistencia));
+  const z2n = z * z / n;
+  const centro = (p + z2n / 2) / (1 + z2n);
+  const margem = (z / (1 + z2n)) * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+  return Math.max(0, centro - margem);
+}
+
+/**
  * Ranking por qualidade sustentada, não por spread instantâneo.
  *
- * Exige um mínimo de observações: uma oportunidade vista uma vez pode ser
- * ruído de dado. E pondera pela consistência ao quadrado, pelo mesmo motivo de
- * sempre — para renda diária, receber sempre vale mais que receber muito às
- * vezes.
+ * Exige um mínimo de observações e pondera pela consistência ao quadrado —
+ * para renda semanal, receber sempre vale mais que receber muito às vezes.
+ *
+ * A consistência usada na pontuação é a AJUSTADA por tamanho de amostra. Sem
+ * isso, um par recém-descoberto com poucas observações perfeitas passa na
+ * frente de um par já provado, e o custo dessa troca é real.
  */
 export function ranking(estado: EstadoVigilancia, minObservacoes = 3): (CicloVida & {
   pontuacao: number;
   duracaoHoras: number;
   aprMedio: number;
+  consistenciaAjustada: number;
 })[] {
   return Object.values(estado.ciclos)
     .filter((c) => !c.fechadoEm && c.observacoes >= minObservacoes)
-    .map((c) => ({
-      ...c,
-      pontuacao: c.spreadMedio * c.consistencia ** 2,
-      duracaoHoras: (Date.now() - c.abertoEm) / 3_600_000,
-      aprMedio: c.spreadMedio * 3 * 365,
-    }))
+    .map((c) => {
+      const cAdj = consistenciaAjustada(c.consistencia, c.observacoes);
+      return {
+        ...c,
+        consistenciaAjustada: cAdj,
+        pontuacao: c.spreadMedio * cAdj ** 2,
+        duracaoHoras: (Date.now() - c.abertoEm) / 3_600_000,
+        aprMedio: c.spreadMedio * 3 * 365,
+      };
+    })
     .sort((a, b) => b.pontuacao - a.pontuacao);
 }
 

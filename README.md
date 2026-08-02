@@ -101,6 +101,7 @@ npm run team                # a equipe de módulos decisórios
 | [docs/DELTA-NEUTRO.md](docs/DELTA-NEUTRO.md) | a estratégia em operação hoje |
 | [docs/VIGILANCIA.md](docs/VIGILANCIA.md) | como o mercado inteiro é varrido e ranqueado |
 | [docs/QUANTO-RENDE.md](docs/QUANTO-RENDE.md) | projeção semana a semana, com o custo de rotação |
+| [docs/PROTECAO-RUINA.md](docs/PROTECAO-RUINA.md) | trava de liquidação, piso de capital e teste de ruína |
 | [docs/CRONOLOGIA.md](docs/CRONOLOGIA.md) | diário do projeto, fase a fase |
 | [docs/O-QUE-FALHOU.md](docs/O-QUE-FALHOU.md) | o que foi testado e descartado |
 | [docs/RESULTADOS.md](docs/RESULTADOS.md) | todos os números medidos |

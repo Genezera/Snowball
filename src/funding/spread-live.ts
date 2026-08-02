@@ -21,6 +21,7 @@ import ccxt from 'ccxt';
 import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
 import { lerVigilancia } from './ponte.ts';
+import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso } from './protecao.ts';
 
 export interface PosicaoSpread {
   symbol: string;
@@ -30,6 +31,11 @@ export interface PosicaoSpread {
   margemLong: number;
   notionalPorPerna: number;
   precoEntrada: number;
+  /**
+   * Preço lido no ciclo anterior — a base da contabilidade incremental de
+   * margem. Diferente de `precoEntrada`, que é histórico e nunca muda.
+   */
+  precoUltimo?: number;
   abertaEm: number;
   spreadNaEntrada: number;
   fundingAcumulado: number;
@@ -52,6 +58,12 @@ export interface EstadoSpread {
   semanas: { inicio: number; lucro: number }[];
   /** de onde veio a informação no último ciclo, para não repetir o log */
   fonteAnterior?: string;
+  /** maior capital já alcançado — base da catraca do piso móvel */
+  pico?: number;
+  /** true depois que o piso foi tocado: o motor não abre mais posição */
+  parado?: boolean;
+  /** quantas vezes fechou por proximidade de liquidação */
+  fechamentosEmergencia?: number;
 }
 
 export interface OpcoesSpread {
@@ -64,6 +76,10 @@ export interface OpcoesSpread {
   diasMinimos: number;
   /** fração da margem que dispara transferência entre exchanges */
   gatilhoTransferencia: number;
+  /** piso absoluto de capital: abaixo disso o motor para de vez */
+  pisoAbsoluto: number;
+  /** fração do pico que o piso móvel acompanha (catraca) */
+  fracaoPico: number;
 }
 
 export const OPCOES_PADRAO: OpcoesSpread = {
@@ -73,6 +89,11 @@ export const OPCOES_PADRAO: OpcoesSpread = {
   spreadMinimo: 0.00002,
   diasMinimos: 3,
   gatilhoTransferencia: 0.5,
+  // 80% do capital inicial. Perder 20% numa estrutura que não tem exposição a
+  // preço significa que alguma premissa quebrou — não que o mercado andou.
+  pisoAbsoluto: 80,
+  // aceito devolver 15% do melhor momento antes de parar
+  fracaoPico: 0.85,
 };
 
 export class MotorSpread {
@@ -138,6 +159,48 @@ export class MotorSpread {
   }
 
   async ciclo() {
+    // ── piso de capital: a catraca ──────────────────────────────────────
+    //
+    // Assimétrica de propósito. O piso sobe quando o capital sobe e nunca
+    // desce, então travar o lado de baixo não custa nada no lado de cima: o
+    // motor segue livre para compor enquanto estiver acima.
+    //
+    // O gatilho é `parado`, persistido no estado. Uma vez tocado o piso, o
+    // motor não volta sozinho — reiniciar o processo não o ressuscita. Isso é
+    // deliberado: se ele tocou o piso, alguma premissa quebrou, e a decisão de
+    // voltar é humana.
+    this.estado.pico = Math.max(this.estado.pico ?? this.estado.capitalInicial, this.estado.capital);
+    const pisoEstado = {
+      pico: this.estado.pico,
+      pisoAbsoluto: this.o.pisoAbsoluto,
+      fracaoPico: this.o.fracaoPico,
+    };
+    const vp = verificarPiso(pisoEstado, this.estado.capital);
+
+    if (this.estado.parado) {
+      this.log(`PARADO no piso — ${vp.motivo}. Para retomar, apague 'parado' de spread/estado.json.`);
+      return;
+    }
+
+    if (vp.parar) {
+      this.estado.parado = true;
+      // fecha o que estiver aberto antes de parar: deixar posição montada sem
+      // ninguém gerenciando margem é o pior estado possível
+      if (this.estado.posicao) {
+        const p = this.estado.posicao;
+        const custoSaida = p.notionalPorPerna * this.o.taxaPerp * 2;
+        this.estado.capital -= custoSaida;
+        this.estado.custosTotal += custoSaida;
+        this.log(`FECHA ${p.symbol.replace('/USDT:USDT', '')} — piso de capital atingido · custo US$ ${custoSaida.toFixed(3)}`);
+        this.diario('fecha', { symbol: p.symbol, motivo: 'piso de capital', custo: custoSaida, capital: this.estado.capital });
+        this.estado.posicao = null;
+      }
+      this.log(`MOTOR PARADO — ${vp.motivo}`);
+      this.diario('piso', { capital: this.estado.capital, piso: vp.piso, pico: this.estado.pico });
+      this.salvar();
+      return;
+    }
+
     // ── de onde vem a informação ────────────────────────────────────────
     //
     // A vigilância enxerga 3.492 pares do mercado inteiro e conhece o
@@ -212,6 +275,22 @@ export class MotorSpread {
     const precoAtual = await this.preco(pos.exchangeShort, pos.symbol);
     const variacao = precoAtual / pos.precoEntrada - 1;
 
+    // ── contabilidade INCREMENTAL de margem ────────────────────────────────
+    //
+    // A margem de cada perna acompanha o preço ciclo a ciclo. A versão anterior
+    // reconstruía a margem a partir de `precoEntrada` e RESETAVA essa referência
+    // a cada transferência — inclusive quando o valor transferido era zero.
+    //
+    // O teste de ruína expôs a consequência: a 8x, onde a posição já nasce
+    // dentro da faixa de alerta, o motor transferia zero e resetava a
+    // referência todo ciclo, apagando a deriva acumulada. No modelo isso
+    // aparecia como 8x e 10x sendo MAIS seguros que 5x. Aqui apareceria como
+    // uma posição que nunca chega perto da liquidação até chegar de uma vez.
+    const delta = pos.precoUltimo ? precoAtual / pos.precoUltimo - 1 : 0;
+    pos.margemShort -= pos.notionalPorPerna * delta;
+    pos.margemLong += pos.notionalPorPerna * delta;
+    pos.precoUltimo = precoAtual;
+
     // O ativo SUMIU da varredura — significa que o spread inverteu (a varredura
     // só devolve spreads positivos). Sem este bloco o motor ficaria preso numa
     // posição perdedora para sempre: não coletaria funding (porque `atual` é
@@ -256,24 +335,74 @@ export class MotorSpread {
       this.diario('funding', { symbol: pos.symbol, spread: atual.spread, ganho, capital: this.estado.capital });
     }
 
-    // desbalanceamento: o movimento consome margem de um lado
-    const perdaShort = pos.notionalPorPerna * variacao;
-    const margemShortRestante = pos.margemShort - perdaShort;
-    const fracao = margemShortRestante / pos.margemShort;
-    if (fracao < this.o.gatilhoTransferencia || fracao > 2 - this.o.gatilhoTransferencia) {
-      const transferir = Math.abs(perdaShort) / 2;
-      const custo = transferir * 0.0005;
+    // ── proteção: distância de liquidação de cada perna ────────────────────
+    //
+    // A regra antiga disparava por fração de margem consumida (50%), que é uma
+    // proxy. A distância de liquidação é a grandeza real, e ela depende da
+    // margem de manutenção — que a proxy ignorava.
+    //
+    // A política é transferir CEDO. A assimetria de custo decide: transferir
+    // custa centavos, ser liquidado custa a margem inteira de uma perna. E
+    // transferir não remove nenhum trade lucrativo — o dinheiro só muda de
+    // exchange, a posição segue montada e o funding segue entrando.
+    const mmr = mmrDe(pos.symbol);
+    // variação zero: o movimento já foi aplicado à margem lá em cima
+    const risco = avaliarRisco(pos.margemShort, pos.margemLong, pos.notionalPorPerna, 0, mmr);
+
+    if (risco.nivel === 'critico') {
+      // Não dá tempo de transferir: saque entre exchanges leva minutos e o
+      // ciclo é de 20. Fechar custa US$ 0,50 e evita perder ~US$ 50.
+      const custoSaida = pos.notionalPorPerna * this.o.taxaPerp * 2;
+      this.estado.capital -= custoSaida;
+      this.estado.custosTotal += custoSaida;
+      this.estado.fechamentosEmergencia = (this.estado.fechamentosEmergencia ?? 0) + 1;
+      this.log(
+        `FECHA ${pos.symbol.replace('/USDT:USDT', '')} — EMERGÊNCIA · perna ${risco.pernaEmRisco} a ` +
+        `${(risco.distanciaMinima * 100).toFixed(1)}% da liquidação · preço ${(variacao * 100).toFixed(1)}% ` +
+        `desde a entrada · custo US$ ${custoSaida.toFixed(3)}`,
+      );
+      this.diario('fecha', {
+        symbol: pos.symbol, motivo: 'proximidade de liquidação',
+        distanciaLiquidacao: risco.distanciaMinima, pernaEmRisco: risco.pernaEmRisco,
+        variacao, custo: custoSaida, fundingAcumulado: pos.fundingAcumulado, capital: this.estado.capital,
+      });
+      this.estado.posicao = null;
+      this.salvar();
+      return;
+    }
+
+    if (risco.nivel === 'alerta') {
+      const t = quantoTransferir(pos.margemShort, pos.margemLong);
+      // Transferir centavos custa taxa e não move a distância de liquidação. O
+      // caso em que isso importa é a posição NASCER dentro da faixa de alerta
+      // (acontece de 8x para cima): as margens já estão iguais, o valor a
+      // transferir é zero, e sem esta guarda o motor "agiria" todo ciclo sem
+      // mudar nada.
+      if (t.valor <= pos.notionalPorPerna * 0.001) {
+        this.log(
+          `ALERTA sem ação — distância de liquidação ${(risco.distanciaMinima * 100).toFixed(1)}% ` +
+          `com as pernas já equilibradas. A alavancagem é alta demais para o limiar.`,
+        );
+        this.salvar();
+        return;
+      }
+      const custo = t.valor * 0.0005;
       this.estado.capital -= custo;
       this.estado.custosTotal += custo;
       this.estado.transferencias++;
-      pos.margemShort = pos.margemShort - perdaShort + transferir;
-      pos.margemLong = pos.margemLong + perdaShort - transferir;
-      pos.precoEntrada = precoAtual;
+      // depois de igualar, as duas pernas voltam à distância máxima possível
+      const media = (pos.margemShort + pos.margemLong) / 2;
+      pos.margemShort = media;
+      pos.margemLong = media;
       this.log(
-        `TRANSFERE margem US$ ${transferir.toFixed(2)} entre exchanges · ` +
+        `TRANSFERE US$ ${t.valor.toFixed(2)} da perna ${t.de} · ` +
+        `distância de liquidação era ${(risco.distanciaMinima * 100).toFixed(1)}% · ` +
         `preço ${(variacao * 100).toFixed(1)}% desde a entrada · custo US$ ${custo.toFixed(4)}`,
       );
-      this.diario('transfere', { symbol: pos.symbol, transferido: transferir, variacao, custo });
+      this.diario('transfere', {
+        symbol: pos.symbol, transferido: t.valor, de: t.de,
+        distanciaLiquidacao: risco.distanciaMinima, variacao, custo,
+      });
     }
 
     // composição: o lucro vira notional novo
