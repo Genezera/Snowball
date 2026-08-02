@@ -35,7 +35,8 @@
     "semanas": "node src/cli/semanas.ts --equity 100 --aporte 100 --weeks 8",
     "test": "node --test \"src/**/*.test.ts\"",
     "ruina": "node src/cli/ruina.ts --equity 100 --alavancagem 5",
-    "custodia": "node src/cli/custodia.ts --intervalo 15"
+    "custodia": "node src/cli/custodia.ts --intervalo 15",
+    "execucao": "node src/cli/execucao.ts --notional 250"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

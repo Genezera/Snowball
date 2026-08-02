@@ -10,14 +10,18 @@ import { parseArgs, num } from './args.ts';
 const a = parseArgs();
 const capital = num(a.equity, 100);
 const alavancagem = num(a.alavancagem, 3);
-const intervalo = num(a.intervalo, 20) * 60_000;
+// 5 minutos, casando com o ciclo da vigilância. Antes eram 20, e o motor
+// podia demorar 20 min para agir sobre algo que a vigilância viu em 5.
+// Não custa nada: o ciclo é leitura de estado em disco mais um fetchTicker
+// por posição.
+const intervalo = num(a.intervalo, 5) * 60_000;
 // O piso absoluto acompanha o capital: fixá-lo em 80 tornaria a trava inócua
 // com US$ 500 e paralisante com US$ 50.
 const pisoAbsoluto = num(a.piso, capital * 0.8);
 const fracaoPico = num(a.fracaoPico, 0.85);
-// 0,05% é taxa de mercado (taker). Maker custa 0,02% e derruba o payback em
-// 2,5×, mas exige ordem limite — que pode não executar, e uma perna executada
-// sem a outra deixa a posição direcional. Não é troca de graça.
+// 0,05% é taker. Maker custa 0,02% no papel, mas `npm run execucao` mostrou que
+// o desconto só se realiza com preenchimento acima de 90%: a 90% empata, e
+// abaixo disso o seguro contra perna solta custa mais que a taxa economizada.
 const taxaPerp = num(a.taxa, 0.0005);
 const margemPayback = num(a.margemPayback, 1.5);
 

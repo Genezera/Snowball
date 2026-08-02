@@ -23,6 +23,7 @@ import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type Oportunid
 import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso } from './protecao.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
+import { avaliarValor, valorPorHora } from './valor.ts';
 
 export interface PosicaoSpread {
   symbol: string;
@@ -386,6 +387,15 @@ export class MotorSpread {
     const jaTenho = new Set(this.posicoes.map((p) => p.symbol));
     const alocacao = this.estado.capital / this.o.maxPosicoes;
     const d = dimensionarSpread(alocacao, this.o.alavancagem, this.o.taxaPerp);
+
+    // Ordena por valor esperado POR HORA de capital ocupado, não pela heurística
+    // `spread × consistência²`. Duas oportunidades com o mesmo lucro total não
+    // são equivalentes se uma leva o dobro do tempo: a mais rápida libera o
+    // capital para a próxima. Ordenação e portão passam a usar a mesma
+    // grandeza, então não existe o caso de a ordem discordar do filtro.
+    ops = [...ops].sort((a, b) =>
+      valorPorHora({ spread: b.spread, consistencia: b.consistencia, duracaoHoras: b.duracaoHoras ?? 0, notional: d.notionalPorPerna, taxa: this.o.taxaPerp }) -
+      valorPorHora({ spread: a.spread, consistencia: a.consistencia, duracaoHoras: a.duracaoHoras ?? 0, notional: d.notionalPorPerna, taxa: this.o.taxaPerp }));
     const limite = this.estado.capital * this.o.tetoPorExchange;
     let bloqueadasPorTeto = 0;
 
@@ -396,29 +406,27 @@ export class MotorSpread {
       if (jaTenho.has(melhor.symbol)) continue;
       if (melhor.spread < this.o.spreadMinimo) continue;
 
-      // ── PORTÃO DE PAYBACK ────────────────────────────────────────────
+      // ── PORTÃO DE VALOR ESPERADO ─────────────────────────────────────
       //
       // O portão que faltava, e cuja ausência custou US$ 2,30 em nove horas.
       //
-      // Montar e desmontar custa `notional × taxa × 4`. Cada pagamento de
-      // funding rende `notional × spread`, a cada 8 horas. O notional se
-      // cancela: o tempo de payback NÃO depende de alavancagem nem de capital,
-      // só da taxa e do spread.
+      //   valor = notional × spread × pagamentos(vida) − notional × taxa × 4
       //
-      //   35% de APR, taxa taker   →  2,1 dias para empatar
-      //   76% de APR, taxa taker   →  1,0 dia
+      // O notional multiplica os dois termos, então não muda o sinal — só a
+      // escala. Alavancagem e capital não decidem se vale a pena; só taxa,
+      // spread e tempo de vida.
       //
-      // O motor abria posições que precisavam de dois dias e fechava em horas.
-      // Todas as 8 fecharam no prejuízo: US$ 0,17 de funding contra US$ 2,48
-      // de custo. Nenhuma exceção — por isso este portão remove só perdedoras,
-      // e não fere a regra de nunca remover trade lucrativo.
-      //
-      // O estimador de vida restante é Lindy: um spread que já viveu T horas
-      // tende a viver mais T. É grosseiro, mas é conservador na direção certa
-      // e usa a única evidência disponível — quanto o par já durou.
-      const paybackHoras = (this.o.taxaPerp * 4 / melhor.spread) * 8;
-      const vividoHoras = melhor.duracaoHoras ?? 0;
-      if (vividoHoras < paybackHoras * this.o.margemPayback) {
+      // As 8 posições abertas antes deste portão fecharam TODAS no prejuízo:
+      // US$ 0,17 de funding contra US$ 2,48 de custo. Por isso ele remove só
+      // perdedoras, e não fere a regra de nunca remover trade lucrativo.
+      const v = avaliarValor({
+        spread: melhor.spread,
+        consistencia: melhor.consistencia,
+        duracaoHoras: melhor.duracaoHoras ?? 0,
+        notional: d.notionalPorPerna,
+        taxa: this.o.taxaPerp,
+      });
+      if (v.folga < this.o.margemPayback) {
         bloqueadasPorPayback++;
         continue;
       }
@@ -465,13 +473,19 @@ export class MotorSpread {
     // Não abrir é um resultado, não uma falha. Enquanto nenhum par tiver
     // vivido o próprio payback, ficar de fora é a decisão que rende mais.
     if (bloqueadasPorPayback && this.posicoes.length < this.o.maxPosicoes) {
-      const melhorBarrada = ops.find((o) => !jaTenho.has(o.symbol));
-      const detalhe = melhorBarrada
-        ? ` · melhor candidata ${melhorBarrada.symbol.replace('/USDT:USDT', '')} ` +
-          `vive há ${(melhorBarrada.duracaoHoras ?? 0).toFixed(1)}h e precisa de ` +
-          `${((this.o.taxaPerp * 4 / melhorBarrada.spread) * 8 * this.o.margemPayback).toFixed(1)}h`
-        : '';
-      this.log(`payback barrou ${bloqueadasPorPayback} candidatas${detalhe}`);
+      const b = ops.find((o) => !jaTenho.has(o.symbol));
+      let detalhe = '';
+      if (b) {
+        const v = avaliarValor({
+          spread: b.spread, consistencia: b.consistencia,
+          duracaoHoras: b.duracaoHoras ?? 0, notional: d.notionalPorPerna, taxa: this.o.taxaPerp,
+        });
+        detalhe =
+          ` · melhor candidata ${b.symbol.replace('/USDT:USDT', '')} · ` +
+          `vida esperada ${v.vidaEsperadaHoras.toFixed(1)}h contra payback de ${v.paybackHoras.toFixed(1)}h · ` +
+          `valor esperado ${v.valorEsperado >= 0 ? '+' : '−'}US$ ${Math.abs(v.valorEsperado).toFixed(3)}`;
+      }
+      this.log(`valor esperado barrou ${bloqueadasPorPayback} candidatas${detalhe}`);
     }
   }
 
