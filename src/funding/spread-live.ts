@@ -20,6 +20,7 @@ import path from 'node:path';
 import ccxt from 'ccxt';
 import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
+import { lerVigilancia } from './ponte.ts';
 
 export interface PosicaoSpread {
   symbol: string;
@@ -49,6 +50,8 @@ export interface EstadoSpread {
   caixaOcioso: number;
   ultimoCicloTs: number;
   semanas: { inicio: number; lucro: number }[];
+  /** de onde veio a informação no último ciclo, para não repetir o log */
+  fonteAnterior?: string;
 }
 
 export interface OpcoesSpread {
@@ -135,7 +138,35 @@ export class MotorSpread {
   }
 
   async ciclo() {
-    const ops = await varrerSpreads();
+    // ── de onde vem a informação ────────────────────────────────────────
+    //
+    // A vigilância enxerga 3.492 pares do mercado inteiro e conhece o
+    // histórico de cada oportunidade. A varredura própria do motor vê 32
+    // ativos escolhidos à mão e só o instante. Sempre que a vigilância estiver
+    // viva, ela manda — foi ela que encontrou KAITO a 36,2% enquanto o motor
+    // operava SEI a 19,5% sem ter como saber.
+    //
+    // Quando a vigilância morre, o motor NÃO cai para o dado velho dela — cai
+    // para a própria varredura, que é estreita mas fresca. Decidir com
+    // informação de meia hora atrás é pior que decidir com informação limitada.
+    const v = lerVigilancia(3);
+    let ops: OportunidadeSpread[];
+    let fonte: string;
+
+    if (v.disponivel && v.oportunidades.length) {
+      ops = v.oportunidades;
+      fonte = `vigilância · ${v.varreduras} varreduras · dado de ${v.idadeMinutos.toFixed(0)} min · ${v.oportunidades.length} candidatos`;
+    } else {
+      ops = await varrerSpreads();
+      fonte = v.disponivel
+        ? `varredura própria · vigilância viva mas sem candidato firme (${v.motivo})`
+        : `varredura própria · ${v.motivo}`;
+    }
+
+    if (this.estado.fonteAnterior !== fonte) {
+      this.log(`fonte: ${fonte}`);
+      this.estado.fonteAnterior = fonte;
+    }
     if (!ops.length) { this.log('nenhuma oportunidade agora'); return; }
 
     // ── sem posição: abre na melhor ─────────────────────────────────────

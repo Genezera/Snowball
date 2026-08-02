@@ -329,8 +329,11 @@ async function tick(){
   const sem=(e.semanas||[]).filter(w=>w.lucro!==0), semPos=sem.filter(w=>w.lucro>0).length;
   const curva=d.curva||[], vals=curva.map(x=>x.capital);
 
+  const vg=d.vigilancia||{};
   document.getElementById('sub').textContent='dia '+dias.toFixed(1)+' · atualizado '+hm(d.atualizadoEm)
-    +(d.idadeVarreduraMin>=0?' · varredura há '+d.idadeVarreduraMin+' min':' · varrendo');
+    +(d.idadeVarreduraMin>=0?' · dado de '+d.idadeVarreduraMin+' min':' · varrendo')
+    +(vg.fonte?' · '+vg.fonte:'')
+    +(vg.viva?' · '+vg.varreduras+' varreduras · '+vg.vivas+' spreads vivos':'');
   document.getElementById('pill').textContent=e.posicao
     ?'operando '+e.posicao.symbol.replace('/USDT:USDT','')+' · exposição zero':'sem posição · exposição zero';
 
@@ -382,8 +385,8 @@ async function tick(){
 
   const sc=d.scan||[];
   document.getElementById('scanNota').textContent=sc.length
-    ?sc.length+' pares · ordenados por spread médio × consistência²'
-    :(d.varrendo?'varrendo 10 exchanges × 32 ativos…':'aguardando varredura');
+    ?sc.length+' pares · ordenados por spread médio × consistência² · '+(vg.fonte||'')
+    :(vg.motivo||(d.varrendo?'varrendo exchanges…':'aguardando varredura'));
   document.getElementById('scan').innerHTML=sc.length?sc.map(s=>{
     const on=e.posicao&&e.posicao.symbol===s.symbol, c=s.consistencia*100;
     return '<tr class="'+(on?'on':'')+'">'

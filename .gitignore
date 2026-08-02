@@ -6,6 +6,7 @@ data/
 
 # estado de execução: posições abertas, diários, logs
 spread/
+vigilancia/
 renda/
 paper/
 state/

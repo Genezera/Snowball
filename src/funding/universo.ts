@@ -1,0 +1,205 @@
+/**
+ * VARREDURA DO MERCADO INTEIRO.
+ *
+ * A versão anterior escaneava 32 ativos escolhidos à mão, com uma requisição
+ * por par por exchange — 320 chamadas para enxergar uma fração do mercado.
+ *
+ * A descoberta que destrava tudo: seis das oito exchanges expõem
+ * `fetchFundingRates()` sem argumento, devolvendo o funding de TODOS os pares
+ * numa única requisição.
+ *
+ *   binanceusdm  854 pares em 0,3s
+ *   gate         857 pares em 1,2s
+ *   bybit        783 pares em 1,5s
+ *   bitget       733 pares em 0,8s
+ *   okx          536 pares em 0,5s
+ *
+ * 3.763 pares em menos de 5 segundos, contra 320 chamadas para ver 32 ativos.
+ * O universo inteiro passa a caber num ciclo, e não numa amostra escolhida por
+ * mim — que era exatamente o viés que limitava o projeto.
+ *
+ * As duas que não suportam (kucoinfutures, mexc) ficam de fora da varredura
+ * ampla. Perder duas exchanges é barato demais diante de ganhar o mercado.
+ */
+import ccxt from 'ccxt';
+
+/** Exchanges com endpoint em massa — as únicas que entram na varredura ampla. */
+export const EXCHANGES_MASSA = ['binanceusdm', 'bybit', 'okx', 'gate', 'bitget'];
+
+export interface ParUniverso {
+  symbol: string;
+  exchange: string;
+  funding: number;
+  /** intervalo de funding em horas, quando a exchange informa */
+  intervaloHoras: number;
+  volume24h: number;
+  marca: number;
+}
+
+export interface OportunidadeUniverso {
+  symbol: string;
+  exchangeShort: string;
+  exchangeLong: string;
+  fundingShort: number;
+  fundingLong: number;
+  spread: number;
+  aprSpread: number;
+  /** em quantas exchanges o ativo existe — mais pontas, mais robusto */
+  presencaEm: number;
+  volumeMinimo: number;
+  /** diferença de preço entre as pontas, em fração — risco de base */
+  desvioPreco: number;
+}
+
+const pool = new Map<string, { ex: any; ts: number }>();
+const VALIDADE = 60 * 60_000;
+
+async function ex(id: string): Promise<any> {
+  const c = pool.get(id);
+  if (c && Date.now() - c.ts < VALIDADE) return c.ex;
+  const e = c?.ex ?? new (ccxt as any)[id]({ enableRateLimit: true });
+  await e.loadMarkets(c ? true : undefined);
+  pool.set(id, { ex: e, ts: Date.now() });
+  return e;
+}
+
+/**
+ * Lê o funding de TODOS os pares de todas as exchanges com endpoint em massa.
+ *
+ * Uma requisição por exchange. O resultado é o mercado inteiro, não uma amostra.
+ */
+export async function lerUniverso(opts: {
+  onProgresso?: (ex: string, n: number, ms: number) => void;
+} = {}): Promise<ParUniverso[]> {
+  const todos: ParUniverso[] = [];
+
+  await Promise.all(EXCHANGES_MASSA.map(async (id) => {
+    const t0 = Date.now();
+    try {
+      const e = await ex(id);
+      // O `fetchTickers` de algumas exchanges é lento e às vezes trava. Quando
+      // ele derruba a chamada inteira, a exchange devolve zero pares — foi o
+      // que aconteceu com a bybit, que sumiu da varredura por 10,8s de espera.
+      // O funding é obrigatório; o ticker é complemento e não pode derrubar.
+      const taxas = await e.fetchFundingRates();
+      const tickers = await Promise.race([
+        e.fetchTickers().catch(() => ({})),
+        new Promise((r) => setTimeout(() => r({}), 8000)),
+      ]) as Record<string, any>;
+      let n = 0;
+      for (const [sym, fr] of Object.entries<any>(taxas)) {
+        if (fr?.fundingRate == null) continue;
+        // só perpétuos com cotação em USDT: são os comparáveis entre exchanges
+        if (!sym.endsWith('/USDT:USDT')) continue;
+        const t: any = (tickers as any)[sym] ?? {};
+        const vol = t.quoteVolume ?? (t.baseVolume && t.last ? t.baseVolume * t.last : 0) ?? 0;
+        todos.push({
+          symbol: sym, exchange: id, funding: fr.fundingRate,
+          intervaloHoras: fr.interval ? Number(String(fr.interval).replace(/\D/g, '')) || 8 : 8,
+          volume24h: Number(vol) || 0,
+          marca: fr.markPrice ?? t.last ?? 0,
+        });
+        n++;
+      }
+      opts.onProgresso?.(id, n, Date.now() - t0);
+    } catch {
+      opts.onProgresso?.(id, 0, Date.now() - t0);
+    }
+  }));
+
+  return todos;
+}
+
+/**
+ * Cruza o universo inteiro procurando spreads.
+ *
+ * Para cada ativo presente em duas ou mais exchanges, compara a ponta que paga
+ * mais com a que paga menos. Com ~3.700 pares e centenas de ativos em comum,
+ * isso gera um espaço de oportunidades muito maior que os 32 ativos anteriores.
+ *
+ * `desvioPreco` mede quanto os preços de marca divergem entre as pontas. Um
+ * spread de funding alto acompanhado de preços muito diferentes não é
+ * oportunidade — é sinal de que um dos lados está com problema de liquidez ou
+ * de dado.
+ */
+export function cruzarUniverso(
+  pares: ParUniverso[],
+  filtro: { volumeMinimo?: number; spreadMinimo?: number; desvioPrecoMax?: number } = {},
+): OportunidadeUniverso[] {
+  const volMin = filtro.volumeMinimo ?? 5e6;
+  const spMin = filtro.spreadMinimo ?? 0.00002;
+  const devMax = filtro.desvioPrecoMax ?? 0.01;
+
+  const porAtivo = new Map<string, ParUniverso[]>();
+  for (const p of pares) {
+    if (!porAtivo.has(p.symbol)) porAtivo.set(p.symbol, []);
+    porAtivo.get(p.symbol)!.push(p);
+  }
+
+  const ops: OportunidadeUniverso[] = [];
+  for (const [sym, lista] of porAtivo) {
+    if (lista.length < 2) continue;
+
+    // normaliza o funding para base de 8h — algumas exchanges usam 4h em
+    // certos pares, e comparar sem normalizar infla o spread artificialmente
+    const norm = lista.map((p) => ({ ...p, f8h: p.funding * (8 / (p.intervaloHoras || 8)) }));
+    norm.sort((a, b) => b.f8h - a.f8h);
+    const alto = norm[0], baixo = norm[norm.length - 1];
+    const spread = alto.f8h - baixo.f8h;
+    if (spread < spMin) continue;
+
+    // LIQUIDEZ OBRIGATÓRIA NAS DUAS PONTAS.
+    //
+    // A versão anterior tratava volume zero como "não sei" e deixava passar.
+    // Isso funcionava quando o universo eram 32 majors escolhidos à mão — todos
+    // líquidos por construção. Varrendo o mercado inteiro, a tolerância deixou
+    // passar tudo: o topo do ranking virou ERA a 482% de APR, SNOW a 337%,
+    // BANK a 318%, todos com liquidez zero.
+    //
+    // Spread altíssimo em par que ninguém negocia não é oportunidade — é a
+    // ausência de arbitradores, e o motivo dela é que não dá para executar.
+    // Sem volume confirmado nas DUAS pontas, o par não entra.
+    const volMinimo = Math.min(alto.volume24h, baixo.volume24h);
+    if (volMinimo < volMin) continue;
+
+    const desvio = alto.marca > 0 && baixo.marca > 0
+      ? Math.abs(alto.marca / baixo.marca - 1) : 0;
+    if (desvio > devMax) continue;
+
+    ops.push({
+      symbol: sym, exchangeShort: alto.exchange, exchangeLong: baixo.exchange,
+      fundingShort: alto.f8h, fundingLong: baixo.f8h, spread,
+      aprSpread: spread * 3 * 365, presencaEm: lista.length,
+      volumeMinimo: volMinimo, desvioPreco: desvio,
+    });
+  }
+
+  return ops.sort((a, b) => b.spread - a.spread);
+}
+
+/**
+ * Estatísticas da varredura, para saber o que está sendo visto e o que é
+ * descartado. Sem isso não dá para saber se um filtro está cortando demais.
+ */
+export function estatisticas(pares: ParUniverso[], ops: OportunidadeUniverso[]): {
+  paresLidos: number;
+  exchangesAtivas: number;
+  ativosUnicos: number;
+  ativosEmDuasOuMais: number;
+  oportunidades: number;
+  melhorApr: number;
+  medianaApr: number;
+} {
+  const ativos = new Map<string, number>();
+  for (const p of pares) ativos.set(p.symbol, (ativos.get(p.symbol) ?? 0) + 1);
+  const aprs = ops.map((o) => o.aprSpread).sort((a, b) => a - b);
+  return {
+    paresLidos: pares.length,
+    exchangesAtivas: new Set(pares.map((p) => p.exchange)).size,
+    ativosUnicos: ativos.size,
+    ativosEmDuasOuMais: [...ativos.values()].filter((n) => n >= 2).length,
+    oportunidades: ops.length,
+    melhorApr: aprs.length ? aprs[aprs.length - 1] : 0,
+    medianaApr: aprs.length ? aprs[Math.floor(aprs.length / 2)] : 0,
+  };
+}

@@ -400,6 +400,92 @@ números plausíveis é mais perigoso que um que quebra.
 
 ---
 
+## Fase 12 — O pivô delta-neutro
+
+O pedido tinha ficado impossível de contornar: **lucro toda semana**. Direcional
+não entrega isso. Medido, o melhor candidato dava 45,1% de semanas positivas com
+a semana mediana negativa. Não é um defeito da estratégia, é o que significa
+prever preço: a distribuição tem cauda dos dois lados.
+
+A saída foi trocar a natureza da fonte de retorno. Em vez de **prever** um preço,
+**cobrar** um pagamento contratual: arbitragem de taxa de financiamento, duas
+pernas que se cancelam em preço, vendida onde o funding é alto e comprada onde é
+baixo. Exposição ao preço: zero.
+
+Medido em 180 dias: **48 de 48 semanas positivas**. Não porque acertou, mas
+porque não tentou acertar.
+
+A progressão do motor de renda:
+
+| versão | estrutura | renda semanal |
+|--------|-----------|---------------|
+| spot + perp 3x | uma exchange | US$ 0,298 |
+| spread entre exchanges | duas pernas de perpétuo | US$ 0,383 |
+| 10 exchanges | mais pares candidatos | US$ 1,28 |
+| 5x de alavancagem | mesma estrutura, mais notional | US$ 2,11 |
+
+Isso consolidou o padrão que atravessa o projeto inteiro: **prever falhou 3 de 3
+vezes, reagir funcionou 3 de 3.**
+
+---
+
+## Fase 13 — O mercado inteiro
+
+Mesmo com o motor delta-neutro rodando, ele decidia entre **32 ativos que eu
+tinha escolhido à mão**. Enquanto operava SEI a 19,5% de APR, KAITO pagava 36,2%
+e o motor não tinha como descobrir.
+
+O pedido:
+
+> "o mercado é completamente vasto, voce não consegue encontrar, ou ficar
+> procurando e analisando recursivamente o mercado inteiro... deve ser oportunista
+> o projeto"
+
+A descoberta que destravou: as exchanges expõem **endpoints em massa**. Ler o
+funding do mercado inteiro custa duas requisições por exchange, não uma por par.
+**3.492 pares em 5 exchanges, em 13,8 s** — mais rápido que a varredura antiga de
+32 ativos, que buscava histórico par a par e levava minutos.
+
+Três coisas quebraram no caminho e cada uma ensinou algo:
+
+1. **O filtro de liquidez deixava passar volume zero.** O topo do ranking virou
+   pares com US$ 0 de liquidez e 482% de APR. Corrigido exigindo volume nas
+   **duas** pernas — a liquidez de uma operação de duas pernas é a da perna pior.
+2. **A bybit travava no `fetchTickers()`** e zerava a exchange inteira. Resolvido
+   com `Promise.race` de 8 s: perde o volume naquele ciclo, mantém o funding.
+3. **A foto instantânea engana.** SKHY apareceu com 41,6% — o melhor do ranking —
+   e abriu, fechou e reabriu em quatro minutos.
+
+O item 3 mudou o critério de decisão. A vigilância deixou de guardar a foto e
+passou a guardar o **ciclo de vida** de cada oportunidade, ranqueando por
+`spread médio × consistência²`. O quadrado é deliberado: um spread que aparece
+metade das vezes vale um quarto de um que sempre aparece. SKHY, com 41,6% e 40%
+de consistência, perde para KAITO com 36,2% e 80%. É o comportamento correto.
+
+Detalhes em [VIGILANCIA.md](VIGILANCIA.md).
+
+---
+
+## Fase 14 — Ligando os olhos às mãos
+
+Vigilância e motor eram dois processos cegos um para o outro. A ligação é um
+arquivo em disco, não uma chamada — e a escolha é de segurança, não de
+elegância: se a vigilância morrer, o motor percebe pela **idade do dado**. Acima
+de 20 minutos ele recusa o ranking e cai para a própria varredura estreita, que é
+pior mas é fresca. Operar às cegas com informação velha é o pior dos dois mundos.
+
+O primeiro ciclo com a ponte ligada:
+
+```
+[18:57:11] fonte: vigilância · 4 varreduras · dado de 1 min · 1 candidatos
+[18:57:14] FECHA SEI — spread INVERTEU (sumiu da varredura)
+```
+
+O motor largou SEI no mesmo ciclo em que enxergou o mercado inteiro pela primeira
+vez.
+
+---
+
 ## Estado atual
 
 **Nada aprovado para dinheiro real.** O portão de 90 dias de paper trading

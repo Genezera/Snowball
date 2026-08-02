@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from '../data/store.ts';
 import { varrerSpreads, type OportunidadeSpread } from '../funding/spread.ts';
+import { lerVigilancia, saudeVigilancia } from '../funding/ponte.ts';
 import { PAGINA } from './pagina.ts';
 
 const PORTA = Number(process.env.PORTA ?? 8787);
@@ -72,7 +73,13 @@ const servidor = http.createServer(async (req, res) => {
   if (url.pathname === '/api/dados') {
     const estado = lerEstado();
     const diario = lerDiario();
-    const scan = cacheVarredura.dados;
+    // Mesma regra do motor: o ranking da vigilância manda, a varredura própria
+    // é só rede de segurança. Assim o painel mostra exatamente o que o motor
+    // está vendo, em vez de uma segunda opinião que confundiria.
+    const vig = lerVigilancia(3);
+    const saudeVig = saudeVigilancia();
+    const usandoVigilancia = vig.disponivel && vig.oportunidades.length > 0;
+    const scan = usandoVigilancia ? vig.oportunidades : cacheVarredura.dados;
 
     // série de capital ao longo do tempo, montada a partir do diário
     const curva: { ts: number; capital: number }[] = [];
@@ -94,8 +101,16 @@ const servidor = http.createServer(async (req, res) => {
       pagamentosPorDia: [...porDia].map(([dia, total]) => ({ dia, total })),
       scan: scan.slice(0, 15),
       atualizadoEm: Date.now(),
-      idadeVarreduraMin: cacheVarredura.ts ? Math.round((Date.now() - cacheVarredura.ts) / 60000) : -1,
+      idadeVarreduraMin: usandoVigilancia
+        ? Math.round(vig.idadeMinutos)
+        : (cacheVarredura.ts ? Math.round((Date.now() - cacheVarredura.ts) / 60000) : -1),
       varrendo: cacheVarredura.rodando,
+      vigilancia: {
+        ...saudeVig,
+        fonte: usandoVigilancia ? 'vigilância · mercado inteiro' : 'varredura própria · 32 ativos',
+        motivo: vig.motivo,
+        candidatos: vig.oportunidades.length,
+      },
     }));
     return;
   }

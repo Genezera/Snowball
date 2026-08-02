@@ -37,6 +37,11 @@ Medição sobre 3.000 leituras reais, 180 dias: **100% das semanas positivas**
 
 Documentação completa em [docs/DELTA-NEUTRO.md](docs/DELTA-NEUTRO.md).
 
+O alvo não é escolhido de uma lista fixa. Uma **vigilância contínua** varre
+3.492 pares em 5 exchanges a cada 5 minutos, guarda o ciclo de vida de cada
+oportunidade e ranqueia por qualidade sustentada — `spread médio × consistência²`
+— em vez de spread instantâneo. Ver [docs/VIGILANCIA.md](docs/VIGILANCIA.md).
+
 ---
 
 ## Como rodar
@@ -47,19 +52,26 @@ Requer Node.js 22+ (usa o suporte nativo a TypeScript, sem etapa de build).
 npm install
 ```
 
-### Motor de renda + dashboard
+### Tudo de uma vez (recomendado)
 
 ```bash
-npm run spread                  # motor 24h, US$ 100, 5x
-node src/dashboard/server.ts    # painel em http://localhost:8787
+run-tudo.cmd
 ```
 
-Ou supervisionados com reinício automático:
+Sobe os três processos na ordem certa — vigilância, motor, dashboard — cada um
+com seu supervisor. A ordem importa: a vigilância precisa estar no ar antes do
+motor, senão o primeiro ciclo dele cai para a varredura estreita.
+
+### Ou separadamente
 
 ```bash
-run-spread.cmd
-run-dashboard.cmd
+node src/cli/vigilancia.ts --equity 100 --intervalo 5   # varre o mercado inteiro
+npm run spread                                          # motor 24h, US$ 100, 5x
+node src/dashboard/server.ts                            # painel em :8787
 ```
+
+Supervisionados com reinício automático: `run-vigilancia.cmd`, `run-spread.cmd`,
+`run-dashboard.cmd`.
 
 ### Análise
 
@@ -87,6 +99,7 @@ npm run team                # a equipe de módulos decisórios
 |---|---|
 | [COMECE-AQUI.md](COMECE-AQUI.md) | resumo em uma página |
 | [docs/DELTA-NEUTRO.md](docs/DELTA-NEUTRO.md) | a estratégia em operação hoje |
+| [docs/VIGILANCIA.md](docs/VIGILANCIA.md) | como o mercado inteiro é varrido e ranqueado |
 | [docs/CRONOLOGIA.md](docs/CRONOLOGIA.md) | diário do projeto, fase a fase |
 | [docs/O-QUE-FALHOU.md](docs/O-QUE-FALHOU.md) | o que foi testado e descartado |
 | [docs/RESULTADOS.md](docs/RESULTADOS.md) | todos os números medidos |
