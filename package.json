@@ -31,7 +31,8 @@
     "live": "node src/cli/live.ts",
     "mcp": "node src/mcp/server.ts",
     "td:tools": "node tools/traderdev.mjs tools",
-    "td:screen": "node tools/td-screen.mjs"
+    "td:screen": "node tools/td-screen.mjs",
+    "semanas": "node src/cli/semanas.ts --equity 100 --aporte 100 --weeks 8"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

@@ -44,6 +44,11 @@ let cacheVarredura: { ts: number; dados: OportunidadeSpread[]; rodando: boolean 
 
 async function atualizarVarredura() {
   if (cacheVarredura.rodando) return;
+  // Se a vigilância está viva, esta varredura é redundante — e cara: carrega os
+  // mercados de 10 exchanges só para produzir uma segunda opinião que a página
+  // nem mostra. Ela existe apenas como rede de segurança para quando a
+  // vigilância cair.
+  if (saudeVigilancia().viva) return;
   cacheVarredura.rodando = true;
   try {
     const dados = await varrerSpreads();
@@ -125,7 +130,7 @@ servidor.listen(PORTA, () => {
   console.log(`${'='.repeat(70)}\n`);
   console.log(`  Abra no navegador:  http://localhost:${PORTA}\n`);
   console.log(`  A página atualiza sozinha a cada 5 segundos.`);
-  console.log(`  A varredura das exchanges roda em background a cada 10 minutos.\n`);
+  console.log(`  A vigilância é a fonte. A varredura própria só roda se ela cair.\n`);
   // dispara a primeira varredura sem bloquear ninguém
   void atualizarVarredura();
   setInterval(() => void atualizarVarredura(), 10 * 60_000);
