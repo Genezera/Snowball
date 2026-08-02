@@ -40,6 +40,8 @@ export interface PosicaoSpread {
   abertaEm: number;
   /** último funding coletado NESTA posição — global quebraria com várias */
   ultimoFundingTs?: number;
+  /** ciclos seguidos em que o par não apareceu no ranking */
+  faltasSeguidas?: number;
   spreadNaEntrada: number;
   fundingAcumulado: number;
   pagamentos: number;
@@ -86,6 +88,13 @@ export interface OpcoesSpread {
   pisoAbsoluto: number;
   /** fração do pico que o piso móvel acompanha (catraca) */
   fracaoPico: number;
+  /**
+   * Margem de segurança no portão de payback.
+   *
+   * 1,0 exige que o par já tenha vivido exatamente o tempo do próprio payback.
+   * 1,5 exige 50% a mais, porque empatar não é o objetivo.
+   */
+  margemPayback: number;
   /** quantas posições simultâneas, em pares de exchanges distintos */
   maxPosicoes: number;
   /** fração máxima do capital que pode ficar numa única exchange */
@@ -104,6 +113,7 @@ export const OPCOES_PADRAO: OpcoesSpread = {
   pisoAbsoluto: 80,
   // aceito devolver 15% do melhor momento antes de parar
   fracaoPico: 0.85,
+  margemPayback: 1.5,
   // Três posições é o ponto onde a diluição compensa o custo. Com uma só, 50%
   // do capital fica em cada exchange. Com três e o teto abaixo, a exposição
   // máxima cai para ~33%. Mais que três divide o capital em pedaços pequenos
@@ -379,10 +389,39 @@ export class MotorSpread {
     const limite = this.estado.capital * this.o.tetoPorExchange;
     let bloqueadasPorTeto = 0;
 
+    let bloqueadasPorPayback = 0;
+
     for (const melhor of ops) {
       if (this.posicoes.length >= this.o.maxPosicoes) break;
       if (jaTenho.has(melhor.symbol)) continue;
       if (melhor.spread < this.o.spreadMinimo) continue;
+
+      // ── PORTÃO DE PAYBACK ────────────────────────────────────────────
+      //
+      // O portão que faltava, e cuja ausência custou US$ 2,30 em nove horas.
+      //
+      // Montar e desmontar custa `notional × taxa × 4`. Cada pagamento de
+      // funding rende `notional × spread`, a cada 8 horas. O notional se
+      // cancela: o tempo de payback NÃO depende de alavancagem nem de capital,
+      // só da taxa e do spread.
+      //
+      //   35% de APR, taxa taker   →  2,1 dias para empatar
+      //   76% de APR, taxa taker   →  1,0 dia
+      //
+      // O motor abria posições que precisavam de dois dias e fechava em horas.
+      // Todas as 8 fecharam no prejuízo: US$ 0,17 de funding contra US$ 2,48
+      // de custo. Nenhuma exceção — por isso este portão remove só perdedoras,
+      // e não fere a regra de nunca remover trade lucrativo.
+      //
+      // O estimador de vida restante é Lindy: um spread que já viveu T horas
+      // tende a viver mais T. É grosseiro, mas é conservador na direção certa
+      // e usa a única evidência disponível — quanto o par já durou.
+      const paybackHoras = (this.o.taxaPerp * 4 / melhor.spread) * 8;
+      const vividoHoras = melhor.duracaoHoras ?? 0;
+      if (vividoHoras < paybackHoras * this.o.margemPayback) {
+        bloqueadasPorPayback++;
+        continue;
+      }
 
       const exp = this.exposicaoPorExchange();
       const estouraria = [melhor.exchangeShort, melhor.exchangeLong]
@@ -421,6 +460,18 @@ export class MotorSpread {
         `teto de exposição barrou ${bloqueadasPorTeto} candidatas · ` +
         `concentração atual ${(c.fracao * 100).toFixed(0)}% em ${c.exchange} · limite ${(this.o.tetoPorExchange * 100).toFixed(0)}%`,
       );
+    }
+
+    // Não abrir é um resultado, não uma falha. Enquanto nenhum par tiver
+    // vivido o próprio payback, ficar de fora é a decisão que rende mais.
+    if (bloqueadasPorPayback && this.posicoes.length < this.o.maxPosicoes) {
+      const melhorBarrada = ops.find((o) => !jaTenho.has(o.symbol));
+      const detalhe = melhorBarrada
+        ? ` · melhor candidata ${melhorBarrada.symbol.replace('/USDT:USDT', '')} ` +
+          `vive há ${(melhorBarrada.duracaoHoras ?? 0).toFixed(1)}h e precisa de ` +
+          `${((this.o.taxaPerp * 4 / melhorBarrada.spread) * 8 * this.o.margemPayback).toFixed(1)}h`
+        : '';
+      this.log(`payback barrou ${bloqueadasPorPayback} candidatas${detalhe}`);
     }
   }
 
@@ -501,10 +552,26 @@ export class MotorSpread {
     // Quando o spread inverte, quem estava recebendo passa a PAGAR. Fechar é
     // urgente e não deve esperar os dias mínimos.
     if (!atual) {
+      // Segunda linha de defesa contra o mesmo erro que custou US$ 2,30: a
+      // vigilância já tolera 3 faltas, mas ela pode reiniciar e perder estado,
+      // e aí todo par volta a ter zero observações e some do ranking.
+      //
+      // Fechar na primeira ausência confunde "não vi" com "acabou". Duas
+      // ausências seguidas do motor são 40 minutos — tempo suficiente para
+      // distinguir um buraco de leitura de um spread que morreu.
+      pos.faltasSeguidas = (pos.faltasSeguidas ?? 0) + 1;
+      if (pos.faltasSeguidas < 2) {
+        this.log(
+          `${pos.symbol.replace('/USDT:USDT', '')} fora do ranking neste ciclo ` +
+          `(falta ${pos.faltasSeguidas}/2) — aguardando confirmação antes de fechar`,
+        );
+        return;
+      }
       this.estado.trocas++;
-      this.fecharPosicao(pos, 'spread invertido (sumiu da varredura)', 'FECHA');
+      this.fecharPosicao(pos, 'spread invertido (ausente em 2 ciclos)', 'FECHA');
       return;
     }
+    pos.faltasSeguidas = 0;
 
     // Coleta de funding, 3 vezes ao dia.
     //

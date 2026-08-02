@@ -30,6 +30,15 @@ const DIR = path.join(ROOT, 'vigilancia');
 const HISTORICO = path.join(DIR, 'historico.jsonl');
 const CICLOS = path.join(DIR, 'ciclos.json');
 
+/**
+ * Quantas varreduras seguidas sem ver um par antes de declará-lo morto.
+ *
+ * Três, a 5 minutos por varredura, dão 15 minutos de tolerância — menos que o
+ * ciclo de 20 minutos do motor, então um spread que morreu de verdade ainda é
+ * detectado antes de a próxima decisão acontecer.
+ */
+export const TOLERANCIA_FALTAS = 3;
+
 /** Chave única de uma oportunidade: o ativo e o par de exchanges. */
 export const chave = (o: { symbol: string; exchangeShort: string; exchangeLong: string }) =>
   `${o.symbol}|${o.exchangeShort}|${o.exchangeLong}`;
@@ -55,6 +64,8 @@ export interface CicloVida {
   spreadMin: number;
   /** fração das observações em que o spread se manteve acima do mínimo */
   consistencia: number;
+  /** varreduras seguidas sem ver este par; zera a cada avistamento */
+  faltas?: number;
   volumeMedio: number;
 }
 
@@ -131,11 +142,35 @@ export async function observar(opts: {
     }
   }
 
-  // fecha as que sumiram
+  // ── fecha as que sumiram, COM TOLERÂNCIA ────────────────────────────────
+  //
+  // A primeira versão fechava o ciclo na primeira ausência. Isso parecia
+  // conservador e custou dinheiro de verdade.
+  //
+  // Medido em 44 varreduras: KAITO apareceu em 38 delas, com o padrão
+  //
+  //   ●●●●●●●●●●●●●●●●●●●·●●●···●··●●●●●●●●●●●●●●●
+  //
+  // Os pares não invertem — eles PISCAM. Uma leitura falha, um par cai abaixo
+  // do volume mínimo por um instante, uma exchange demora a responder. Fechar
+  // na primeira ausência transformava cada buraco de cinco minutos num
+  // fechamento de posição de US$ 0,08 a US$ 0,25.
+  //
+  // O resultado foi 8 fechamentos em 2,5 horas, todos rotulados "spread
+  // invertido", e um prejuízo de US$ 2,30 em custo puro contra US$ 0,17 de
+  // funding recebido.
+  //
+  // Com tolerância de 3 faltas seguidas (15 minutos), um piscar não mata a
+  // posição e um spread que morreu de verdade ainda é detectado em 15 minutos —
+  // bem dentro do ciclo de 20 minutos do motor.
   for (const [k, c] of Object.entries(estado.ciclos)) {
-    if (c.fechadoEm || vistas.has(k)) continue;
-    c.fechadoEm = agora;
-    fechadas.push(c);
+    if (c.fechadoEm) continue;
+    if (vistas.has(k)) { c.faltas = 0; continue; }
+    c.faltas = (c.faltas ?? 0) + 1;
+    if (c.faltas >= TOLERANCIA_FALTAS) {
+      c.fechadoEm = agora;
+      fechadas.push(c);
+    }
   }
 
   // consistência real: observações vistas sobre varreduras desde a abertura

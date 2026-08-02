@@ -74,6 +74,7 @@ export function lerVigilancia(minObservacoes = 3): LeituraPonte {
     aprSpread: r.aprMedio,
     pontuacao: r.pontuacao,
     volumeMinimo: r.volumeMedio,
+    duracaoHoras: r.duracaoHoras,
   }));
 
   return {

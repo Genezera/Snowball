@@ -5,7 +5,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { consistenciaAjustada } from './vigilancia.ts';
+import { consistenciaAjustada, TOLERANCIA_FALTAS } from './vigilancia.ts';
 
 test('uma única observação perfeita quase não vale nada', () => {
   assert.ok(consistenciaAjustada(1, 1) < 0.25);
@@ -56,4 +56,47 @@ test('não reordena nada quando as amostras já são grandes', () => {
   const a = 0.0003 * consistenciaAjustada(0.95, 200) ** 2;
   const b = 0.0003 * consistenciaAjustada(0.80, 200) ** 2;
   assert.ok(a > b, 'com amostra grande, quem é melhor continua melhor');
+});
+
+// ── tolerância a piscar ────────────────────────────────────────────────────
+
+/** Réplica da regra de fechamento, para testá-la sem varrer exchange nenhuma. */
+function simularPresenca(padrao: string, tolerancia: number): { fechouNa: number | null } {
+  let faltas = 0;
+  for (let i = 0; i < padrao.length; i++) {
+    if (padrao[i] === '#') { faltas = 0; continue; }
+    faltas++;
+    if (faltas >= tolerancia) return { fechouNa: i };
+  }
+  return { fechouNa: null };
+}
+
+test('sem tolerância, um único buraco mata o par', () => {
+  assert.equal(simularPresenca('####-####', 1).fechouNa, 4);
+});
+
+test('o padrão real do KAITO sobrevive com tolerância 3', () => {
+  // 38 de 44 varreduras, com os buracos exatamente onde foram observados
+  const kaito = '###################-###---#--###############';
+  assert.equal(simularPresenca(kaito, 3).fechouNa, 25, 'o buraco triplo fecha, e deve fechar');
+  // mas os buracos de 1 e 2 antes dele não fecham
+  assert.equal(simularPresenca('###################-###', 3).fechouNa, null);
+  assert.equal(simularPresenca('###############--#####', 3).fechouNa, null);
+});
+
+test('o padrão do XAUT — buracos de um — sobrevive inteiro', () => {
+  const xaut = '-##-####-#-#################-##############-#####';
+  assert.equal(simularPresenca(xaut, 3).fechouNa, null);
+});
+
+test('um spread que morreu de verdade ainda é detectado', () => {
+  // ausência contínua a partir da metade
+  assert.equal(simularPresenca('##########----------', 3).fechouNa, 12);
+});
+
+test('a tolerância é menor que o ciclo do motor', () => {
+  // 3 varreduras × 5 min = 15 min, contra 20 min de ciclo do motor.
+  // Se fosse maior, o motor decidiria com um par já morto no ranking.
+  const minutosParaDetectar = TOLERANCIA_FALTAS * 5;
+  assert.ok(minutosParaDetectar < 20, `${minutosParaDetectar} min não cabe no ciclo de 20`);
 });

@@ -47,6 +47,14 @@ export interface OportunidadeSpread {
   pontuacao: number;
   /** volume 24h no menor dos dois lados — o gargalo de liquidez */
   volumeMinimo: number;
+  /**
+   * Há quantas horas este spread está vivo, quando a fonte é a vigilância.
+   *
+   * Ausente na varredura própria, que só enxerga o instante. É a única
+   * evidência disponível sobre quanto o par tende a durar — e portanto sobre
+   * se ele vive o suficiente para pagar o próprio custo de montagem.
+   */
+  duracaoHoras?: number;
 }
 
 /**
