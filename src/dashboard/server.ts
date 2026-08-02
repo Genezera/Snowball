@@ -83,6 +83,20 @@ const servidor = http.createServer(async (req, res) => {
     // está vendo, em vez de uma segunda opinião que confundiria.
     const vig = lerVigilancia(3);
     const saudeVig = saudeVigilancia();
+    // exposição por exchange — a métrica de concentração, que só existe agora
+    // que o motor opera várias posições
+    const abertas: any[] = estado?.posicoes ?? (estado?.posicao ? [estado.posicao] : []);
+    const exposicao: Record<string, number> = {};
+    for (const p of abertas) {
+      exposicao[p.exchangeShort] = (exposicao[p.exchangeShort] ?? 0) + p.margemShort;
+      exposicao[p.exchangeLong] = (exposicao[p.exchangeLong] ?? 0) + p.margemLong;
+    }
+    let concentracao = { exchange: '—', fracao: 0 };
+    for (const [id, v] of Object.entries(exposicao)) {
+      const fr = v / Math.max(1e-9, estado?.capital ?? 1);
+      if (fr > concentracao.fracao) concentracao = { exchange: id, fracao: fr };
+    }
+
     const usandoVigilancia = vig.disponivel && vig.oportunidades.length > 0;
     const scan = usandoVigilancia ? vig.oportunidades : cacheVarredura.dados;
 
@@ -110,6 +124,7 @@ const servidor = http.createServer(async (req, res) => {
         ? Math.round(vig.idadeMinutos)
         : (cacheVarredura.ts ? Math.round((Date.now() - cacheVarredura.ts) / 60000) : -1),
       varrendo: cacheVarredura.rodando,
+      exposicao, concentracao, tetoPorExchange: 0.40,
       vigilancia: {
         ...saudeVig,
         fonte: usandoVigilancia ? 'vigilância · mercado inteiro' : 'varredura própria · 32 ativos',

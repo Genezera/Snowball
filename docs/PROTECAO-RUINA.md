@@ -291,9 +291,7 @@ ausência de dado — mesma regra da ponte da vigilância.
 
 - **Falência efetiva.** Detectar saque suspenso dá uma janela de evacuação, não
   uma garantia. Uma quebra súbita não avisa.
-- **Concentração.** Com uma posição por vez, 50% do capital está em cada
-  exchange. Diluir exige múltiplas posições simultâneas em pares de exchanges
-  distintos — o próximo passo, não implementado.
+- ~~**Concentração.**~~ Resolvido — ver a seção abaixo.
 - **Gap sem negociação.** Se o preço salta sem livro no meio, não há como fechar
   no caminho.
 - **Falha de API.** O motor cego não protege nada.
@@ -311,3 +309,83 @@ node src/cli/spread-live.ts --equity 100 --alavancagem 5 --piso 80 --fracaoPico 
 npm run ruina                                    # teste padrão
 node src/cli/ruina.ts --alavancagem 8 --vol 0.08 # regime de stress
 ```
+
+---
+
+## Diluição: várias posições com teto por exchange
+
+Com uma posição por vez, **50% do capital fica em cada exchange** — o pior número
+possível de concentração. O motor agora abre até três posições simultâneas.
+
+Mas "três posições" **não dilui nada por si só**. As três poderiam usar as mesmas
+duas exchanges e a concentração continuaria em 50%. O que dilui é o **teto**:
+
+```
+teto = 40% do capital em qualquer exchange
+alocação por posição = capital / 3
+margem por perna = capital / 6  ≈ 16,7%
+```
+
+Com esses números, uma exchange cabe em no máximo **duas pernas** (33%). A
+terceira seria barrada. É o teto, não a contagem, que produz a diluição.
+
+O teste que justifica a existência dele:
+
+| cenário | posições | concentração |
+|---|---|---|
+| uma posição | 1 | **50%** |
+| três posições, mesmas exchanges, **sem teto** | 3 | **50%** — nada mudou |
+| três posições, mesmas exchanges, **com teto** | 1 | ≤40% |
+| três posições em pares distintos | 3 | **33%** |
+
+### Aparar posições fora da cota
+
+Descoberto ao migrar. A posição KAITO tinha sido montada quando o motor era de
+posição única e ocupava o capital inteiro. O log foi direto:
+
+```
+teto de exposição barrou 4 candidatas · concentração atual 50% em bybit · limite 40%
+```
+
+Ela sozinha estourava o teto e **bloqueava as outras duas para sempre**. O motor
+teria ficado em 1/3 posições indefinidamente.
+
+A correção apara qualquer posição acima da cota:
+
+```
+APARA KAITO — ocupava US$ 99.13 de cota US$ 32.96 · notional agora US$ 82.40/perna · custo US$ 0.165
+ABRE SKHY · vendido binanceusdm / comprado bybit · 76,1% APR · consistência 100%
+```
+
+US$ 0,165 para destravar duas posições — contra US$ 0,50 de fechar e reabrir.
+
+Isso não é só migração: a **composição** também engorda a posição aberta. Sem
+aparar, a mais antiga cresceria indefinidamente e reconcentraria o que a
+diluição tinha resolvido. A tolerância de 25% evita aparar por ruído — sem ela,
+cada centavo de funding reinvestido dispararia uma aparada e o custo comeria o
+ganho.
+
+### Duas armadilhas de posição única que só aparecem com várias
+
+Ambas dariam no mesmo com uma posição e quebram com três:
+
+1. **Carimbo de funding global.** `ultimoCicloTs` era do motor, não da posição.
+   A primeira posição do ciclo receberia e **bloquearia as outras duas** por oito
+   horas. Agora cada posição tem o próprio `ultimoFundingTs`.
+
+2. **Candidato de troca sem filtro.** A busca por "melhor outro spread" pegava
+   qualquer par diferente do atual — inclusive um que **já estava montado**. O
+   motor trocaria uma posição por outra que já tinha, pagando US$ 0,50 por nada.
+
+### Estado medido
+
+```
+posições:     AAVE $82/perna · KAITO $82/perna
+exposição:    bybit $32,35 · binanceusdm $32,94
+concentração: 33,7% em binanceusdm · teto 40%
+```
+
+De 50% para 33,7%. O dano de um evento de custódia caiu **um terço**.
+
+O dashboard mostra o capital por exchange e destaca em vermelho se a
+concentração passar do teto.

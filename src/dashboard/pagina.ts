@@ -334,15 +334,25 @@ async function tick(){
     +(d.idadeVarreduraMin>=0?' · dado de '+d.idadeVarreduraMin+' min':' · varrendo')
     +(vg.fonte?' · '+vg.fonte:'')
     +(vg.viva?' · '+vg.varreduras+' varreduras · '+vg.vivas+' spreads vivos':'');
-  document.getElementById('pill').textContent=e.posicao
-    ?'operando '+e.posicao.symbol.replace('/USDT:USDT','')+' · exposição zero':'sem posição · exposição zero';
+  // O motor passou a operar várias posições; posicao é o formato antigo.
+  // Sem crases neste comentário: ele vive DENTRO do template literal da página,
+  // e uma crase aqui fecha a string e quebra o arquivo inteiro.
+  const abertas=e.posicoes||(e.posicao&&[e.posicao])||[];
+  const conc=d.concentracao||{exchange:'—',fracao:0};
+  document.getElementById('pill').textContent=abertas.length
+    ?abertas.length+(abertas.length>1?' posições':' posição')+' · '
+      +abertas.map(p=>p.symbol.replace('/USDT:USDT','')).join(', ')
+      +' · máx '+(conc.fracao*100).toFixed(0)+'% em '+conc.exchange
+    :'sem posição · exposição zero';
 
   const pagVals=(d.pagamentosPorDia||[]).map(x=>x.total);
   document.getElementById('kpis').innerHTML=[
     ['Capital','$'+f(e.capital),(lucro>=0?'▲ +':'▼ −')+'$'+f(Math.abs(lucro),3)+' desde o início',lucro>=0?'up':'dn',sparkline(vals,'#00d68f')],
     ['Pagamentos',e.pagamentos,'bruto $'+f(e.fundingTotal,4),'ac',sparkline(pagVals,'#4d8dff')],
     ['Semanas positivas',sem.length?semPos+'/'+sem.length:'—',sem.length?'':'primeira semana em curso','up',''],
-    ['Notional / perna',e.posicao?'$'+f(e.posicao.notionalPorPerna,0):'—',(e.reinvestimentos||0)+' reinvest · '+(e.trocas||0)+' trocas','ac',''],
+    ['Concentração máxima',abertas.length?(conc.fracao*100).toFixed(0)+'%':'—',
+      abertas.length?conc.exchange+' · teto '+((d.tetoPorExchange||0.4)*100).toFixed(0)+'%':'sem exposição',
+      conc.fracao>(d.tetoPorExchange||0.4)?'dn':conc.fracao>0.35?'wa':'up',''],
   ].map(([l,v,s,c,sk])=>'<div class="card"><div class="lbl">'+l+'</div><div class="kpi"><div>'
     +'<div class="v '+c+'">'+v+'</div><div class="d">'+s+'</div></div>'+sk+'</div></div>').join('');
 
@@ -351,19 +361,31 @@ async function tick(){
   document.getElementById('pagNota').textContent=(d.pagamentosPorDia||[]).length+' dias';
   document.getElementById('gPag').innerHTML=barras(d.pagamentosPorDia);
 
-  if(e.posicao){
-    const p=e.posicao,h=(Date.now()-p.abertaEm)/36e5;
-    document.getElementById('pos').innerHTML='<div class="pos">'
-      +'<div class="tk">'+p.symbol.replace('/USDT:USDT','')+'</div>'
-      +'<div class="legs">'
-      +'<div class="leg"><div class="t dn">▼ VENDIDO</div><div class="e">'+p.exchangeShort+'</div></div>'
-      +'<div class="leg"><div class="t up">▲ COMPRADO</div><div class="e">'+p.exchangeLong+'</div></div></div>'
-      +'<div class="kv"><span>notional por perna</span><b class="mono">$'+f(p.notionalPorPerna)+'</b></div>'
-      +'<div class="kv"><span>spread na entrada</span><b class="mono">'+f(p.spreadNaEntrada*100,4)+'%</b></div>'
-      +'<div class="kv"><span>funding acumulado</span><b class="mono up">+$'+f(p.fundingAcumulado,4)+'</b></div>'
-      +'<div class="kv"><span>aberta há</span><b class="mono">'+h.toFixed(1)+'h</b></div></div>'
+  if(abertas.length){
+    const exp=d.exposicao||{};
+    const barras=Object.entries(exp).sort((a,b)=>b[1]-a[1]).map(([id,v])=>{
+      const fr=v/Math.max(1e-9,e.capital), teto=d.tetoPorExchange||0.4;
+      return '<div class="kv"><span>'+id+'</span><b class="mono '+(fr>teto?'dn':fr>0.35?'wa':'')+'">'
+        +'$'+f(v,2)+' · '+(fr*100).toFixed(0)+'%</b></div>';
+    }).join('');
+    document.getElementById('pos').innerHTML=abertas.map(p=>{
+      const h=(Date.now()-p.abertaEm)/36e5;
+      return '<div class="pos" style="margin-bottom:10px">'
+        +'<div class="tk">'+p.symbol.replace('/USDT:USDT','')+'</div>'
+        +'<div class="legs">'
+        +'<div class="leg"><div class="t dn">▼ VENDIDO</div><div class="e">'+p.exchangeShort+'</div></div>'
+        +'<div class="leg"><div class="t up">▲ COMPRADO</div><div class="e">'+p.exchangeLong+'</div></div></div>'
+        +'<div class="kv"><span>notional por perna</span><b class="mono">$'+f(p.notionalPorPerna)+'</b></div>'
+        +'<div class="kv"><span>spread na entrada</span><b class="mono">'+f(p.spreadNaEntrada*100,4)+'%</b></div>'
+        +'<div class="kv"><span>funding acumulado</span><b class="mono up">+$'+f(p.fundingAcumulado,4)+'</b></div>'
+        +'<div class="kv"><span>aberta há</span><b class="mono">'+h.toFixed(1)+'h</b></div></div>';
+    }).join('')
+      +'<div class="pos" style="border-color:var(--br);background:var(--s2)">'
+      +'<div class="lbl" style="margin-bottom:8px">CAPITAL POR EXCHANGE</div>'+barras
+      +'</div>'
       +'<div class="note" style="margin-top:13px;line-height:1.55">Mesmo ativo, exchanges diferentes. '
-      +'Se o preço se move, as pernas se cancelam — <b class="up">exposição a preço zero</b>.</div>';
+      +'As pernas se cancelam — <b class="up">exposição a preço zero</b>. O que sobra é risco de '
+      +'custódia, e é isso que o teto por exchange limita.</div>';
   }else{
     document.getElementById('pos').innerHTML='<div class="pos" style="border-color:var(--br);background:var(--s2);min-height:210px">'
       +vazio('sem posição montada','aguardando spread acima do mínimo')+'</div>';
@@ -388,7 +410,7 @@ async function tick(){
     ?sc.length+' pares · ordenados por spread médio × consistência² · '+(vg.fonte||'')
     :(vg.motivo||(d.varrendo?'varrendo exchanges…':'aguardando varredura'));
   document.getElementById('scan').innerHTML=sc.length?sc.map(s=>{
-    const on=e.posicao&&e.posicao.symbol===s.symbol, c=s.consistencia*100;
+    const on=abertas.some(p=>p.symbol===s.symbol), c=s.consistencia*100;
     return '<tr class="'+(on?'on':'')+'">'
       +'<td><b>'+s.symbol.replace('/USDT:USDT','')+'</b>'+(on?'<span class="badge">montada</span>':'')+'</td>'
       +'<td class="mut">'+s.exchangeShort+'</td><td class="mut">'+s.exchangeLong+'</td>'
