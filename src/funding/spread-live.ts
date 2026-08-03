@@ -552,6 +552,11 @@ export class MotorSpread {
         .map(([ex, x]) => `${ex} US$ ${x.livre.toFixed(2)} livre de ${x.saldo.toFixed(2)}`)
         .join(' · ');
       this.log(`saldo barrou ${bloqueadasPorSaldo} candidatas · ${resumo}`);
+      // Sem isto o painel "Decisões do motor" ficava mudo entre uma abertura e
+      // outra — o motor decide a cada ciclo, mas só a decisão de MONTAR era
+      // gravada. "Não abrir" também é uma decisão, e é a mais frequente das
+      // duas.
+      this.diario('bloqueado', { motivo: `saldo insuficiente · ${resumo}` });
     }
 
     // Não abrir é um resultado, não uma falha. Enquanto nenhum par tiver
@@ -576,6 +581,10 @@ export class MotorSpread {
           `(${(v.folga / this.o.margemPayback * 100).toFixed(0)}% do caminho, faltam ${faltamHoras.toFixed(1)}h)`;
       }
       this.log(`valor esperado barrou ${bloqueadasPorPayback} candidatas${detalhe}`);
+      this.diario('bloqueado', {
+        symbol: b?.symbol,
+        motivo: `valor esperado barrou ${bloqueadasPorPayback} candidata${bloqueadasPorPayback > 1 ? 's' : ''}${detalhe}`,
+      });
     }
   }
 
