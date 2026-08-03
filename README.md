@@ -109,6 +109,7 @@ npm run team                # a equipe de módulos decisórios
 | Documento | Conteúdo |
 |---|---|
 | [COMECE-AQUI.md](COMECE-AQUI.md) | resumo em uma página |
+| [CONTINUIDADE.md](CONTINUIDADE.md) | **handoff completo** — leia isto se está pegando o projeto agora |
 | [docs/DELTA-NEUTRO.md](docs/DELTA-NEUTRO.md) | a estratégia em operação hoje |
 | [docs/VIGILANCIA.md](docs/VIGILANCIA.md) | como o mercado inteiro é varrido e ranqueado |
 | [docs/QUANTO-RENDE.md](docs/QUANTO-RENDE.md) | projeção semana a semana, com o custo de rotação |
