@@ -126,6 +126,10 @@ tr.on td:first-child{box-shadow:inset 2.5px 0 0 var(--up)}
 .badge{background:rgba(0,214,143,.16);color:var(--up);font-size:.54rem;font-weight:800;
   padding:3px 7px;border-radius:5px;margin-left:8px;letter-spacing:.07em;text-transform:uppercase}
 
+.custBadge{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;
+  padding:4px 10px;margin:0 6px 6px 0;border-radius:99px;background:rgba(255,255,255,.05);
+  border:1px solid var(--br);cursor:default}
+
 .meter{height:6px;background:rgba(255,255,255,.055);border-radius:99px;overflow:hidden;margin:11px 0 8px}
 .meter>i{display:block;height:100%;border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1)}
 .gauge{display:flex;align-items:center;gap:15px;margin-bottom:4px}
@@ -321,8 +325,7 @@ wrap.addEventListener('mouseleave',()=>{
   if(cl)cl.setAttribute('opacity','0'); if(cd)cd.setAttribute('opacity','0');
 });
 
-async function tick(){
-  let d;try{d=await (await fetch('/api/dados')).json()}catch{return}
+function render(d){
   const e=d.estado;
   if(!e){document.getElementById('sub').textContent='aguardando primeiro ciclo do motor';return}
 
@@ -338,7 +341,7 @@ async function tick(){
   // O motor passou a operar várias posições; posicao é o formato antigo.
   // Sem crases neste comentário: ele vive DENTRO do template literal da página,
   // e uma crase aqui fecha a string e quebra o arquivo inteiro.
-  const abertas=e.posicoes||(e.posicao&&[e.posicao])||[];
+  const abertas=(d.posicoes&&d.posicoes.length?d.posicoes:null)||e.posicoes||(e.posicao&&[e.posicao])||[];
   const conc=d.concentracao||{exchange:'—',fracao:0};
   document.getElementById('pill').textContent=abertas.length
     ?abertas.length+(abertas.length>1?' posições':' posição')+' · '
@@ -362,34 +365,65 @@ async function tick(){
   document.getElementById('pagNota').textContent=(d.pagamentosPorDia||[]).length+' dias';
   document.getElementById('gPag').innerHTML=barras(d.pagamentosPorDia);
 
-  if(abertas.length){
-    const exp=d.exposicao||{};
-    const barras=Object.entries(exp).sort((a,b)=>b[1]-a[1]).map(([id,v])=>{
-      const fr=v/Math.max(1e-9,e.capital), teto=d.tetoPorExchange||0.4;
-      return '<div class="kv"><span>'+id+'</span><b class="mono '+(fr>teto?'dn':fr>0.35?'wa':'')+'">'
-        +'$'+f(v,2)+' · '+(fr*100).toFixed(0)+'%</b></div>';
+  {
+    // contas por exchange — saldo real, não só a margem em uso. É a visão que
+    // importa quando o dinheiro está em contas que não se comunicam entre si.
+    const contas=(d.contas||[]).slice().sort((a,b)=>b.saldo-a.saldo);
+    const teto=(d.tetoPorExchange||0.4);
+    const cst=d.custodia||{saude:{}};
+    const nivelInfo={
+      ok:['●','up','saudável'], degradado:['▲','wa','degradado'],
+      evacuar:['✕','dn','evacuar'], desconhecido:['?','mut','sem verificação'],
+    };
+    const custodiaBadges=contas.map(c=>{
+      const s=(cst.saude||{})[c.exchange];
+      const nivel=s?s.nivel:'desconhecido';
+      const [ic,cls,rotulo]=nivelInfo[nivel]||nivelInfo.desconhecido;
+      const titulo=(s&&s.detalhe?s.detalhe:'sem verificação ainda').replace(/"/g,'&quot;');
+      return '<span class="custBadge" title="'+titulo+'"><b class="'+cls+'">'+ic+'</b> '+c.exchange+' · '+rotulo+'</span>';
     }).join('');
-    document.getElementById('pos').innerHTML=abertas.map(p=>{
-      const h=(Date.now()-p.abertaEm)/36e5;
-      return '<div class="pos" style="margin-bottom:10px">'
-        +'<div class="tk">'+p.symbol.replace('/USDT:USDT','')+'</div>'
-        +'<div class="legs">'
-        +'<div class="leg"><div class="t dn">▼ VENDIDO</div><div class="e">'+p.exchangeShort+'</div></div>'
-        +'<div class="leg"><div class="t up">▲ COMPRADO</div><div class="e">'+p.exchangeLong+'</div></div></div>'
-        +'<div class="kv"><span>notional por perna</span><b class="mono">$'+f(p.notionalPorPerna)+'</b></div>'
-        +'<div class="kv"><span>spread na entrada</span><b class="mono">'+f(p.spreadNaEntrada*100,4)+'%</b></div>'
-        +'<div class="kv"><span>funding acumulado</span><b class="mono up">+$'+f(p.fundingAcumulado,4)+'</b></div>'
-        +'<div class="kv"><span>aberta há</span><b class="mono">'+h.toFixed(1)+'h</b></div></div>';
-    }).join('')
-      +'<div class="pos" style="border-color:var(--br);background:var(--s2)">'
-      +'<div class="lbl" style="margin-bottom:8px">CAPITAL POR EXCHANGE</div>'+barras
-      +'</div>'
-      +'<div class="note" style="margin-top:13px;line-height:1.55">Mesmo ativo, exchanges diferentes. '
-      +'As pernas se cancelam — <b class="up">exposição a preço zero</b>. O que sobra é risco de '
-      +'custódia, e é isso que o teto por exchange limita.</div>';
-  }else{
-    document.getElementById('pos').innerHTML='<div class="pos" style="border-color:var(--br);background:var(--s2);min-height:210px">'
-      +vazio('sem posição montada','aguardando spread acima do mínimo')+'</div>';
+    const contasHtml=contas.length?('<div class="pos" style="border-color:var(--br);background:var(--s2)">'
+      +'<div class="lbl" style="margin-bottom:8px">CONTAS POR EXCHANGE</div>'
+      +contas.map(c=>{
+        const pct=(c.fracaoUsada||0)*100, cor=pct>teto*100?'dn':pct>35?'wa':'up';
+        return '<div class="kv"><span>'+c.exchange+'</span><b class="mono '+cor+'">'
+          +'$'+f(c.livre,2)+' livre de $'+f(c.saldo,2)+' · '+pct.toFixed(0)+'% em uso'
+          +'</b></div>';
+      }).join('')
+      +'</div>'):'';
+
+    if(abertas.length){
+      const dreno=d.piorDreno||0;
+      document.getElementById('pos').innerHTML=
+        (custodiaBadges?'<div style="margin-bottom:4px">'+custodiaBadges+'</div>':'')
+        +abertas.map(p=>{
+          const h=typeof p.horasAberta==='number'?p.horasAberta:(Date.now()-p.abertaEm)/36e5;
+          const dmin=typeof p.distanciaMinima==='number'?p.distanciaMinima:null;
+          const distLinha=dmin==null?'':'<div class="kv"><span>distância até liquidação</span><b class="mono '
+            +(dmin<0.03?'dn':dmin<0.06?'wa':'up')+'">'+(dmin*100).toFixed(1)+'% · perna em risco: '+(p.pernaEmRisco||'—')+'</b></div>';
+          return '<div class="pos" style="margin-bottom:10px">'
+            +'<div class="tk">'+p.symbol.replace('/USDT:USDT','')+'</div>'
+            +'<div class="legs">'
+            +'<div class="leg"><div class="t dn">▼ VENDIDO</div><div class="e">'+p.exchangeShort+'</div></div>'
+            +'<div class="leg"><div class="t up">▲ COMPRADO</div><div class="e">'+p.exchangeLong+'</div></div></div>'
+            +'<div class="kv"><span>notional por perna</span><b class="mono">$'+f(p.notionalPorPerna)+'</b></div>'
+            +'<div class="kv"><span>spread na entrada</span><b class="mono">'+f(p.spreadNaEntrada*100,4)+'%</b></div>'
+            +'<div class="kv"><span>funding acumulado</span><b class="mono up">+$'+f(p.fundingAcumulado,4)+'</b></div>'
+            +distLinha
+            +'<div class="kv"><span>aberta há</span><b class="mono">'+h.toFixed(1)+'h</b></div></div>';
+        }).join('')
+        +contasHtml
+        +'<div class="note" style="margin-top:13px;line-height:1.55">Mesmo ativo, exchanges diferentes. '
+        +'As pernas se cancelam — <b class="up">exposição a preço zero</b>. O que sobra é risco de '
+        +'custódia, e é isso que o teto por exchange limita. Pior dreno direcional numa alta: '
+        +'<b class="mono">$'+f(dreno,2)+'</b>.</div>';
+    }else{
+      document.getElementById('pos').innerHTML=
+        (custodiaBadges?'<div style="margin-bottom:10px">'+custodiaBadges+'</div>':'')
+        +'<div class="pos" style="border-color:var(--br);background:var(--s2);min-height:150px">'
+        +vazio('sem posição montada','aguardando spread acima do mínimo')+'</div>'
+        +contasHtml;
+    }
   }
 
   const cst=e.custosTotal||0,fnd=e.fundingTotal||0,res=fnd-cst;
@@ -444,5 +478,33 @@ async function tick(){
       +'<td>'+det+'</td><td class="right mono '+cls+'">'+val+'</td></tr>';
   }).join('');
 }
-tick();setInterval(tick,5000);
+
+/**
+ * Streaming em tempo real via SSE, com fallback para polling se a conexão
+ * cair. O servidor observa estado.json, ciclos.json e custodia.json com
+ * fs.watch e manda um evento no instante em que qualquer um muda — não até
+ * 5 segundos depois — mais um heartbeat de 10s para os campos que dependem
+ * só do relógio (idade do dado, horas de posição aberta).
+ */
+let modoPolling=null;
+function pararPolling(){if(modoPolling){clearInterval(modoPolling);modoPolling=null}}
+function iniciarPolling(){
+  if(modoPolling)return;
+  const tick=async()=>{let d;try{d=await (await fetch('/api/dados')).json()}catch{return}render(d)};
+  tick();modoPolling=setInterval(tick,5000);
+}
+function conectar(){
+  let es;
+  try{es=new EventSource('/api/stream')}catch{iniciarPolling();return}
+  es.onmessage=ev=>{
+    pararPolling();
+    try{render(JSON.parse(ev.data))}catch{}
+  };
+  es.onerror=()=>{
+    es.close();
+    iniciarPolling();
+    setTimeout(conectar,4000);
+  };
+}
+conectar();
 </script></body></html>`;
