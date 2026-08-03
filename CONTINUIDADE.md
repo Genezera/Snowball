@@ -252,10 +252,30 @@ da seção 3, não um ajuste de parâmetro.
 
 | # | O quê | Nota |
 |---|---|---|
-| 21 | Medir duração real de spread | bloqueado por tempo, não por código |
-| 19 | Imposto de renda no simulador | 15% sobre ganho em cripto no Brasil, isenção até R$ 35 mil/mês em vendas |
+| 21 | Medir duração real de spread | bloqueado por tempo, não por código. O sistema ficou **parado ~7h** (02:04–18:04 de 03/08) e foi **religado às 18:04 de 03/08/2026** — a contagem de dado limpo perdeu essa janela |
+| 19 | Imposto de renda no simulador | 15% sobre ganho em cripto no Brasil, isenção até R$ 35 mil/mês em vendas — ainda não implementado |
 | — | Push para o GitHub | `gh` não está instalado; usar GitHub Desktop |
 | — | Rotacionar a chave do trader.dev | foi colada no chat: `pk_hTAB...` |
+
+### 7.5 Dashboard — terminado em 03/08/2026
+
+O `server.ts` tinha ganhado `/api/stream` (SSE) e cálculos novos (contas por
+exchange, distância até liquidação, dreno de direção, saúde de custódia) numa
+sessão anterior, mas `pagina.ts` nunca foi atualizado para usar nada disso —
+ficava fazendo `fetch('/api/dados')` a cada 5s e ignorando os campos novos.
+Terminado nesta sessão:
+
+- a página conecta em `/api/stream` via `EventSource`, com fallback para
+  polling se a conexão cair;
+- preço ao vivo por perna (via REST `ccxt`, sondado a cada ~2,5s) nas
+  posições abertas e nos 5 melhores candidatos da varredura — **não é
+  websocket**, é o mais perto de tempo real que dá com o que está instalado;
+- card novo "contas por exchange" (saldo livre, reserva) e badges de saúde de
+  custódia por exchange;
+- distância até liquidação por perna, dentro do card de cada posição.
+
+Validado ao vivo com os quatro processos rodando: preço real das exchanges
+aparecendo na tabela sem polling do cliente, sem erro no console.
 
 ### 7.4 Ideias avaliadas e rejeitadas — não refaça
 

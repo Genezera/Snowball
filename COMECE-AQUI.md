@@ -6,7 +6,8 @@ Renan — o projeto em uma página, atualizado em **02/08/2026**.
 
 ## Onde está agora
 
-**Tudo parado**, a pedido. Capital de paper em **US$ 100,00**, intacto.
+**Rodando de novo desde 18:04 de 03/08/2026**, depois de ~7h parado. Capital
+de paper em **US$ 100,00 por exchange**, intacto.
 
 Nenhuma ordem foi enviada a nenhuma exchange, em nenhum momento deste projeto.
 Tudo é leitura de mercado e simulação.
