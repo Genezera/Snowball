@@ -74,10 +74,24 @@ const VOL_CICLO = VOL_DIA / Math.sqrt(CICLOS_DIA);
  * E o efeito na sobrevivência é grande: com metade do saldo como reserva, a
  * distância até a liquidação vai de 19% para 39% de movimento.
  */
-type Politica = 'nenhuma' | 'transferencia' | 'soFechamento' | 'completa' | 'reservaLocal';
+/**
+ * `hibrida` tenta ficar com o melhor dos dois.
+ *
+ * A reserva local responde instantaneamente e nunca falha, mas custa capital
+ * parado — e capital parado é notional que não existe, logo renda que não
+ * entra. A transferência entre exchanges não custa capital parado, mas leva
+ * minutos, tem mínimo de US$ 10, e pode simplesmente não sair por trava de
+ * segurança, whitelist ou limite de KYC.
+ *
+ * A híbrida usa uma reserva PEQUENA como primeira resposta e recorre ao saque
+ * quando ela não basta. Se as duas falharem, fecha.
+ */
+type Politica = 'nenhuma' | 'transferencia' | 'soFechamento' | 'completa' | 'reservaLocal' | 'hibrida';
 
 /** fração do saldo de cada exchange que fica livre, fora da margem */
 const RESERVA = num(a.reserva, 0.5);
+/** reserva menor na híbrida: só a primeira resposta, o saque cobre o resto */
+const RESERVA_HIBRIDA = num(a.reservaHibrida, 0.10);
 
 /** Gerador determinístico: um teste de ruína que muda de resposta não decide nada. */
 function rng(semente: number) {
@@ -127,9 +141,10 @@ function simular(cfg: Config, semente: number): Resultado {
     const porExchange = capital / 2;
     // com reserva, só parte do saldo vira margem; o resto fica líquido na
     // própria exchange, pronto para reforçar sem sair dela
-    const usaReserva = cfg.politica === 'reservaLocal';
-    const margem = usaReserva ? porExchange * (1 - RESERVA) : porExchange;
-    reservaShort = usaReserva ? porExchange * RESERVA : 0;
+    const usaReserva = cfg.politica === 'reservaLocal' || cfg.politica === 'hibrida';
+    const fr = cfg.politica === 'hibrida' ? RESERVA_HIBRIDA : RESERVA;
+    const margem = usaReserva ? porExchange * (1 - fr) : porExchange;
+    reservaShort = usaReserva ? porExchange * fr : 0;
     reservaLong = reservaShort;
     notional = margem * cfg.alavancagem;
     capital -= notional * TAXA * 2;
@@ -192,7 +207,7 @@ function simular(cfg: Config, semente: number): Resultado {
     // Acontece antes de qualquer outra ação porque é estritamente melhor: não
     // fecha a posição, não espera rede, não depende de saque estar liberado.
     // Só falha quando a reserva daquela exchange acaba.
-    if (cfg.politica === 'reservaLocal' && risco.nivel !== 'ok') {
+    if ((cfg.politica === 'reservaLocal' || cfg.politica === 'hibrida') && risco.nivel !== 'ok') {
       const apertada = risco.pernaEmRisco;
       const disponivel = apertada === 'short' ? reservaShort : reservaLong;
       // repõe a margem até o nível de abertura, ou o que a reserva permitir
@@ -206,7 +221,18 @@ function simular(cfg: Config, semente: number): Resultado {
         transferencias++;
         continue;
       }
-      // reserva esgotada nesta exchange: agora sim, fechar
+      // Reserva esgotada. Na política de reserva pura, fecha. Na híbrida,
+      // ainda há a carta do saque entre exchanges — mais lento e sujeito a
+      // falha, mas melhor que desmontar uma posição que estava pagando.
+      if (cfg.politica === 'hibrida' && !emTransito) {
+        const t = quantoTransferir(margemShort, margemLong);
+        if (t.valor >= 10) {
+          capital -= t.valor * TAXA;
+          emTransito = { chegaEm: c + cfg.latencia, valor: t.valor, para: t.de === 'long' ? 'short' : 'long' };
+          transferencias++;
+          continue;
+        }
+      }
       capital = margemShort + margemLong + reservaShort + reservaLong - notional * TAXA * 2;
       montada = false; fechamentos++;
       continue;
@@ -307,7 +333,7 @@ console.log(
 );
 
 const guardado: Record<string, number[]> = {};
-for (const p of ['nenhuma', 'transferencia', 'soFechamento', 'completa', 'reservaLocal'] as Politica[]) {
+for (const p of ['nenhuma', 'transferencia', 'soFechamento', 'completa', 'reservaLocal', 'hibrida'] as Politica[]) {
   const res = rodar({ politica: p, alavancagem: LEV, latencia: LATENCIA }, SIMS);
   guardado[p] = res.fins;
   console.log(
