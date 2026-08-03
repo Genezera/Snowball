@@ -36,12 +36,18 @@ async function passada() {
   });
 
   const st = estatisticasCiclo(estado);
-  const rk = ranking(estado, ciclo >= 3 ? 3 : 1);
+  // O mínimo de observações usa `estado.varreduras`, que é PERSISTIDO, e não o
+  // contador local `ciclo`, que zera a cada reinício do processo. Com o
+  // contador local, reiniciar a vigilância fazia pares de uma única observação
+  // voltarem ao ranking — exatamente o erro que o ajuste de Wilson existe para
+  // evitar.
+  const rk = ranking(estado, estado.varreduras >= 3 ? 3 : 1);
   const hora = new Date().toLocaleTimeString('pt-BR');
 
   console.log(`${'─'.repeat(94)}`);
   console.log(
-    `[${hora}] varredura ${ciclo} · ${((Date.now() - t0) / 1000).toFixed(1)}s · ` +
+    `[${hora}] varredura ${ciclo} desta sessão · ${estado.varreduras} no total · ` +
+    `${((Date.now() - t0) / 1000).toFixed(1)}s · ` +
     `${ops.length} oportunidades vivas · ${st.totalObservadas} já observadas`,
   );
   console.log(`  ${tempos.join(' · ')}`);
@@ -64,23 +70,35 @@ async function passada() {
 
   // ranking por qualidade sustentada
   if (rk.length) {
-    console.log(`\n  MELHORES POR QUALIDADE SUSTENTADA (spread médio × consistência²)\n`);
+    console.log(`\n  MELHORES POR QUALIDADE SUSTENTADA · ordenado por spread × consistência ajustada²\n`);
+    // A coluna "ajust" é a consistência corrigida por tamanho de amostra
+    // (Wilson). Exibir só a bruta enganava: um par de 2 observações aparecia
+    // com "100%" ao lado de um par de 30 observações com 64%, como se fossem
+    // afirmações da mesma força. São 34% e 51% depois do ajuste.
     console.log(
       '  ' + 'ativo'.padEnd(12) + 'pernas'.padEnd(26) + 'APR médio'.padEnd(12) +
-      'consist'.padEnd(10) + 'obs'.padEnd(7) + 'viva há'.padEnd(11) + 'renda/sem',
+      'bruta'.padEnd(8) + 'ajust'.padEnd(8) + 'obs'.padEnd(6) + 'viva há'.padEnd(11) +
+      'payback'.padEnd(11) + 'renda/sem',
     );
     for (const r of rk.slice(0, 10)) {
       const renda = d.notionalPorPerna * r.spreadMedio * 21;
+      // mesma conta do portão do motor: taxa × 4 / spread, em horas
+      const payback = r.spreadMedio > 0 ? (0.0005 * 4 / r.spreadMedio) * 8 : Infinity;
+      const vida = r.duracaoHoras * r.consistenciaAjustada;
+      const passa = vida >= payback * 1.5;
       console.log(
         '  ' + r.symbol.replace('/USDT:USDT', '').slice(0, 10).padEnd(12) +
         `${r.exchangeShort}→${r.exchangeLong}`.padEnd(26) +
         ((r.aprMedio * 100).toFixed(1) + '%').padEnd(12) +
-        ((r.consistencia * 100).toFixed(0) + '%').padEnd(10) +
-        String(r.observacoes).padEnd(7) +
+        ((r.consistencia * 100).toFixed(0) + '%').padEnd(8) +
+        ((r.consistenciaAjustada * 100).toFixed(0) + '%').padEnd(8) +
+        String(r.observacoes).padEnd(6) +
         (r.duracaoHoras < 1 ? (r.duracaoHoras * 60).toFixed(0) + 'min' : r.duracaoHoras.toFixed(1) + 'h').padEnd(11) +
+        ((payback < 1000 ? payback.toFixed(0) + 'h' : '—') + (passa ? ' ✓' : '')).padEnd(11) +
         '$' + renda.toFixed(3),
       );
     }
+    console.log(`\n  ✓ = já viveu o suficiente para o motor montar. Sem ✓, o portão barra.`);
   }
 
   // ── ciclo de vida ────────────────────────────────────────────────────────

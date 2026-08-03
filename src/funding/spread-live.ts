@@ -23,7 +23,7 @@ import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type Oportunid
 import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso } from './protecao.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
-import { avaliarValor, valorPorHora } from './valor.ts';
+import { avaliarValor, chaveOrdenacao } from './valor.ts';
 
 export interface PosicaoSpread {
   symbol: string;
@@ -388,14 +388,17 @@ export class MotorSpread {
     const alocacao = this.estado.capital / this.o.maxPosicoes;
     const d = dimensionarSpread(alocacao, this.o.alavancagem, this.o.taxaPerp);
 
-    // Ordena por valor esperado POR HORA de capital ocupado, não pela heurística
-    // `spread × consistência²`. Duas oportunidades com o mesmo lucro total não
-    // são equivalentes se uma leva o dobro do tempo: a mais rápida libera o
-    // capital para a próxima. Ordenação e portão passam a usar a mesma
-    // grandeza, então não existe o caso de a ordem discordar do filtro.
-    ops = [...ops].sort((a, b) =>
-      valorPorHora({ spread: b.spread, consistencia: b.consistencia, duracaoHoras: b.duracaoHoras ?? 0, notional: d.notionalPorPerna, taxa: this.o.taxaPerp }) -
-      valorPorHora({ spread: a.spread, consistencia: a.consistencia, duracaoHoras: a.duracaoHoras ?? 0, notional: d.notionalPorPerna, taxa: this.o.taxaPerp }));
+    // Ordena por valor esperado, não pela heurística `spread × consistência²`.
+    // Entre candidatas lucrativas, por valor POR HORA de capital ocupado — duas
+    // com o mesmo lucro total não são equivalentes se uma leva o dobro do
+    // tempo. Entre não-lucrativas, por folga, que responde "qual está mais
+    // perto de compensar". Ver `chaveOrdenacao` para por que os dois regimes.
+    const entrada = (o: OportunidadeSpread) => ({
+      spread: o.spread, consistencia: o.consistencia,
+      duracaoHoras: o.duracaoHoras ?? 0,
+      notional: d.notionalPorPerna, taxa: this.o.taxaPerp,
+    });
+    ops = [...ops].sort((a, b) => chaveOrdenacao(entrada(b)) - chaveOrdenacao(entrada(a)));
     const limite = this.estado.capital * this.o.tetoPorExchange;
     let bloqueadasPorTeto = 0;
 
@@ -480,10 +483,13 @@ export class MotorSpread {
           spread: b.spread, consistencia: b.consistencia,
           duracaoHoras: b.duracaoHoras ?? 0, notional: d.notionalPorPerna, taxa: this.o.taxaPerp,
         });
+        // Quanto de vida ainda falta para passar no portão. É a informação
+        // acionável: "faltam 6h" diz se vale esperar; "valor −US$ 0,15" não.
+        const faltamHoras = v.paybackHoras * this.o.margemPayback - v.vidaEsperadaHoras;
         detalhe =
-          ` · melhor candidata ${b.symbol.replace('/USDT:USDT', '')} · ` +
-          `vida esperada ${v.vidaEsperadaHoras.toFixed(1)}h contra payback de ${v.paybackHoras.toFixed(1)}h · ` +
-          `valor esperado ${v.valorEsperado >= 0 ? '+' : '−'}US$ ${Math.abs(v.valorEsperado).toFixed(3)}`;
+          ` · mais perto: ${b.symbol.replace('/USDT:USDT', '')} · ` +
+          `vida ${v.vidaEsperadaHoras.toFixed(1)}h de ${(v.paybackHoras * this.o.margemPayback).toFixed(1)}h exigidas ` +
+          `(${(v.folga / this.o.margemPayback * 100).toFixed(0)}% do caminho, faltam ${faltamHoras.toFixed(1)}h)`;
       }
       this.log(`valor esperado barrou ${bloqueadasPorPayback} candidatas${detalhe}`);
     }

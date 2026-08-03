@@ -102,3 +102,30 @@ export function valorPorHora(e: EntradaValor): number {
   const v = avaliarValor(e);
   return v.vidaEsperadaHoras > 0 ? v.valorEsperado / v.vidaEsperadaHoras : -Infinity;
 }
+
+/**
+ * Chave de ordenação das candidatas. Maior é melhor.
+ *
+ * Valor por hora sozinho não serve, e o motivo só apareceu com dado real:
+ * **entre candidatas de valor NEGATIVO, dividir por uma vida maior dá um número
+ * menos negativo.** Observado em 03/08/2026:
+ *
+ *   AAVE    21% APR · vida 7,7h · payback 85,5h · valor/hora −0,0197 · folga 0,09
+ *   HYPER  195% APR · vida 3,3h · payback  9,0h · valor/hora −0,0315 · folga 0,37
+ *
+ * AAVE ganhava por valor/hora, mas HYPER está **quatro vezes mais perto** de
+ * ficar viável. A ordenação estava premiando quem perde devagar em vez de quem
+ * está prestes a passar a ganhar.
+ *
+ * A regra correta tem dois regimes, porque a pergunta é diferente em cada um:
+ *
+ *   valor > 0   "qual rende mais por hora de capital?"  → valor por hora
+ *   valor ≤ 0   "qual está mais perto de compensar?"    → folga
+ *
+ * O deslocamento de −1000 garante que qualquer candidata lucrativa fique à
+ * frente de qualquer não-lucrativa, sem precisar de comparador com ramos.
+ */
+export function chaveOrdenacao(e: EntradaValor): number {
+  const v = avaliarValor(e);
+  return v.valorEsperado > 0 ? v.valorEsperado / Math.max(1e-9, v.vidaEsperadaHoras) : v.folga - 1000;
+}

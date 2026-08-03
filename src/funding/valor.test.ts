@@ -5,7 +5,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { avaliarValor, valorPorHora, vidaEsperada } from './valor.ts';
+import { avaliarValor, valorPorHora, vidaEsperada, chaveOrdenacao } from './valor.ts';
 import { custoTaker, custoMaker, preenchimentoMinimo, TAXA_TAKER, TAXA_MAKER } from './execucao.ts';
 
 const base = { notional: 250, taxa: 0.0005 };
@@ -106,4 +106,42 @@ test('deriva maior exige preenchimento maior para maker compensar', () => {
 test('com deriva típica de 0,2%, maker só compensa acima de 90%', () => {
   const pm = preenchimentoMinimo(0.002, 250);
   assert.ok(pm > 0.85 && pm < 0.95, `deu ${pm}`);
+});
+
+// ── ordenação em dois regimes ──────────────────────────────────────────────
+
+test('entre candidatas LUCRATIVAS, ordena por valor por hora', () => {
+  const rapida = { ...base, spread: 0.0006, consistencia: 1, duracaoHoras: 60 };
+  const lenta = { ...base, spread: 0.0003, consistencia: 1, duracaoHoras: 200 };
+  assert.ok(avaliarValor(rapida).valorEsperado > 0 && avaliarValor(lenta).valorEsperado > 0);
+  assert.ok(chaveOrdenacao(rapida) > chaveOrdenacao(lenta));
+});
+
+test('entre NÃO-lucrativas, ordena por folga — o caso HYPER × AAVE', () => {
+  // números reais de 03/08/2026, notional 83,3
+  const n = { notional: 83.3, taxa: 0.0005 };
+  const aave = { ...n, spread: 0.205 / 1095, consistencia: 0.64, duracaoHoras: 12.0 };
+  const hyper = { ...n, spread: 1.952 / 1095, consistencia: 0.32, duracaoHoras: 10.4 };
+
+  assert.ok(avaliarValor(aave).valorEsperado < 0 && avaliarValor(hyper).valorEsperado < 0);
+  // HYPER está 4× mais perto de compensar
+  assert.ok(avaliarValor(hyper).folga > avaliarValor(aave).folga * 3);
+  assert.ok(chaveOrdenacao(hyper) > chaveOrdenacao(aave), 'quem está mais perto deve vir antes');
+
+  // e a regra antiga fazia o contrário — o teste guarda a regressão
+  assert.ok(valorPorHora(aave) > valorPorHora(hyper));
+});
+
+test('qualquer lucrativa vem antes de qualquer não-lucrativa', () => {
+  // A primeira versão deste teste usou spread 0,2% com 15h de vida como
+  // exemplo de "não-lucrativa". O teste reprovou porque ela É lucrativa: a
+  // 0,2% o payback é de 8h, e 15 > 8. Vale registrar — a intuição sobre
+  // payback erra por um fator de 2 com facilidade, que é justamente por que o
+  // portão existe em vez de um julgamento a olho.
+  const lucrativa = { ...base, spread: 0.0003, consistencia: 1, duracaoHoras: 300 };
+  const quaseLa = { ...base, spread: 0.002, consistencia: 1, duracaoHoras: 5 };
+  assert.ok(avaliarValor(lucrativa).valorEsperado > 0);
+  assert.ok(avaliarValor(quaseLa).valorEsperado < 0, 'vida 5h contra payback de 8h');
+  assert.ok(avaliarValor(quaseLa).folga > 0.5, 'perto, mas não lá');
+  assert.ok(chaveOrdenacao(lucrativa) > chaveOrdenacao(quaseLa));
 });
