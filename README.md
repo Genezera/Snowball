@@ -84,6 +84,8 @@ Supervisionados com reinício automático: `run-vigilancia.cmd`,
 
 ```bash
 npm test                    # 70 testes das travas de risco e seleção
+npm run quanto              # quanto rende, em português claro, por exchange
+npm run cenarios            # uma exchange × duas exchanges
 npm run semanas             # projeção semana a semana, com custo de rotação
 npm run ruina               # 20 mil simulações contra choques de preço
 npm run execucao            # maker × taker, com o risco de perna solta
