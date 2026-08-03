@@ -26,6 +26,7 @@ import { taxaEfetiva } from './custos-reais.ts';
 import { dimensionar, socorrer, usoPorExchange, RESERVA_PADRAO } from './tesouraria.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
+import { bonusEquilibrio, piorDreno } from './equilibrio.ts';
 
 export interface PosicaoSpread {
   symbol: string;
@@ -453,8 +454,21 @@ export class MotorSpread {
     });
     // notional de referência só para ordenar; o real sai do dimensionamento
     const notionalRef = (this.estado.capital / 2 / maxAgora) * this.o.alavancagem;
-    ops = [...ops].sort((a, b) =>
-      chaveOrdenacao(entrada(b, notionalRef)) - chaveOrdenacao(entrada(a, notionalRef)));
+    // Desempate por EQUILÍBRIO DE DIREÇÃO. Duas posições vendidas na mesma
+    // exchange drenam essa exchange ao dobro num movimento correlacionado —
+    // e cripto é altamente correlacionada. Uma vendida em cada corta o dreno de
+    // pico pela metade, sem mudar notional nem renda. Ver equilibrio.ts.
+    const comBonus = (o: OportunidadeSpread) => {
+      const k = chaveOrdenacao(entrada(o, notionalRef));
+      const b = bonusEquilibrio(this.posicoes, {
+        exchangeShort: o.exchangeShort, exchangeLong: o.exchangeLong,
+        notionalPorPerna: notionalRef,
+      });
+      // o bônus é multiplicativo sobre o valor, mas a chave pode ser negativa
+      // (candidata não lucrativa); somar mantém a ordem correta nos dois casos
+      return k + Math.abs(k) * b;
+    };
+    ops = [...ops].sort((a, b) => comBonus(b) - comBonus(a));
 
     let bloqueadasPorSaldo = 0;
     let bloqueadasPorPayback = 0;

@@ -382,3 +382,87 @@ do spread entre casas.
 completamente o risco de perna solta entre exchanges, que é o maior buraco de
 execução ainda aberto. Se a camada de execução nunca for escrita, é a única
 estrutura que dá para operar com segurança.
+
+---
+
+## Parte 8 — as duas alavancas que sobraram
+
+Depois de descartar alavancagem (medida: 8x dá 8% de ruína), capital (não muda o
+payback) e maker (só compensa acima de 90% de preenchimento), restaram duas.
+
+### 1. Margem CRUZADA em vez de isolada — a maior, e é só uma configuração
+
+Na margem **isolada**, cada posição tem margem fixa e liquida sozinha. O saldo
+livre da conta só ajuda se o **meu software** mover ele a tempo.
+
+Na margem **cruzada**, a exchange usa o saldo inteiro da conta antes de
+liquidar. Automaticamente.
+
+Com US$ 100 na conta e notional de US$ 350 por perna:
+
+| situação | distância até liquidar |
+|---|---|
+| isolada, motor no ar | 27,6% (o socorro chega) |
+| isolada, **motor caído** | **19,0%** (ninguém move a reserva) |
+| **cruzada**, no ar ou caído | **27,6%** |
+
+A diferença é o que acontece quando o processo morre — queda de luz, internet,
+crash do node, atualização do Windows. Na isolada o fôlego cai de 27,6% para
+19% sem aviso. Na cruzada, não muda nada.
+
+E há um ganho direto: como a exchange já usa o saldo inteiro, dá para
+comprometer todo ele como margem sem perder fôlego.
+
+| modo | notional/perna | fôlego |
+|---|---|---|
+| isolada, 70% margem + 30% reserva | US$ 350 | 27,6% |
+| **cruzada, 100% margem** | **US$ 500** | 19,0% |
+| cruzada, 70% margem | US$ 350 | 27,6% |
+
+**43% mais notional pelo mesmo fôlego**, se comparado na mesma distância.
+
+A contrapartida honesta: na margem cruzada uma liquidação leva o saldo
+**inteiro** da exchange, não apenas a margem daquela posição. Com uma posição
+por exchange isso dá no mesmo — a reserva seria consumida de qualquer jeito.
+Com várias posições, cruzada acopla o risco entre elas.
+
+**Recomendação: margem cruzada, com uma posição por par de exchanges.**
+É configuração na exchange, não código.
+
+### 2. Equilibrar a direção das posições entre as exchanges
+
+A perna **vendida** perde margem quando o preço sobe, e cripto é altamente
+correlacionada — quando um alt sobe, quase todos sobem.
+
+Duas posições de US$ 350, movimento de +10% em ambos os ativos:
+
+| arranjo | dreno em binance | dreno em bybit |
+|---|---|---|
+| ambas vendidas na binance | **US$ 70** | US$ 0 (sobra) |
+| uma vendida em cada | US$ 35 | US$ 35 |
+
+**O que liquida é a exchange pior.** Equilibrar corta o dreno de pico pela
+metade, sem mudar notional, sem mudar renda, sem custo nenhum.
+
+É a única melhoria deste projeto **sem contrapartida** — todas as outras trocam
+retorno por segurança ou o contrário.
+
+Implementado em `src/funding/equilibrio.ts` como **desempate**, não filtro: a
+direção vem do mercado, e forçar o contrário significaria pagar funding em vez
+de receber. Entre candidatas de valor parecido, prefere a que equilibra.
+
+#### Um erro meu, pego pelo teste
+
+A intensidade do bônus começou em 0,15. Mas o bônus é **bidirecional**: quem
+equilibra ganha `+i` e quem concentra leva `−i`, então a faixa é `2i`. Uma
+candidata A só continua vencendo B se
+
+```
+A/B > (1 + i) / (1 − i)
+```
+
+Com `i = 0,15` isso dá **1,353** — o "desempate" invertia diferenças de valor de
+até 35%. Isso é filtro disfarçado. Com `i = 0,07` o limite cai para 1,15, que é
+o comportamento correto de um critério secundário.
+
+O teste que reprovou está no arquivo, com a conta.
