@@ -59,7 +59,25 @@ const VOL_CICLO = VOL_DIA / Math.sqrt(CICLOS_DIA);
  * sim, a diluição em três posições é aceitável a US$ 100. Se não, é preciso
  * escolher entre diluir e poder reequilibrar.
  */
-type Politica = 'nenhuma' | 'transferencia' | 'soFechamento' | 'completa';
+/**
+ * `reservaLocal` é a política que resolve o problema pela raiz.
+ *
+ * Todas as outras assumem que socorrer uma perna significa buscar margem NA
+ * OUTRA EXCHANGE — saque on-chain, com mínimo de US$ 10, minutos de espera, e
+ * sujeito a trava de segurança, whitelist e limite de KYC.
+ *
+ * Mas nada obriga a comprometer todo o saldo como margem. Deixando parte
+ * parada **na mesma exchange**, o reforço vira transferência interna da
+ * carteira spot para a de futuros: **instantânea, sem taxa, sem mínimo, sem
+ * trava**. Nenhuma das restrições que quebraram o desenho se aplica.
+ *
+ * E o efeito na sobrevivência é grande: com metade do saldo como reserva, a
+ * distância até a liquidação vai de 19% para 39% de movimento.
+ */
+type Politica = 'nenhuma' | 'transferencia' | 'soFechamento' | 'completa' | 'reservaLocal';
+
+/** fração do saldo de cada exchange que fica livre, fora da margem */
+const RESERVA = num(a.reserva, 0.5);
 
 /** Gerador determinístico: um teste de ruína que muda de resposta não decide nada. */
 function rng(semente: number) {
@@ -102,8 +120,17 @@ function simular(cfg: Config, semente: number): Resultado {
   let emTransito: { chegaEm: number; valor: number; para: 'short' | 'long' } | null = null;
   const por8h = APR / (3 * 365);
 
+  /** saldo livre em cada exchange, disponível para reforço interno */
+  let reservaShort = 0, reservaLong = 0;
+
   const montar = () => {
-    const margem = capital / 2;
+    const porExchange = capital / 2;
+    // com reserva, só parte do saldo vira margem; o resto fica líquido na
+    // própria exchange, pronto para reforçar sem sair dela
+    const usaReserva = cfg.politica === 'reservaLocal';
+    const margem = usaReserva ? porExchange * (1 - RESERVA) : porExchange;
+    reservaShort = usaReserva ? porExchange * RESERVA : 0;
+    reservaLong = reservaShort;
     notional = margem * cfg.alavancagem;
     capital -= notional * TAXA * 2;
     margemShort = margem; margemLong = margem;
@@ -143,7 +170,9 @@ function simular(cfg: Config, semente: number): Resultado {
     // liquidação: a distância chegou a zero antes de a proteção conseguir agir
     if (risco.distanciaMinima <= 0) {
       // a perna morta leva a margem dela; sobra a margem da outra perna
-      const sobra = Math.max(risco.margemShort, risco.margemLong);
+      // a perna morta leva a margem dela; sobra a da outra perna MAIS as
+      // reservas, que estão em conta e não são atingidas pela liquidação
+      const sobra = Math.max(risco.margemShort, risco.margemLong) + reservaShort + reservaLong;
       capital = Math.max(0, sobra - notional * MMR_ALT);
       liquidado = true;
       break;
@@ -158,6 +187,31 @@ function simular(cfg: Config, semente: number): Resultado {
     //
     // Fechar é uma ordem local em cada exchange. Não depende de dinheiro
     // chegar. Bloquear isso seria um defeito de projeto, não só de modelo.
+    // REFORÇO INTERNO: instantâneo, sem taxa, sem mínimo, sem trava.
+    //
+    // Acontece antes de qualquer outra ação porque é estritamente melhor: não
+    // fecha a posição, não espera rede, não depende de saque estar liberado.
+    // Só falha quando a reserva daquela exchange acaba.
+    if (cfg.politica === 'reservaLocal' && risco.nivel !== 'ok') {
+      const apertada = risco.pernaEmRisco;
+      const disponivel = apertada === 'short' ? reservaShort : reservaLong;
+      // repõe a margem até o nível de abertura, ou o que a reserva permitir
+      const alvo = notional / cfg.alavancagem;
+      const falta = alvo - (apertada === 'short' ? margemShort : margemLong);
+      const repor = Math.min(disponivel, Math.max(0, falta));
+
+      if (repor > 0.01) {
+        if (apertada === 'short') { margemShort += repor; reservaShort -= repor; }
+        else { margemLong += repor; reservaLong -= repor; }
+        transferencias++;
+        continue;
+      }
+      // reserva esgotada nesta exchange: agora sim, fechar
+      capital = margemShort + margemLong + reservaShort + reservaLong - notional * TAXA * 2;
+      montada = false; fechamentos++;
+      continue;
+    }
+
     // sem transferência viável, o fechamento tem de acontecer mais cedo — no
     // ALERTA, não no crítico, porque não há reequilíbrio para ganhar tempo
     if (cfg.politica === 'soFechamento' && risco.nivel !== 'ok') {
@@ -193,10 +247,31 @@ function simular(cfg: Config, semente: number): Resultado {
       }
     }
 
-    if (c % 24 === 0) capital += notional * por8h;
+    // O funding entra na RESERVA (ou na margem, quando não há reserva), não
+    // numa variável de capital paralela.
+    //
+    // Antes ele ia para uma variável separada, e o fechamento fazia
+    //
+    //     capital = margem + reserva − custo
+    //
+    // SOBRESCREVENDO o valor e descartando todo o funding acumulado. A política
+    // "completa" fecha 0,2 vezes em 90 dias e mal sentia; a "reservaLocal"
+    // fecha 3 vezes e perdia quase toda a renda — aparecendo como se manter
+    // reserva custasse dez dólares.
+    //
+    // Era erro de contabilidade, não efeito real. Quase reportei a conclusão
+    // errada: "reserva local rende menos". Rende o MESMO, para o mesmo
+    // notional. O que ela custa é capital parado, não renda.
+    if (c % 24 === 0) {
+      const ganho = notional * por8h;
+      if (reservaShort > 0 || reservaLong > 0) reservaShort += ganho;
+      else { margemShort += ganho / 2; margemLong += ganho / 2; }
+    }
   }
 
-  return { capitalFinal: Math.max(0, capital), liquidado, fechamentos, transferencias };
+  // enquanto montado, o valor está nas margens e reservas, não em `capital`
+  const total = montada ? margemShort + margemLong + reservaShort + reservaLong : capital;
+  return { capitalFinal: Math.max(0, total), liquidado, fechamentos, transferencias };
 }
 
 function rodar(cfg: Config, n: number) {
@@ -232,7 +307,7 @@ console.log(
 );
 
 const guardado: Record<string, number[]> = {};
-for (const p of ['nenhuma', 'transferencia', 'soFechamento', 'completa'] as Politica[]) {
+for (const p of ['nenhuma', 'transferencia', 'soFechamento', 'completa', 'reservaLocal'] as Politica[]) {
   const res = rodar({ politica: p, alavancagem: LEV, latencia: LATENCIA }, SIMS);
   guardado[p] = res.fins;
   console.log(

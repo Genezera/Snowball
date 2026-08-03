@@ -4,7 +4,7 @@
 > que nada se perca se a sessão acabar, o limite semanal for atingido, ou muito
 > tempo passar. Leia isto antes de qualquer outro arquivo.
 
-Última atualização: **02/08/2026**.
+Última atualização: **03/08/2026**.
 
 ---
 
@@ -16,7 +16,9 @@
   de US$ 100. Quer **lucro semanal** e **não perder tudo**.
 - **Estado:** paper trading. **Nenhuma ordem foi enviada a nenhuma exchange, em
   nenhum momento.** Só leitura de mercado e simulação.
-- **Capital de paper:** US$ 100,00, intacto.
+- **Capital de paper:** US$ 100 em CADA exchange (binance e bybit), total
+  US$ 200. Declarado com `--porExchange 100`. O dinheiro NUNCA cruza entre
+  exchanges: o socorro de margem vem da reserva de 30% na própria exchange.
 - **Resultado até agora:** o motor perdeu US$ 2,30 num período de 9,3 horas por
   dois bugs meus, ambos corrigidos. Estado sujo arquivado em `spread/arquivo/`.
 - **A conta que decide tudo:** custo de montagem = `notional × taxa × 4`,
@@ -308,6 +310,8 @@ Isto é **normal e correto**. Significa que nada compensa agora.
 | Arquivo | Papel |
 |---|---|
 | `src/funding/valor.ts` | valor esperado; **o critério de decisão** |
+| `src/funding/tesouraria.ts` | dinheiro por exchange, reserva e socorro interno |
+| `src/funding/custos-reais.ts` | taxas, escorregamento e saque medidos das exchanges |
 | `src/funding/protecao.ts` | distância de liquidação, piso, catraca |
 | `src/funding/vigilancia.ts` | ciclo de vida, Wilson, tolerância a faltas |
 | `src/funding/spread-live.ts` | o motor: abre, gere, apara, fecha |

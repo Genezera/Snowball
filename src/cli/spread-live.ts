@@ -8,7 +8,11 @@ import { LIMIARES_PADRAO, MMR_ALT, alavancagemMaxima } from '../funding/protecao
 import { parseArgs, num } from './args.ts';
 
 const a = parseArgs();
-const capital = num(a.equity, 100);
+// O capital é declarado POR EXCHANGE, porque é assim que ele existe. `--equity`
+// continua funcionando e é dividido igualmente entre as exchanges.
+const porExchange = num(a.porExchange, 0);
+const exchanges = (a.exchanges ? String(a.exchanges).split(",") : ["binanceusdm","bybit"]);
+const capital = porExchange > 0 ? porExchange * exchanges.length : num(a.equity, 100);
 const alavancagem = num(a.alavancagem, 3);
 // 5 minutos, casando com o ciclo da vigilância. Antes eram 20, e o motor
 // podia demorar 20 min para agir sobre algo que a vigilância viu em 5.
@@ -25,10 +29,11 @@ const fracaoPico = num(a.fracaoPico, 0.85);
 const taxaPerp = num(a.taxa, 0.0005);
 const margemPayback = num(a.margemPayback, 1.5);
 
-const motor = new MotorSpread({ capital, alavancagem, pisoAbsoluto, fracaoPico, taxaPerp, margemPayback });
+const reserva = num(a.reserva, 0.30);
+const motor = new MotorSpread({ capital, alavancagem, pisoAbsoluto, fracaoPico, taxaPerp, margemPayback, reserva, exchanges });
 
 console.log(`\n${'='.repeat(78)}`);
-console.log(`MOTOR DE SPREAD ENTRE EXCHANGES  ·  US$ ${capital}  ·  ${alavancagem}x`);
+console.log(`MOTOR DE SPREAD ENTRE EXCHANGES  ·  US$ ${(capital/exchanges.length).toFixed(0)} em cada uma de ${exchanges.length}  ·  ${alavancagem}x`);
 console.log(`${'='.repeat(78)}\n`);
 
 await motor.init();

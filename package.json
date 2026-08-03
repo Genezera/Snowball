@@ -12,7 +12,7 @@
     "ml": "node src/cli/ml.ts",
     "capital": "node src/cli/capital.ts",
     "team": "node src/cli/team.ts --equity 100",
-    "spread": "node src/cli/spread-live.ts --equity 100 --alavancagem 5",
+    "spread": "node src/cli/spread-live.ts --porExchange 100 --alavancagem 5",
     "spread:scan": "node src/cli/spread.ts --equity 100 --alavancagem 5",
     "spread:verificar": "node src/cli/verificar.ts --equity 100 --alavancagem 5",
     "spread:maximizar": "node src/cli/maxdiario.ts --equity 100",
@@ -36,7 +36,8 @@
     "test": "node --test \"src/**/*.test.ts\"",
     "ruina": "node src/cli/ruina.ts --equity 100 --alavancagem 5",
     "custodia": "node src/cli/custodia.ts --intervalo 15",
-    "execucao": "node src/cli/execucao.ts --notional 250"
+    "execucao": "node src/cli/execucao.ts --notional 250",
+    "cenarios": "node src/cli/cenarios.ts --porExchange 100"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

@@ -22,7 +22,8 @@ import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
 import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso, LIMIARES_PADRAO, MMR_ALT } from './protecao.ts';
-import { posicoesSustentaveis, custoTransferencia, taxaEfetiva } from './custos-reais.ts';
+import { taxaEfetiva } from './custos-reais.ts';
+import { dimensionar, socorrer, usoPorExchange, RESERVA_PADRAO } from './tesouraria.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
 
@@ -74,8 +75,10 @@ export interface EstadoSpread {
   parado?: boolean;
   /** quantas vezes fechou por proximidade de liquidação */
   fechamentosEmergencia?: number;
-  /** último limite de posições logado, para não repetir a cada ciclo */
+  /** último limite logado, para não repetir a cada ciclo */
   limiteAnterior?: string;
+  /** dinheiro por exchange: a verdade sobre onde o capital está */
+  saldos?: Record<string, number>;
 }
 
 export interface OpcoesSpread {
@@ -99,8 +102,10 @@ export interface OpcoesSpread {
   margemPayback: number;
   /** quantas posições simultâneas, em pares de exchanges distintos */
   maxPosicoes: number;
-  /** fração máxima do capital que pode ficar numa única exchange */
-  tetoPorExchange: number;
+  /** fração do saldo de cada exchange que fica livre, como reserva de socorro */
+  reserva: number;
+  /** onde o dinheiro está, quando ainda não há posição para inferir */
+  exchanges: string[];
 }
 
 export const OPCOES_PADRAO: OpcoesSpread = {
@@ -123,9 +128,10 @@ export const OPCOES_PADRAO: OpcoesSpread = {
   // máxima cai para ~33%. Mais que três divide o capital em pedaços pequenos
   // demais para o custo fixo de montagem valer a pena nesta escala.
   maxPosicoes: 3,
-  // O teto é o que FORÇA a diluição. Sem ele, três posições poderiam usar as
-  // mesmas duas exchanges e a concentração continuaria em 50%.
-  tetoPorExchange: 0.40,
+  // Ótimo medido em 20 mil simulações: a curva é plana entre 15% e 35%, com
+  // pico em 25%. 30% fica perto do ótimo e do lado seguro dele.
+  reserva: RESERVA_PADRAO,
+  exchanges: ['binanceusdm', 'bybit'],
 };
 
 export class MotorSpread {
@@ -173,6 +179,36 @@ export class MotorSpread {
   private get posicoes(): PosicaoSpread[] {
     if (!this.estado.posicoes) this.estado.posicoes = [];
     return this.estado.posicoes;
+  }
+
+  /**
+   * O dinheiro, exchange por exchange.
+   *
+   * É a mudança de modelo mais importante desta versão: capital deixou de ser
+   * um número único e passou a ser o que ele é de fato — contas separadas que
+   * não se comunicam sem saque on-chain.
+   */
+  private saldos(): Record<string, number> {
+    if (!this.estado.saldos) {
+      // migração: distribui o capital antigo igualmente pelas exchanges onde
+      // ele efetivamente estaria, ou pelas configuradas se não houver posição
+      const exs = this.posicoes.length
+        ? [...new Set(this.posicoes.flatMap((p) => [p.exchangeShort, p.exchangeLong]))]
+        : this.o.exchanges;
+      const porEx = this.estado.capital / exs.length;
+      this.estado.saldos = Object.fromEntries(exs.map((e) => [e, porEx]));
+    }
+    return this.estado.saldos;
+  }
+
+  private debitar(exchange: string, valor: number) {
+    const s = this.saldos();
+    s[exchange] = (s[exchange] ?? 0) - valor;
+    this.estado.capital = Object.values(s).reduce((a, b) => a + b, 0);
+  }
+
+  private creditar(exchange: string, valor: number) {
+    this.debitar(exchange, -valor);
   }
 
   /**
@@ -232,11 +268,21 @@ export class MotorSpread {
   }
 
   async init() {
-    const d = dimensionarSpread(this.estado.capital, this.o.alavancagem, this.o.taxaPerp);
+    const s = this.saldos();
     const r = riscoDesbalanceamento(this.o.alavancagem);
+    const primeira = dimensionar(
+      s, {}, this.o.exchanges[0], this.o.exchanges[1] ?? this.o.exchanges[0],
+      this.o.alavancagem, this.o.reserva,
+    );
     this.log(
-      `motor pronto · margem US$ ${d.margemPorPerna.toFixed(2)}/perna · ` +
-      `notional US$ ${d.notionalPorPerna.toFixed(2)}/perna · ${this.o.alavancagem}x`,
+      `motor pronto · ` +
+      Object.entries(s).map(([e, v]) => `${e} US$ ${v.toFixed(2)}`).join(' · ') +
+      ` · reserva ${(this.o.reserva * 100).toFixed(0)}%`,
+    );
+    this.log(
+      primeira.possivel
+        ? `primeira posição: margem US$ ${primeira.margemPorPerna.toFixed(2)}/perna · notional US$ ${primeira.notionalPorPerna.toFixed(2)}/perna · ${this.o.alavancagem}x`
+        : `sem dimensionamento possível: ${primeira.motivo}`,
     );
     this.log(`desbalanceia com movimento de ${(r.variacaoQueDesbalanceia * 100).toFixed(1)}%`);
     if (!fs.existsSync(this.journalFile)) this.diario('init', { capital: this.estado.capital, opcoes: this.o });
@@ -389,34 +435,28 @@ export class MotorSpread {
   private async abrir(ops: OportunidadeSpread[]) {
     const jaTenho = new Set(this.posicoes.map((p) => p.symbol));
 
-    // O número de posições NÃO é livre: diluir divide a margem por perna, e
-    // abaixo de certo tamanho a transferência de margem cai sob o saque mínimo
-    // da exchange e deixa de ser possível. Sem transferência, a única defesa é
-    // fechar — medido em 42,5 fechamentos por 90 dias e mediana US$ 89,88
-    // contra US$ 111,67. Seguro, mas perdendo dinheiro.
-    const sust = posicoesSustentaveis(this.estado.capital, this.o.alavancagem, LIMIARES_PADRAO.alerta, MMR_ALT, this.o.maxPosicoes);
-    if (this.estado.limiteAnterior !== sust.motivo) {
-      this.log(`limite de posições: ${sust.motivo}`);
-      this.estado.limiteAnterior = sust.motivo;
-    }
-    const maxAgora = sust.posicoes;
-    const alocacao = this.estado.capital / maxAgora;
-    const d = dimensionarSpread(alocacao, this.o.alavancagem, this.o.taxaPerp);
+    // O dinheiro vive em contas separadas e NÃO cruza entre elas. O tamanho de
+    // cada posição sai do que há livre nas duas exchanges dela, acima da
+    // reserva de socorro. Ver tesouraria.ts para por que o teto global e a
+    // transferência entre exchanges saíram do desenho.
+    const maxAgora = this.o.maxPosicoes;
 
     // Ordena por valor esperado, não pela heurística `spread × consistência²`.
     // Entre candidatas lucrativas, por valor POR HORA de capital ocupado — duas
     // com o mesmo lucro total não são equivalentes se uma leva o dobro do
     // tempo. Entre não-lucrativas, por folga, que responde "qual está mais
     // perto de compensar". Ver `chaveOrdenacao` para por que os dois regimes.
-    const entrada = (o: OportunidadeSpread) => ({
+    const entrada = (o: OportunidadeSpread, notional: number) => ({
       spread: o.spread, consistencia: o.consistencia,
       duracaoHoras: o.duracaoHoras ?? 0,
-      notional: d.notionalPorPerna, taxa: this.o.taxaPerp,
+      notional, taxa: taxaEfetiva(o.exchangeShort, o.exchangeLong),
     });
-    ops = [...ops].sort((a, b) => chaveOrdenacao(entrada(b)) - chaveOrdenacao(entrada(a)));
-    const limite = this.estado.capital * this.o.tetoPorExchange;
-    let bloqueadasPorTeto = 0;
+    // notional de referência só para ordenar; o real sai do dimensionamento
+    const notionalRef = (this.estado.capital / 2 / maxAgora) * this.o.alavancagem;
+    ops = [...ops].sort((a, b) =>
+      chaveOrdenacao(entrada(b, notionalRef)) - chaveOrdenacao(entrada(a, notionalRef)));
 
+    let bloqueadasPorSaldo = 0;
     let bloqueadasPorPayback = 0;
 
     for (const melhor of ops) {
@@ -441,6 +481,17 @@ export class MotorSpread {
       // 0,06%: 20% a mais de payback, que não é arredondamento numa conta onde
       // o payback é taxa × 4 / spread.
       const taxaReal = taxaEfetiva(melhor.exchangeShort, melhor.exchangeLong);
+
+      // O tamanho sai do saldo REAL das duas exchanges, acima da reserva.
+      // Precisa vir antes do portão porque o valor esperado depende do notional
+      // — e o notional depende de quanto sobrou em cada conta.
+      const d = dimensionar(
+        this.saldos(), this.exposicaoPorExchange(),
+        melhor.exchangeShort, melhor.exchangeLong,
+        this.o.alavancagem, this.o.reserva,
+      );
+      if (!d.possivel) { bloqueadasPorSaldo++; continue; }
+
       const v = avaliarValor({
         spread: melhor.spread,
         consistencia: melhor.consistencia,
@@ -453,11 +504,7 @@ export class MotorSpread {
         continue;
       }
 
-      const exp = this.exposicaoPorExchange();
-      const estouraria = [melhor.exchangeShort, melhor.exchangeLong]
-        .some((id) => (exp[id] ?? 0) + d.margemPorPerna > limite);
-      if (estouraria) { bloqueadasPorTeto++; continue; }
-
+      const custoMontagem = d.notionalPorPerna * taxaReal * 2;
       const p = await this.preco(melhor.exchangeShort, melhor.symbol);
       this.posicoes.push({
         symbol: melhor.symbol,
@@ -468,28 +515,29 @@ export class MotorSpread {
         fundingAcumulado: 0, pagamentos: 0,
       });
       jaTenho.add(melhor.symbol);
-      this.estado.capital -= d.custoMontagem;
-      this.estado.custosTotal += d.custoMontagem;
+      this.debitar(melhor.exchangeShort, custoMontagem / 2);
+      this.debitar(melhor.exchangeLong, custoMontagem / 2);
+      this.estado.custosTotal += custoMontagem;
 
       this.log(
         `ABRE ${melhor.symbol.replace('/USDT:USDT', '')} · vendido ${melhor.exchangeShort} / comprado ${melhor.exchangeLong} · ` +
         `spread médio ${(melhor.spread * 100).toFixed(4)}% (${(melhor.aprSpread * 100).toFixed(1)}% APR) · ` +
         `consistência ${(melhor.consistencia * 100).toFixed(0)}% · ` +
-        `notional US$ ${d.notionalPorPerna.toFixed(2)}/perna · custo US$ ${d.custoMontagem.toFixed(3)}`,
+        `notional US$ ${d.notionalPorPerna.toFixed(2)}/perna · ${d.motivo} · custo US$ ${custoMontagem.toFixed(3)}`,
       );
       this.diario('abre', {
         symbol: melhor.symbol, short: melhor.exchangeShort, long: melhor.exchangeLong,
         spread: melhor.spread, consistencia: melhor.consistencia, apr: melhor.aprSpread,
-        notional: d.notionalPorPerna, custo: d.custoMontagem, preco: p,
+        notional: d.notionalPorPerna, custo: custoMontagem, preco: p,
       });
     }
 
-    if (bloqueadasPorTeto && this.posicoes.length < maxAgora) {
-      const c = this.concentracao();
-      this.log(
-        `teto de exposição barrou ${bloqueadasPorTeto} candidatas · ` +
-        `concentração atual ${(c.fracao * 100).toFixed(0)}% em ${c.exchange} · limite ${(this.o.tetoPorExchange * 100).toFixed(0)}%`,
-      );
+    if (bloqueadasPorSaldo && this.posicoes.length < maxAgora) {
+      const u = usoPorExchange(this.saldos(), this.exposicaoPorExchange());
+      const resumo = Object.entries(u)
+        .map(([ex, x]) => `${ex} US$ ${x.livre.toFixed(2)} livre de ${x.saldo.toFixed(2)}`)
+        .join(' · ');
+      this.log(`saldo barrou ${bloqueadasPorSaldo} candidatas · ${resumo}`);
     }
 
     // Não abrir é um resultado, não uma falha. Enquanto nenhum par tiver
@@ -498,9 +546,12 @@ export class MotorSpread {
       const b = ops.find((o) => !jaTenho.has(o.symbol));
       let detalhe = '';
       if (b) {
+        // notional de referência: o dimensionamento real só existe dentro do
+        // laço, e aqui o que importa é o payback, que não depende do notional
         const v = avaliarValor({
           spread: b.spread, consistencia: b.consistencia,
-          duracaoHoras: b.duracaoHoras ?? 0, notional: d.notionalPorPerna, taxa: this.o.taxaPerp,
+          duracaoHoras: b.duracaoHoras ?? 0, notional: notionalRef,
+          taxa: taxaEfetiva(b.exchangeShort, b.exchangeLong),
         });
         // Quanto de vida ainda falta para passar no portão. É a informação
         // acionável: "faltam 6h" diz se vale esperar; "valor −US$ 0,15" não.
@@ -670,56 +721,47 @@ export class MotorSpread {
     }
 
     if (risco.nivel === 'alerta') {
-      const t = quantoTransferir(pos.margemShort, pos.margemLong);
-      // Transferir centavos custa taxa e não move a distância de liquidação. O
-      // caso em que isso importa é a posição NASCER dentro da faixa de alerta
-      // (acontece de 8x para cima): as margens já estão iguais, o valor a
-      // transferir é zero, e sem esta guarda o motor "agiria" todo ciclo sem
-      // mudar nada.
-      if (t.valor <= pos.notionalPorPerna * 0.001) {
-        this.log(
-          `ALERTA sem ação em ${pos.symbol.replace('/USDT:USDT', '')} — distância ` +
-          `${(risco.distanciaMinima * 100).toFixed(1)}% com as pernas já equilibradas. ` +
-          `A alavancagem é alta demais para o limiar.`,
-        );
-        return;
-      }
-      // CUSTO REAL DE TRANSFERÊNCIA, não 0,05% do valor.
+      // ── SOCORRO INTERNO, não transferência entre exchanges ─────────────
       //
-      // Saque entre exchanges cobra taxa FIXA (US$ 0,15 na rede mais barata da
-      // bitget) e tem MÍNIMO (US$ 10). O mínimo é o que importa: abaixo dele a
-      // transferência não acontece, por mais que o motor mande.
+      // A perna apertada é reforçada com o saldo livre da PRÓPRIA exchange.
+      // É um movimento de spot para futuros: instantâneo, sem taxa, sem valor
+      // mínimo, e imune à trava de 24h, à whitelist e ao limite de saque.
       //
-      // Quando não é possível, esperar o nível crítico seria apostar — não há
-      // reequilíbrio a caminho para ganhar tempo. Fecha-se agora, no alerta,
-      // que é a política medida em `ruina.ts` como `soFechamento`.
-      const ct = custoTransferencia(t.valor);
-      if (!ct.possivel) {
+      // A versão anterior buscava margem na outra exchange, o que exigia saque
+      // on-chain de no mínimo US$ 10 — valor que, a US$ 100 de capital, a
+      // transferência necessária nem alcançava. Metade da proteção era ficção.
+      //
+      // Medido em 20 mil simulações de 90 dias, com reserva de 30%: ruína de
+      // 0,01% e mediana de US$ 214, contra US$ 203 sem reserva nenhuma.
+      const exApertada = risco.pernaEmRisco === 'short' ? pos.exchangeShort : pos.exchangeLong;
+      const margemAtual = risco.pernaEmRisco === 'short' ? pos.margemShort : pos.margemLong;
+      const alvo = pos.notionalPorPerna / this.o.alavancagem;
+      const faltando = Math.max(0, alvo - margemAtual);
+
+      const s = socorrer(this.saldos(), this.exposicaoPorExchange(), exApertada, faltando);
+      if (!s.possivel) {
+        // reserva esgotada NAQUELA exchange: não há mais o que fazer além de
+        // sair, e sair agora custa menos que ser liquidado
         this.estado.fechamentosEmergencia = (this.estado.fechamentosEmergencia ?? 0) + 1;
         this.fecharPosicao(
           pos,
-          `ALERTA sem transferência possível — ${ct.motivo} · ` +
-          `distância ${(risco.distanciaMinima * 100).toFixed(1)}%`,
+          `ALERTA e ${s.motivo} · distância ${(risco.distanciaMinima * 100).toFixed(1)}%`,
           'FECHA',
         );
         return;
       }
-      const custo = ct.custo;
-      this.estado.capital -= custo;
-      this.estado.custosTotal += custo;
+
+      if (risco.pernaEmRisco === 'short') pos.margemShort += s.valor;
+      else pos.margemLong += s.valor;
       this.estado.transferencias++;
-      // depois de igualar, as duas pernas voltam à distância máxima possível
-      const media = (pos.margemShort + pos.margemLong) / 2;
-      pos.margemShort = media;
-      pos.margemLong = media;
       this.log(
-        `TRANSFERE US$ ${t.valor.toFixed(2)} da perna ${t.de} · ` +
-        `distância de liquidação era ${(risco.distanciaMinima * 100).toFixed(1)}% · ` +
-        `preço ${(variacao * 100).toFixed(1)}% desde a entrada · custo US$ ${custo.toFixed(4)}`,
+        `SOCORRE ${pos.symbol.replace('/USDT:USDT', '')} · ${s.motivo} · ` +
+        `distância era ${(risco.distanciaMinima * 100).toFixed(1)}% · ` +
+        `preço ${(variacao * 100).toFixed(1)}% desde a entrada · sem custo`,
       );
-      this.diario('transfere', {
-        symbol: pos.symbol, transferido: t.valor, de: t.de,
-        distanciaLiquidacao: risco.distanciaMinima, variacao, custo,
+      this.diario('socorre', {
+        symbol: pos.symbol, exchange: exApertada, valor: s.valor,
+        distanciaLiquidacao: risco.distanciaMinima, variacao,
       });
     }
 
