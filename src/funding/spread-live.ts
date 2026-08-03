@@ -21,7 +21,8 @@ import ccxt from 'ccxt';
 import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
 import { lerVigilancia } from './ponte.ts';
-import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso } from './protecao.ts';
+import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso, LIMIARES_PADRAO, MMR_ALT } from './protecao.ts';
+import { posicoesSustentaveis, custoTransferencia, taxaDaOperacao } from './custos-reais.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
 
@@ -73,6 +74,8 @@ export interface EstadoSpread {
   parado?: boolean;
   /** quantas vezes fechou por proximidade de liquidação */
   fechamentosEmergencia?: number;
+  /** último limite de posições logado, para não repetir a cada ciclo */
+  limiteAnterior?: string;
 }
 
 export interface OpcoesSpread {
@@ -385,7 +388,19 @@ export class MotorSpread {
    */
   private async abrir(ops: OportunidadeSpread[]) {
     const jaTenho = new Set(this.posicoes.map((p) => p.symbol));
-    const alocacao = this.estado.capital / this.o.maxPosicoes;
+
+    // O número de posições NÃO é livre: diluir divide a margem por perna, e
+    // abaixo de certo tamanho a transferência de margem cai sob o saque mínimo
+    // da exchange e deixa de ser possível. Sem transferência, a única defesa é
+    // fechar — medido em 42,5 fechamentos por 90 dias e mediana US$ 89,88
+    // contra US$ 111,67. Seguro, mas perdendo dinheiro.
+    const sust = posicoesSustentaveis(this.estado.capital, this.o.alavancagem, LIMIARES_PADRAO.alerta, MMR_ALT, this.o.maxPosicoes);
+    if (this.estado.limiteAnterior !== sust.motivo) {
+      this.log(`limite de posições: ${sust.motivo}`);
+      this.estado.limiteAnterior = sust.motivo;
+    }
+    const maxAgora = sust.posicoes;
+    const alocacao = this.estado.capital / maxAgora;
     const d = dimensionarSpread(alocacao, this.o.alavancagem, this.o.taxaPerp);
 
     // Ordena por valor esperado, não pela heurística `spread × consistência²`.
@@ -405,7 +420,7 @@ export class MotorSpread {
     let bloqueadasPorPayback = 0;
 
     for (const melhor of ops) {
-      if (this.posicoes.length >= this.o.maxPosicoes) break;
+      if (this.posicoes.length >= maxAgora) break;
       if (jaTenho.has(melhor.symbol)) continue;
       if (melhor.spread < this.o.spreadMinimo) continue;
 
@@ -422,12 +437,16 @@ export class MotorSpread {
       // As 8 posições abertas antes deste portão fecharam TODAS no prejuízo:
       // US$ 0,17 de funding contra US$ 2,48 de custo. Por isso ele remove só
       // perdedoras, e não fere a regra de nunca remover trade lucrativo.
+      // Taxa REAL do par de exchanges, não 0,05% uniforme. A bitget cobra
+      // 0,06%: 20% a mais de payback, que não é arredondamento numa conta onde
+      // o payback é taxa × 4 / spread.
+      const taxaReal = taxaDaOperacao(melhor.exchangeShort, melhor.exchangeLong);
       const v = avaliarValor({
         spread: melhor.spread,
         consistencia: melhor.consistencia,
         duracaoHoras: melhor.duracaoHoras ?? 0,
         notional: d.notionalPorPerna,
-        taxa: this.o.taxaPerp,
+        taxa: taxaReal,
       });
       if (v.folga < this.o.margemPayback) {
         bloqueadasPorPayback++;
@@ -465,7 +484,7 @@ export class MotorSpread {
       });
     }
 
-    if (bloqueadasPorTeto && this.posicoes.length < this.o.maxPosicoes) {
+    if (bloqueadasPorTeto && this.posicoes.length < maxAgora) {
       const c = this.concentracao();
       this.log(
         `teto de exposição barrou ${bloqueadasPorTeto} candidatas · ` +
@@ -475,7 +494,7 @@ export class MotorSpread {
 
     // Não abrir é um resultado, não uma falha. Enquanto nenhum par tiver
     // vivido o próprio payback, ficar de fora é a decisão que rende mais.
-    if (bloqueadasPorPayback && this.posicoes.length < this.o.maxPosicoes) {
+    if (bloqueadasPorPayback && this.posicoes.length < maxAgora) {
       const b = ops.find((o) => !jaTenho.has(o.symbol));
       let detalhe = '';
       if (b) {
@@ -517,7 +536,9 @@ export class MotorSpread {
    * reinvestido dispararia uma aparada e o custo comeria o ganho.
    */
   private redimensionar(pos: PosicaoSpread) {
-    const alvo = this.estado.capital / this.o.maxPosicoes;
+    // A cota usa o limite SUSTENTÁVEL, não o configurado: se o capital só
+    // sustenta uma posição, a cota é o capital inteiro e não há o que aparar.
+    const alvo = this.estado.capital / posicoesSustentaveis(this.estado.capital, this.o.alavancagem, LIMIARES_PADRAO.alerta, MMR_ALT, this.o.maxPosicoes).posicoes;
     const atual = pos.margemShort + pos.margemLong;
     if (atual <= alvo * 1.25) return;
 
@@ -663,7 +684,27 @@ export class MotorSpread {
         );
         return;
       }
-      const custo = t.valor * 0.0005;
+      // CUSTO REAL DE TRANSFERÊNCIA, não 0,05% do valor.
+      //
+      // Saque entre exchanges cobra taxa FIXA (US$ 0,15 na rede mais barata da
+      // bitget) e tem MÍNIMO (US$ 10). O mínimo é o que importa: abaixo dele a
+      // transferência não acontece, por mais que o motor mande.
+      //
+      // Quando não é possível, esperar o nível crítico seria apostar — não há
+      // reequilíbrio a caminho para ganhar tempo. Fecha-se agora, no alerta,
+      // que é a política medida em `ruina.ts` como `soFechamento`.
+      const ct = custoTransferencia(t.valor);
+      if (!ct.possivel) {
+        this.estado.fechamentosEmergencia = (this.estado.fechamentosEmergencia ?? 0) + 1;
+        this.fecharPosicao(
+          pos,
+          `ALERTA sem transferência possível — ${ct.motivo} · ` +
+          `distância ${(risco.distanciaMinima * 100).toFixed(1)}%`,
+          'FECHA',
+        );
+        return;
+      }
+      const custo = ct.custo;
       this.estado.capital -= custo;
       this.estado.custosTotal += custo;
       this.estado.transferencias++;
@@ -743,7 +784,7 @@ export class MotorSpread {
       `${e.pagamentos} pag · ${e.reinvestimentos} reinv · ${e.transferencias} transf · ${e.trocas} trocas` +
       (fechadas.length ? ` · semanas + ${pos}/${fechadas.length}` : '') +
       (abertas.length
-        ? ` · ${abertas.length}/${this.o.maxPosicoes} posições: ` +
+        ? ` · ${abertas.length}/${posicoesSustentaveis(e.capital, this.o.alavancagem, LIMIARES_PADRAO.alerta, MMR_ALT, this.o.maxPosicoes).posicoes} posições: ` +
           abertas.map((p) => p.symbol.replace('/USDT:USDT', '')).join(', ') +
           ` · concentração ${(c.fracao * 100).toFixed(0)}% em ${c.exchange}`
         : ' · sem posição')

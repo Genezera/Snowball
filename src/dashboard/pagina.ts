@@ -175,8 +175,9 @@ tr.on td:first-child{box-shadow:inset 2.5px 0 0 var(--up)}
   <div class="hd"><span class="lbl">Varredura ao vivo</span><span class="note" id="scanNota"></span></div>
   <div class="wrap"><table><thead><tr>
     <th>Ativo</th><th>Vendido</th><th>Comprado</th>
-    <th class="right">Spread médio</th><th class="right">Agora</th>
-    <th class="right">Consistência</th><th class="right">APR</th>
+    <th class="right">Spread médio</th><th class="right">APR</th>
+    <th class="right">Consistência</th><th class="right">Vive há</th>
+    <th class="right">Payback</th><th class="right">Portão</th>
   </tr></thead><tbody id="scan"></tbody></table></div>
 </div>
 
@@ -406,19 +407,27 @@ async function tick(){
     +'<div class="kv"><span>reinvestimentos</span><b class="mono">'+(e.reinvestimentos||0)+'</b></div></div>';
 
   const sc=d.scan||[];
+  // O painel mostrava candidatas como se fossem acionáveis. Desde o portão de
+  // valor esperado isso engana: quase todas estão barradas, e a tabela não
+  // dizia. Agora cada linha mostra payback, vida e se o portão libera.
+  const passou=sc.filter(s=>s.passaPortao).length;
   document.getElementById('scanNota').textContent=sc.length
-    ?sc.length+' pares · ordenados por spread médio × consistência² · '+(vg.fonte||'')
+    ?sc.length+' pares · '+(passou?passou+' passam no portão':'nenhum passa no portão ainda')+' · '+(vg.fonte||'')
     :(vg.motivo||(d.varrendo?'varrendo exchanges…':'aguardando varredura'));
   document.getElementById('scan').innerHTML=sc.length?sc.map(s=>{
     const on=abertas.some(p=>p.symbol===s.symbol), c=s.consistencia*100;
+    const pb=s.paybackHoras, viva=s.duracaoHoras||0, pct=s.pctDoCaminho||0;
     return '<tr class="'+(on?'on':'')+'">'
       +'<td><b>'+s.symbol.replace('/USDT:USDT','')+'</b>'+(on?'<span class="badge">montada</span>':'')+'</td>'
       +'<td class="mut">'+s.exchangeShort+'</td><td class="mut">'+s.exchangeLong+'</td>'
       +'<td class="right mono">'+f(s.spread*100,4)+'%</td>'
-      +'<td class="right mono mut">'+f(s.spreadInstantaneo*100,4)+'%</td>'
+      +'<td class="right mono">'+f(s.aprSpread*100,1)+'%</td>'
       +'<td class="right mono '+(c>=95?'up':c>=80?'wa':'dn')+'">'+c.toFixed(0)+'%</td>'
-      +'<td class="right mono">'+f(s.aprSpread*100,1)+'%</td></tr>';
-  }).join(''):'<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--t3)">varrendo exchanges…</td></tr>';
+      +'<td class="right mono mut">'+(viva<1?(viva*60).toFixed(0)+'min':viva.toFixed(1)+'h')+'</td>'
+      +'<td class="right mono mut">'+(pb&&pb<10000?pb.toFixed(0)+'h':'—')+'</td>'
+      +'<td class="right mono '+(s.passaPortao?'up':pct>=50?'wa':'dn')+'">'
+        +(s.passaPortao?'✓ libera':pct.toFixed(0)+'%')+'</td></tr>';
+  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--t3)">varrendo exchanges…</td></tr>';
 
   document.getElementById('log').innerHTML=(d.diario||[]).map(x=>{
     let det='',val='',cls='';const s=(x.symbol||'').replace('/USDT:USDT','');

@@ -389,3 +389,87 @@ De 50% para 33,7%. O dano de um evento de custódia caiu **um terço**.
 
 O dashboard mostra o capital por exchange e destaca em vermelho se a
 concentração passar do teto.
+
+---
+
+## Auditoria de fidelidade ao mercado real (03/08/2026)
+
+Verificação do que o modelo assumia contra o que as exchanges cobram de fato.
+Três coisas estavam erradas, e uma delas invalidava metade do desenho.
+
+### A restrição que ninguém vê até tentar
+
+O motor tratava transferência de margem como custando **0,05% do valor**. O real
+é uma taxa **fixa** (US$ 0,15 na rede mais barata da bitget) e — o que importa —
+um **saque mínimo de US$ 10**.
+
+Isso não é uma diferença de custo. É um piso: abaixo dele a transferência não
+acontece, por mais que o motor mande.
+
+E aí a diluição em três posições, que parecia puro ganho, mostrou o preço:
+
+| posições | margem/perna | transferência no alerta | possível? |
+|---|---|---|---|
+| 1 | US$ 50,00 | US$ 17,50 | sim |
+| 2 | US$ 25,00 | US$ 8,75 | **não** |
+| 3 | US$ 16,67 | US$ 5,83 | **não** |
+
+Diluir divide a margem por perna, e abaixo de certo tamanho o reequilíbrio deixa
+de ser executável. Sem ele, a única defesa é fechar — medido:
+
+| política | ruína | mediana em 90 dias | fechamentos |
+|---|---|---|---|
+| só fechamento | 0,01% | **US$ 89,88** | 42,5 |
+| completa | 0,03% | **US$ 111,67** | 0,2 |
+
+As duas são seguras. Mas a primeira **perde dinheiro**: sem reequilibrar, a
+posição morre 42 vezes em 90 dias e o atrito devora o capital.
+
+Ou seja, a US$ 100 a escolha real nunca foi "diluir ou não":
+
+| | concentração | mediana |
+|---|---|---|
+| 1 posição | 50% | **US$ 111,67** |
+| 3 posições | 33% | US$ 89,88 |
+
+Concentração é risco de cauda; o atrito é certeza. Escolhe-se a certeza.
+
+O motor agora calcula quantas posições o capital sustenta **sem perder a
+capacidade de transferir**, e loga a decisão:
+
+```
+limite de posições: 1 de 3 — transferir margem exige US$ 171 para 3 posições
+```
+
+A fronteira exata é US$ 171,43. Abaixo disso, menos posições.
+
+### Taxa por exchange, não uniforme
+
+`market.taker` lido via ccxt em 03/08/2026:
+
+| exchange | taker | maker | mín. notional |
+|---|---|---|---|
+| binance | 0,0500% | 0,0200% | US$ 5 |
+| okx | 0,0500% | 0,0200% | — |
+| gate | 0,0500% | 0,0200% | — |
+| bybit | 0,0550%* | 0,0200% | — |
+| bitget | **0,0600%** | 0,0200% | US$ 5 |
+
+\* não exposto via ccxt sem chave; valor de tabela pública.
+
+A bitget é 20% mais cara. Numa conta onde o payback é `taxa × 4 / spread`, isso
+é 20% a mais de tempo até empatar — não é arredondamento. O motor passou a usar
+a média das duas exchanges do par.
+
+O notional mínimo de US$ 5 não é restrição nesta escala: a menor perna seria de
+US$ 250 com uma posição.
+
+### O que continua assumido sem verificação
+
+- **Escorregamento na entrada.** O motor usa o último preço. Ordem a mercado
+  paga o topo do livro, e em par fino isso é mais que a taxa.
+- **Intervalo de funding.** A varredura normaliza para base 8h antes de
+  comparar, o que está correto. Mas pares de intervalo 1h pagam com frequência
+  diferente, e a modelagem de 3 pagamentos/dia é uma aproximação.
+- **Limite de alavancagem por ativo.** Alguns pares novos limitam a menos de 5x.
+  Não verificado par a par.

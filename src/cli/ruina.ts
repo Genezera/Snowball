@@ -46,7 +46,20 @@ const TAXA = 0.0005;
 const CICLOS_DIA = 72;
 const VOL_CICLO = VOL_DIA / Math.sqrt(CICLOS_DIA);
 
-type Politica = 'nenhuma' | 'transferencia' | 'completa';
+/**
+ * `soFechamento` existe por uma restrição física, não por escolha de desenho.
+ *
+ * A bitget exige saque mínimo de US$ 10. Com US$ 100 divididos em 3 posições, a
+ * margem por perna é US$ 16,67 e a transferência necessária no alerta é US$
+ * 5,83 — **abaixo do mínimo**. A transferência simplesmente não pode ser feita.
+ *
+ * Capital mínimo para transferência viável: US$ 57 com 1 posição, US$ 171 com 3.
+ *
+ * Então a pergunta que este cenário responde é: **fechar sozinho basta?** Se
+ * sim, a diluição em três posições é aceitável a US$ 100. Se não, é preciso
+ * escolher entre diluir e poder reequilibrar.
+ */
+type Politica = 'nenhuma' | 'transferencia' | 'soFechamento' | 'completa';
 
 /** Gerador determinístico: um teste de ruína que muda de resposta não decide nada. */
 function rng(semente: number) {
@@ -145,6 +158,15 @@ function simular(cfg: Config, semente: number): Resultado {
     //
     // Fechar é uma ordem local em cada exchange. Não depende de dinheiro
     // chegar. Bloquear isso seria um defeito de projeto, não só de modelo.
+    // sem transferência viável, o fechamento tem de acontecer mais cedo — no
+    // ALERTA, não no crítico, porque não há reequilíbrio para ganhar tempo
+    if (cfg.politica === 'soFechamento' && risco.nivel !== 'ok') {
+      margemShort = risco.margemShort; margemLong = risco.margemLong;
+      capital = margemShort + margemLong - notional * TAXA * 2;
+      montada = false; fechamentos++;
+      continue;
+    }
+
     if (cfg.politica === 'completa' && risco.nivel === 'critico') {
       margemShort = risco.margemShort; margemLong = risco.margemLong;
       capital = margemShort + margemLong - notional * TAXA * 2;
@@ -210,7 +232,7 @@ console.log(
 );
 
 const guardado: Record<string, number[]> = {};
-for (const p of ['nenhuma', 'transferencia', 'completa'] as Politica[]) {
+for (const p of ['nenhuma', 'transferencia', 'soFechamento', 'completa'] as Politica[]) {
   const res = rodar({ politica: p, alavancagem: LEV, latencia: LATENCIA }, SIMS);
   guardado[p] = res.fins;
   console.log(

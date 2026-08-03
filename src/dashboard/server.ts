@@ -23,6 +23,8 @@ import path from 'node:path';
 import { ROOT } from '../data/store.ts';
 import { varrerSpreads, type OportunidadeSpread } from '../funding/spread.ts';
 import { lerVigilancia, saudeVigilancia } from '../funding/ponte.ts';
+import { avaliarValor } from '../funding/valor.ts';
+import { posicoesSustentaveis, taxaDaOperacao } from '../funding/custos-reais.ts';
 import { PAGINA } from './pagina.ts';
 
 const PORTA = Number(process.env.PORTA ?? 8787);
@@ -98,7 +100,30 @@ const servidor = http.createServer(async (req, res) => {
     }
 
     const usandoVigilancia = vig.disponivel && vig.oportunidades.length > 0;
-    const scan = usandoVigilancia ? vig.oportunidades : cacheVarredura.dados;
+    const scanBruto = usandoVigilancia ? vig.oportunidades : cacheVarredura.dados;
+
+    // O painel precisa mostrar o VEREDICTO do portão, não só o spread. Sem
+    // isso, a tabela lista candidatas que o motor jamais vai montar como se
+    // fossem oportunidades — que é como ela ficou depois do portão entrar.
+    const capital = estado?.capital ?? 100;
+    const alavancagem = 5, margemPayback = 1.5;
+    const sust = posicoesSustentaveis(capital, alavancagem, 0.12, 0.01, 3);
+    const notionalPorPerna = (sust.capitalPorPosicao / 2) * alavancagem;
+    const scan = scanBruto.map((o) => {
+      const taxa = taxaDaOperacao(o.exchangeShort, o.exchangeLong);
+      const v = avaliarValor({
+        spread: o.spread, consistencia: o.consistencia,
+        duracaoHoras: o.duracaoHoras ?? 0, notional: notionalPorPerna, taxa,
+      });
+      return {
+        ...o,
+        paybackHoras: v.paybackHoras,
+        vidaEsperadaHoras: v.vidaEsperadaHoras,
+        valorEsperado: v.valorEsperado,
+        pctDoCaminho: Math.min(100, (v.folga / margemPayback) * 100),
+        passaPortao: v.folga >= margemPayback,
+      };
+    });
 
     // série de capital ao longo do tempo, montada a partir do diário
     const curva: { ts: number; capital: number }[] = [];
