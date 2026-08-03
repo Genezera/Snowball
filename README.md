@@ -83,7 +83,7 @@ Supervisionados com reinício automático: `run-vigilancia.cmd`,
 ### Análise
 
 ```bash
-npm test                    # 56 testes das travas de risco e seleção
+npm test                    # 70 testes das travas de risco e seleção
 npm run semanas             # projeção semana a semana, com custo de rotação
 npm run ruina               # 20 mil simulações contra choques de preço
 npm run execucao            # maker × taker, com o risco de perna solta
@@ -114,6 +114,7 @@ npm run team                # a equipe de módulos decisórios
 | [docs/VIGILANCIA.md](docs/VIGILANCIA.md) | como o mercado inteiro é varrido e ranqueado |
 | [docs/QUANTO-RENDE.md](docs/QUANTO-RENDE.md) | projeção semana a semana, com o custo de rotação |
 | [docs/PROTECAO-RUINA.md](docs/PROTECAO-RUINA.md) | trava de liquidação, piso de capital e teste de ruína |
+| [docs/EXECUCAO-REAL.md](docs/EXECUCAO-REAL.md) | **o que foi verificado nas exchanges e o que ainda é suposição** |
 | [docs/CRONOLOGIA.md](docs/CRONOLOGIA.md) | diário do projeto, fase a fase |
 | [docs/O-QUE-FALHOU.md](docs/O-QUE-FALHOU.md) | o que foi testado e descartado |
 | [docs/RESULTADOS.md](docs/RESULTADOS.md) | todos os números medidos |

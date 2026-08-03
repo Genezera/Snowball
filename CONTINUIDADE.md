@@ -323,6 +323,7 @@ Isto é **normal e correto**. Significa que nada compensa agora.
 | `COMECE-AQUI.md` | resumo de uma página para o usuário |
 | `docs/QUANTO-RENDE.md` | a conta de payback e as projeções |
 | `docs/PROTECAO-RUINA.md` | travas de risco e teste de ruína |
+| `docs/EXECUCAO-REAL.md` | verificado × suposto contra as exchanges reais |
 | `docs/VIGILANCIA.md` | a varredura e o bug do piscar |
 | `docs/DELTA-NEUTRO.md` | por que esta estratégia |
 | `docs/CRONOLOGIA.md` | tudo, fase a fase |

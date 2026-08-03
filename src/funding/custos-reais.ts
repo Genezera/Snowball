@@ -49,6 +49,48 @@ export const SAQUE_MINIMO = 10;
  */
 export const TAXA_SAQUE = 0.15;
 
+/**
+ * Escorregamento por perna, medido no livro real em 03/08/2026.
+ *
+ * Ordem a mercado não executa no preço do meio — ela come o livro. Medido
+ * comprando US$ 250 de notional:
+ *
+ *   binance  KAITO 0,0050%  ·  AAVE 0,0054%  ·  HYPER 0,0266%
+ *   bybit    KAITO 0,0188%  ·  AAVE 0,0108%  ·  HYPER 0,0220%
+ *
+ * O motor ignorava isso completamente — usava o último preço, como se a ordem
+ * executasse sem custo de travessia. Não é o maior custo, mas incide QUATRO
+ * vezes numa operação completa (duas pernas, entrada e saída), então a 0,02%
+ * por perna acrescenta 0,08% ao custo de 0,20% das taxas: **40% a mais de
+ * payback**.
+ *
+ * 0,02% é a mediana das seis medições. Pares finos custam mais, e a varredura
+ * já exige US$ 10M de volume nas duas pontas justamente para não cair neles.
+ */
+export const ESCORREGAMENTO_PERNA = 0.0002;
+
+/**
+ * Custo total de uma operação completa, em fração do notional por perna.
+ *
+ * Quatro incidências de cada componente: duas pernas × (entrada + saída).
+ */
+export function custoOperacaoCompleta(exShort: string, exLong: string, escorregamento = ESCORREGAMENTO_PERNA): {
+  taxa: number; escorregamento: number; total: number;
+} {
+  const taxa = taxaDaOperacao(exShort, exLong);
+  return { taxa: taxa * 4, escorregamento: escorregamento * 4, total: (taxa + escorregamento) * 4 };
+}
+
+/**
+ * Taxa efetiva a usar no cálculo de payback: a taxa mais o escorregamento.
+ *
+ * O portão de valor esperado recebe uma "taxa" e multiplica por 4. Passar a
+ * taxa efetiva faz o escorregamento entrar na conta sem mudar a fórmula.
+ */
+export function taxaEfetiva(exShort: string, exLong: string, escorregamento = ESCORREGAMENTO_PERNA): number {
+  return taxaDaOperacao(exShort, exLong) + escorregamento;
+}
+
 export interface CustoTransferencia {
   possivel: boolean;
   custo: number;

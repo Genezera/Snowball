@@ -22,7 +22,7 @@ import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
 import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso, LIMIARES_PADRAO, MMR_ALT } from './protecao.ts';
-import { posicoesSustentaveis, custoTransferencia, taxaDaOperacao } from './custos-reais.ts';
+import { posicoesSustentaveis, custoTransferencia, taxaEfetiva } from './custos-reais.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
 
@@ -440,7 +440,7 @@ export class MotorSpread {
       // Taxa REAL do par de exchanges, não 0,05% uniforme. A bitget cobra
       // 0,06%: 20% a mais de payback, que não é arredondamento numa conta onde
       // o payback é taxa × 4 / spread.
-      const taxaReal = taxaDaOperacao(melhor.exchangeShort, melhor.exchangeLong);
+      const taxaReal = taxaEfetiva(melhor.exchangeShort, melhor.exchangeLong);
       const v = avaliarValor({
         spread: melhor.spread,
         consistencia: melhor.consistencia,

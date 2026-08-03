@@ -24,7 +24,7 @@ import { ROOT } from '../data/store.ts';
 import { varrerSpreads, type OportunidadeSpread } from '../funding/spread.ts';
 import { lerVigilancia, saudeVigilancia } from '../funding/ponte.ts';
 import { avaliarValor } from '../funding/valor.ts';
-import { posicoesSustentaveis, taxaDaOperacao } from '../funding/custos-reais.ts';
+import { posicoesSustentaveis, taxaEfetiva } from '../funding/custos-reais.ts';
 import { PAGINA } from './pagina.ts';
 
 const PORTA = Number(process.env.PORTA ?? 8787);
@@ -110,7 +110,7 @@ const servidor = http.createServer(async (req, res) => {
     const sust = posicoesSustentaveis(capital, alavancagem, 0.12, 0.01, 3);
     const notionalPorPerna = (sust.capitalPorPosicao / 2) * alavancagem;
     const scan = scanBruto.map((o) => {
-      const taxa = taxaDaOperacao(o.exchangeShort, o.exchangeLong);
+      const taxa = taxaEfetiva(o.exchangeShort, o.exchangeLong);
       const v = avaliarValor({
         spread: o.spread, consistencia: o.consistencia,
         duracaoHoras: o.duracaoHoras ?? 0, notional: notionalPorPerna, taxa,
