@@ -179,6 +179,7 @@ tr.on td:first-child{box-shadow:inset 2.5px 0 0 var(--up)}
   <div class="hd"><span class="lbl">Varredura ao vivo</span><span class="note" id="scanNota"></span></div>
   <div class="wrap"><table><thead><tr>
     <th>Ativo</th><th>Vendido</th><th>Comprado</th>
+    <th class="right">Preço agora</th>
     <th class="right">Spread médio</th><th class="right">APR</th>
     <th class="right">Consistência</th><th class="right">Vive há</th>
     <th class="right">Payback</th><th class="right">Portão</th>
@@ -401,11 +402,15 @@ function render(d){
           const dmin=typeof p.distanciaMinima==='number'?p.distanciaMinima:null;
           const distLinha=dmin==null?'':'<div class="kv"><span>distância até liquidação</span><b class="mono '
             +(dmin<0.03?'dn':dmin<0.06?'wa':'up')+'">'+(dmin*100).toFixed(1)+'% · perna em risco: '+(p.pernaEmRisco||'—')+'</b></div>';
+          const casas=v=>v<1?6:4;
+          const linhaTick=(preco,variacao)=>typeof preco!=='number'?'':
+            '<div class="mono" style="font-size:.72rem;margin-top:5px;color:var(--t2)">$'+f(preco,casas(preco))
+            +' <span class="'+(variacao>=0?'up':'dn')+'">'+(variacao>=0?'▲':'▼')+' '+f(Math.abs(variacao*100),2)+'%</span></div>';
           return '<div class="pos" style="margin-bottom:10px">'
             +'<div class="tk">'+p.symbol.replace('/USDT:USDT','')+'</div>'
             +'<div class="legs">'
-            +'<div class="leg"><div class="t dn">▼ VENDIDO</div><div class="e">'+p.exchangeShort+'</div></div>'
-            +'<div class="leg"><div class="t up">▲ COMPRADO</div><div class="e">'+p.exchangeLong+'</div></div></div>'
+            +'<div class="leg"><div class="t dn">▼ VENDIDO</div><div class="e">'+p.exchangeShort+'</div>'+linhaTick(p.precoAoVivoShort,p.variacaoShort)+'</div>'
+            +'<div class="leg"><div class="t up">▲ COMPRADO</div><div class="e">'+p.exchangeLong+'</div>'+linhaTick(p.precoAoVivoLong,p.variacaoLong)+'</div></div>'
             +'<div class="kv"><span>notional por perna</span><b class="mono">$'+f(p.notionalPorPerna)+'</b></div>'
             +'<div class="kv"><span>spread na entrada</span><b class="mono">'+f(p.spreadNaEntrada*100,4)+'%</b></div>'
             +'<div class="kv"><span>funding acumulado</span><b class="mono up">+$'+f(p.fundingAcumulado,4)+'</b></div>'
@@ -451,9 +456,14 @@ function render(d){
   document.getElementById('scan').innerHTML=sc.length?sc.map(s=>{
     const on=abertas.some(p=>p.symbol===s.symbol), c=s.consistencia*100;
     const pb=s.paybackHoras, viva=s.duracaoHoras||0, pct=s.pctDoCaminho||0;
+    const casas=v=>v<1?6:2;
+    const precoTxt=(s.precoShortAoVivo&&s.precoLongAoVivo)
+      ?'$'+f(s.precoShortAoVivo,casas(s.precoShortAoVivo))+' / $'+f(s.precoLongAoVivo,casas(s.precoLongAoVivo))
+      :'—';
     return '<tr class="'+(on?'on':'')+'">'
       +'<td><b>'+s.symbol.replace('/USDT:USDT','')+'</b>'+(on?'<span class="badge">montada</span>':'')+'</td>'
       +'<td class="mut">'+s.exchangeShort+'</td><td class="mut">'+s.exchangeLong+'</td>'
+      +'<td class="right mono mut" style="font-size:.72rem">'+precoTxt+'</td>'
       +'<td class="right mono">'+f(s.spread*100,4)+'%</td>'
       +'<td class="right mono">'+f(s.aprSpread*100,1)+'%</td>'
       +'<td class="right mono '+(c>=95?'up':c>=80?'wa':'dn')+'">'+c.toFixed(0)+'%</td>'
@@ -461,7 +471,7 @@ function render(d){
       +'<td class="right mono mut">'+(pb&&pb<10000?pb.toFixed(0)+'h':'—')+'</td>'
       +'<td class="right mono '+(s.passaPortao?'up':pct>=50?'wa':'dn')+'">'
         +(s.passaPortao?'✓ libera':pct.toFixed(0)+'%')+'</td></tr>';
-  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--t3)">varrendo exchanges…</td></tr>';
+  }).join(''):'<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--t3)">varrendo exchanges…</td></tr>';
 
   document.getElementById('log').innerHTML=(d.diario||[]).map(x=>{
     let det='',val='',cls='';const s=(x.symbol||'').replace('/USDT:USDT','');

@@ -20,6 +20,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import ccxt from 'ccxt';
 import { ROOT } from '../data/store.ts';
 import { varrerSpreads, type OportunidadeSpread } from '../funding/spread.ts';
 import { lerVigilancia, saudeVigilancia } from '../funding/ponte.ts';
@@ -60,6 +61,61 @@ async function atualizarVarredura() {
     cacheVarredura.rodando = false;
     console.log(`[varredura] falhou: ${(e as Error).message.slice(0, 60)}`);
   }
+}
+
+/**
+ * PREÇO AO VIVO — não é websocket, é REST via ccxt sondado a cada ~2,5s.
+ *
+ * O projeto não tem ccxt.pro nem chave de exchange para stream. Isto é o mais
+ * perto de "sem delay" que dá para entregar com o que está instalado: assim
+ * que o preço chega, `transmitir()` empurra pro navegador, em vez de esperar
+ * o próximo ciclo do motor (5 min) ou o heartbeat (10 s).
+ *
+ * Só sonda o que está na tela: as pernas de posições abertas e os 5 melhores
+ * candidatos da varredura — nunca a lista inteira, para não estourar limite de
+ * taxa das exchanges por causa de uma página aberta.
+ */
+const poolTickers: Record<string, any> = {};
+const marketsCarregados = new Set<string>();
+const precosAoVivo: Record<string, { preco: number; ts: number }> = {};
+
+async function exchangeParaTicker(id: string) {
+  if (!poolTickers[id]) poolTickers[id] = new (ccxt as any)[id]({ enableRateLimit: true });
+  const ex = poolTickers[id];
+  if (!marketsCarregados.has(id)) {
+    await ex.loadMarkets();
+    marketsCarregados.add(id);
+  }
+  return ex;
+}
+
+async function atualizarPrecosAoVivo() {
+  const estado = lerEstado();
+  const abertas: any[] = estado?.posicoes ?? (estado?.posicao ? [estado.posicao] : []);
+  const vig = lerVigilancia(3);
+  const candidatos = (vig.disponivel && vig.oportunidades.length ? vig.oportunidades : cacheVarredura.dados).slice(0, 5);
+
+  const alvos = new Map<string, { exchange: string; symbol: string }>();
+  for (const p of abertas) {
+    alvos.set(`${p.exchangeShort}|${p.symbol}`, { exchange: p.exchangeShort, symbol: p.symbol });
+    alvos.set(`${p.exchangeLong}|${p.symbol}`, { exchange: p.exchangeLong, symbol: p.symbol });
+  }
+  for (const o of candidatos) {
+    alvos.set(`${o.exchangeShort}|${o.symbol}`, { exchange: o.exchangeShort, symbol: o.symbol });
+    alvos.set(`${o.exchangeLong}|${o.symbol}`, { exchange: o.exchangeLong, symbol: o.symbol });
+  }
+  if (!alvos.size) return;
+
+  let mudou = false;
+  await Promise.all([...alvos.values()].map(async ({ exchange, symbol }) => {
+    try {
+      const ex = await exchangeParaTicker(exchange);
+      const t = await ex.fetchTicker(symbol);
+      const preco = t.last ?? t.close ?? t.bid ?? t.ask;
+      if (preco) { precosAoVivo[`${exchange}|${symbol}`] = { preco, ts: Date.now() }; mudou = true; }
+    } catch { /* exchange momentaneamente indisponível; mantém o último preço conhecido */ }
+  }));
+  if (mudou) transmitir();
 }
 
 function lerEstado() {
@@ -180,6 +236,8 @@ function montarDados() {
         spread: o.spread, consistencia: o.consistencia,
         duracaoHoras: o.duracaoHoras ?? 0, notional: notionalPorPerna, taxa,
       });
+      const tickShort = precosAoVivo[`${o.exchangeShort}|${o.symbol}`];
+      const tickLong = precosAoVivo[`${o.exchangeLong}|${o.symbol}`];
       return {
         ...o,
         paybackHoras: v.paybackHoras,
@@ -187,6 +245,8 @@ function montarDados() {
         valorEsperado: v.valorEsperado,
         pctDoCaminho: Math.min(100, (v.folga / margemPayback) * 100),
         passaPortao: v.folga >= margemPayback,
+        precoShortAoVivo: tickShort?.preco ?? null,
+        precoLongAoVivo: tickLong?.preco ?? null,
       };
     });
 
@@ -234,6 +294,10 @@ function montarDados() {
       const dLong = p.margemLong / p.notionalPorPerna - mmr;
       const livreShort = Math.max(0, (saldos[p.exchangeShort] ?? 0) - (exposicao[p.exchangeShort] ?? 0));
       const livreLong = Math.max(0, (saldos[p.exchangeLong] ?? 0) - (exposicao[p.exchangeLong] ?? 0));
+      const tickShort = precosAoVivo[`${p.exchangeShort}|${p.symbol}`];
+      const tickLong = precosAoVivo[`${p.exchangeLong}|${p.symbol}`];
+      const precoAoVivoShort = tickShort?.preco ?? p.precoUltimo ?? null;
+      const precoAoVivoLong = tickLong?.preco ?? p.precoUltimo ?? null;
       return {
         ...p,
         distanciaShort: dShort, distanciaLong: dLong,
@@ -245,6 +309,10 @@ function montarDados() {
           (p.margemLong + livreLong) / p.notionalPorPerna - mmr,
         ),
         horasAberta: (Date.now() - p.abertaEm) / 3_600_000,
+        precoAoVivoShort, precoAoVivoLong,
+        variacaoShort: precoAoVivoShort && p.precoEntrada ? (precoAoVivoShort - p.precoEntrada) / p.precoEntrada : 0,
+        variacaoLong: precoAoVivoLong && p.precoEntrada ? (precoAoVivoLong - p.precoEntrada) / p.precoEntrada : 0,
+        precoTickEm: Math.max(tickShort?.ts ?? 0, tickLong?.ts ?? 0),
       };
     });
 
@@ -293,6 +361,11 @@ servidor.listen(PORTA, () => {
   // heartbeat: mantém a conexão viva e atualiza os campos que dependem do
   // relógio (idade do dado, horas de vida) mesmo sem mudança em disco
   setInterval(transmitir, 10_000);
+
+  // preço ao vivo das posições abertas e dos melhores candidatos — sondado a
+  // cada ~2,5s e empurrado assim que chega, sem esperar o heartbeat
+  void atualizarPrecosAoVivo();
+  setInterval(() => void atualizarPrecosAoVivo(), 2_500);
 
   void atualizarVarredura();
   setInterval(() => void atualizarVarredura(), 10 * 60_000);
