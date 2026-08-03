@@ -253,9 +253,9 @@ da seção 3, não um ajuste de parâmetro.
 | # | O quê | Nota |
 |---|---|---|
 | 21 | Medir duração real de spread | bloqueado por tempo, não por código. O sistema ficou **parado ~7h** (02:04–18:04 de 03/08) e foi **religado às 18:04 de 03/08/2026** — a contagem de dado limpo perdeu essa janela |
-| 19 | Imposto de renda no simulador | 15% sobre ganho em cripto no Brasil, isenção até R$ 35 mil/mês em vendas — ainda não implementado |
-| — | Push para o GitHub | `gh` não está instalado; usar GitHub Desktop |
-| — | Rotacionar a chave do trader.dev | foi colada no chat: `pk_hTAB...` |
+| 19 | Imposto de renda no simulador | **Feito em 03/08/2026** — `src/funding/imposto.ts` + `npm run semanas`. Medido: nesta escala de capital o imposto é zero porque o volume vendido fica abaixo da isenção de R$ 35 mil/mês, não porque foi ignorado |
+| — | Push para o GitHub | **Feito em 03/08/2026** — `git push` direto funcionou, não precisou de `gh` |
+| — | Rotacionar a chave do trader.dev | **ainda pendente, depende de você** — exige login em StrategyFactory.ai, que eu não faço (ver regras de segurança) |
 
 ### 7.5 Dashboard — terminado em 03/08/2026
 

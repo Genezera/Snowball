@@ -121,11 +121,22 @@ correlação medida, não assumida.
 
 ## Prioridade baixa
 
-### B8. Imposto de renda
+### B8. Imposto de renda — Feito em 03/08/2026
 
-Operações em cripto no Brasil têm tributação. Um retorno de 12% ao ano antes de
-imposto não é 12% depois. Deve entrar no simulador de bola de neve antes de
-qualquer decisão sobre capital.
+`src/funding/imposto.ts` modela a regra de pessoa física (IN RFB 1.888/2019):
+isenção para vendas até R$ 35.000/mês, 15% sobre o ganho do mês quando ultrapassa
+isso. Integrado em `npm run semanas`.
+
+**Resultado medido, não suposto:** nesta escala de capital (US$ 100–200), o
+volume mensal vendido fica em torno de R$ 10.000–21.000 — abaixo da isenção.
+**O imposto é zero, não porque foi ignorado, mas porque a escala não o
+ativa.** Isso muda se o capital crescer o suficiente para que as rotações
+somem mais de R$ 35 mil/mês em vendas.
+
+Limitação registrada no próprio módulo: não é claro na lei se funding de
+perpétuo é ganho de capital ou outra categoria de rendimento; o simulador
+assume ganho de capital, que é a leitura mais comum entre corretoras, não uma
+opinião jurídica. Não compensa prejuízo entre meses.
 
 ### B9. Dashboard
 

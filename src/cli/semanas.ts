@@ -12,6 +12,7 @@
  * isso compõe ou sangra.
  */
 import { parseArgs, num } from './args.ts';
+import { calcularImpostoMes, ISENCAO_MENSAL_BRL, USD_BRL_APROXIMADO } from '../funding/imposto.ts';
 
 const a = parseArgs();
 const CAPITAL = num(a.equity, 100);
@@ -19,6 +20,7 @@ const APORTE = num(a.aporte, 100);
 const LEV = num(a.alavancagem, 5);
 const SEMANAS = num(a.weeks, 8);
 const SEMANA_APORTE = num(a.semanaAporte, 4);
+const FX = num(a.fx, USD_BRL_APROXIMADO);
 const TAXA = 0.0005;
 
 /** margem é metade do capital em cada exchange; notional é margem × alavancagem */
@@ -49,7 +51,7 @@ const CENARIOS: Cenario[] = [
 interface Sem {
   n: number; inicio: number; notional: number;
   bruto: number; custoRot: number; custoMargem: number; liquido: number;
-  aporte: number; fim: number;
+  aporte: number; fim: number; vendaUsd: number;
 }
 
 function simular(apr: number, rotacoes: number, aporteMensal: number): Sem[] {
@@ -76,7 +78,11 @@ function simular(apr: number, rotacoes: number, aporteMensal: number): Sem[] {
       cap += ap - custoMontagem(notionalDe(ap));
     }
 
-    out.push({ n: w, inicio: ini, notional: not, bruto, custoRot, custoMargem, liquido, aporte: ap, fim: cap });
+    // volume vendido no mês para fins de imposto: só a perna FECHADA é
+    // alienação (desmontar 2 pernas por rotação). Reabrir é aquisição, não venda.
+    const vendaUsd = rotacoes * not * 2;
+
+    out.push({ n: w, inicio: ini, notional: not, bruto, custoRot, custoMargem, liquido, aporte: ap, fim: cap, vendaUsd });
   }
   return out;
 }
@@ -130,6 +136,22 @@ for (const c of CENARIOS) {
     `  fim do mês 2: $${m2.fim.toFixed(2)}  —  depositado $${CAPITAL + APORTE}, ` +
     `motor gerou ${geradoM2 >= 0 ? '+' : '−'}$${Math.abs(geradoM2).toFixed(2)}`,
   );
+
+  // ── imposto de renda: mês a mês, sobre venda e ganho reais do cenário ─────
+  const meses = [s.slice(0, 4), s.slice(4, 8)].filter((m) => m.length === 4);
+  console.log(`\n  imposto de renda (câmbio aproximado R$ ${FX.toFixed(2)}/US$):`);
+  meses.forEach((mes, i) => {
+    const volumeVendasUsd = mes.reduce((x, w) => x + w.vendaUsd, 0);
+    const ganhoUsd = mes.reduce((x, w) => x + w.liquido, 0);
+    const imp = calcularImpostoMes(volumeVendasUsd, ganhoUsd, FX);
+    console.log(
+      `    mês ${i + 1}: vendeu R$ ${imp.volumeVendasBRL.toFixed(0)} ` +
+      `(isenção é R$ ${ISENCAO_MENSAL_BRL.toLocaleString('pt-BR')}) → ` +
+      (imp.isento
+        ? 'isento, nenhum imposto devido'
+        : `imposto de R$ ${imp.impostoDevidoBRL.toFixed(2)} sobre ganho de R$ ${imp.ganhoBRL.toFixed(2)}`),
+    );
+  });
 }
 
 console.log(`\n${'='.repeat(92)}`);
