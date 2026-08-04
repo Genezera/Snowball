@@ -5,6 +5,7 @@
  * qualidade sustentada em vez de spread instantâneo.
  */
 import { observar, ranking, estatisticasCiclo, podar, VOLUME_MINIMO_PADRAO } from '../funding/vigilancia.ts';
+import { atualizarBasis, podarBasis, estatisticasCicloBasis, VOLUME_MINIMO_BASIS } from '../funding/vigilancia-basis.ts';
 import { dimensionarSpread } from '../funding/spread.ts';
 import { parseArgs, num, bool } from './args.ts';
 
@@ -30,10 +31,13 @@ async function passada() {
   const t0 = Date.now();
   const tempos: string[] = [];
 
-  const { estado, ops, novas, fechadas } = await observar({
+  const { estado, ops, novas, fechadas, pares } = await observar({
     volumeMinimo: VOL_MIN,
     onProgresso: (ex, n, ms) => tempos.push(`${ex} ${n}p/${(ms / 1000).toFixed(1)}s`),
   });
+
+  // basis trade: mesma varredura, só reprocessada — não busca o mercado de novo.
+  const basis = atualizarBasis(pares, VOLUME_MINIMO_BASIS);
 
   const st = estatisticasCiclo(estado);
   // O mínimo de observações usa `estado.varreduras`, que é PERSISTIDO, e não o
@@ -130,9 +134,20 @@ async function passada() {
     );
   }
 
+  // ── basis trade (spot+perp mesma exchange) — só coleta, motor não usa ainda ─
+  const stBasis = estatisticasCicloBasis(basis.estado);
+  if (basis.candidatos.length) {
+    console.log(
+      `\n  BASIS (coleta, não opera) · ${basis.candidatos.length} candidatos vivos · ` +
+      `${stBasis.vivas} ciclos abertos · ${stBasis.fechadas} já fecharam` +
+      (stBasis.fechadas ? ` · duração mediana ${stBasis.duracaoMedianaHoras.toFixed(1)}h` : ''),
+    );
+  }
+
   if (ciclo % 50 === 0) {
     const p = podar(7);
     console.log(`\n  histórico podado: ${p.antes} → ${p.depois} observações`);
+    podarBasis(7);
   }
 
   if (CONTINUO) setTimeout(passada, INTERVALO);

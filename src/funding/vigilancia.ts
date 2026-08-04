@@ -116,6 +116,8 @@ export async function observar(opts: {
   ops: OportunidadeUniverso[];
   novas: OportunidadeUniverso[];
   fechadas: CicloVida[];
+  /** listagens individuais, antes de cruzar — reaproveitado pela vigilância de basis, pra não escanear o mercado duas vezes */
+  pares: import('./universo.ts').ParUniverso[];
 }> {
   const volMin = opts.volumeMinimo ?? VOLUME_MINIMO_PADRAO;
   const spMin = opts.spreadMinimo ?? 0.00002;
@@ -204,7 +206,7 @@ export async function observar(opts: {
   if (linhas.length) fs.appendFileSync(HISTORICO, linhas.join('\n') + '\n');
   salvar(estado);
 
-  return { estado, ops, novas, fechadas };
+  return { estado, ops, novas, fechadas, pares };
 }
 
 /**
