@@ -64,6 +64,56 @@ async function ex(id: string): Promise<any> {
 }
 
 /**
+ * A binanceusdm não expõe o intervalo real de funding pelo endpoint em massa
+ * (`fetchFundingRates`) — cai sempre no default de 8h. Medido direto na
+ * exchange (`fetchFundingRateHistory`), em 04/08/2026:
+ *
+ *   BANK   liquida a cada  1h  (não 8h)
+ *   WAXP   liquida a cada  4h  (não 8h)
+ *   HOME   liquida a cada  4h  (não 8h)
+ *   BTC    liquida a cada  8h  (o padrão está certo pros majors)
+ *
+ * Um funding de 1h tratado como se fosse de 8h fica sub-escalado em até 8x
+ * na normalização — e essa distorção caiu em cima exatamente dos pares que
+ * mais pareciam "oportunidade incrível" (BANK, WAXP, HOME, DEXE: as maiores
+ * APR instantâneas já vistas no projeto). O portão de payback ainda exige
+ * horas de vida provada antes de abrir qualquer coisa, então isto não abre
+ * posição sozinho — mas distorce RANKING e PAYBACK, e WAXP (a única posição
+ * já aberta) usava exatamente este cálculo.
+ *
+ * Custo controlado: só verifica o intervalo real de quem já teria funding
+ * "gritante" o bastante pra mudar decisão com o default errado — não o
+ * universo inteiro, que manteria a varredura lenta à toa.
+ */
+export const LIMIAR_FUNDING_SUSPEITO = 0.001; // 0,1% no período assumido de 8h ~ 137% de APR
+
+export function candidatosParaVerificarIntervalo(pares: ParUniverso[], exchangeAlvo: string): ParUniverso[] {
+  return pares.filter((p) => p.exchange === exchangeAlvo && Math.abs(p.funding) >= LIMIAR_FUNDING_SUSPEITO);
+}
+
+async function intervaloReal(exchange: any, symbol: string): Promise<number | null> {
+  try {
+    const hist = await exchange.fetchFundingRateHistory(symbol, undefined, 2);
+    if (!Array.isArray(hist) || hist.length < 2) return null;
+    const horas = (hist[1].timestamp - hist[0].timestamp) / 3_600_000;
+    return horas > 0 ? Math.round(horas) : null;
+  } catch { return null; }
+}
+
+/** Corrige `intervaloHoras` in-place para os pares suspeitos de `exchangeAlvo`. */
+export async function corrigirIntervalosSuspeitos(pares: ParUniverso[], exchangeAlvo: string): Promise<number> {
+  const suspeitos = candidatosParaVerificarIntervalo(pares, exchangeAlvo);
+  if (!suspeitos.length) return 0;
+  const exchange = await ex(exchangeAlvo);
+  let corrigidos = 0;
+  await Promise.all(suspeitos.map(async (p) => {
+    const horas = await intervaloReal(exchange, p.symbol);
+    if (horas && horas !== p.intervaloHoras) { p.intervaloHoras = horas; corrigidos++; }
+  }));
+  return corrigidos;
+}
+
+/**
  * Lê o funding de TODOS os pares de todas as exchanges com endpoint em massa.
  *
  * Uma requisição por exchange. O resultado é o mercado inteiro, não uma amostra.
@@ -106,6 +156,10 @@ export async function lerUniverso(opts: {
       opts.onProgresso?.(id, 0, Date.now() - t0);
     }
   }));
+
+  // só a binanceusdm tem o buraco de intervalo — as outras exchanges massa
+  // (bybit, okx, gate, bitget) reportam `interval` corretamente
+  await corrigirIntervalosSuspeitos(todos, 'binanceusdm');
 
   return todos;
 }
