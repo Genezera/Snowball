@@ -393,6 +393,16 @@ tr.detalhe td{background:rgba(255,255,255,.015);white-space:normal;padding:0}
       </div>
     </div>
 
+    <div class="card" style="margin-bottom:16px">
+      <div class="hd"><span class="lbl">Basis trade — coleta</span><span class="note" id="basisNota"></span></div>
+      <div class="note" style="margin-bottom:10px">Spot + perp na mesma exchange. Só mede quanto tempo o funding se sustenta — o motor não opera isto ainda.</div>
+      <div class="statgrid" id="basisStat" style="margin-bottom:14px"></div>
+      <div class="wrap"><table><thead><tr>
+        <th>Ativo</th><th>Exchange</th><th class="right">APR funding</th>
+        <th class="right">Observações</th><th class="right">Vivo há</th><th class="right">Volume médio</th>
+      </tr></thead><tbody id="basisBody"></tbody></table></div>
+    </div>
+
     <div class="card">
       <div class="hd"><span class="lbl">Decisões do motor</span><span class="note">o raciocínio, não só o resultado</span></div>
       <div class="timeline" id="log"></div>
@@ -876,6 +886,24 @@ function render(d){
         return '<div class="mono" style="font-size:.76rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);color:'+cor+'">'+l.replace(/</g,'&lt;')+'</div>';
       }).join('')
     :vazio('nenhuma queda registrada','o watchdog religa sozinho em até 30-60s se algo cair');
+
+  const bs=d.basis||{vivas:0,fechadas:0,duracaoMedianaHoras:0,duracaoMaximaHoras:0,top:[]};
+  document.getElementById('basisNota').textContent=bs.vivas+bs.fechadas
+    ?bs.vivas+' vivos · '+bs.fechadas+' fechados':'';
+  document.getElementById('basisStat').innerHTML=[
+    [bs.vivas,'candidatos vivos'],[bs.fechadas,'ciclos fechados'],
+    [bs.fechadas?bs.duracaoMedianaHoras.toFixed(1)+'h':'—','duração mediana'],
+    [bs.fechadas?bs.duracaoMaximaHoras.toFixed(1)+'h':'—','duração máxima'],
+  ].map(([v,l])=>'<div class="stat"><div class="v mono ac">'+v+'</div><div class="l">'+l+'</div></div>').join('');
+  document.getElementById('basisBody').innerHTML=bs.top.length
+    ?bs.top.map(c=>'<tr>'
+      +'<td><b>'+c.symbol.replace('/USDT:USDT','')+'</b></td>'
+      +'<td>'+c.exchange+'</td>'
+      +'<td class="right mono ac">'+f(c.apr*100,1)+'%</td>'
+      +'<td class="right mono">'+c.observacoes+'</td>'
+      +'<td class="right mono">'+(c.horasVivo<1?(c.horasVivo*60).toFixed(0)+'min':c.horasVivo.toFixed(1)+'h')+'</td>'
+      +'<td class="right mono">$'+f(c.volumeMedio/1e6,1)+'M</td></tr>').join('')
+    :'<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--t3)">coletando…</td></tr>';
 
   const diarioLista=d.diario||[];
   const novaAssinaturaLog=diarioLista.length+'|'+(diarioLista[0]?diarioLista[0].ts+':'+diarioLista[0].evento:'');

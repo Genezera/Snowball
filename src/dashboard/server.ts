@@ -28,6 +28,7 @@ import { varrerSpreads, type OportunidadeSpread } from '../funding/spread.ts';
 import { lerVigilancia, saudeVigilancia } from '../funding/ponte.ts';
 import { avaliarValor } from '../funding/valor.ts';
 import { posicoesSustentaveis, taxaEfetiva } from '../funding/custos-reais.ts';
+import { estatisticasCicloBasis, type EstadoVigilanciaBasis } from '../funding/vigilancia-basis.ts';
 import { PAGINA } from './pagina.ts';
 
 const execAsync = promisify(exec);
@@ -224,6 +225,33 @@ function lerStatusML() {
     }
     return { confiaveis, positivos, minimoNecessario: ML_MINIMO_POSITIVOS };
   } catch { return { confiaveis: 0, positivos: 0, minimoNecessario: ML_MINIMO_POSITIVOS }; }
+}
+
+/**
+ * Basis trade (spot+perp mesma exchange) — só coleta, o motor não usa ainda.
+ * Mesma leitura que src/cli/vigilancia.ts já faz pra imprimir no console,
+ * exposta aqui pra não depender de olhar log.
+ */
+function lerBasis() {
+  const vazio = { vivas: 0, fechadas: 0, duracaoMedianaHoras: 0, duracaoMaximaHoras: 0, top: [] as any[] };
+  try {
+    const p = path.join(ROOT, 'vigilancia', 'ciclos-basis.json');
+    if (!fs.existsSync(p)) return vazio;
+    const estado: EstadoVigilanciaBasis = JSON.parse(fs.readFileSync(p, 'utf8'));
+    const st = estatisticasCicloBasis(estado);
+    const top = Object.values(estado.ciclos)
+      .filter((c) => !c.fechadoEm)
+      .map((c) => ({
+        symbol: c.symbol, exchange: c.exchange,
+        apr: c.funding8hMedio * 3 * 365,
+        observacoes: c.observacoes,
+        horasVivo: (Date.now() - c.abertoEm) / 3_600_000,
+        volumeMedio: c.volumeMedio,
+      }))
+      .sort((a, b) => b.apr - a.apr)
+      .slice(0, 10);
+    return { ...st, top };
+  } catch { return vazio; }
 }
 
 function lerEstado() {
@@ -454,6 +482,7 @@ async function montarDados() {
       watchdog: lerWatchdog(),
       coleta: lerColeta(),
       ml: lerStatusML(),
+      basis: lerBasis(),
     };
 }
 
@@ -479,6 +508,7 @@ servidor.listen(PORTA, () => {
   observar(path.join(DIR, 'diario.jsonl'));
   observar(path.join(ROOT, 'vigilancia', 'ciclos.json'));
   observar(path.join(ROOT, 'vigilancia', 'custodia.json'));
+  observar(path.join(ROOT, 'vigilancia', 'ciclos-basis.json'));
   observar(path.join(ROOT, 'vigilancia', 'supervisor-watchdog.log'));
   // heartbeat: mantém a conexão viva e atualiza os campos que dependem do
   // relógio (idade do dado, horas de vida) mesmo sem mudança em disco
