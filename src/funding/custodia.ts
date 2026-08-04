@@ -61,6 +61,7 @@ export const PESO_CUSTODIA: Record<string, number> = {
   bybit: 0.20,
   bitget: 0.35,
   gate: 0.35,
+  bingx: 0.35,
   mexc: 0.45,
   htx: 0.45,
 };

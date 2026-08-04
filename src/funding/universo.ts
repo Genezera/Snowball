@@ -23,8 +23,17 @@
  */
 import ccxt from 'ccxt';
 
-/** Exchanges com endpoint em massa — as únicas que entram na varredura ampla. */
-export const EXCHANGES_MASSA = ['binanceusdm', 'bybit', 'okx', 'gate', 'bitget'];
+/**
+ * Exchanges com endpoint em massa — as únicas que entram na varredura ampla.
+ *
+ * bingx testado em 04/08/2026: `fetchFundingRates()` funciona, 988 pares em
+ * 2,5s — mais cobertura de mercado sem custo de velocidade. phemex, htx,
+ * kucoinfutures e mexc foram testados no mesmo dia e NÃO suportam o
+ * endpoint em massa (erro "not supported yet" do ccxt); ficam de fora da
+ * varredura ampla, mesmo entrando na varredura estreita de 32 ativos
+ * (spread.ts) via chamada por símbolo, que tolera ser mais lenta.
+ */
+export const EXCHANGES_MASSA = ['binanceusdm', 'bybit', 'okx', 'gate', 'bitget', 'bingx'];
 
 export interface ParUniverso {
   symbol: string;
