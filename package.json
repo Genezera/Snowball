@@ -40,7 +40,8 @@
     "cenarios": "node src/cli/cenarios.ts --porExchange 100",
     "quanto": "node src/cli/quanto.ts --porExchange 100",
     "coletor": "node src/cli/coletor.ts --intervalo 5",
-    "analise": "node src/cli/analise.ts"
+    "analise": "node src/cli/analise.ts",
+    "simular-escalonado": "node src/cli/simular-escalonado.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
