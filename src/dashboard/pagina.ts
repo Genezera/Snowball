@@ -802,11 +802,20 @@ function render(d){
   }
 
   const wd=d.watchdog||[];
-  document.getElementById('wdNota').textContent=wd.length?wd.length+' evento(s)':'';
+  const wdQuedas=wd.filter(l=>l.includes('CAIU')).length;
+  document.getElementById('wdNota').textContent=wd.length
+    ?(wdQuedas?wdQuedas+' queda(s) real(is)':'sem quedas — só atualizações')
+    :'';
   document.getElementById('watchdog').innerHTML=wd.length
     ?wd.slice(0,8).map(l=>{
+        // 'CAIU' é queda de verdade (vermelho); 'religado — atualização' é
+        // deploy de propósito, não incidente (cor neutra) — antes os dois
+        // apareciam iguais e o usuário viu uma lista toda vermelha achando
+        // que o sistema estava instável, quando eram só os meus redeploys.
         const caiu=l.includes('CAIU');
-        return '<div class="mono" style="font-size:.76rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);color:'+(caiu?'var(--dn)':'var(--t2)')+'">'+l.replace(/</g,'&lt;')+'</div>';
+        const atualizacao=l.includes('atualização de código');
+        const cor=caiu?'var(--dn)':atualizacao?'var(--ac)':'var(--t2)';
+        return '<div class="mono" style="font-size:.76rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);color:'+cor+'">'+l.replace(/</g,'&lt;')+'</div>';
       }).join('')
     :vazio('nenhuma queda registrada','o watchdog religa sozinho em até 30-60s se algo cair');
 

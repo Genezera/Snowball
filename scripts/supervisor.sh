@@ -35,6 +35,22 @@ vivo() {
 # travar o watchdog). Lido a cada volta do laço (nao só uma vez no início),
 # pra criar o .env depois de o watchdog já estar rodando funcionar sem
 # precisar reiniciar nada.
+# Distingue "eu atualizando o código" de "algo quebrou sozinho" -- os dois
+# pareciam idênticos no log (mesma linha "CAIU"), e isso confundiu o usuário
+# olhando o painel achando que o sistema estava instável quando na verdade
+# era só redeploy. Antes de derrubar um processo de propósito pra aplicar
+# código novo, toca vigilancia/manutencao.marker; se um processo sumir
+# dentro de 90s desse toque, é tratado como atualização, não queda -- sem
+# alarme no Telegram, com rótulo diferente no log.
+em_manutencao() {
+  local marcador="vigilancia/manutencao.marker"
+  [ -f "$marcador" ] || return 1
+  local agora mtime
+  agora=$(date +%s)
+  mtime=$(stat -c %Y "$marcador" 2>/dev/null || echo 0)
+  [ $((agora - mtime)) -le 90 ]
+}
+
 notificar_telegram() {
   if [ -f .env ]; then set -a; source .env; set +a; fi
   if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
@@ -61,8 +77,12 @@ while true; do
     [ -z "$padrao" ] && padrao="${CMD[$nome]%% *}"
     n=$(vivo "$padrao")
     if [ "${n:-0}" -lt 1 ] 2>/dev/null; then
-      echo "[$(date '+%H:%M:%S')] $nome CAIU (padrão: $padrao) — religando" >> vigilancia/supervisor-watchdog.log
-      notificar_telegram "⚠️ <b>$nome caiu</b> — religando automaticamente"
+      if em_manutencao; then
+        echo "[$(date '+%H:%M:%S')] $nome religado — atualização de código aplicada" >> vigilancia/supervisor-watchdog.log
+      else
+        echo "[$(date '+%H:%M:%S')] $nome CAIU (padrão: $padrao) — religando" >> vigilancia/supervisor-watchdog.log
+        notificar_telegram "⚠️ <b>$nome caiu</b> — religando automaticamente"
+      fi
       nohup ${CMD[$nome]} >> "${LOG[$nome]}" 2>&1 &
       disown
     fi
