@@ -197,6 +197,35 @@ function lerColeta() {
   } catch { return null; }
 }
 
+/**
+ * Status de prontidão pra treinar ML de sobrevivência de spread — mesma
+ * conta de src/cli/ml-preparar.ts, exposta pro dashboard em vez de exigir
+ * rodar comando manual. Nunca treina nada aqui; só conta quantos exemplos
+ * positivos (sobreviveram ao portão de 1,5x) já existem no arquivado.
+ */
+const ML_TAXA = 0.0005, ML_NOTIONAL = 250, ML_PAGAMENTOS_HORA = 3 / 24, ML_MARGEM = 1.5, ML_MINIMO_POSITIVOS = 30;
+
+function lerStatusML() {
+  const p = path.join(ROOT, 'vigilancia', 'arquivo-ciclos.jsonl');
+  if (!fs.existsSync(p)) return { confiaveis: 0, positivos: 0, minimoNecessario: ML_MINIMO_POSITIVOS };
+  try {
+    const linhas = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
+    let confiaveis = 0, positivos = 0;
+    for (const l of linhas) {
+      let c: any; try { c = JSON.parse(l); } catch { continue; }
+      const duracaoHoras = (c.fechadoEm - c.abertoEm) / 3_600_000;
+      const esperadas = Math.max(1, duracaoHoras * 12);
+      if (c.observacoes / esperadas < 0.15) continue;
+      confiaveis++;
+      const custo = ML_NOTIONAL * ML_TAXA * 4;
+      const paybackHoras = c.spreadMedio > 0 ? custo / (ML_NOTIONAL * c.spreadMedio * ML_PAGAMENTOS_HORA) : Infinity;
+      const vidaEsperada = duracaoHoras * c.consistencia;
+      if (vidaEsperada >= paybackHoras * ML_MARGEM) positivos++;
+    }
+    return { confiaveis, positivos, minimoNecessario: ML_MINIMO_POSITIVOS };
+  } catch { return { confiaveis: 0, positivos: 0, minimoNecessario: ML_MINIMO_POSITIVOS }; }
+}
+
 function lerEstado() {
   const p = path.join(DIR, 'estado.json');
   return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
@@ -424,6 +453,7 @@ async function montarDados() {
       processos,
       watchdog: lerWatchdog(),
       coleta: lerColeta(),
+      ml: lerStatusML(),
     };
 }
 
