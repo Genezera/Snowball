@@ -273,7 +273,10 @@ const servidor = http.createServer(async (req, res) => {
     return;
   }
 
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  // Sem Cache-Control, o navegador decide sozinho (heurística varia, e já
+  // aconteceu de mostrar versão velha depois de um redeploy). A página é
+  // pequena e re-servida na hora do disco, então nunca vale a pena cachear.
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(PAGINA);
 });
 
