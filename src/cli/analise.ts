@@ -108,30 +108,71 @@ if (obs.length) {
 console.log();
 
 // ── ciclos de vida fechados ──────────────────────────────────────────────
+//
+// PERIGO CONHECIDO: um ciclo pode ter "duração" grande só porque a vigilância
+// ficou fora do ar no meio dela, não porque o spread sobreviveu. Isso já
+// causou prejuízo real uma vez (o bug do "piscar", ver docs/VIGILANCIA.md) —
+// medir o buraco e reportar como fato de mercado. A defesa aqui é comparar
+// quantas observações o ciclo teve contra quantas TERIA se a vigilância
+// tivesse rodado sem parar (1 a cada 5 min): densidade baixa é sinal de
+// gap, não de sobrevivência.
 console.log(linha());
 console.log(`CICLOS DE VIDA FECHADOS · ${ciclos.length}`);
 console.log(linha());
 if (ciclos.length) {
-  const duracoes = ciclos.map((c) => (c.fechadoEm - c.abertoEm) / 3_600_000);
-  console.log(`  duração — mediana ${fmtHoras(percentil(duracoes, 50))} · p75 ${fmtHoras(percentil(duracoes, 75))} · máxima ${fmtHoras(Math.max(...duracoes))}`);
-  const faixas = [
-    { nome: '< 30min', min: 0, max: 0.5 },
-    { nome: '30min–2h', min: 0.5, max: 2 },
-    { nome: '2h–6h', min: 2, max: 6 },
-    { nome: '6h–24h', min: 6, max: 24 },
-    { nome: '> 24h', min: 24, max: Infinity },
-  ];
-  console.log(`\n  distribuição:`);
-  for (const f of faixas) {
-    const n = duracoes.filter((d) => d >= f.min && d < f.max).length;
-    const pct = (n / duracoes.length * 100).toFixed(0);
-    console.log(`    ${f.nome.padEnd(12)} ${String(n).padStart(5)} (${pct}%) ${'█'.repeat(Math.round(Number(pct) / 2))}`);
+  const comDensidade = ciclos.map((c) => {
+    const duracaoHoras = (c.fechadoEm - c.abertoEm) / 3_600_000;
+    const esperadas = Math.max(1, duracaoHoras * 12); // 1 varredura a cada 5min
+    return { ...c, duracaoHoras, densidade: c.observacoes / esperadas };
+  });
+  const LIMIAR_DENSIDADE = 0.15;
+  const confiaveis = comDensidade.filter((c) => c.densidade >= LIMIAR_DENSIDADE);
+  const suspeitos = comDensidade.filter((c) => c.densidade < LIMIAR_DENSIDADE);
+
+  if (suspeitos.length) {
+    console.log(`  ⚠ ${suspeitos.length} de ${ciclos.length} ciclos têm densidade de observação < ${(LIMIAR_DENSIDADE * 100).toFixed(0)}%`);
+    console.log(`    (poucas leituras reais pra "duração" que aparentam ter — provável buraco de`);
+    console.log(`    medição, não sobrevivência real). EXCLUÍDOS das estatísticas abaixo.\n`);
   }
-  const maisLongos = [...ciclos].sort((a, b) => (b.fechadoEm - b.abertoEm) - (a.fechadoEm - a.abertoEm)).slice(0, 10);
-  console.log(`\n  top 10 mais duradouros:`);
-  for (const c of maisLongos) {
-    const d = (c.fechadoEm - c.abertoEm) / 3_600_000;
-    console.log(`    ${c.symbol.replace('/USDT:USDT', '').padEnd(12)} ${c.exchangeShort}→${c.exchangeLong.padEnd(14)} ${fmtHoras(d).padStart(8)} · consistência ${(c.consistencia * 100).toFixed(0)}% · ${c.observacoes} obs`);
+
+  const duracoes = confiaveis.map((c) => c.duracaoHoras);
+  if (duracoes.length) {
+    console.log(`  duração (só ciclos confiáveis, ${confiaveis.length}) — mediana ${fmtHoras(percentil(duracoes, 50))} · p75 ${fmtHoras(percentil(duracoes, 75))} · máxima ${fmtHoras(Math.max(...duracoes))}`);
+    const faixas = [
+      { nome: '< 30min', min: 0, max: 0.5 },
+      { nome: '30min–2h', min: 0.5, max: 2 },
+      { nome: '2h–6h', min: 2, max: 6 },
+      { nome: '6h–24h', min: 6, max: 24 },
+      { nome: '> 24h', min: 24, max: Infinity },
+    ];
+    console.log(`\n  distribuição:`);
+    for (const f of faixas) {
+      const n = duracoes.filter((d) => d >= f.min && d < f.max).length;
+      const pct = (n / duracoes.length * 100).toFixed(0);
+      console.log(`    ${f.nome.padEnd(12)} ${String(n).padStart(5)} (${pct}%) ${'█'.repeat(Math.round(Number(pct) / 2))}`);
+    }
+    const maisLongos = [...confiaveis].sort((a, b) => b.duracaoHoras - a.duracaoHoras).slice(0, 10);
+    console.log(`\n  top 10 mais duradouros (confiáveis):`);
+    for (const c of maisLongos) {
+      console.log(
+        `    ${c.symbol.replace('/USDT:USDT', '').padEnd(12)} ${c.exchangeShort}→${c.exchangeLong.padEnd(14)} ` +
+        `${fmtHoras(c.duracaoHoras).padStart(8)} · consistência ${(c.consistencia * 100).toFixed(0)}% · ${c.observacoes} obs · densidade ${(c.densidade * 100).toFixed(0)}%`,
+      );
+    }
+  } else {
+    console.log('  nenhum ciclo confiável ainda — todos os fechados até agora têm densidade suspeita.');
+  }
+
+  if (suspeitos.length) {
+    console.log(`\n  suspeitos (fora das estatísticas acima):`);
+    for (const c of suspeitos.slice(0, 10)) {
+      console.log(
+        `    ${c.symbol.replace('/USDT:USDT', '').padEnd(12)} ${c.exchangeShort}→${c.exchangeLong.padEnd(14)} ` +
+        `${fmtHoras(c.duracaoHoras).padStart(8)} · ${c.observacoes} obs · densidade ${(c.densidade * 100).toFixed(0)}% ` +
+        `· aberto ${new Date(c.abertoEm).toLocaleString('pt-BR')}`,
+      );
+    }
+    if (suspeitos.length > 10) console.log(`    ... e mais ${suspeitos.length - 10}`);
   }
 } else {
   console.log('  nenhum ciclo fechou ainda dentro da janela coletada.');

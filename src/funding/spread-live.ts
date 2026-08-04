@@ -22,7 +22,7 @@ import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
 import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso, LIMIARES_PADRAO, MMR_ALT } from './protecao.ts';
-import { taxaEfetiva } from './custos-reais.ts';
+import { taxaEfetiva, posicoesSustentaveis } from './custos-reais.ts';
 import { dimensionar, socorrer, usoPorExchange, RESERVA_PADRAO } from './tesouraria.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
