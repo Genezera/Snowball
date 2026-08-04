@@ -4,14 +4,14 @@
  * Varre, registra o ciclo de vida de cada oportunidade e ranqueia por
  * qualidade sustentada em vez de spread instantâneo.
  */
-import { observar, ranking, estatisticasCiclo, podar } from '../funding/vigilancia.ts';
+import { observar, ranking, estatisticasCiclo, podar, VOLUME_MINIMO_PADRAO } from '../funding/vigilancia.ts';
 import { dimensionarSpread } from '../funding/spread.ts';
 import { parseArgs, num, bool } from './args.ts';
 
 const a = parseArgs();
 const CAPITAL = num(a.equity, 100);
 const LEV = num(a.alavancagem, 5);
-const VOL_MIN = num(a.volumeMinimo, 10e6);
+const VOL_MIN = num(a.volumeMinimo, VOLUME_MINIMO_PADRAO);
 const INTERVALO = num(a.intervalo, 5) * 60_000;
 const CONTINUO = bool(a.continuo, true);
 

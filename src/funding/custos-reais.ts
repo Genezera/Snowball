@@ -50,24 +50,33 @@ export const SAQUE_MINIMO = 10;
 export const TAXA_SAQUE = 0.15;
 
 /**
- * Escorregamento por perna, medido no livro real em 03/08/2026.
+ * Escorregamento por perna, medido no livro real.
  *
  * Ordem a mercado não executa no preço do meio — ela come o livro. Medido
- * comprando US$ 250 de notional:
+ * comprando US$ 250 de notional, em 03/08/2026 (pares de US$ 10M+ de volume):
  *
  *   binance  KAITO 0,0050%  ·  AAVE 0,0054%  ·  HYPER 0,0266%
  *   bybit    KAITO 0,0188%  ·  AAVE 0,0108%  ·  HYPER 0,0220%
  *
- * O motor ignorava isso completamente — usava o último preço, como se a ordem
- * executasse sem custo de travessia. Não é o maior custo, mas incide QUATRO
- * vezes numa operação completa (duas pernas, entrada e saída), então a 0,02%
- * por perna acrescenta 0,08% ao custo de 0,20% das taxas: **40% a mais de
- * payback**.
+ * Remedido em 04/08/2026 depois de baixar o piso de liquidez da varredura de
+ * US$ 10M para US$ 1M (ver `VOLUME_MINIMO_PADRAO`) — o piso antigo era
+ * calibrado sem olhar pro notional real das posições (US$ 250/perna é
+ * 0,025% de US$ 1M; a ordem não move o livro o bastante pra justificar
+ * exigir US$ 10M). Nos candidatos que só passam a entrar com o piso menor:
  *
- * 0,02% é a mediana das seis medições. Pares finos custam mais, e a varredura
- * já exige US$ 10M de volume nas duas pontas justamente para não cair neles.
+ *   binance  HBAR 0,0102%  ·  THETA 0,0388%  ·  SXT 0,0651%
+ *   bybit    HBAR 0,0071%  ·  THETA 0,0446%  ·  GWEI 0,0666%
+ *
+ * A constante sobe pra cobrir o pior caso observado nesse grupo (GWEI/bybit,
+ * 0,0666%), arredondado pra cima — mais candidatos entram, mas cada um é
+ * precificado pelo escorregamento pior, não pelo melhor.
+ *
+ * O motor ignorava isso completamente até a primeira medição — usava o
+ * último preço, como se a ordem executasse sem custo de travessia. Não é o
+ * maior custo, mas incide QUATRO vezes numa operação completa (duas pernas,
+ * entrada e saída).
  */
-export const ESCORREGAMENTO_PERNA = 0.0002;
+export const ESCORREGAMENTO_PERNA = 0.0007;
 
 /**
  * Custo total de uma operação completa, em fração do notional por perna.

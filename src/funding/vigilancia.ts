@@ -91,6 +91,22 @@ function salvar(e: EstadoVigilancia) {
  * oportunidade — abrindo as novas, atualizando as vivas, fechando as que
  * sumiram.
  */
+/**
+ * Piso de liquidez calibrado pelo NOTIONAL REAL da posição, não por um
+ * número redondo genérico.
+ *
+ * Medido em 04/08/2026: dos 736 cruzamentos com spread válido no universo
+ * inteiro, só 2 sobreviviam ao piso antigo de US$ 10M. US$ 250/perna (o
+ * notional típico desta escala de capital) é 0,025% de US$ 1M — uma ordem
+ * assim não move o livro o bastante pra justificar exigir 10x mais volume.
+ * Escorregamento real checado no livro de ofertas nos candidatos que só
+ * entram com o piso menor (ver `ESCORREGAMENTO_PERNA` em custos-reais.ts):
+ * pior caso 0,0666%, ainda pequeno. Com US$ 1M o universo de candidatos
+ * passa de 2 para 12 — mais chance real de achar um que dure, sem abrir
+ * mão de liquidez que a ordem realmente precisa.
+ */
+export const VOLUME_MINIMO_PADRAO = 1e6;
+
 export async function observar(opts: {
   volumeMinimo?: number;
   spreadMinimo?: number;
@@ -101,7 +117,7 @@ export async function observar(opts: {
   novas: OportunidadeUniverso[];
   fechadas: CicloVida[];
 }> {
-  const volMin = opts.volumeMinimo ?? 10e6;
+  const volMin = opts.volumeMinimo ?? VOLUME_MINIMO_PADRAO;
   const spMin = opts.spreadMinimo ?? 0.00002;
   const estado = carregar();
   const agora = Date.now();
