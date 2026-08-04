@@ -70,7 +70,13 @@ export function lerVigilancia(minObservacoes = 3): LeituraPonte {
     fundingLong: 0,
     spread: r.spreadMedio,
     spreadInstantaneo: r.spreadMax,
-    consistencia: r.consistencia,
+    // AJUSTADA por Wilson, não a crua. O portão de payback usa este valor
+    // pra estimar vida esperada (`vida = duração × consistência`) — com a
+    // crua, um par de 3 observações 100% "boas" entrava com o mesmo peso de
+    // um par de 50 observações 100% boas. É o caso exato que já custou
+    // dinheiro (MU, ver vigilancia.ts) só que na ordenação; aqui é o mesmo
+    // problema um nível abaixo, na conta que decide ABRIR, não só ordenar.
+    consistencia: r.consistenciaAjustada,
     aprSpread: r.aprMedio,
     pontuacao: r.pontuacao,
     volumeMinimo: r.volumeMedio,
