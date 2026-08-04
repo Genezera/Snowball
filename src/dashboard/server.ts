@@ -317,7 +317,10 @@ function montarDados() {
     });
 
     return {
-      estado, posicoes, contas, diario: diario.slice(-80).reverse(), curva,
+      // 'leitura' é só o ponto periódico pra curva de capital não ficar com um
+      // ponto só — não é uma decisão, então some da tabela "Decisões do motor"
+      // mas continua contando pra `curva` acima, que lê o `diario` completo.
+      estado, posicoes, contas, diario: diario.filter((e) => e.evento !== 'leitura').slice(-80).reverse(), curva,
       pagamentosPorDia: [...porDia].map(([dia, total]) => ({ dia, total })),
       scan: scan.slice(0, 15),
       atualizadoEm: Date.now(),

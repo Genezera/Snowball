@@ -296,6 +296,16 @@ export class MotorSpread {
   }
 
   async ciclo() {
+    // ── leitura periódica: um ponto na curva mesmo sem evento nenhum ──────
+    //
+    // Sem isto, a curva de capital só ganhava ponto novo em abertura,
+    // fechamento, funding, semana ou piso — nada disso acontece enquanto o
+    // portão de valor esperado barra tudo, então a curva ficava travada num
+    // ponto só por horas, mesmo com o motor vivo e decidindo a cada ciclo.
+    // Vai pro diário (pra alimentar a curva) mas o dashboard filtra
+    // 'leitura' da tabela de decisões — não é uma decisão, é um heartbeat.
+    this.diario('leitura', { capital: this.estado.capital });
+
     // ── piso de capital: a catraca ──────────────────────────────────────
     //
     // Assimétrica de propósito. O piso sobe quando o capital sobe e nunca
