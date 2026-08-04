@@ -30,6 +30,19 @@ import { bonusEquilibrio, piorDreno } from './equilibrio.ts';
 import { enviarTelegram } from './telegram.ts';
 
 /**
+ * Fração do tamanho normal na fatia inicial de uma posição escalonada.
+ *
+ * Simulado contra os 225 ciclos reais já arquivados (`npm run
+ * simular-escalonado`) antes de entrar aqui: no único caso real que já
+ * aconteceu (WAXP, que reverteu), a versão escalonada teria perdido
+ * US$ 0,055 contra US$ 0,117 do tudo-ou-nada — menos da metade do dano —
+ * sem nunca abrir onde o portão original não abriria. A fatia abre em 1,0x
+ * o payback (só cobre o próprio custo, sem margem de segurança); o
+ * tamanho cheio continua exigindo 1,5x, como sempre exigiu.
+ */
+const FRACAO_ESTAGIO_INICIAL = 0.25;
+
+/**
  * Notifica só o que é raro e importa — dinheiro mudando de mãos ou o motor
  * parando sozinho. 'bloqueado' (o caso mais comum, a cada 5min) fica de
  * fora de propósito, senão vira ruído. Se o Telegram não estiver
@@ -82,6 +95,14 @@ export interface PosicaoSpread {
   spreadNaEntrada: number;
   fundingAcumulado: number;
   pagamentos: number;
+  /**
+   * Posição escalonada por confiança, ver `escalonado.ts`: 1 = fatia inicial
+   * (abriu provando só 1,0x o payback, sem a margem de 1,5x inteira), 2 =
+   * tamanho cheio (já escalonou, ou abriu direto com 1,5x provado). Ausente
+   * em posições de antes desta mudança — tratado como 2 (tamanho cheio) pra
+   * não tentar escalonar algo que já é o tamanho certo.
+   */
+  estagio?: 1 | 2;
 }
 
 export interface EstadoSpread {
@@ -557,20 +578,33 @@ export class MotorSpread {
         notional: d.notionalPorPerna,
         taxa: taxaReal,
       });
-      if (v.folga < this.o.margemPayback) {
+      // ── PORTÃO ESCALONADO ──────────────────────────────────────────────
+      //
+      // Abaixo de 1,0x (nem o próprio custo está provado), continua fora —
+      // isto NUNCA muda, é o mínimo absoluto. Entre 1,0x e 1,5x, abre uma
+      // fatia pequena (FRACAO_ESTAGIO_INICIAL) em vez de ficar de fora por
+      // inteiro; `gerir()` escala pro tamanho cheio se o candidato continuar
+      // provando vida até cruzar 1,5x. Ver a constante acima pro resultado
+      // medido que justifica isto.
+      if (v.folga < 1.0) {
         bloqueadasPorPayback++;
         continue;
       }
+      const tamanhoCheio = v.folga >= this.o.margemPayback;
+      const fracao = tamanhoCheio ? 1 : FRACAO_ESTAGIO_INICIAL;
 
-      const custoMontagem = d.notionalPorPerna * taxaReal * 2;
+      const notionalAbertura = d.notionalPorPerna * fracao;
+      const margemAbertura = d.margemPorPerna * fracao;
+      const custoMontagem = notionalAbertura * taxaReal * 2;
       const p = await this.preco(melhor.exchangeShort, melhor.symbol);
       this.posicoes.push({
         symbol: melhor.symbol,
         exchangeShort: melhor.exchangeShort, exchangeLong: melhor.exchangeLong,
-        margemShort: d.margemPorPerna, margemLong: d.margemPorPerna,
-        notionalPorPerna: d.notionalPorPerna, precoEntrada: p, precoUltimo: p,
+        margemShort: margemAbertura, margemLong: margemAbertura,
+        notionalPorPerna: notionalAbertura, precoEntrada: p, precoUltimo: p,
         abertaEm: Date.now(), spreadNaEntrada: melhor.spread,
         fundingAcumulado: 0, pagamentos: 0,
+        estagio: tamanhoCheio ? 2 : 1,
       });
       jaTenho.add(melhor.symbol);
       this.debitar(melhor.exchangeShort, custoMontagem / 2);
@@ -581,12 +615,13 @@ export class MotorSpread {
         `ABRE ${melhor.symbol.replace('/USDT:USDT', '')} · vendido ${melhor.exchangeShort} / comprado ${melhor.exchangeLong} · ` +
         `spread médio ${(melhor.spread * 100).toFixed(4)}% (${(melhor.aprSpread * 100).toFixed(1)}% APR) · ` +
         `consistência ${(melhor.consistencia * 100).toFixed(0)}% · ` +
-        `notional US$ ${d.notionalPorPerna.toFixed(2)}/perna · ${d.motivo} · custo US$ ${custoMontagem.toFixed(3)}`,
+        `notional US$ ${notionalAbertura.toFixed(2)}/perna${tamanhoCheio ? '' : ` (fatia inicial, ${(fracao * 100).toFixed(0)}% do alvo de US$ ${d.notionalPorPerna.toFixed(2)})`} · ` +
+        `${d.motivo} · custo US$ ${custoMontagem.toFixed(3)}`,
       );
       this.diario('abre', {
         symbol: melhor.symbol, short: melhor.exchangeShort, long: melhor.exchangeLong,
         spread: melhor.spread, consistencia: melhor.consistencia, apr: melhor.aprSpread,
-        notional: d.notionalPorPerna, custo: custoMontagem, preco: p,
+        notional: notionalAbertura, custo: custoMontagem, preco: p, estagio: tamanhoCheio ? 2 : 1,
       });
     }
 
@@ -743,6 +778,50 @@ export class MotorSpread {
       return;
     }
     pos.faltasSeguidas = 0;
+
+    // ── escala pra tamanho cheio quando prova o suficiente ──────────────────
+    //
+    // A fatia inicial (`estagio: 1`) abriu com 1,0x o payback provado. Se o
+    // candidato continuar vivo até cruzar 1,5x — a mesma barra que sempre
+    // existiu pra abrir tamanho cheio — o motor completa a posição. Nunca
+    // reduz: se o candidato piorar, a fatia fica do tamanho que está até
+    // fechar normalmente (spread inverter, etc.).
+    if (pos.estagio === 1) {
+      const taxaPos = taxaEfetiva(pos.exchangeShort, pos.exchangeLong);
+      const vPos = avaliarValor({
+        spread: atual.spread, consistencia: atual.consistencia,
+        duracaoHoras: atual.duracaoHoras ?? 0, notional: pos.notionalPorPerna, taxa: taxaPos,
+      });
+      if (vPos.folga >= this.o.margemPayback) {
+        const d = dimensionar(
+          this.saldos(), this.exposicaoPorExchange(),
+          pos.exchangeShort, pos.exchangeLong, this.o.alavancagem, this.o.reserva,
+        );
+        if (d.possivel && d.notionalPorPerna > pos.notionalPorPerna) {
+          const fracaoCrescer = d.notionalPorPerna / pos.notionalPorPerna;
+          const notionalAdicionado = d.notionalPorPerna - pos.notionalPorPerna;
+          const custoEscalonamento = notionalAdicionado * taxaPos * 2;
+          // mesmo padrão de `redimensionar()`, em sentido contrário: escala as
+          // duas pernas pela mesma fração, preservando a deriva de preço já
+          // acumulada em vez de resetar a referência
+          pos.margemShort *= fracaoCrescer;
+          pos.margemLong *= fracaoCrescer;
+          pos.notionalPorPerna = d.notionalPorPerna;
+          pos.estagio = 2;
+          this.debitar(pos.exchangeShort, custoEscalonamento / 2);
+          this.debitar(pos.exchangeLong, custoEscalonamento / 2);
+          this.estado.custosTotal += custoEscalonamento;
+          this.log(
+            `ESCALONA ${pos.symbol.replace('/USDT:USDT', '')} — provou 1,5x o payback, tamanho cheio: ` +
+            `notional US$ ${pos.notionalPorPerna.toFixed(2)}/perna · custo US$ ${custoEscalonamento.toFixed(3)}`,
+          );
+          this.diario('escalona', {
+            symbol: pos.symbol, notionalNovo: pos.notionalPorPerna,
+            notionalAdicionado, custo: custoEscalonamento,
+          });
+        }
+      }
+    }
 
     // Coleta de funding, 3 vezes ao dia.
     //

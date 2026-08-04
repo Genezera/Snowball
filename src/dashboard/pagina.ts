@@ -822,17 +822,18 @@ function render(d){
     assinaturaLog=novaAssinaturaLog;
     const iconePorEvento={
       abre:['▲','up'],fecha:['●','dn'],funding:['$','up'],reinveste:['+','wa'],
-      transfere:['⇄','pu'],apara:['✂','wa'],socorre:['⛑','pu'],piso:['■','dn'],
+      transfere:['⇄','pu'],apara:['✂','wa'],escalona:['⤴','up'],socorre:['⛑','pu'],piso:['■','dn'],
       semana:['W','mut'],bloqueado:['⏳','mut'],init:['●','mut'],
     };
     document.getElementById('log').innerHTML=diarioLista.map(x=>{
       let det='',val='',cls='';const s=(x.symbol||'').replace('/USDT:USDT','');
-      if(x.evento==='abre'){det='<b>'+s+'</b> · '+x.short+' → '+x.long+' · consistência '+f((x.consistencia||0)*100,0)+'%';val='$'+f(x.notional,0)}
+      if(x.evento==='abre'){det='<b>'+s+'</b> · '+x.short+' → '+x.long+' · consistência '+f((x.consistencia||0)*100,0)+'%'+(x.estagio===1?' · <span class="wa">fatia inicial</span>':'');val='$'+f(x.notional,0)}
       else if(x.evento==='fecha'){det='<b>'+s+'</b> · '+(x.motivo||'');val='+$'+f(x.fundingAcumulado,4);cls='up'}
       else if(x.evento==='funding'){det='spread '+f((x.spread||0)*100,4)+'%';val='+$'+f(x.ganho,5);cls='up'}
       else if(x.evento==='reinveste'){det='notional passou para $'+f(x.notionalNovo,0);val='+$'+f(x.notionalExtra,3);cls='wa'}
       else if(x.evento==='transfere'){det='preço '+f((x.variacao||0)*100,1)+'% desde a entrada';val='$'+f(x.transferido,2)}
       else if(x.evento==='apara'){det='<b>'+s+'</b> · posição aparada pra caber na cota'}
+      else if(x.evento==='escalona'){det='<b>'+s+'</b> · provou 1,5x o payback, foi pro tamanho cheio';val='$'+f(x.notionalNovo,0);cls='up'}
       else if(x.evento==='socorre'){det='<b>'+s+'</b> · socorro de margem entre exchanges'}
       else if(x.evento==='piso'){det='motor parado — piso de capital atingido'}
       else if(x.evento==='semana'){det='semana fechada';val=(x.lucro>=0?'+':'−')+'$'+f(Math.abs(x.lucro),3);cls=x.lucro>=0?'up':'dn'}
