@@ -29,6 +29,22 @@ vivo() {
   powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*$1*' }).Count" 2>/dev/null | tr -d '\r\n '
 }
 
+# Telegram é opcional -- só notifica se .env tiver as duas variaveis. Nunca
+# imprime o token em log nenhum, e falha em silencio se o Telegram estiver
+# fora do ar (curl -s, sem checar resultado -- um aviso que falha nao pode
+# travar o watchdog). Lido a cada volta do laço (nao só uma vez no início),
+# pra criar o .env depois de o watchdog já estar rodando funcionar sem
+# precisar reiniciar nada.
+notificar_telegram() {
+  if [ -f .env ]; then set -a; source .env; set +a; fi
+  if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+    curl -s -m 8 -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+      --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+      --data-urlencode "text=$1" \
+      --data-urlencode "parse_mode=HTML" > /dev/null 2>&1 &
+  fi
+}
+
 echo "[$(date '+%H:%M:%S')] supervisor iniciado — checando a cada 30s" >> vigilancia/supervisor-watchdog.log
 
 while true; do
@@ -38,6 +54,7 @@ while true; do
     n=$(vivo "$padrao")
     if [ "${n:-0}" -lt 1 ] 2>/dev/null; then
       echo "[$(date '+%H:%M:%S')] $nome CAIU (padrão: $padrao) — religando" >> vigilancia/supervisor-watchdog.log
+      notificar_telegram "⚠️ <b>$nome caiu</b> — religando automaticamente"
       nohup ${CMD[$nome]} >> "${LOG[$nome]}" 2>&1 &
       disown
     fi

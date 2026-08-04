@@ -27,6 +27,39 @@ import { dimensionar, socorrer, usoPorExchange, RESERVA_PADRAO } from './tesoura
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
 import { bonusEquilibrio, piorDreno } from './equilibrio.ts';
+import { enviarTelegram } from './telegram.ts';
+
+/**
+ * Notifica só o que é raro e importa — dinheiro mudando de mãos ou o motor
+ * parando sozinho. 'bloqueado' (o caso mais comum, a cada 5min) fica de
+ * fora de propósito, senão vira ruído. Se o Telegram não estiver
+ * configurado, `enviarTelegram` não faz nada — isto nunca derruba o motor.
+ */
+function notificarTelegram(evento: string, dados: Record<string, unknown>) {
+  const s = String(dados.symbol ?? '').replace('/USDT:USDT', '');
+  if (evento === 'abre') {
+    void enviarTelegram(
+      `🟢 <b>Posição aberta</b> — ${s}\n` +
+      `${dados.short} → ${dados.long} · notional US$ ${Number(dados.notional ?? 0).toFixed(0)}\n` +
+      `consistência ${(Number(dados.consistencia ?? 0) * 100).toFixed(0)}%`,
+    );
+  } else if (evento === 'fecha') {
+    const funding = Number(dados.fundingAcumulado ?? 0), custo = Number(dados.custo ?? 0);
+    const resultado = funding - custo;
+    void enviarTelegram(
+      `🔴 <b>Posição fechada</b> — ${s}\n` +
+      `motivo: ${dados.motivo}\n` +
+      `funding recebido US$ ${funding.toFixed(4)} · custo US$ ${custo.toFixed(3)} · ` +
+      `resultado ${resultado >= 0 ? '+' : '−'}US$ ${Math.abs(resultado).toFixed(4)}`,
+    );
+  } else if (evento === 'piso') {
+    void enviarTelegram(
+      `🛑 <b>MOTOR PARADO</b> — piso de capital atingido\n` +
+      `capital US$ ${Number(dados.capital ?? 0).toFixed(2)} · piso US$ ${Number(dados.piso ?? 0).toFixed(2)}\n` +
+      `Precisa de decisão manual pra retomar (apagar 'parado' de spread/estado.json).`,
+    );
+  }
+}
 
 export interface PosicaoSpread {
   symbol: string;
@@ -256,6 +289,7 @@ export class MotorSpread {
   private salvar() { fs.writeFileSync(this.stateFile, JSON.stringify(this.estado, null, 2)); }
   private diario(evento: string, dados: Record<string, unknown>) {
     fs.appendFileSync(this.journalFile, JSON.stringify({ ts: Date.now(), evento, ...dados }) + '\n');
+    if (evento === 'abre' || evento === 'fecha' || evento === 'piso') notificarTelegram(evento, dados);
   }
   private log(m: string) { console.log(`[${new Date().toISOString().slice(0, 19)}] ${m}`); }
 
