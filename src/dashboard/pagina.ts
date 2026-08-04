@@ -555,6 +555,17 @@ function toast(tipo,titulo,detalhe){
   toast._t=setTimeout(()=>{bc.style.display='none';bc.textContent='0'},20000);
 }
 
+/**
+ * O radar e a linha do tempo têm animação CSS contínua (varredura girando,
+ * blip pulsando, entrada deslizando) — mas o preço ao vivo empurra um
+ * render() novo a cada poucos segundos, bem mais rápido que essas seções
+ * mudam de verdade. Reconstruir o HTML delas a cada preço reinicia as
+ * animações do zero, e isso é o "piscando" — a barra de varredura pula de
+ * volta pro início toda hora. A assinatura abaixo só deixa reconstruir
+ * quando o CONTEÚDO daquela seção realmente muda, não a cada tick de preço.
+ */
+let assinaturaSpot=null, assinaturaLog=null;
+
 let estadoAnterior=null;
 function detectarAlertas(d){
   if(!estadoAnterior){estadoAnterior=d;return}
@@ -665,42 +676,54 @@ function render(d){
   document.getElementById('gPag').innerHTML=barras(d.pagamentosPorDia);
 
   // ── spotlight: posicao em destaque OU radar de candidatos ──────────
+  //
+  // Só reconstrói quando o CONTEÚDO muda de verdade (posição abriu/fechou,
+  // candidato entrou/saiu do top 7, cruzou o portão) — não a cada tick de
+  // preço, que dispararia render() a cada poucos segundos e reiniciaria a
+  // varredura do radar do zero toda vez, virando um piscar sem sentido.
   const spotLbl=document.getElementById('spotLbl'),spotBody=document.getElementById('spotBody');
-  if(abertas.length){
-    spotLbl.textContent='Posição em destaque';
-    const p=abertas[0];
-    const h=typeof p.horasAberta==='number'?p.horasAberta:(Date.now()-p.abertaEm)/36e5;
-    const dmin=typeof p.distanciaMinima==='number'?p.distanciaMinima:null;
-    spotBody.innerHTML='<div class="tk up">'+p.symbol.replace('/USDT:USDT','')+'</div>'
-      +'<div class="kv"><span>notional</span><b class="mono">$'+f(p.notionalPorPerna)+'</b></div>'
-      +'<div class="kv"><span>funding acumulado</span><b class="mono up">+$'+f(p.fundingAcumulado,4)+'</b></div>'
-      +(dmin!=null?'<div class="kv"><span>distância liquidação</span><b class="mono '+(dmin<0.03?'dn':dmin<0.06?'wa':'up')+'">'+(dmin*100).toFixed(1)+'%</b></div>':'')
-      +'<div class="kv"><span>aberta há</span><b class="mono">'+h.toFixed(1)+'h</b></div>';
-  }else{
-    spotLbl.textContent='Radar de candidatos';
-    const top=sc.slice(0,7);
-    if(!top.length){
-      spotBody.innerHTML=vazio('varrendo o mercado…','o radar aparece com o primeiro candidato');
+  const top7=sc.slice(0,7);
+  const novaAssinaturaSpot=abertas.length
+    ? 'pos:'+abertas[0].symbol+':'+Math.round((abertas[0].fundingAcumulado||0)*1e4)+':'+Math.round((abertas[0].distanciaMinima||0)*1e3)
+    : 'radar:'+top7.map(s=>s.symbol+':'+Math.round(s.pctDoCaminho||0)+':'+(s.passaPortao?1:0)).join(',');
+
+  if(novaAssinaturaSpot!==assinaturaSpot){
+    assinaturaSpot=novaAssinaturaSpot;
+    if(abertas.length){
+      spotLbl.textContent='Posição em destaque';
+      const p=abertas[0];
+      const h=typeof p.horasAberta==='number'?p.horasAberta:(Date.now()-p.abertaEm)/36e5;
+      const dmin=typeof p.distanciaMinima==='number'?p.distanciaMinima:null;
+      spotBody.innerHTML='<div class="tk up">'+p.symbol.replace('/USDT:USDT','')+'</div>'
+        +'<div class="kv"><span>notional</span><b class="mono">$'+f(p.notionalPorPerna)+'</b></div>'
+        +'<div class="kv"><span>funding acumulado</span><b class="mono up">+$'+f(p.fundingAcumulado,4)+'</b></div>'
+        +(dmin!=null?'<div class="kv"><span>distância liquidação</span><b class="mono '+(dmin<0.03?'dn':dmin<0.06?'wa':'up')+'">'+(dmin*100).toFixed(1)+'%</b></div>':'')
+        +'<div class="kv"><span>aberta há</span><b class="mono">'+h.toFixed(1)+'h</b></div>';
     }else{
-      const raio=95,cx=115,cy=115;
-      const blips=top.map((s,i)=>{
-        const ang=(360/top.length)*i+30;
-        const r=28+((s.pctDoCaminho||0)/100)*(raio-30);
-        const x=cx+Math.cos(ang*Math.PI/180)*r, y=cy+Math.sin(ang*Math.PI/180)*r;
-        const cls=s.passaPortao?'':((s.pctDoCaminho||0)>=50?'wa':'');
-        return '<div class="blip '+cls+'" style="left:'+x.toFixed(0)+'px;top:'+y.toFixed(0)+'px;animation-delay:'+(i*.2)+'s">'
-          +'<span class="lbl">'+s.symbol.replace('/USDT:USDT','')+'</span></div>';
-      }).join('');
-      spotBody.innerHTML='<div class="radarWrap"><div class="radar">'
-        +'<svg viewBox="0 0 230 230">'
-        +'<circle cx="115" cy="115" r="95" fill="none" stroke="rgba(255,255,255,.08)"/>'
-        +'<circle cx="115" cy="115" r="63" fill="none" stroke="rgba(255,255,255,.06)"/>'
-        +'<circle cx="115" cy="115" r="31" fill="none" stroke="rgba(255,255,255,.05)"/>'
-        +'<g class="radarSweep"><path d="M115,115 L115,20 A95,95 0 0,1 195,65 Z" fill="url(#sweepGrad)"/></g>'
-        +'<defs><linearGradient id="sweepGrad" x1="0" y1="1" x2="1" y2="0">'
-        +'<stop offset="0" stop-color="#00f0a8" stop-opacity="0"/><stop offset="1" stop-color="#00f0a8" stop-opacity=".25"/></linearGradient></defs>'
-        +'</svg>'+blips+'</div></div>'
-        +'<div class="note" style="text-align:center;margin-top:6px">'+top.length+' candidatos · nenhum passou o portão ainda</div>';
+      spotLbl.textContent='Radar de candidatos';
+      if(!top7.length){
+        spotBody.innerHTML=vazio('varrendo o mercado…','o radar aparece com o primeiro candidato');
+      }else{
+        const raio=95,cx=115,cy=115;
+        const blips=top7.map((s,i)=>{
+          const ang=(360/top7.length)*i+30;
+          const r=28+((s.pctDoCaminho||0)/100)*(raio-30);
+          const x=cx+Math.cos(ang*Math.PI/180)*r, y=cy+Math.sin(ang*Math.PI/180)*r;
+          const cls=s.passaPortao?'':((s.pctDoCaminho||0)>=50?'wa':'');
+          return '<div class="blip '+cls+'" style="left:'+x.toFixed(0)+'px;top:'+y.toFixed(0)+'px;animation-delay:'+(i*.2)+'s">'
+            +'<span class="lbl">'+s.symbol.replace('/USDT:USDT','')+'</span></div>';
+        }).join('');
+        spotBody.innerHTML='<div class="radarWrap"><div class="radar">'
+          +'<svg viewBox="0 0 230 230">'
+          +'<circle cx="115" cy="115" r="95" fill="none" stroke="rgba(255,255,255,.08)"/>'
+          +'<circle cx="115" cy="115" r="63" fill="none" stroke="rgba(255,255,255,.06)"/>'
+          +'<circle cx="115" cy="115" r="31" fill="none" stroke="rgba(255,255,255,.05)"/>'
+          +'<g class="radarSweep"><path d="M115,115 L115,20 A95,95 0 0,1 195,65 Z" fill="url(#sweepGrad)"/></g>'
+          +'<defs><linearGradient id="sweepGrad" x1="0" y1="1" x2="1" y2="0">'
+          +'<stop offset="0" stop-color="#00f0a8" stop-opacity="0"/><stop offset="1" stop-color="#00f0a8" stop-opacity=".25"/></linearGradient></defs>'
+          +'</svg>'+blips+'</div></div>'
+          +'<div class="note" style="text-align:center;margin-top:6px">'+top7.length+' candidatos · nenhum passou o portão ainda</div>';
+      }
     }
   }
 
@@ -788,31 +811,41 @@ function render(d){
     :vazio('nenhuma queda registrada','o watchdog religa sozinho em até 30-60s se algo cair');
 
   // ── linha do tempo de decisoes ────────────────────────────────────────
-  const iconePorEvento={
-    abre:['▲','up'],fecha:['●','dn'],funding:['$','up'],reinveste:['+','wa'],
-    transfere:['⇄','pu'],apara:['✂','wa'],socorre:['⛑','pu'],piso:['■','dn'],
-    semana:['W','mut'],bloqueado:['⏳','mut'],init:['●','mut'],
-  };
-  document.getElementById('log').innerHTML=(d.diario||[]).map(x=>{
-    let det='',val='',cls='';const s=(x.symbol||'').replace('/USDT:USDT','');
-    if(x.evento==='abre'){det='<b>'+s+'</b> · '+x.short+' → '+x.long+' · consistência '+f((x.consistencia||0)*100,0)+'%';val='$'+f(x.notional,0)}
-    else if(x.evento==='fecha'){det='<b>'+s+'</b> · '+(x.motivo||'');val='+$'+f(x.fundingAcumulado,4);cls='up'}
-    else if(x.evento==='funding'){det='spread '+f((x.spread||0)*100,4)+'%';val='+$'+f(x.ganho,5);cls='up'}
-    else if(x.evento==='reinveste'){det='notional passou para $'+f(x.notionalNovo,0);val='+$'+f(x.notionalExtra,3);cls='wa'}
-    else if(x.evento==='transfere'){det='preço '+f((x.variacao||0)*100,1)+'% desde a entrada';val='$'+f(x.transferido,2)}
-    else if(x.evento==='apara'){det='<b>'+s+'</b> · posição aparada pra caber na cota'}
-    else if(x.evento==='socorre'){det='<b>'+s+'</b> · socorro de margem entre exchanges'}
-    else if(x.evento==='piso'){det='motor parado — piso de capital atingido'}
-    else if(x.evento==='semana'){det='semana fechada';val=(x.lucro>=0?'+':'−')+'$'+f(Math.abs(x.lucro),3);cls=x.lucro>=0?'up':'dn'}
-    else if(x.evento==='bloqueado'){det=(s?'<b>'+s+'</b> · ':'')+(x.motivo||'')}
-    else if(x.evento==='init'){det='motor iniciado com $'+f(x.capital,0)}
-    const ic=iconePorEvento[x.evento]||['•','mut'];
-    return '<div class="tItem2"><div class="tDot '+ic[1]+'">'+ic[0]+'</div>'
-      +'<div class="tHead"><span class="tWhen mono">'+dm(x.ts)+' '+hm(x.ts)+'</span>'
-      +'<span class="tTag" style="background:var(--'+ic[1]+'-dim,rgba(255,255,255,.06));color:var(--'+ic[1]+',var(--t2))">'+x.evento+'</span></div>'
-      +'<div class="tDet">'+det+'</div>'
-      +(val?'<div class="tVal mono '+cls+'">'+val+'</div>':'')+'</div>';
-  }).join('');
+  //
+  // Mesma lógica do radar: só reconstrói quando o evento mais recente muda
+  // de verdade (comprimento da lista + timestamp do topo), não a cada tick
+  // de preço — senão a animação de entrada de cada item reinicia a cada
+  // poucos segundos e a lista parece estar recarregando sem parar.
+  const diarioLista=d.diario||[];
+  const novaAssinaturaLog=diarioLista.length+'|'+(diarioLista[0]?diarioLista[0].ts+':'+diarioLista[0].evento:'');
+  if(novaAssinaturaLog!==assinaturaLog){
+    assinaturaLog=novaAssinaturaLog;
+    const iconePorEvento={
+      abre:['▲','up'],fecha:['●','dn'],funding:['$','up'],reinveste:['+','wa'],
+      transfere:['⇄','pu'],apara:['✂','wa'],socorre:['⛑','pu'],piso:['■','dn'],
+      semana:['W','mut'],bloqueado:['⏳','mut'],init:['●','mut'],
+    };
+    document.getElementById('log').innerHTML=diarioLista.map(x=>{
+      let det='',val='',cls='';const s=(x.symbol||'').replace('/USDT:USDT','');
+      if(x.evento==='abre'){det='<b>'+s+'</b> · '+x.short+' → '+x.long+' · consistência '+f((x.consistencia||0)*100,0)+'%';val='$'+f(x.notional,0)}
+      else if(x.evento==='fecha'){det='<b>'+s+'</b> · '+(x.motivo||'');val='+$'+f(x.fundingAcumulado,4);cls='up'}
+      else if(x.evento==='funding'){det='spread '+f((x.spread||0)*100,4)+'%';val='+$'+f(x.ganho,5);cls='up'}
+      else if(x.evento==='reinveste'){det='notional passou para $'+f(x.notionalNovo,0);val='+$'+f(x.notionalExtra,3);cls='wa'}
+      else if(x.evento==='transfere'){det='preço '+f((x.variacao||0)*100,1)+'% desde a entrada';val='$'+f(x.transferido,2)}
+      else if(x.evento==='apara'){det='<b>'+s+'</b> · posição aparada pra caber na cota'}
+      else if(x.evento==='socorre'){det='<b>'+s+'</b> · socorro de margem entre exchanges'}
+      else if(x.evento==='piso'){det='motor parado — piso de capital atingido'}
+      else if(x.evento==='semana'){det='semana fechada';val=(x.lucro>=0?'+':'−')+'$'+f(Math.abs(x.lucro),3);cls=x.lucro>=0?'up':'dn'}
+      else if(x.evento==='bloqueado'){det=(s?'<b>'+s+'</b> · ':'')+(x.motivo||'')}
+      else if(x.evento==='init'){det='motor iniciado com $'+f(x.capital,0)}
+      const ic=iconePorEvento[x.evento]||['•','mut'];
+      return '<div class="tItem2"><div class="tDot '+ic[1]+'">'+ic[0]+'</div>'
+        +'<div class="tHead"><span class="tWhen mono">'+dm(x.ts)+' '+hm(x.ts)+'</span>'
+        +'<span class="tTag" style="background:var(--'+ic[1]+'-dim,rgba(255,255,255,.06));color:var(--'+ic[1]+',var(--t2))">'+x.evento+'</span></div>'
+        +'<div class="tDet">'+det+'</div>'
+        +(val?'<div class="tVal mono '+cls+'">'+val+'</div>':'')+'</div>';
+    }).join('');
+  }
 }
 
 /**
