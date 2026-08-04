@@ -574,6 +574,9 @@ export class MotorSpread {
     if (bloqueadasPorPayback && this.posicoes.length < maxAgora) {
       const b = ops.find((o) => !jaTenho.has(o.symbol));
       let detalhe = '';
+      // campos numéricos, não só o texto — pra quem for analisar o diário
+      // depois não precisar re-parsear a frase pra recuperar os números
+      let camposNumericos: Record<string, unknown> = {};
       if (b) {
         // notional de referência: o dimensionamento real só existe dentro do
         // laço, e aqui o que importa é o payback, que não depende do notional
@@ -582,18 +585,27 @@ export class MotorSpread {
           duracaoHoras: b.duracaoHoras ?? 0, notional: notionalRef,
           taxa: taxaEfetiva(b.exchangeShort, b.exchangeLong),
         });
+        const paybackExigidoHoras = v.paybackHoras * this.o.margemPayback;
         // Quanto de vida ainda falta para passar no portão. É a informação
         // acionável: "faltam 6h" diz se vale esperar; "valor −US$ 0,15" não.
-        const faltamHoras = v.paybackHoras * this.o.margemPayback - v.vidaEsperadaHoras;
+        const faltamHoras = paybackExigidoHoras - v.vidaEsperadaHoras;
+        const pctDoCaminho = v.folga / this.o.margemPayback * 100;
         detalhe =
           ` · mais perto: ${b.symbol.replace('/USDT:USDT', '')} · ` +
-          `vida ${v.vidaEsperadaHoras.toFixed(1)}h de ${(v.paybackHoras * this.o.margemPayback).toFixed(1)}h exigidas ` +
-          `(${(v.folga / this.o.margemPayback * 100).toFixed(0)}% do caminho, faltam ${faltamHoras.toFixed(1)}h)`;
+          `vida ${v.vidaEsperadaHoras.toFixed(1)}h de ${paybackExigidoHoras.toFixed(1)}h exigidas ` +
+          `(${pctDoCaminho.toFixed(0)}% do caminho, faltam ${faltamHoras.toFixed(1)}h)`;
+        camposNumericos = {
+          exchangeShort: b.exchangeShort, exchangeLong: b.exchangeLong,
+          spread: b.spread, apr: b.aprSpread, consistencia: b.consistencia,
+          vidaEsperadaHoras: v.vidaEsperadaHoras, paybackExigidoHoras, faltamHoras, pctDoCaminho,
+        };
       }
       this.log(`valor esperado barrou ${bloqueadasPorPayback} candidatas${detalhe}`);
       this.diario('bloqueado', {
         symbol: b?.symbol,
         motivo: `valor esperado barrou ${bloqueadasPorPayback} candidata${bloqueadasPorPayback > 1 ? 's' : ''}${detalhe}`,
+        candidatasBarradas: bloqueadasPorPayback,
+        ...camposNumericos,
       });
     }
   }

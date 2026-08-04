@@ -38,7 +38,9 @@
     "custodia": "node src/cli/custodia.ts --intervalo 15",
     "execucao": "node src/cli/execucao.ts --notional 250",
     "cenarios": "node src/cli/cenarios.ts --porExchange 100",
-    "quanto": "node src/cli/quanto.ts --porExchange 100"
+    "quanto": "node src/cli/quanto.ts --porExchange 100",
+    "coletor": "node src/cli/coletor.ts --intervalo 5",
+    "analise": "node src/cli/analise.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
