@@ -21,12 +21,16 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import ccxt from 'ccxt';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { ROOT } from '../data/store.ts';
 import { varrerSpreads, type OportunidadeSpread } from '../funding/spread.ts';
 import { lerVigilancia, saudeVigilancia } from '../funding/ponte.ts';
 import { avaliarValor } from '../funding/valor.ts';
 import { posicoesSustentaveis, taxaEfetiva } from '../funding/custos-reais.ts';
 import { PAGINA } from './pagina.ts';
+
+const execAsync = promisify(exec);
 
 const PORTA = Number(process.env.PORTA ?? 8787);
 const DIR = path.join(ROOT, 'spread');
@@ -71,9 +75,12 @@ async function atualizarVarredura() {
  * que o preço chega, `transmitir()` empurra pro navegador, em vez de esperar
  * o próximo ciclo do motor (5 min) ou o heartbeat (10 s).
  *
- * Só sonda o que está na tela: as pernas de posições abertas e os 5 melhores
- * candidatos da varredura — nunca a lista inteira, para não estourar limite de
- * taxa das exchanges por causa de uma página aberta.
+ * Cobre TUDO que a tela mostra — as pernas de posições abertas e os 15
+ * candidatos da varredura (o mesmo corte de `scan.slice(0,15)`) — e não
+ * estoura limite de taxa porque agrupa por exchange e usa `fetchTickers` em
+ * lote (uma chamada por exchange) em vez de uma chamada por par. Antes cada
+ * fetchTicker era isolado e só cobria os 5 primeiros, por isso boa parte da
+ * tabela ficava com "—" no preço.
  */
 const poolTickers: Record<string, any> = {};
 const marketsCarregados = new Set<string>();
@@ -93,29 +100,101 @@ async function atualizarPrecosAoVivo() {
   const estado = lerEstado();
   const abertas: any[] = estado?.posicoes ?? (estado?.posicao ? [estado.posicao] : []);
   const vig = lerVigilancia(3);
-  const candidatos = (vig.disponivel && vig.oportunidades.length ? vig.oportunidades : cacheVarredura.dados).slice(0, 5);
+  const candidatos = (vig.disponivel && vig.oportunidades.length ? vig.oportunidades : cacheVarredura.dados).slice(0, 15);
 
-  const alvos = new Map<string, { exchange: string; symbol: string }>();
-  for (const p of abertas) {
-    alvos.set(`${p.exchangeShort}|${p.symbol}`, { exchange: p.exchangeShort, symbol: p.symbol });
-    alvos.set(`${p.exchangeLong}|${p.symbol}`, { exchange: p.exchangeLong, symbol: p.symbol });
-  }
-  for (const o of candidatos) {
-    alvos.set(`${o.exchangeShort}|${o.symbol}`, { exchange: o.exchangeShort, symbol: o.symbol });
-    alvos.set(`${o.exchangeLong}|${o.symbol}`, { exchange: o.exchangeLong, symbol: o.symbol });
-  }
-  if (!alvos.size) return;
+  const porExchange = new Map<string, Set<string>>();
+  const alvo = (exchange: string, symbol: string) => {
+    if (!porExchange.has(exchange)) porExchange.set(exchange, new Set());
+    porExchange.get(exchange)!.add(symbol);
+  };
+  for (const p of abertas) { alvo(p.exchangeShort, p.symbol); alvo(p.exchangeLong, p.symbol); }
+  for (const o of candidatos) { alvo(o.exchangeShort, o.symbol); alvo(o.exchangeLong, o.symbol); }
+  if (!porExchange.size) return;
 
   let mudou = false;
-  await Promise.all([...alvos.values()].map(async ({ exchange, symbol }) => {
+  await Promise.all([...porExchange.entries()].map(async ([exchange, simbolos]) => {
     try {
       const ex = await exchangeParaTicker(exchange);
-      const t = await ex.fetchTicker(symbol);
-      const preco = t.last ?? t.close ?? t.bid ?? t.ask;
-      if (preco) { precosAoVivo[`${exchange}|${symbol}`] = { preco, ts: Date.now() }; mudou = true; }
+      const symbols = [...simbolos];
+      const tickers = await ex.fetchTickers(symbols);
+      for (const symbol of symbols) {
+        const t = tickers[symbol];
+        const preco = t?.last ?? t?.close ?? t?.bid ?? t?.ask;
+        if (preco) { precosAoVivo[`${exchange}|${symbol}`] = { preco, ts: Date.now() }; mudou = true; }
+      }
     } catch { /* exchange momentaneamente indisponível; mantém o último preço conhecido */ }
   }));
-  if (mudou) transmitir();
+  if (mudou) void transmitir();
+}
+
+/**
+ * SAÚDE DOS PROCESSOS — antes só existia no watchdog (vigilancia/supervisor-
+ * watchdog.log), invisível pra quem só olha o navegador. Consulta o
+ * CommandLine de cada node.exe via PowerShell, cacheada 10s pra não
+ * atropelar o sistema com um subprocesso a cada requisição.
+ */
+const PROCESSOS_ESPERADOS = [
+  { chave: 'vigilancia', nome: 'Vigilância', padrao: 'src/cli/vigilancia.ts' },
+  { chave: 'custodia', nome: 'Custódia', padrao: 'src/cli/custodia.ts' },
+  { chave: 'motor', nome: 'Motor', padrao: 'src/cli/spread-live.ts' },
+  { chave: 'dashboard', nome: 'Dashboard', padrao: 'src/dashboard/server.ts' },
+  { chave: 'coletor', nome: 'Coletor', padrao: 'src/cli/coletor.ts' },
+];
+
+let saudeProcessosCache: { ts: number; dados: any[] } = { ts: 0, dados: [] };
+
+async function saudeProcessos() {
+  if (Date.now() - saudeProcessosCache.ts < 10_000) return saudeProcessosCache.dados;
+  try {
+    const { stdout } = await execAsync(
+      'powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name=\'node.exe\'\\" ' +
+      '| Select-Object CommandLine,WorkingSetSize,CreationDate | ConvertTo-Json -Compress"',
+      { timeout: 8000 },
+    );
+    let lista: any = [];
+    try { lista = JSON.parse(stdout || '[]'); } catch { lista = []; }
+    const arr = Array.isArray(lista) ? lista : (lista ? [lista] : []);
+    const dados = PROCESSOS_ESPERADOS.map((p) => {
+      const proc = arr.find((x: any) => typeof x.CommandLine === 'string' && x.CommandLine.includes(p.padrao));
+      let desde = 0;
+      if (proc?.CreationDate) {
+        const m = /\/Date\((\d+)\)\//.exec(proc.CreationDate);
+        desde = m ? Number(m[1]) : Date.parse(proc.CreationDate) || 0;
+      }
+      return {
+        ...p, vivo: !!proc,
+        memoriaMB: proc ? Math.round((proc.WorkingSetSize ?? 0) / 1e6) : 0,
+        desde,
+      };
+    });
+    saudeProcessosCache = { ts: Date.now(), dados };
+    return dados;
+  } catch {
+    return saudeProcessosCache.dados.length ? saudeProcessosCache.dados : PROCESSOS_ESPERADOS.map((p) => ({ ...p, vivo: false, memoriaMB: 0, desde: 0 }));
+  }
+}
+
+/** Últimos eventos do watchdog (quedas e religadas) — antes só existiam num log que ninguém via. */
+function lerWatchdog(limite = 20) {
+  const p = path.join(ROOT, 'vigilancia', 'supervisor-watchdog.log');
+  if (!fs.existsSync(p)) return [];
+  const linhas = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
+  return linhas.slice(-limite).reverse();
+}
+
+/** Totais do coletor de longo prazo — antes só visível rodando `npm run analise` manualmente. */
+function lerColeta() {
+  const p = path.join(ROOT, 'vigilancia', 'coletor-estado.json');
+  if (!fs.existsSync(p)) return null;
+  try {
+    const e = JSON.parse(fs.readFileSync(p, 'utf8'));
+    return {
+      totalObservacoes: e.totalObservacoes ?? 0,
+      totalCiclos: e.totalCiclos ?? 0,
+      totalCustodia: e.totalCustodia ?? 0,
+      coletandoDesde: e.iniciadoEm ?? 0,
+    };
+  } catch { return null; }
 }
 
 function lerEstado() {
@@ -134,7 +213,7 @@ function lerDiario(limite = 400) {
  * Monta o retrato completo do sistema. Usado tanto pela rota REST quanto pelo
  * stream — uma função só, para que os dois nunca divirjam.
  */
-function retrato() {
+async function retrato() {
   return montarDados();
 }
 
@@ -152,9 +231,9 @@ function retrato() {
  */
 const clientes = new Set<http.ServerResponse>();
 
-function transmitir() {
+async function transmitir() {
   if (!clientes.size) return;
-  const payload = `data: ${JSON.stringify(retrato())}\n\n`;
+  const payload = `data: ${JSON.stringify(await retrato())}\n\n`;
   for (const c of clientes) {
     try { c.write(payload); } catch { clientes.delete(c); }
   }
@@ -168,7 +247,7 @@ function observar(arquivo: string) {
     let pendente: NodeJS.Timeout | null = null;
     fs.watch(arquivo, () => {
       if (pendente) clearTimeout(pendente);
-      pendente = setTimeout(() => { pendente = null; transmitir(); }, 250);
+      pendente = setTimeout(() => { pendente = null; void transmitir(); }, 250);
     });
   } catch { /* arquivo ainda não existe; o heartbeat cobre */ }
 }
@@ -182,7 +261,7 @@ const servidor = http.createServer(async (req, res) => {
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
     });
-    res.write(`data: ${JSON.stringify(retrato())}\n\n`);
+    res.write(`data: ${JSON.stringify(await retrato())}\n\n`);
     clientes.add(res);
     req.on('close', () => clientes.delete(res));
     return;
@@ -190,7 +269,7 @@ const servidor = http.createServer(async (req, res) => {
 
   if (url.pathname === '/api/dados') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify(retrato()));
+    res.end(JSON.stringify(await retrato()));
     return;
   }
 
@@ -198,7 +277,7 @@ const servidor = http.createServer(async (req, res) => {
   res.end(PAGINA);
 });
 
-function montarDados() {
+async function montarDados() {
     const estado = lerEstado();
     const diario = lerDiario();
     // Mesma regra do motor: o ranking da vigilância manda, a varredura própria
@@ -316,6 +395,8 @@ function montarDados() {
       };
     });
 
+    const processos = await saudeProcessos();
+
     return {
       // 'leitura' é só o ponto periódico pra curva de capital não ficar com um
       // ponto só — não é uma decisão, então some da tabela "Decisões do motor"
@@ -337,6 +418,9 @@ function montarDados() {
         motivo: vig.motivo,
         candidatos: vig.oportunidades.length,
       },
+      processos,
+      watchdog: lerWatchdog(),
+      coleta: lerColeta(),
     };
 }
 
@@ -359,11 +443,13 @@ servidor.listen(PORTA, () => {
   console.log(`  em que o motor, a vigilância ou a custódia gravam em disco.\n`);
 
   observar(path.join(DIR, 'estado.json'));
+  observar(path.join(DIR, 'diario.jsonl'));
   observar(path.join(ROOT, 'vigilancia', 'ciclos.json'));
   observar(path.join(ROOT, 'vigilancia', 'custodia.json'));
+  observar(path.join(ROOT, 'vigilancia', 'supervisor-watchdog.log'));
   // heartbeat: mantém a conexão viva e atualiza os campos que dependem do
   // relógio (idade do dado, horas de vida) mesmo sem mudança em disco
-  setInterval(transmitir, 10_000);
+  setInterval(() => void transmitir(), 10_000);
 
   // preço ao vivo das posições abertas e dos melhores candidatos — sondado a
   // cada ~2,5s e empurrado assim que chega, sem esperar o heartbeat
