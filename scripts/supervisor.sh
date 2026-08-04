@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 declare -A CMD=(
   [vigilancia]="node src/cli/vigilancia.ts --equity 100 --intervalo 5"
   [custodia]="node src/cli/custodia.ts --intervalo 15"
-  [motor]="node src/cli/spread-live.ts --porExchange 100 --alavancagem 5"
+  [motor]="node --env-file-if-exists=.env src/cli/spread-live.ts --porExchange 100 --alavancagem 5"
   [dashboard]="node src/dashboard/server.ts"
   [coletor]="node src/cli/coletor.ts --intervalo 5"
 )
@@ -49,8 +49,16 @@ echo "[$(date '+%H:%M:%S')] supervisor iniciado — checando a cada 30s" >> vigi
 
 while true; do
   for nome in "${!CMD[@]}"; do
-    padrao="${CMD[$nome]#node }"       # remove o "node " pra casar com a CommandLine
-    padrao="${padrao%% *}"              # só o caminho do arquivo, único o bastante
+    # o padrao de busca e o token que termina em .ts -- nao "a palavra depois
+    # de node", porque o motor agora leva --env-file-if-exists=.env antes do
+    # caminho do arquivo, e pegar a primeira palavra pegaria a flag em vez
+    # do caminho (a CommandLine real tem os dois, mas so o caminho .ts e
+    # unico o bastante pra nao casar com processo nenhum errado)
+    padrao=""
+    for palavra in ${CMD[$nome]}; do
+      case "$palavra" in *.ts) padrao="$palavra"; break;; esac
+    done
+    [ -z "$padrao" ] && padrao="${CMD[$nome]%% *}"
     n=$(vivo "$padrao")
     if [ "${n:-0}" -lt 1 ] 2>/dev/null; then
       echo "[$(date '+%H:%M:%S')] $nome CAIU (padrão: $padrao) — religando" >> vigilancia/supervisor-watchdog.log

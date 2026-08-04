@@ -7,7 +7,7 @@ cd /d "%~dp0"
 
 :loop
 echo [%date% %time%] iniciando motor de spread 5x >> spread\supervisor.log
-node src\cli\spread-live.ts --porExchange 100 --alavancagem 5 >> spread\live.log 2>&1
+node --env-file-if-exists=.env src\cli\spread-live.ts --porExchange 100 --alavancagem 5 >> spread\live.log 2>&1
 echo [%date% %time%] terminou (codigo %errorlevel%), reiniciando em 60s >> spread\supervisor.log
 timeout /t 60 /nobreak > nul
 goto loop
