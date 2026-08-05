@@ -67,7 +67,13 @@ export const GRIDS: Record<string, ParamGrid> = {
     lookback: [30, 60, 120],
     minRet: [0.03, 0.05, 0.08],
     stopPct: [0.10, 0.15],
-    takePct: [0.30, 0.50],
+    // takePct largo (2-5) supera 0,30-0,50 de forma robusta: a distribuição
+    // real de R mostrava os vencedores TRAVADOS bem no take fixo antigo
+    // (p95=p99≈3,3R, a assinatura de um teto artificial). Um alvo largo não
+    // sofre do problema que trailing stop tem aqui (fechar cedo demais numa
+    // correção) — é só um gatilho simples, mais distante. Confirmado robusto
+    // em 4 de 5 anos individuais do universo. Ver docs/RESULTADOS.md item 10.
+    takePct: [0.40, 2.0, 5.0],
   },
   'xs-momentum': {
     formacao: [90, 180],

@@ -478,6 +478,18 @@ export function tsMomentum(p: StratParams = {}): Strategy {
   const stopPct = (p.stopPct as number) ?? 0.15;
   const takePct = (p.takePct as number) ?? 0.40;
   const allowShort = (p.allowShort as boolean) ?? true;
+  /**
+   * Trailing opcional, desligado por padrão (preserva o comportamento
+   * validado). Existe porque a distribuição real de R mostrou os vencedores
+   * TRAVADOS bem perto do take fixo (p95=3,29R, p99=3,31R, quase idênticos —
+   * a assinatura de um teto artificial, não de uma cauda que a estratégia
+   * deixou correr). Numa estratégia de tendência, isso desperdiça
+   * exatamente o motivo dela funcionar: tendências que continuam além do
+   * alvo original não têm como ser capturadas com alvo fixo.
+   */
+  const useTrail = (p.useTrail as boolean) ?? false;
+  const trailPct = (p.trailPct as number) ?? stopPct;
+  const trailArmPct = (p.trailArmPct as number) ?? stopPct;
 
   const cache = new WeakMap<Bar[], any>();
   const prep = (bars: Bar[]) => {
@@ -488,7 +500,7 @@ export function tsMomentum(p: StratParams = {}): Strategy {
   };
 
   return {
-    name: `ts-momentum(lb${lookback} min${minRet})`,
+    name: `ts-momentum(lb${lookback} min${minRet}${useTrail ? ' trail' : ''})`,
     warmup: lookback + 2,
     onBar(bars, i): Signal | null {
       if (i < lookback) return null;
@@ -499,7 +511,11 @@ export function tsMomentum(p: StratParams = {}): Strategy {
       const side: Side = ret > 0 ? 'long' : 'short';
       if (side === 'short' && !allowShort) return null;
       const v = prep(bars);
-      return { side, stopPct, takePct, features: commonFeatures(bars, i, v.ctx) };
+      return {
+        side, stopPct, takePct: useTrail ? 10 : takePct, // takePct=10 (1000%) = na prática nunca bate; quem fecha é o trailing
+        ...(useTrail ? { trailPct, trailArmPct } : {}),
+        features: commonFeatures(bars, i, v.ctx),
+      };
     },
   };
 }

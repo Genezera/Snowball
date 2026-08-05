@@ -527,3 +527,73 @@ reais deste universo.
 
 **Código:** `src/data/funding-history.ts`, `src/funding/contrario.ts`,
 `npm run download-funding` (ou `node src/cli/download-funding.ts`).
+
+---
+
+## Resultado 10 — Alvo largo em `ts-momentum`: a primeira MELHORIA real da sessão
+
+Depois de nove tentativas de achar mecanismo novo, esta foi diferente:
+refinar a UM achado que já tinha vantagem estatística provada, em vez de
+começar do zero.
+
+**A pista.** A distribuição de R-múltiplos de `ts-momentum` (com o take
+fixo original, 0,40) mostrava os vencedores travados quase no mesmo ponto:
+p95=3,29R, p99=3,31R — praticamente idênticos. Essa é a assinatura de um
+TETO ARTIFICIAL, não de uma cauda que a estratégia deixou correr. Numa
+estratégia de tendência, capar o alvo em 40% contradiz a própria tese
+(tendência persiste).
+
+**Primeira tentativa, errada: trailing stop.** Tentei deixar os vencedores
+correrem com um stop móvel em vez de alvo fixo — mesma ideia que já tinha
+falhado no `trend-rider` (docs, item 4). Falhou de novo, pelo mesmo motivo:
+o trailing fecha posições MEDIANAS cedo demais numa correção normal antes
+delas reverterem, mesmo armando só para trades excepcionais (>90% de
+lucro): holdout caiu de 0,065 para 0,017.
+
+**Segunda tentativa, certa: alvo fixo mais largo.** Sem trailing — só um
+gatilho de saída mais distante, que não sofre do problema de fechar
+prematuramente numa correção (é um limiar simples, não um mecanismo que
+ratcheia). Varrendo takePct de 0,30 a 15,0:
+
+| takePct | descoberta | holdout |
+|---|---|---|
+| 0,40 (original) | 0,0181 | 0,0645 |
+| 1,5 | 0,0334 | 0,0785 |
+| 3,0 | 0,0398 | 0,0861 |
+| **5,0 (platô)** | **0,0455** | **0,0899** |
+| 8,0+ | 0,0415 | 0,0809 |
+
+Melhora monótona até 5,0, onde estabiliza (quase nenhum trade chega tão
+longe — a saída passa a ser dominada por stop ou timeout, o take vira rede
+de segurança rara em vez do mecanismo principal).
+
+**Robustez ano a ano** (5 janelas de 1 ano dentro dos 5 anos de dado, take
+antigo vs novo): melhora ou empata em 4 de 5 anos — só um ano ruim para as
+duas versões, sem inversão de sinal em nenhum.
+
+**Validação completa com o take novo** (`npm run momentum`): 37 de 57
+positivos (65%), holdout 70% contra 60% da descoberta — não caiu, mesmo
+padrão saudável de sempre. p=0,017.
+
+**Risco de liquidação, checado de novo com os novos parâmetros** (mesma
+disciplina que revelou o problema em pares): a 1x, só 0,06% dos trades
+liquidariam — negligível, quase idêntico ao original. `ts-momentum` nunca
+teve esse ponto cego (diferente de pares) porque o dimensionamento por
+risco fixo já mantinha o notional pequeno o bastante.
+
+**Bootstrap final, no cenário mais seguro (1x, risco 5%/operação):**
+
+| métrica | antes (take=0,40) | **depois (take=5,0)** |
+|---|---|---|
+| chance de chegar à meta | 23,8% | **28,6%** |
+| chance de quebrar | 55,6% | 58,1% |
+| tempo mediano | 2,4 anos | 2,0 anos |
+
+**É o melhor número que este projeto já produziu.** Não resolve — 58% de
+chance de perder os US$ 200 continua sendo o resultado mais provável — mas
+é uma melhoria real, medida, robusta a 3 checagens independentes (grade
+completa, ano a ano, liquidação), não mais uma variação sem efeito.
+
+**Código:** `src/strategies/index.ts` (`tsMomentum`, parâmetro `useTrail`
+opcional, desligado por padrão), `src/validate/grids.ts`,
+`src/data/momentum-universe.ts` (`PARAMS_VALIDADOS` atualizado).

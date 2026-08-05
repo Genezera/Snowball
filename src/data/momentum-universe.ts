@@ -35,14 +35,20 @@ export const UNIVERSO_MOMENTUM = [...DESCOBERTA, ...HOLDOUT];
  * de nenhum ativo (isso seria reintroduzir o sobreajuste), são o centro da
  * nuvem de escolhas.
  *
- * Com este conjunto fixo (SEM reajuste por ativo — a versão honesta, não a
- * ajustada por fold do walk-forward): 18 de 30 positivos (60%) na descoberta,
- * 20 de 27 (74%) no holdout. Combinado, 38 de 57 (67%), p=0,008 sob H0 de
- * moeda justa. O holdout não caiu em relação à descoberta — é o oposto do
- * padrão de falso positivo visto em `body-breakout` (docs/O-QUE-FALHOU.md,
- * item 6), onde a taxa desabou de 100% para 15% fora da amostra ajustada.
+ * `takePct` foi revisto: a versão original (0,40) travava os vencedores bem
+ * perto do próprio alvo (a distribuição real de R tinha p95≈p99≈3,3R, a
+ * assinatura de um teto artificial, não de uma cauda deixada correr). Um
+ * alvo mais largo (5,0 — na prática quase nunca é alcançado, a saída passa a
+ * ser dominada por stop ou timeout) não sofre do problema que trailing stop
+ * tem aqui (fechar cedo demais numa correção antes de reverter) — é só um
+ * gatilho mais distante. Testado ano a ano (5 janelas de 1 ano dentro dos 5
+ * anos de dado): melhora ou empata em 4 de 5 anos individuais, o único pior
+ * é um ano ruim para as duas versões.
+ *
+ * Com este conjunto fixo (SEM reajuste por ativo): ver `npm run momentum`
+ * para a contagem positivos/holdout atualizada com este take.
  *
  * Reproduzir: `npm run momentum`.
  */
-export const PARAMS_VALIDADOS = { lookback: 30, minRet: 0.05, stopPct: 0.12, takePct: 0.40 };
+export const PARAMS_VALIDADOS = { lookback: 30, minRet: 0.05, stopPct: 0.12, takePct: 5.0 };
 export const MAX_BARS_VALIDADO = 20;
