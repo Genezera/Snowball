@@ -7,6 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   msAteProximaLiquidacao, fundingPorLiquidacao, alinhamento, avaliarCaptura,
+  cruzarParaCaptura, type PernaCaptura,
 } from './liquidacao.ts';
 
 const H = 3_600_000;
@@ -116,4 +117,81 @@ test('o líquido é o que sobra, e é independente do notional', () => {
   assert.ok(Math.abs(c.liquidoPorLiquidacao - (0.0067 - 0.0033)) < 1e-9);
   // em dólares: só multiplicar. Nenhum termo da conta acima viu o notional.
   assert.ok(Math.abs(c.liquidoPorLiquidacao * 250 - 0.85) < 0.01);
+});
+
+// ── cruzamento para captura ────────────────────────────────────────────────
+
+const AGORA = Date.UTC(2026, 7, 4, 12, 0, 0);
+const perna = (o: Partial<PernaCaptura>): PernaCaptura => ({
+  symbol: 'X/USDT:USDT', exchange: 'a', funding: 0.001, intervaloHoras: 8, volume24h: 5e6, ...o,
+});
+
+test('cruza duas pernas alinhadas e calcula o pagamento da liquidação', () => {
+  const out = cruzarParaCaptura([
+    perna({ exchange: 'alta', funding: 0.003 }),
+    perna({ exchange: 'baixa', funding: 0.001 }),
+  ], { agora: AGORA, volumeMinimo: 1e6 });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].exchangeShort, 'alta');
+  assert.equal(out[0].exchangeLong, 'baixa');
+  assert.ok(Math.abs(out[0].spread8h - 0.002) < 1e-12);
+  assert.ok(Math.abs(out[0].pagamentoPorLiquidacao - 0.002) < 1e-12, '8h paga o valor inteiro');
+});
+
+test('perna ilíquida é removida ANTES de escolher os extremos', () => {
+  // A ilíquida tem o funding mais alto. A regra antiga escolhia ela como
+  // extremo e depois descartava o ativo inteiro pelo filtro de volume —
+  // perdendo o par líquido bom que existia dentro do mesmo símbolo.
+  const out = cruzarParaCaptura([
+    perna({ exchange: 'fantasma', funding: 0.010, volume24h: 100 }),
+    perna({ exchange: 'alta', funding: 0.003 }),
+    perna({ exchange: 'baixa', funding: 0.001 }),
+  ], { agora: AGORA, volumeMinimo: 1e6 });
+  assert.equal(out.length, 1, 'o par líquido sobrevive');
+  assert.equal(out[0].exchangeShort, 'alta');
+  assert.ok(Math.abs(out[0].spread8h - 0.002) < 1e-12);
+});
+
+test('pernas de intervalos diferentes viram grupos separados, nunca se cruzam', () => {
+  const out = cruzarParaCaptura([
+    perna({ exchange: 'a8', funding: 0.003, intervaloHoras: 8 }),
+    perna({ exchange: 'b8', funding: 0.001, intervaloHoras: 8 }),
+    perna({ exchange: 'a4', funding: 0.002, intervaloHoras: 4 }),
+    perna({ exchange: 'b4', funding: 0.0005, intervaloHoras: 4 }),
+  ], { agora: AGORA, volumeMinimo: 1e6 });
+  assert.equal(out.length, 2);
+  for (const c of out) {
+    const exs = [c.exchangeShort, c.exchangeLong];
+    const sufixo = c.intervaloHoras === 8 ? '8' : '4';
+    for (const e of exs) assert.ok(e.endsWith(sufixo), `${e} não pertence ao grupo de ${c.intervaloHoras}h`);
+  }
+});
+
+test('um ativo com um só listing não gera candidato', () => {
+  const out = cruzarParaCaptura([perna({ exchange: 'unica' })], { agora: AGORA, volumeMinimo: 1e6 });
+  assert.equal(out.length, 0);
+});
+
+test('a próxima liquidação é absoluta e está no futuro', () => {
+  const out = cruzarParaCaptura([
+    perna({ exchange: 'alta', funding: 0.003 }),
+    perna({ exchange: 'baixa', funding: 0.001 }),
+  ], { agora: AGORA, volumeMinimo: 1e6 });
+  assert.ok(out[0].proximaLiquidacaoEm > AGORA);
+  assert.equal(out[0].proximaLiquidacaoEm, AGORA + 4 * 3_600_000, 'às 12h UTC, a de 8h é às 16h');
+});
+
+test('ordena por pagamento por liquidação, não pelo spread normalizado', () => {
+  const out = cruzarParaCaptura([
+    // 8h: spread 0,002 → paga 0,002 por liquidação
+    perna({ symbol: 'OITO/USDT:USDT', exchange: 'a', funding: 0.003, intervaloHoras: 8 }),
+    perna({ symbol: 'OITO/USDT:USDT', exchange: 'b', funding: 0.001, intervaloHoras: 8 }),
+    // 1h: funding cru 0,0005 vira f8h 0,004 (spread normalizado MAIOR),
+    // mas cada liquidação paga só 0,0005 — tem que ficar atrás
+    perna({ symbol: 'UMA/USDT:USDT', exchange: 'a', funding: 0.0005, intervaloHoras: 1 }),
+    perna({ symbol: 'UMA/USDT:USDT', exchange: 'b', funding: 0, intervaloHoras: 1 }),
+  ], { agora: AGORA, volumeMinimo: 1e6 });
+  assert.equal(out.length, 2);
+  assert.equal(out[0].symbol, 'OITO/USDT:USDT', 'quem paga mais por liquidação vem primeiro');
+  assert.ok(out[1].spread8h > out[0].spread8h, 'e o de trás tinha spread normalizado maior');
 });

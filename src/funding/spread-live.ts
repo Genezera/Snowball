@@ -24,6 +24,8 @@ import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso, LIMIARES_PADRAO, MMR_ALT } from './protecao.ts';
 import { taxaEfetiva, posicoesSustentaveis, ESCORREGAMENTO_PERNA } from './custos-reais.ts';
 import { escorregamentoDoPar, escorregamentoLimitado } from './livro.ts';
+import { avaliarCaptura } from './liquidacao.ts';
+import { lerCaptura } from './ponte-captura.ts';
 import { dimensionar, socorrer, usoPorExchange, RESERVA_PADRAO } from './tesouraria.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
@@ -55,6 +57,21 @@ const TTL_ESCORREGAMENTO = 15 * 60_000;
 
 /** Níveis de livro a pedir. 50 cobre folgado US$ 250/perna em par líquido. */
 const PROFUNDIDADE_LIVRO = 50;
+
+/**
+ * CAPTURA — quando abrir, em relação à liquidação alvo.
+ *
+ * O ciclo do motor é de 5 min, então a janela precisa ser maior que um ciclo
+ * (senão a liquidação passa entre duas passadas e a chance é perdida) e o
+ * menor possível acima disso (cada minuto montado é exposição a preço sem
+ * contrapartida — o pagamento não aumenta por segurar mais tempo).
+ *
+ * O piso existe porque abrir com menos de dois minutos é apostar que as duas
+ * pernas executam a tempo. No papel isso é grátis; no mercado real não é, e o
+ * simulador não deve permitir o que a execução não permitiria.
+ */
+const JANELA_ABERTURA_MS = 12 * 60_000;
+const ANTECEDENCIA_MINIMA_MS = 2 * 60_000;
 
 /**
  * Notifica só o que é raro e importa — dinheiro mudando de mãos ou o motor
@@ -117,6 +134,28 @@ export interface PosicaoSpread {
    * não tentar escalonar algo que já é o tamanho certo.
    */
   estagio?: 1 | 2;
+  /**
+   * QUAL ESTRATÉGIA abriu esta posição — e portanto qual lógica a gerencia.
+   *
+   *   'persistencia'  a original: segura enquanto o spread se sustentar, e o
+   *                   portão exige vida provada suficiente pro payback fechar.
+   *   'captura'       abre minutos antes de uma liquidação de funding, recebe
+   *                   o pagamento e fecha. Ver liquidacao.ts para por que a
+   *                   pergunta da persistência mantinha o motor parado.
+   *
+   * Ausente em posições de antes desta mudança — tratado como 'persistencia'.
+   */
+  modo?: 'persistencia' | 'captura';
+  /** captura: instante da liquidação que esta posição existe para receber */
+  liquidacaoAlvo?: number;
+  /**
+   * captura: taxa+escorregamento MEDIDOS na abertura. Guardado porque a saída
+   * precisa ser debitada com o mesmo custo que o portão usou pra aprovar —
+   * senão a conta que autorizou a operação não é a conta que a contabiliza.
+   */
+  taxaEfetivaEntrada?: number;
+  /** captura: o que a liquidação deveria pagar, em fração do notional */
+  pagamentoEsperado?: number;
 }
 
 export interface EstadoSpread {
@@ -148,6 +187,8 @@ export interface EstadoSpread {
   limiteAnterior?: string;
   /** dinheiro por exchange: a verdade sobre onde o capital está */
   saldos?: Record<string, number>;
+  /** último motivo de captura indisponível logado, para não repetir todo ciclo */
+  motivoCapturaAnterior?: string;
 }
 
 export interface OpcoesSpread {
@@ -175,6 +216,15 @@ export interface OpcoesSpread {
   reserva: number;
   /** onde o dinheiro está, quando ainda não há posição para inferir */
   exchanges: string[];
+  /**
+   * Liga a captura de liquidação (liquidacao.ts) além da persistência.
+   *
+   * Existe como chave para poder rodar os dois modos lado a lado e comparar,
+   * e para desligar a captura sem reverter código se ela se mostrar ruim no
+   * papel. Os dois modos dividem o mesmo capital e o mesmo teto de posições —
+   * quem chegar primeiro ocupa a vaga.
+   */
+  capturaLigada: boolean;
 }
 
 export const OPCOES_PADRAO: OpcoesSpread = {
@@ -201,6 +251,7 @@ export const OPCOES_PADRAO: OpcoesSpread = {
   // pico em 25%. 30% fica perto do ótimo e do lado seguro dele.
   reserva: RESERVA_PADRAO,
   exchanges: ['binanceusdm', 'bybit'],
+  capturaLigada: true,
 };
 
 export class MotorSpread {
@@ -283,6 +334,28 @@ export class MotorSpread {
   }
 
   /**
+   * Move dinheiro nas DUAS pernas, metade em cada.
+   *
+   * Existe porque `estado.capital` é DERIVADO: `debitar` recalcula o capital
+   * como a soma dos saldos. Mexer em `capital` direto — como a coleta de
+   * funding e o fechamento faziam — não sobrevive à próxima chamada de
+   * `debitar`, que sobrescreve o valor a partir dos saldos e apaga o ajuste.
+   *
+   * O bug nunca apareceu em produção porque o motor nunca chegou a coletar um
+   * pagamento de funding (o portão de persistência barrava tudo). A captura de
+   * liquidação coleta logo no primeiro ciclo, e expôs isso na hora: o ganho
+   * entrava no capital e sumia no fechamento da mesma posição.
+   *
+   * Metade em cada perna é o modelo certo para o líquido de um spread: recebe
+   * na perna vendida, paga na comprada, e o que sobra é a diferença — que
+   * aparece distribuída entre as duas contas, não concentrada numa.
+   */
+  private repartir(pos: PosicaoSpread, valor: number) {
+    this.creditar(pos.exchangeShort, valor / 2);
+    this.creditar(pos.exchangeLong, valor / 2);
+  }
+
+  /**
    * Quanto capital está em cada exchange, somando todas as pernas.
    *
    * É a grandeza que o teto controla. Sem medir isto, "três posições" não
@@ -310,7 +383,8 @@ export class MotorSpread {
 
   private fecharPosicao(pos: PosicaoSpread, motivo: string, rotulo: string) {
     const custoSaida = pos.notionalPorPerna * this.o.taxaPerp * 2;
-    this.estado.capital -= custoSaida;
+    // pelas pernas, não em `capital` direto — ver `repartir`
+    this.repartir(pos, -custoSaida);
     this.estado.custosTotal += custoSaida;
     this.estado.posicoes = this.posicoes.filter((p) => p !== pos);
     this.log(
@@ -518,14 +592,30 @@ export class MotorSpread {
     }
 
     // ── gerência de cada posição aberta ─────────────────────────────────
-    for (const pos of [...this.posicoes]) await this.gerir(pos, ops);
+    //
+    // Cada modo tem ciclo de vida próprio: persistência segura enquanto o
+    // spread se sustenta; captura atravessa uma liquidação e sai. Roteia por
+    // `modo`, tratando posição sem o campo como persistência (é o que ela era
+    // antes deste campo existir).
+    for (const pos of [...this.posicoes]) {
+      if (pos.modo === 'captura') await this.gerirCaptura(pos);
+      else await this.gerir(pos, ops);
+    }
 
     // Apara antes de abrir. A ordem importa: uma posição acima da cota estoura
     // o teto e barra todas as candidatas, então aparar depois de tentar abrir
     // desperdiçaria um ciclo inteiro a cada vez.
-    for (const pos of this.posicoes) this.redimensionar(pos);
+    // Captura fica de fora: ela nasce e morre dentro de uma janela de minutos,
+    // e redimensionar cobraria taxa de ajuste numa posição que já vai sair.
+    for (const pos of this.posicoes) if (pos.modo !== 'captura') this.redimensionar(pos);
 
-    // ── abertura, respeitando o teto por exchange ───────────────────────
+    // ── abertura ─────────────────────────────────────────────────────────
+    //
+    // Captura primeiro: ela é oportunista e some em minutos, enquanto uma
+    // candidata de persistência que passe no portão continuará passando no
+    // ciclo seguinte. Deixar a persistência ocupar as vagas antes faria o
+    // motor perder justamente o que é urgente.
+    if (this.o.capturaLigada) await this.abrirCaptura();
     await this.abrir(ops);
 
     // fecha a semana
@@ -786,7 +876,7 @@ export class MotorSpread {
     pos.notionalPorPerna *= fracaoManter;
     pos.margemShort *= fracaoManter;
     pos.margemLong *= fracaoManter;
-    this.estado.capital -= custo;
+    this.repartir(pos, -custo); // ver `repartir`: capital é derivado dos saldos
     this.estado.custosTotal += custo;
 
     this.log(
@@ -801,6 +891,200 @@ export class MotorSpread {
   }
 
   /** Gerência de uma posição: funding, margem, composição e troca. */
+  /**
+   * ABERTURA POR CAPTURA DE LIQUIDAÇÃO.
+   *
+   * O portão aqui não pergunta se o spread sobrevive horas — pergunta se o
+   * pagamento de UMA liquidação cobre entrar e sair. Ver liquidacao.ts.
+   *
+   * O que continua igual à abertura por persistência, e não é acidente:
+   * dimensionamento pelo saldo real das duas exchanges, escorregamento medido
+   * no livro, teto de posições. O que muda é só a pergunta do portão.
+   */
+  private async abrirCaptura() {
+    const leitura = lerCaptura();
+    if (!leitura.disponivel) {
+      if (this.estado.motivoCapturaAnterior !== leitura.motivo) {
+        this.log(`captura indisponível: ${leitura.motivo}`);
+        this.estado.motivoCapturaAnterior = leitura.motivo;
+      }
+      return;
+    }
+
+    const jaTenho = new Set(this.posicoes.map((p) => p.symbol));
+    const agora = Date.now();
+    let foraDaJanela = 0, naoCobre = 0;
+    let melhorCobertura = 0, melhorNome = '', melhorFaltam = 0;
+
+    for (const c of leitura.candidatos) {
+      if (this.posicoes.length >= this.o.maxPosicoes) break;
+      if (jaTenho.has(c.symbol)) continue;
+
+      // Só interessa o que liquida logo. Abrir cedo demais é exposição sem
+      // contrapartida; tarde demais é apostar na execução.
+      const faltam = c.proximaLiquidacaoEm - agora;
+      if (faltam > JANELA_ABERTURA_MS || faltam < ANTECEDENCIA_MINIMA_MS) { foraDaJanela++; continue; }
+
+      const veredicto = podeOperar(lerSaude(), c.exchangeShort, c.exchangeLong);
+      if (!veredicto.pode) continue;
+
+      const d = dimensionar(
+        this.saldos(), this.exposicaoPorExchange(),
+        c.exchangeShort, c.exchangeLong, this.o.alavancagem, this.o.reserva,
+      );
+      if (!d.possivel) continue;
+
+      const slip = await this.escorregamentoReal(c.symbol, c.exchangeShort, c.exchangeLong, d.notionalPorPerna);
+      const taxaEfetivaAqui = taxaEfetiva(c.exchangeShort, c.exchangeLong, slip.valor);
+      const v = avaliarCaptura({
+        spread8h: c.spread8h, intervaloHoras: c.intervaloHoras,
+        taxaEfetiva: taxaEfetivaAqui, margem: this.o.margemPayback,
+      });
+
+      if (v.cobertura > melhorCobertura) {
+        melhorCobertura = v.cobertura;
+        melhorNome = c.symbol.replace('/USDT:USDT', '');
+        melhorFaltam = faltam / 60_000;
+      }
+      if (!v.vale) { naoCobre++; continue; }
+
+      const custoMontagem = d.notionalPorPerna * taxaEfetivaAqui * 2;
+      const p = await this.preco(c.exchangeShort, c.symbol);
+      this.posicoes.push({
+        symbol: c.symbol,
+        exchangeShort: c.exchangeShort, exchangeLong: c.exchangeLong,
+        margemShort: d.margemPorPerna, margemLong: d.margemPorPerna,
+        notionalPorPerna: d.notionalPorPerna, precoEntrada: p, precoUltimo: p,
+        abertaEm: agora, spreadNaEntrada: c.spread8h,
+        fundingAcumulado: 0, pagamentos: 0, estagio: 2,
+        modo: 'captura', liquidacaoAlvo: c.proximaLiquidacaoEm,
+        taxaEfetivaEntrada: taxaEfetivaAqui, pagamentoEsperado: v.pagamentoPorLiquidacao,
+      });
+      jaTenho.add(c.symbol);
+      this.debitar(c.exchangeShort, custoMontagem / 2);
+      this.debitar(c.exchangeLong, custoMontagem / 2);
+      this.estado.custosTotal += custoMontagem;
+
+      this.log(
+        `ABRE-CAPTURA ${c.symbol.replace('/USDT:USDT', '')} · ${c.exchangeShort}→${c.exchangeLong} · ` +
+        `liquidação em ${(faltam / 60_000).toFixed(0)}min paga ${(v.pagamentoPorLiquidacao * 100).toFixed(3)}% ` +
+        `contra custo ${(v.custoIdaEVolta * 100).toFixed(3)}% (${v.cobertura.toFixed(2)}x) · ` +
+        `notional US$ ${d.notionalPorPerna.toFixed(2)}/perna · líquido esperado US$ ${(v.liquidoPorLiquidacao * d.notionalPorPerna).toFixed(3)}`,
+      );
+      this.diario('abre-captura', {
+        symbol: c.symbol, short: c.exchangeShort, long: c.exchangeLong,
+        spread: c.spread8h, intervaloHoras: c.intervaloHoras,
+        pagamentoPorLiquidacao: v.pagamentoPorLiquidacao, cobertura: v.cobertura,
+        custo: custoMontagem, notional: d.notionalPorPerna, preco: p,
+        liquidacaoAlvo: c.proximaLiquidacaoEm, faltamMin: faltam / 60_000,
+        escorregamento: slip.valor, escorregamentoMedido: slip.medido,
+      });
+    }
+
+    // "Não abrir" também é decisão, e a mais frequente. Sem registrar, o painel
+    // fica mudo e ninguém sabe se o motor está perto ou longe de operar.
+    if (!this.posicoes.some((p) => p.modo === 'captura') && (foraDaJanela || naoCobre)) {
+      const detalhe = melhorNome
+        ? ` · melhor: ${melhorNome} cobre ${melhorCobertura.toFixed(2)}x de ${this.o.margemPayback}x exigidos, liquida em ${melhorFaltam.toFixed(0)}min`
+        : ` · nenhum candidato dentro da janela de ${JANELA_ABERTURA_MS / 60_000}min`;
+      this.diario('bloqueado', {
+        motivo: `captura: ${naoCobre} não cobrem o custo, ${foraDaJanela} fora da janela${detalhe}`,
+        modo: 'captura', candidatasBarradas: naoCobre + foraDaJanela,
+        melhorCobertura, coberturaExigida: this.o.margemPayback,
+      });
+    }
+  }
+
+  /**
+   * GERÊNCIA DE POSIÇÃO DE CAPTURA — ciclo de vida totalmente diferente.
+   *
+   * Uma posição de persistência vive enquanto o spread se sustenta e é fechada
+   * quando ele inverte. Uma posição de captura existe para atravessar UM
+   * instante: a liquidação. Depois dela não há mais motivo para estar montada,
+   * e cada ciclo a mais é risco de preço sem contrapartida.
+   *
+   * O pagamento é contabilizado com o spread OBSERVADO AGORA, não com o que
+   * foi visto na abertura. Se o par sumiu do retrato — spread evaporou ou
+   * inverteu — recebe zero e ainda paga a saída. É exatamente o risco da
+   * estratégia, e escondê-lo no simulador tornaria o simulador inútil.
+   */
+  private async gerirCaptura(pos: PosicaoSpread) {
+    const precoAtual = await this.preco(pos.exchangeShort, pos.symbol);
+    const delta = pos.precoUltimo ? precoAtual / pos.precoUltimo - 1 : 0;
+    pos.margemShort -= pos.notionalPorPerna * delta;
+    pos.margemLong += pos.notionalPorPerna * delta;
+    pos.precoUltimo = precoAtual;
+
+    // Segurança primeiro: mesmo numa janela de minutos, uma perna pode andar
+    // o suficiente para ameaçar liquidação. Fechar cedo custa a saída; ser
+    // liquidado custa a margem inteira de uma perna.
+    const risco = avaliarRisco(pos.margemShort, pos.margemLong, pos.notionalPorPerna, 0, mmrDe(pos.symbol));
+    if (risco.nivel === 'critico') {
+      this.estado.fechamentosEmergencia = (this.estado.fechamentosEmergencia ?? 0) + 1;
+      this.fecharCaptura(pos, 'risco crítico antes da liquidação');
+      return;
+    }
+
+    const alvo = pos.liquidacaoAlvo ?? 0;
+    if (Date.now() < alvo) return; // ainda não liquidou; segura
+
+    // A liquidação passou. Recebe o que o retrato de agora diz que ela pagou.
+    const leitura = lerCaptura();
+    const atual = leitura.disponivel
+      ? leitura.candidatos.find((c) =>
+          c.symbol === pos.symbol && c.exchangeShort === pos.exchangeShort && c.exchangeLong === pos.exchangeLong)
+      : undefined;
+    const fracaoRecebida = atual ? atual.pagamentoPorLiquidacao : 0;
+    const ganho = pos.notionalPorPerna * fracaoRecebida;
+
+    if (ganho > 0) {
+      pos.fundingAcumulado += ganho;
+      pos.pagamentos++;
+      this.repartir(pos, ganho); // pelas pernas — ver `repartir`
+      this.estado.fundingTotal += ganho;
+      this.estado.caixaOcioso += ganho;
+      this.estado.pagamentos++;
+      this.estado.ultimoCicloTs = Date.now();
+      this.diario('funding', {
+        symbol: pos.symbol, spread: fracaoRecebida, ganho,
+        capital: this.estado.capital, modo: 'captura',
+      });
+    }
+    this.log(
+      `LIQUIDAÇÃO ${pos.symbol.replace('/USDT:USDT', '')} · recebido US$ ${ganho.toFixed(4)} ` +
+      `(esperava US$ ${((pos.pagamentoEsperado ?? 0) * pos.notionalPorPerna).toFixed(4)})` +
+      (atual ? '' : ' — o par sumiu do retrato, nada recebido'),
+    );
+    this.fecharCaptura(pos, ganho > 0 ? 'liquidação capturada' : 'liquidação sem pagamento');
+  }
+
+  /**
+   * Fecha debitando o MESMO custo que o portão usou para aprovar a abertura.
+   *
+   * `fecharPosicao` cobra `taxaPerp × 2`, sem escorregamento — o que serve pra
+   * persistência, onde a saída é uma fração pequena de muitos pagamentos. Numa
+   * captura a saída é metade do custo total da operação, e cobrá-la mais barata
+   * do que o portão assumiu faria o resultado simulado ser melhor que o real.
+   */
+  private fecharCaptura(pos: PosicaoSpread, motivo: string) {
+    const taxa = pos.taxaEfetivaEntrada ?? this.o.taxaPerp;
+    const custoSaida = pos.notionalPorPerna * taxa * 2;
+    this.repartir(pos, -custoSaida); // ver `repartir`: capital é derivado dos saldos
+    this.estado.custosTotal += custoSaida;
+    this.estado.posicoes = this.posicoes.filter((p) => p !== pos);
+    const liquido = pos.fundingAcumulado - custoSaida;
+    this.log(
+      `FECHA-CAPTURA ${pos.symbol.replace('/USDT:USDT', '')} — ${motivo} · ` +
+      `saída US$ ${custoSaida.toFixed(3)} · recebido US$ ${pos.fundingAcumulado.toFixed(3)} · ` +
+      `resultado desta perna US$ ${liquido.toFixed(3)}`,
+    );
+    this.diario('fecha', {
+      symbol: pos.symbol, motivo, custo: custoSaida, modo: 'captura',
+      fundingAcumulado: pos.fundingAcumulado, capital: this.estado.capital,
+      minutosMontada: (Date.now() - pos.abertaEm) / 60_000,
+    });
+  }
+
   private async gerir(pos: PosicaoSpread, ops: OportunidadeSpread[]) {
     const atual = ops.find((o) => o.symbol === pos.symbol);
     const precoAtual = await this.preco(pos.exchangeShort, pos.symbol);
@@ -916,7 +1200,7 @@ export class MotorSpread {
       pos.fundingAcumulado += ganho;
       pos.pagamentos++;
       pos.ultimoFundingTs = agora;
-      this.estado.capital += ganho;
+      this.repartir(pos, ganho); // pelas pernas — ver `repartir`
       this.estado.fundingTotal += ganho;
       this.estado.caixaOcioso += ganho;
       this.estado.pagamentos++;
@@ -1009,7 +1293,7 @@ export class MotorSpread {
         pos.notionalPorPerna += extra.notionalPorPerna;
         pos.margemShort += extra.margemPorPerna;
         pos.margemLong += extra.margemPorPerna;
-        this.estado.capital -= extra.custoMontagem;
+        this.repartir(pos, -extra.custoMontagem); // ver `repartir`
         this.estado.custosTotal += extra.custoMontagem;
         this.estado.caixaOcioso = 0;
         this.estado.reinvestimentos++;

@@ -164,3 +164,96 @@ export function avaliarCaptura(e: EntradaCaptura): Captura {
     vale: cobertura >= e.margem,
   };
 }
+
+/** O mínimo que uma perna precisa expor para entrar no cruzamento de captura. */
+export interface PernaCaptura {
+  symbol: string;
+  exchange: string;
+  /** taxa crua do período dela, como a exchange reporta */
+  funding: number;
+  intervaloHoras: number;
+  volume24h: number;
+}
+
+export interface CandidatoCaptura {
+  symbol: string;
+  exchangeShort: string;
+  exchangeLong: string;
+  /** spread normalizado para 8h — para comparar pares de intervalos diferentes */
+  spread8h: number;
+  /** intervalo real, igual nas duas pernas (só alinhados entram) */
+  intervaloHoras: number;
+  /** o que UMA liquidação paga, em fração do notional */
+  pagamentoPorLiquidacao: number;
+  volumeMinimo: number;
+  /** instante absoluto da próxima liquidação */
+  proximaLiquidacaoEm: number;
+}
+
+/**
+ * Cruza o universo preservando o INTERVALO de cada perna.
+ *
+ * `cruzarUniverso` (universo.ts) normaliza tudo para 8h e descarta o intervalo.
+ * Para persistência isso basta. Para captura não: o intervalo decide quanto uma
+ * liquidação paga e se as duas pernas liquidam na mesma janela.
+ *
+ * Descarta o que não sabemos calcular — pernas com intervalos diferentes — em
+ * vez de calcular errado. Ver `alinhamento()`.
+ *
+ * Pura: recebe `agora` em vez de chamar o relógio, para ser testável.
+ */
+export function cruzarParaCaptura(
+  pares: PernaCaptura[],
+  opts: { agora: number; volumeMinimo: number },
+): CandidatoCaptura[] {
+  const porAtivo = new Map<string, PernaCaptura[]>();
+  for (const p of pares) {
+    if (!porAtivo.has(p.symbol)) porAtivo.set(p.symbol, []);
+    porAtivo.get(p.symbol)!.push(p);
+  }
+
+  const saida: CandidatoCaptura[] = [];
+  for (const [symbol, lista] of porAtivo) {
+    if (lista.length < 2) continue;
+
+    // Só pernas com liquidez entram no cruzamento — e ISSO precisa vir antes de
+    // escolher os extremos. Escolher primeiro e filtrar depois descartava o
+    // ativo inteiro quando o extremo era ilíquido, mesmo havendo um par líquido
+    // bom dentro do mesmo símbolo.
+    const liquidas = lista.filter((p) => p.volume24h >= opts.volumeMinimo);
+    if (liquidas.length < 2) continue;
+
+    const norm = liquidas.map((p) => ({
+      ...p,
+      intervalo: p.intervaloHoras || 8,
+      f8h: p.funding * (8 / (p.intervaloHoras || 8)),
+    }));
+
+    // Dentro de cada intervalo, o par é o extremo daquele grupo — assim um
+    // ativo listado em 8h e em 4h ainda rende o melhor par ALINHADO de cada um,
+    // em vez de ser descartado por os extremos globais não casarem.
+    const porIntervalo = new Map<number, typeof norm>();
+    for (const p of norm) {
+      if (!porIntervalo.has(p.intervalo)) porIntervalo.set(p.intervalo, []);
+      porIntervalo.get(p.intervalo)!.push(p);
+    }
+
+    for (const [intervalo, grupo] of porIntervalo) {
+      if (grupo.length < 2) continue;
+      const ordenado = [...grupo].sort((x, y) => y.f8h - x.f8h);
+      const alto = ordenado[0], baixo = ordenado[ordenado.length - 1];
+      const spread8h = alto.f8h - baixo.f8h;
+      if (spread8h <= 0) continue;
+      saida.push({
+        symbol,
+        exchangeShort: alto.exchange, exchangeLong: baixo.exchange,
+        spread8h, intervaloHoras: intervalo,
+        pagamentoPorLiquidacao: fundingPorLiquidacao(spread8h, intervalo),
+        volumeMinimo: Math.min(alto.volume24h, baixo.volume24h),
+        proximaLiquidacaoEm: opts.agora + msAteProximaLiquidacao(opts.agora, intervalo),
+      });
+    }
+  }
+
+  return saida.sort((x, y) => y.pagamentoPorLiquidacao - x.pagamentoPorLiquidacao);
+}

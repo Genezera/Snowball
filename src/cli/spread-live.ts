@@ -30,7 +30,12 @@ const taxaPerp = num(a.taxa, 0.0005);
 const margemPayback = num(a.margemPayback, 1.5);
 
 const reserva = num(a.reserva, 0.30);
-const motor = new MotorSpread({ capital, alavancagem, pisoAbsoluto, fracaoPico, taxaPerp, margemPayback, reserva, exchanges });
+// Captura de liquidação (liquidacao.ts) roda ao lado da persistência. Desligar
+// com `--captura false` para comparar os dois modos sem mexer no código.
+const capturaLigada = String(a.captura ?? 'true') !== 'false';
+const motor = new MotorSpread({
+  capital, alavancagem, pisoAbsoluto, fracaoPico, taxaPerp, margemPayback, reserva, exchanges, capturaLigada,
+});
 
 console.log(`\n${'='.repeat(78)}`);
 console.log(`MOTOR DE SPREAD ENTRE EXCHANGES  ·  US$ ${(capital/exchanges.length).toFixed(0)} em cada uma de ${exchanges.length}  ·  ${alavancagem}x`);

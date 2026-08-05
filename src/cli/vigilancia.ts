@@ -6,6 +6,7 @@
  */
 import { observar, ranking, estatisticasCiclo, podar, VOLUME_MINIMO_PADRAO } from '../funding/vigilancia.ts';
 import { atualizarBasis, podarBasis, estatisticasCicloBasis, VOLUME_MINIMO_BASIS } from '../funding/vigilancia-basis.ts';
+import { gravarCaptura } from '../funding/ponte-captura.ts';
 import { dimensionarSpread } from '../funding/spread.ts';
 import { parseArgs, num, bool } from './args.ts';
 
@@ -38,6 +39,10 @@ async function passada() {
 
   // basis trade: mesma varredura, só reprocessada — não busca o mercado de novo.
   const basis = atualizarBasis(pares, VOLUME_MINIMO_BASIS);
+
+  // captura de liquidação: o retrato de AGORA (sem média histórica), que o
+  // motor lê para decidir se vale abrir antes da próxima liquidação.
+  const captura = gravarCaptura(pares, VOL_MIN);
 
   const st = estatisticasCiclo(estado);
   // O mínimo de observações usa `estado.varreduras`, que é PERSISTIDO, e não o
@@ -141,6 +146,17 @@ async function passada() {
       `\n  BASIS (coleta, não opera) · ${basis.candidatos.length} candidatos vivos · ` +
       `${stBasis.vivas} ciclos abertos · ${stBasis.fechadas} já fecharam` +
       (stBasis.fechadas ? ` · duração mediana ${stBasis.duracaoMedianaHoras.toFixed(1)}h` : ''),
+    );
+  }
+
+  if (captura.candidatos.length) {
+    const melhor = captura.candidatos[0];
+    const emMin = (melhor.proximaLiquidacaoEm - Date.now()) / 60_000;
+    console.log(
+      `\n  CAPTURA · ${captura.totalAlinhados} pares alinhados · melhor: ` +
+      `${melhor.symbol.replace('/USDT:USDT', '')} ${melhor.exchangeShort}→${melhor.exchangeLong} ` +
+      `paga ${(melhor.pagamentoPorLiquidacao * 100).toFixed(3)}%/liq · ` +
+      `próxima em ${emMin < 60 ? emMin.toFixed(0) + 'min' : (emMin / 60).toFixed(1) + 'h'}`,
     );
   }
 
