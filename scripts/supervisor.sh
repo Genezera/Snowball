@@ -65,14 +65,21 @@ echo "[$(date '+%H:%M:%S')] supervisor iniciado — checando a cada 30s" >> vigi
 
 while true; do
   for nome in "${!CMD[@]}"; do
-    # o padrao de busca e o token que termina em .ts -- nao "a palavra depois
-    # de node", porque o motor agora leva --env-file-if-exists=.env antes do
-    # caminho do arquivo, e pegar a primeira palavra pegaria a flag em vez
-    # do caminho (a CommandLine real tem os dois, mas so o caminho .ts e
-    # unico o bastante pra nao casar com processo nenhum errado)
+    # o padrao de busca e o BASENAME do token que termina em .ts -- nao o
+    # caminho inteiro. Motivo (achado ao vivo, causava falso positivo em
+    # cascata nos 5 processos a cada ciclo): o Git Bash reescreve caminhos
+    # estilo POSIX (src/cli/vigilancia.ts) para estilo Windows
+    # (src\cli\vigilancia.ts) ao invocar node.exe, um binario nativo -- e a
+    # CommandLine que o Windows registra fica com contrabarra. Casar pelo
+    # caminho completo com barra normal nunca dava match, entao TODO ciclo
+    # achava que os 5 processos tinham morrido e tentava religar por cima
+    # dos que ja estavam vivos (risco real: duas instancias escrevendo no
+    # mesmo ciclos.json/estado.json ao mesmo tempo). O nome do arquivo
+    # sozinho (sem separador) e imune a qual barra o SO usa, e continua
+    # unico o bastante entre os 5 processos.
     padrao=""
     for palavra in ${CMD[$nome]}; do
-      case "$palavra" in *.ts) padrao="$palavra"; break;; esac
+      case "$palavra" in *.ts) padrao="${palavra##*/}"; break;; esac
     done
     [ -z "$padrao" ] && padrao="${CMD[$nome]%% *}"
     n=$(vivo "$padrao")
