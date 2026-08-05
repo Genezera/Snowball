@@ -33,6 +33,7 @@ import { runBacktest } from '../backtest/engine.ts';
 import { makeConfig } from '../config.ts';
 import { paraRMultiplos, simularBootstrap } from '../backtest/bootstrap.ts';
 import { UNIVERSO_MOMENTUM, PARAMS_VALIDADOS, MAX_BARS_VALIDADO } from '../data/momentum-universe.ts';
+import { poolCompletoDePares, PARES_SIMULTANEOS_MEDIO } from '../pairs/validado.ts';
 import { parseArgs, num } from './args.ts';
 
 const a = parseArgs();
@@ -101,7 +102,54 @@ const linhasMomentum = RISCOS.map((risco) => ({
 }));
 imprimirTabela(linhasMomentum);
 
-// ── cenário 2: ações, modelo binário (saída por stop/alvo — a aproximação certa lá) ──
+// ── cenário 2: pares cointegrados, BOOTSTRAP + concorrência real ──────────
+//
+// Aqui "risco/op" NÃO é fração normalizada por stop (como no ts-momentum) —
+// o retorno de um trade de par já é a variação do spread menos custo, sem
+// stop nenhum. A grandeza que faz sentido é ALAVANCAGEM / PARES SIMULTÂNEOS:
+// quantos pares estão abertos ao mesmo tempo decide quanto capital cada um
+// consome. Medido diretamente do backtest (20 pares monitorados): a
+// concorrência real varia de 0 a 17, média 6,6 — não é constante, e usar essa
+// média é a aproximação mais defensável sem simular alocação dinâmica.
+console.log('─'.repeat(100));
+console.log('CENÁRIO: pares cointegrados (bootstrap de trades reais + concorrência observada)\n');
+console.log('carregando 57 ativos, achando pares, rodando o backtest de spread...');
+const ALAVANCAGEM_PARES = num(a.alavancagem, 5);
+const { rMultiplos: rPares, duracaoMediaBarras } = poolCompletoDePares();
+const expectancyPares = rPares.reduce((s, r) => s + r, 0) / rPares.length;
+console.log(
+  `${rPares.length} trades reais pooled · expectancy ${expectancyPares.toFixed(4)} · ` +
+  `duração média ${duracaoMediaBarras.toFixed(1)} dias · concorrência real média ${PARES_SIMULTANEOS_MEDIO} pares\n`,
+);
+
+const NS_PARES = [2, 3, 4, 5, 6, 7, 8, 10, 15];
+console.log(
+  'pares simult.'.padEnd(15) + 'risco/op real'.padEnd(15) + 'ops/mês'.padEnd(10) +
+  'chega na meta'.padEnd(16) + 'QUEBRA'.padEnd(11) + 'tempo mediano',
+);
+console.log('-'.repeat(100));
+for (const N of NS_PARES) {
+  const riscoFracao = ALAVANCAGEM_PARES / N;
+  const opsPorMes = N * (30 / duracaoMediaBarras);
+  const s = simularBootstrap({
+    rMultiplos: rPares, capitalInicial: CAPITAL, alvo: ALVO, pisoRuina: PISO_RUINA,
+    opsPorMes, horizonteMeses: HORIZONTE_MESES, riscoFracao, caminhos: CAMINHOS,
+  });
+  console.log(
+    String(N).padEnd(15) +
+    ((riscoFracao * 100).toFixed(0) + '%').padEnd(15) +
+    opsPorMes.toFixed(1).padEnd(10) +
+    ((s.pSucesso * 100).toFixed(1) + '%').padEnd(16) +
+    ((s.pRuina * 100).toFixed(1) + '%').padEnd(11) +
+    fmtTempo(s.mesesMediano),
+  );
+}
+console.log(
+  `\n  na concorrência REAL observada (~${PARES_SIMULTANEOS_MEDIO.toFixed(0)} pares em média), o resultado` +
+  ' fica entre as linhas N=6 e N=7 acima — nem o melhor caso, nem o pior.\n',
+);
+
+// ── cenário 3: ações, modelo binário (saída por stop/alvo — a aproximação certa lá) ──
 console.log('─'.repeat(100));
 console.log('CENÁRIO: ações (walk-forward, modelo binário — saída por stop/alvo fixo)\n');
 const E_ACOES = 0.066, POR_MES_ACOES = 12, W = 2;

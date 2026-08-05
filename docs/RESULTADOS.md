@@ -277,3 +277,84 @@ custos (McLean & Pontiff 2016, Chen & Zimmermann 2020).
 **Código:** `src/strategies/index.ts` (`tsMomentum`, `xsMomentum`),
 `src/data/momentum-universe.ts`, `src/backtest/bootstrap.ts`,
 `npm run momentum`, `npm run desafio`.
+
+---
+
+## Resultado 7 — Pares cointegrados: o achado mais robusto da sessão
+
+**Mecanismo genuinamente novo.** Tudo até aqui apostava em DIREÇÃO — um
+ativo sobe ou desce, e o lucro vem de acertar qual. Pares cointegrados
+apostam em RELAÇÃO: dois ativos correlacionados se afastam um do outro
+temporariamente, e o lucro vem de apostar que a distância volta ao normal —
+comprando o barato, vendendo o caro. Market-neutral: se os dois caem juntos
+20%, a posição não perde nada. Fonte de retorno estruturalmente
+descorrelacionada de momentum ou rompimento (Gatev, Goetzmann, Rouwenhorst
+2006, "Pairs Trading").
+
+**Metodologia**: hedge ratio por OLS em log-preço, meia-vida de reversão via
+AR(1) no resíduo (substituto defensável de Engle-Granger, mais fraco mas
+honesto sobre ser mais fraco). Formação (metade inicial de cada janela)
+decide quais pares operar e calibra hedge ratio; operação (metade final)
+roda o backtest — dupla proteção contra lookahead, além da separação
+descoberta/holdout de dataset inteiro.
+
+| conjunto | trades | expectancy | win rate |
+|---|---|---|---|
+| descoberta (30 ativos) | 664 | +0,0073 | 66,9% |
+| **holdout cego (27 ativos)** | **678** | **+0,0131** | **70,6%** |
+
+O holdout não caiu — **subiu**. Mesmo padrão que `ts-momentum` (item 6),
+oposto ao falso positivo do `body-breakout`.
+
+**Robustez ao ponto de corte** (formação/operação em 40/50/60/70%): positivo
+nos quatro, CRESCENTE com mais dado de formação (0,0026 → 0,0073 → 0,0123 →
+0,0135) — não é artefato de onde o split caiu.
+
+**Concentração**: 20 pares ativos simultaneamente monitorados, os 3 mais
+negociados somam 17,4% do total — não é um único par carregando o
+resultado.
+
+**Concorrência real**: quantos dos 20 pares ficam abertos ao mesmo tempo
+varia de 0 a 17 dias, MÉDIA 6,6 — não é constante, e isso decide quanto
+capital cada um consome.
+
+**Bootstrap dos 1.342 trades reais contra a meta de viagem** (`npm run
+desafio`), com risco/operação = alavancagem(5x) / pares simultâneos:
+
+| pares simult. | risco/op | chega na meta | QUEBRA | tempo mediano |
+|---|---|---|---|---|
+| 4 | 125% | 29,4% | 70,5% | 8 meses |
+| **6** | **83%** | **44,9%** | **54,8%** | **12 meses** |
+| **7** (concorrência real) | **71%** | **55,2%** | **43,9%** | **14 meses** |
+| 8 | 63% | 64,2% | 34,3% | 15 meses |
+| 15 (raro — só 4,2% dos dias) | 33% | 95,2% | 3,9% | 17 meses |
+
+**É o melhor resultado de risco/retorno já medido neste projeto** — na
+concorrência real observada (~7 pares), ~55% de chance de chegar à meta em
+~14 meses contra ~44% de quebrar. Compare com `ts-momentum` (23,8%/55,6%) e
+ações (28,3%/63,2%): pares vence os dois com folga.
+
+**O que isso NÃO é, e por que não digo "achei, funciona":**
+
+1. **Ainda é aposta, não certeza.** 44% de chance de perder os US$ 200 não é
+   "dá certo" — é "a melhor chance encontrada até agora entre as testadas".
+
+2. **Correlação entre pares não modelada.** O bootstrap trata cada trade como
+   sorteio independente, mas vários pares compartilham perna (HOT aparece em
+   FIL|HOT, KSM|HOT, 1INCH|HOT, ZEN|HOT). Um choque em HOT afeta os quatro ao
+   mesmo tempo — o risco real de portfólio é mais concentrado do que i.i.d.
+   assume. Não quantificado ainda.
+
+3. **Risco de liquidação intra-trade não modelado.** O bootstrap só vê o
+   resultado FINAL de cada trade, não se o preço andou contra a margem o
+   suficiente para liquidar antes da reversão. Com risco/op de 83-125% do
+   capital em margem, isso é uma exposição real que precisa de simulação
+   caminho-a-caminho antes de qualquer capital real.
+
+4. **Escorregamento assumido, não medido no livro.** Usa a mesma constante
+   conservadora de custos-reais.ts — os pares envolvem altcoins mais finas
+   que os pares de funding testados; medição no livro real (livro.ts) ainda
+   não foi feita para este universo.
+
+**Código:** `src/pairs/cointegracao.ts`, `src/pairs/backtest.ts`,
+`src/pairs/validado.ts`, `npm run pares`, `npm run desafio`.

@@ -53,7 +53,8 @@
     "meta": "node src/cli/meta.ts",
     "equity": "node src/cli/equity.ts",
     "desafio": "node src/cli/desafio.ts",
-    "momentum": "node src/cli/momentum.ts"
+    "momentum": "node src/cli/momentum.ts",
+    "pares": "node src/cli/pares.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
