@@ -1,52 +1,225 @@
-# Snowball
+# ❄️ Snowball
 
-Laboratório de pesquisa quantitativa que começou tentando replicar um bot de
-scalping de 5 minutos e terminou operando uma estratégia sem exposição a preço.
+> Laboratório de pesquisa quantitativa que começou tentando replicar um bot de
+> scalping do YouTube com 5.381% de retorno — e terminou descobrindo, com
+> disciplina e alguns erros caros, que a resposta certa era parar de prever
+> preço e passar a **cobrar** pela liquidez.
 
-**O que este projeto é:** uma máquina de medir se uma estratégia tem vantagem
-real, e um motor de renda delta-neutra que roda 24h.
-
-**O que ele não é:** promessa de retorno. Nenhum número aqui é previsão, e a
-maior parte do código existe para descobrir que algo *não* funciona antes de
-custar dinheiro.
-
----
-
-## Estado atual
-
-O projeto tem duas metades, e a segunda nasceu do fracasso da primeira.
-
-### Trilha 1 — trading direcional (validada, não operada)
-
-Seis estratégias, três modelos de machine learning, 1.145 candidatas mineradas,
-312 combinações testadas. O melhor resultado validado por walk-forward:
-**expectancy de 0,17R**, com **45,1% de semanas positivas**.
-
-Funciona no papel. Mas a semana típica dá prejuízo, e a pior sequência foi de
-8 semanas negativas seguidas — o que torna a estratégia incompatível com o
-objetivo declarado de renda semanal.
-
-### Trilha 2 — renda delta-neutra (em operação)
-
-Comprado e vendido no mesmo ativo, em exchanges diferentes. Exposição a preço
-**zero por construção**. A renda vem do funding — o pagamento contratual que as
-exchanges transferem dos comprados para os vendidos a cada 8 horas.
-
-Medição sobre 3.000 leituras reais, 180 dias: **100% das semanas positivas**
-(48 de 48).
-
-Documentação completa em [docs/DELTA-NEUTRO.md](docs/DELTA-NEUTRO.md).
-
-O alvo não é escolhido de uma lista fixa. Uma **vigilância contínua** varre
-3.492 pares em 5 exchanges a cada 5 minutos, guarda o ciclo de vida de cada
-oportunidade e ranqueia por qualidade sustentada — `spread médio × consistência²`
-— em vez de spread instantâneo. Ver [docs/VIGILANCIA.md](docs/VIGILANCIA.md).
+**TL;DR:** um motor que fica comprado e vendido no mesmo ativo em duas
+exchanges diferentes ao mesmo tempo. A exposição a preço é **zero por
+construção** — se o ativo sobe ou desce, as duas pernas se cancelam. A renda
+vem do *funding rate*, o pagamento contratual que os perpétuos transferem
+entre comprados e vendidos a cada 8 horas. Roda hoje em **paper trading**,
+24 horas por dia, sem nenhuma ordem real enviada a nenhuma exchange.
 
 ---
 
-## Como rodar
+## 🧠 O que este projeto é (e o que não é)
 
-Requer Node.js 22+ (usa o suporte nativo a TypeScript, sem etapa de build).
+| É | Não é |
+|---|---|
+| 🔬 Uma máquina de medir se uma estratégia tem vantagem real, antes de arriscar dinheiro | 💸 Uma promessa de retorno |
+| 📊 Um motor delta-neutro rodando 24h em paper trading | 🔮 Previsão de preço |
+| 📚 18+ documentos registrando **tudo que foi testado**, inclusive o que falhou | 🧹 Um repositório só com os resultados bonitos |
+| 🧪 Disciplina de descoberta/holdout cego em toda alegação de vantagem | ✨ Um backtest que promete 5.381% |
+
+O nome é literal: a ideia é começar pequeno (**US$ 100–200**) e deixar o
+capital **rolar feito uma bola de neve** — juros compostos sobre uma vantagem
+pequena, real e medida, em vez de uma vantagem grande, fictícia e não medida.
+
+---
+
+## ⚙️ Como funciona — a estratégia em produção
+
+```
+                          FUNDING RATE ARBITRAGE (cross-exchange)
+
+     Exchange A                                      Exchange B
+   ┌─────────────┐                                 ┌─────────────┐
+   │  VENDIDO     │◄──── mesmo ativo, mesmo -──────►│  COMPRADO    │
+   │  (funding    │      tamanho, preço se          │  (funding    │
+   │   alto)      │      cancela entre as duas       │   baixo)     │
+   └─────────────┘      pernas                      └─────────────┘
+          │                                                 │
+          └──────────────────► RENDA ◄───────────────────────┘
+                     funding pago a cada 8h,
+                     não é aposta — é contrato
+```
+
+Se o preço do ativo sobe 20%, a perna vendida perde e a comprada ganha quase
+a mesma coisa — **a direção do mercado deixa de importar.** O que sobra é a
+diferença de funding entre as duas exchanges, que é cobrada de quem está
+"do lado errado" da demanda por alavancagem.
+
+### A conta que decide tudo
+
+```
+custo de ida e volta = notional × taxa × 4      (2 pernas × abrir e fechar)
+receita por 8h        = notional × spread
+```
+
+O `notional` aparece nos dois lados e **se cancela** — o que decidiu o
+projeto inteiro foi essa única equação:
+
+> **Alavancagem e capital não decidem se uma posição vale a pena. Só taxa,
+> spread e tempo de vida decidem.**
+
+| APR do spread | tempo até empatar (taker) |
+|---|---|
+| 20% | 3,6 dias |
+| 35% | 2,1 dias |
+| 76% | 1,0 dia |
+
+Por isso existe um **portão de valor esperado**: o motor só monta uma posição
+se o spread já tiver *historicamente vivido* tempo suficiente para pagar o
+próprio custo de montagem — não se ele parece bom agora. Na maior parte do
+tempo, o log mostra isto, e é o resultado **correto**:
+
+```
+valor esperado barrou 12 candidatas · melhor: SSPC · vida 0.7h de 2.1h exigidas
+```
+
+---
+
+## 🏗️ O que o sistema faz — arquitetura de 5 processos
+
+Cinco processos independentes, cada um com seu próprio supervisor, que se
+falam **por arquivo em disco**, não por chamada direta — se um cai, os
+outros percebem pela idade do dado em vez de travar.
+
+```
+  🔭 VIGILÂNCIA   (5 min)   varre 3.492 pares em 5 exchanges,
+        │                    guarda o ciclo de vida de cada oportunidade
+        ▼
+  🧠 MOTOR        (5 min)   lê o ranking, aplica o portão de valor
+        │                    esperado, decide — NUNCA ENVIA ORDEM
+        ▼
+  📈 DASHBOARD     live      painel em localhost:8787, SSE em tempo real
+
+  🏥 CUSTÓDIA     (15 min)  saúde de cada exchange → o motor evacua
+                              sozinho se uma for sinalizada
+
+  🗄️ COLETOR      (5 min)   arquiva o histórico de longo prazo antes
+                              da poda de 7 dias apagar
+```
+
+Um **watchdog** (`scripts/supervisor.sh`) checa os 5 a cada 30 segundos e
+religa sozinho qualquer um que cair — com log da causa, distinção entre
+"caiu de verdade" e "eu apliquei uma atualização de código", e aviso opcional
+no Telegram.
+
+### O painel
+
+Terminal de observação em tempo real — vidro fosco, tudo animado com
+propósito, zero dependência externa (SVG + JS puro). Mostra:
+
+- 💰 capital, funding recebido, custos pagos — com números que sobem
+  contando em vez de trocar de repente
+- 📉 curva de capital e funding por dia, desenhados ao vivo
+- 💓 saúde dos 5 processos com pulso, e o log do watchdog
+- 📍 posições abertas com preço ao vivo por perna e gauge de distância até
+  liquidação
+- 🏦 saldo por exchange, exposição, concentração, dreno direcional
+- 🔍 ranking completo da varredura com o veredito do portão (passa/barra)
+- 🏥 saúde de cada exchange, coleta de longo prazo, prontidão de ML,
+  monitor de basis trade
+- 📜 linha do tempo de cada decisão do motor, com o motivo — nunca só o
+  resultado
+
+---
+
+## 📍 Estado atual
+
+**Paper trading, 24h.** Capital simulado de **US$ 100 por exchange**
+(binance + bybit, US$ 200 total). **Nenhuma ordem foi enviada a nenhuma
+exchange, em nenhum momento deste projeto** — é leitura de mercado e
+simulação, ponto final.
+
+O motor está corretamente **sem posição aberta** na maior parte do tempo: o
+portão de valor esperado é rigoroso de propósito, depois de um episódio em
+que a ausência dele custou US$ 2,30 reais (nunca mais que isso, e nunca de
+novo — ver [`docs/O-QUE-FALHOU.md`](docs/O-QUE-FALHOU.md)).
+
+A frente de pesquisa mais avançada — fora do que já está em produção — é um
+**portfólio misto de time-series momentum + pares cointegrados**, dois
+mecanismos com vantagem estatística confirmada em holdout cego, combinados
+porque a correlação entre eles é baixa o suficiente para reduzir risco de
+ruína sem apagar o retorno. Ainda em backtest, não em paper.
+
+### 🔬 Sete famílias de estratégia testadas, com a mesma disciplina
+
+Descoberta separada de holdout cego, parâmetros fixos sem reajuste,
+correção honesta sempre que um teste mais rigoroso derrubava um resultado
+bonito. Este é o placar:
+
+| Família | Melhor achado | Sobrevive a holdout? | Sobrevive a custo/risco real? |
+|---|---|---|---|
+| Arbitragem de funding (cross-exchange) | — | — | ✅ em produção (paper) |
+| Direcional cripto (múltiplos timeframes) | `body-breakout`, 4h | ⚠️ parcial | ❌ não a custo taker — confirmado por 2 motores independentes |
+| Direcional ações | `momentum-breakout`, 1h | ⚠️ parcial | — |
+| Time-series momentum (cripto, 1d) | +0,049R | ✅ p=0,008 | ⚠️ fraco isolado |
+| Pares cointegrados (cripto, 1d) | +0,014/trade | ✅ após 2 correções | ⚠️ só a baixa alavancagem |
+| **Momentum + pares (portfólio misto)** | ~9–12% chance de sucesso | ✅ | ⚠️ melhor resultado do projeto até agora |
+| Basis trade (spot+perp) | −0,249%/ciclo | — | ❌ estrutural, custo &gt; funding capturável |
+| Captura de liquidação | — | — | ❌ 0 operações no dado real |
+
+Nenhuma das sete dá chance alta de bater a meta original sem aporte — e
+essa é a conclusão honesta, não uma que soa bem. Números completos, com
+metodologia, em [`docs/RESULTADOS.md`](docs/RESULTADOS.md) (16 resultados
+documentados e contando).
+
+---
+
+## 🧪 O que separa este projeto de um backtest de YouTube
+
+1. ⏱️ **Sinal na barra `i` executa na abertura da barra `i+1`** — nunca
+   negocia dentro da barra que usou para decidir.
+2. 💸 **Taxa e slippage nos dois lados, sempre.** O preset `zero-cost` existe
+   só para mostrar quanto o custo importa.
+3. 🎯 **Stop e alvo tocados na mesma barra assumem o stop** — o único erro
+   otimista que de fato quebra conta real.
+4. 🛑 **Circuit breakers param o backtest** como parariam a conta de verdade.
+5. 🔒 **Walk-forward escolhe parâmetros usando só o passado** de cada bloco;
+   o holdout nunca é visto até a validação final.
+6. 📐 **Sharpe deflacionado** pelo número de combinações testadas.
+7. 🚫 **Nada que remova trades lucrativos entra em produção** sem virar
+   experimento documentado primeiro — regra permanente do usuário.
+8. 🔁 **Confirmação cross-engine.** A alegação mais recente (`body-breakout`
+   não sobrevive a custo taker) foi validada rodando o motor próprio *e*
+   uma implementação Pine Script independente no [trader.dev](https://trader.dev),
+   sob o mesmo custo — os dois bateram.
+
+E, registrado sem vaidade, a seção de bugs mais abaixo — porque código
+revisado e documentado não é código que funciona; só executar revela.
+
+---
+
+## 🛠️ Stack — o que usa, e onde
+
+| Camada | Ferramenta | Uso |
+|---|---|---|
+| **Runtime** | Node.js 24, TypeScript nativo (`strip-only`, zero build step) | todo o motor, sem `tsc`, sem bundler |
+| **Conectividade de exchange** | [ccxt](https://github.com/ccxt/ccxt) | preço, funding rate, saldo, ordens (não usadas) — 5+ exchanges |
+| **Exchanges monitoradas** | Binance, Bybit, OKX, Gate, Bitget, BingX | vigilância varre todas; motor opera hoje em Binance + Bybit |
+| **Persistência** | JSON + JSONL em disco | sem banco de dados — cada processo lê/escreve arquivo, robusto a queda |
+| **Painel** | HTML + CSS + SVG + JS puro, servido por `node:http` | sem framework, sem build, sem CDN — abre offline |
+| **Validação quantitativa** | Motor de backtest próprio (`src/backtest/`) | custos, slippage, funding, gaps, bootstrap por blocos de calendário |
+| **Machine learning** | GBDT implementado do zero + meta-labeling com purged CV | `src/ml/` — sem scikit-learn, sem PyTorch |
+| **Cruzamento externo** | [MCP](https://modelcontextprotocol.io) do trader.dev | backtest Pine Script independente, engine de paridade TradingView |
+| **Servidor MCP próprio** | `src/mcp/server.ts` | expõe o motor deste projeto como ferramenta MCP |
+| **Confiabilidade** | Watchdog em bash (`scripts/supervisor.sh`) | religa os 5 processos sozinho, notifica Telegram (opcional) |
+| **Notificação** | Telegram Bot API (opcional) | alerta de queda/religamento, sem dependência de terceiro no caminho crítico |
+
+Zero dependências além de `ccxt` e o SDK do MCP — de propósito, para que
+qualquer pessoa consiga ler o código-fonte sem instalar meio ecossistema
+primeiro.
+
+---
+
+## 🚀 Como rodar
+
+Requer **Node.js 22+** (usa suporte nativo a TypeScript — sem etapa de
+build).
 
 ```bash
 npm install
@@ -58,119 +231,133 @@ npm install
 run-tudo.cmd
 ```
 
-Sobe os quatro processos na ordem certa — vigilância, custódia, motor, dashboard
-— cada um com seu supervisor. A ordem importa: a vigilância precisa estar no ar
-antes do motor, senão o primeiro ciclo dele cai para a varredura estreita.
+Sobe vigilância → custódia → motor → dashboard → coletor, na ordem certa
+(a vigilância precisa estar de pé antes do motor, senão o primeiro ciclo
+cai para uma varredura mais estreita).
 
-### Ou separadamente
+### Com o watchdog (recomendado em produção)
+
+```bash
+bash scripts/supervisor.sh
+```
+
+Checa os 5 processos a cada 30s e religa sozinho o que cair.
+
+### Separadamente
 
 ```bash
 node src/cli/vigilancia.ts --equity 100 --intervalo 5   # varre o mercado inteiro
 npm run custodia                                        # saúde das exchanges
 npm run spread                                          # motor, US$ 100, 5x
 node src/dashboard/server.ts                            # painel em :8787
+node src/cli/coletor.ts --intervalo 5                    # arquivo de longo prazo
 ```
 
-Supervisionados com reinício automático: `run-vigilancia.cmd`,
-`run-custodia.cmd`, `run-spread.cmd`, `run-dashboard.cmd`.
+> ⚠️ **O motor pode ficar sem abrir posição — e isso é esperado.** Ele só
+> monta um par que já tenha vivido o suficiente para pagar o próprio custo.
+> Ver [`docs/QUANTO-RENDE.md#o-portão-de-valor-esperado`](docs/QUANTO-RENDE.md#o-portão-de-valor-esperado).
 
-> **O motor pode ficar sem abrir posição, e isso é o comportamento correto.**
-> Ele só monta um par que já tenha vivido o suficiente para pagar o próprio
-> custo de montagem. Quando o log diz `valor esperado barrou N candidatas`, o
-> mercado não está oferecendo nada que pague o atrito nesta escala de taxa. Ver
-> [QUANTO-RENDE.md](docs/QUANTO-RENDE.md#o-portão-de-valor-esperado).
-
-### Análise
+### Análise e testes
 
 ```bash
-npm test                    # 70 testes das travas de risco e seleção
-npm run quanto              # quanto rende, em português claro, por exchange
-npm run cenarios            # uma exchange × duas exchanges
-npm run semanas             # projeção semana a semana, com custo de rotação
-npm run ruina               # 20 mil simulações contra choques de preço
-npm run execucao            # maker × taker, com o risco de perna solta
-npm run custodia            # saúde das exchanges, uma verificação
-npm run spread:scan         # varredura de 10 exchanges × 32 ativos
-npm run spread:verificar    # liquidez real no livro
-npm run projecao            # projeção com aportes (superada por `semanas`)
+npm test                    # 246 testes das travas de risco e seleção
+npm run quanto               # quanto rende, por exchange
+npm run semanas              # projeção semana a semana, com custo de rotação
+npm run ruina                # 20 mil simulações contra choques de preço
+npm run execucao              # maker × taker, com o risco de perna solta
+npm run desafio                # bootstrap por blocos de calendário, risco de ruína
+npm run momentum · npm run pares   # as duas frentes de pesquisa mais avançadas
 ```
 
-### Trilha direcional
+### Trilha direcional (validada, não operada)
 
 ```bash
 npm run backtest -- --symbol "BTC/USDT:USDT" --timeframe 4h --compare-costs
-npm run validate            # walk-forward + Sharpe deflacionado + Monte Carlo
-npm run scan                # varredura de universo com custo-para-movimento
-npm run team                # a equipe de módulos decisórios
+npm run validate             # walk-forward + Sharpe deflacionado + Monte Carlo
+npm run scan                  # varredura de universo com custo-para-movimento
 ```
 
 ---
 
-## Documentação
+## 📁 Estrutura do projeto
+
+```
+src/
+├── funding/       motor de arbitragem de funding — o núcleo em produção
+├── pairs/         pares cointegrados (pesquisa)
+├── strategies/     as 5 estratégias direcionais originais + ts-momentum
+├── backtest/       motor de backtest, bootstrap, portfólio, métricas
+├── validate/        walk-forward, Sharpe deflacionado, Monte Carlo
+├── ml/               GBDT do zero, meta-labeling, purged CV
+├── risk/             capital mínimo viável, simulador da bola de neve
+├── live/             executor paper/testnet/live com kill switches
+├── dashboard/        painel em tempo real (server.ts + pagina.ts)
+├── mcp/               servidor MCP próprio
+├── data/              carregamento e cache de séries históricas
+├── core/              tipos, indicadores, volatilidade
+└── cli/               ~70 pontos de entrada, um por análise/operação
+scripts/
+└── supervisor.sh      watchdog dos 5 processos
+docs/                  18+ documentos — cada decisão, cada bug, cada número
+```
+
+---
+
+## 📚 Documentação completa
 
 | Documento | Conteúdo |
 |---|---|
-| [COMECE-AQUI.md](COMECE-AQUI.md) | resumo em uma página |
-| [CONTINUIDADE.md](CONTINUIDADE.md) | **handoff completo** — leia isto se está pegando o projeto agora |
-| [docs/DELTA-NEUTRO.md](docs/DELTA-NEUTRO.md) | a estratégia em operação hoje |
-| [docs/VIGILANCIA.md](docs/VIGILANCIA.md) | como o mercado inteiro é varrido e ranqueado |
-| [docs/QUANTO-RENDE.md](docs/QUANTO-RENDE.md) | projeção semana a semana, com o custo de rotação |
-| [docs/PROTECAO-RUINA.md](docs/PROTECAO-RUINA.md) | trava de liquidação, piso de capital e teste de ruína |
-| [docs/EXECUCAO-REAL.md](docs/EXECUCAO-REAL.md) | **o que foi verificado nas exchanges e o que ainda é suposição** |
-| [docs/CRONOLOGIA.md](docs/CRONOLOGIA.md) | diário do projeto, fase a fase |
-| [docs/O-QUE-FALHOU.md](docs/O-QUE-FALHOU.md) | o que foi testado e descartado |
-| [docs/RESULTADOS.md](docs/RESULTADOS.md) | todos os números medidos |
-| [docs/ESTRATEGIAS.md](docs/ESTRATEGIAS.md) | as 5 estratégias do vídeo original |
-| [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | cada módulo e as decisões não óbvias |
-| [docs/ARQUITETURA-DECISORIA.md](docs/ARQUITETURA-DECISORIA.md) | o desenho em módulos decisórios |
-| [docs/MCP.md](docs/MCP.md) | integração com trader.dev |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | o que falta, priorizado |
-| [docs/PEDIDOS.md](docs/PEDIDOS.md) | rastreamento de tudo que foi pedido |
+| [`CONTINUIDADE.md`](CONTINUIDADE.md) | **handoff completo** — leia isto primeiro se está pegando o projeto agora |
+| [`COMECE-AQUI.md`](COMECE-AQUI.md) | resumo em uma página do estado mais recente |
+| [`docs/DELTA-NEUTRO.md`](docs/DELTA-NEUTRO.md) | por que a estratégia em produção é essa |
+| [`docs/VIGILANCIA.md`](docs/VIGILANCIA.md) | como o mercado inteiro é varrido e ranqueado |
+| [`docs/QUANTO-RENDE.md`](docs/QUANTO-RENDE.md) | a conta de payback e as projeções |
+| [`docs/PROTECAO-RUINA.md`](docs/PROTECAO-RUINA.md) | travas de risco e teste de ruína |
+| [`docs/EXECUCAO-REAL.md`](docs/EXECUCAO-REAL.md) | o que foi verificado nas exchanges vs. suposição |
+| [`docs/RESULTADOS.md`](docs/RESULTADOS.md) | **todos os números medidos**, 16 resultados documentados |
+| [`docs/O-QUE-FALHOU.md`](docs/O-QUE-FALHOU.md) | o que foi testado e descartado, e por quê |
+| [`docs/ESTRATEGIAS.md`](docs/ESTRATEGIAS.md) | as 5 estratégias direcionais originais |
+| [`docs/CRONOLOGIA.md`](docs/CRONOLOGIA.md) | diário do projeto, fase a fase |
+| [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | cada módulo e as decisões não óbvias |
+| [`docs/MCP.md`](docs/MCP.md) | integração com o trader.dev |
+| [`docs/BACKLOG.md`](docs/BACKLOG.md) | o que falta, priorizado, com critério de "pronto" |
+| [`docs/PEDIDOS.md`](docs/PEDIDOS.md) | rastreamento de tudo que foi pedido pelo usuário |
 
 ---
 
-## As regras que impedem o autoengano
+## 🐛 Sete bugs que só apareceram executando
 
-O que separa este backtester dos que produzem 5381%:
+Registrados porque o padrão importa mais que os casos individuais:
 
-1. **Sinal na barra `i` executa na abertura de `i+1`.** A estratégia nunca
-   negocia dentro da barra que usou para decidir.
-2. **Taxa e slippage nos dois lados, sempre.** O preset `zero-cost` existe só
-   para demonstrar quanto o custo importa.
-3. **Stop e alvo tocados na mesma barra assumem o stop.** Sem dados de tick não
-   dá para saber a ordem, e o erro otimista aqui é o único que quebra conta.
-4. **Circuit breakers param o backtest** como parariam a conta real.
-5. **O walk-forward escolhe parâmetros usando só o passado** de cada bloco.
-6. **O Sharpe é deflacionado pelo número de combinações testadas.**
-7. **Nada que remova trades lucrativos entra em produção**, por mais que
-   melhore o agregado.
+1. **3 de 5 estratégias implementadas erradas** — a transcrição do vídeo
+   divergia das regras mostradas na tela.
+2. **Afirmação falsa sobre comissão do trader.dev**, repetida em 3
+   documentos antes de ser checada contra a spec real.
+3. **Portão de AUC invertido** — estratégias com poucos trades escapavam do
+   teste por não serem examinadas, não por serem boas.
+4. **Teste de portfólio medindo rotação, não diversificação** —
+   `maxConcurrent: 1` fazia o "portfólio" nunca abrir 2 posições, e os
+   números pareciam plausíveis mesmo assim.
+5. **Executor documentado como pronto que nunca havia rodado** — sintaxe
+   incompatível com o modo `strip-only` do Node.
+6. **Marcos de semana fixos quebrando em horizontes menores.**
+7. **Vazamento de memória** — 28.133 mercados carregados para operar 32
+   ativos.
+8. *(bônus, desta sessão)* **Watchdog com falso positivo em cascata** — Git
+   Bash reescreve `/` para `\` ao invocar `node.exe`, e o padrão de busca
+   original nunca casava, religando os 5 processos por cima dos que já
+   estavam vivos a cada 30 segundos.
 
----
-
-## Sete bugs que só apareceram executando
-
-Registrados porque o padrão importa mais que os casos:
-
-1. Três das cinco estratégias implementadas erradas — a transcrição do vídeo
-   divergia das regras na tela.
-2. Afirmação falsa sobre a comissão do trader.dev, repetida em 3 documentos.
-3. Portão de AUC invertendo decisões: estratégias com poucos trades escapavam
-   do teste e passavam por não serem examinadas.
-4. Teste de portfólio medindo rotação: `maxConcurrent: 1` fazia o "portfólio"
-   nunca abrir 2 posições, e os números pareciam plausíveis.
-5. Executor documentado como pronto que nunca havia rodado — sintaxe não
-   suportada pelo modo strip-only do Node.
-6. Marcos de semana fixos (26, 52) quebrando em horizontes menores.
-7. Vazamento de memória: 28.133 mercados carregados para operar 32 ativos.
-
-Código escrito, revisado e documentado não é código que funciona. Só executar
-revela.
+Código escrito, revisado e documentado não é código que funciona. Só
+executar revela.
 
 ---
 
-## Aviso
+## ⚠️ Aviso
 
-Este software não dá recomendação de investimento. Backtest não é previsão.
-Operar alavancado em perpétuos pode custar mais do que o depósito inicial. O
-motor delta-neutro **não envia ordens** — ele lê as exchanges e simula. A
-decisão de arriscar dinheiro é sua.
+Este software **não é recomendação de investimento**. Backtest não é
+previsão. Operar alavancado em contratos perpétuos pode custar mais do que o
+depósito inicial. O motor delta-neutro **não envia ordens** — ele lê as
+exchanges e simula. Nada aqui vai para dinheiro real sem 90 dias de paper
+trading, por regra permanente deste projeto. A decisão de arriscar dinheiro
+é sua.
