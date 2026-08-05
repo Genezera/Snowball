@@ -141,8 +141,14 @@ export async function lerUniverso(opts: {
       // que aconteceu com a bybit, que sumiu da varredura por 10,8s de espera.
       // O funding é obrigatório; o ticker é complemento e não pode derrubar.
       const taxas = await e.fetchFundingRates();
+      // `{ type: 'swap' }` NÃO é detalhe — sem ele, okx, gate, bitget e bingx
+      // devolvem tickers do mercado À VISTA, e nenhum deles casa com o símbolo
+      // de perpétuo (`.../USDT:USDT`). O volume dessas quatro exchanges ficava
+      // zerado, o filtro de liquidez descartava todo par que as envolvesse, e
+      // o sistema inteiro rodava só em binanceusdm↔bybit sem nunca dizer isso.
+      // Medido em 05/08/2026: 0 perpétuos casados antes, 421/878/743/801 depois.
       const tickers = await Promise.race([
-        e.fetchTickers().catch(() => ({})),
+        e.fetchTickers(undefined, { type: 'swap' }).catch(() => ({})),
         new Promise((r) => setTimeout(() => r({}), 8000)),
       ]) as Record<string, any>;
       let n = 0;
