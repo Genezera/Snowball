@@ -597,3 +597,64 @@ completa, ano a ano, liquidação), não mais uma variação sem efeito.
 **Código:** `src/strategies/index.ts` (`tsMomentum`, parâmetro `useTrail`
 opcional, desligado por padrão), `src/validate/grids.ts`,
 `src/data/momentum-universe.ts` (`PARAMS_VALIDADOS` atualizado).
+
+---
+
+## Resultado 11 — Risco adaptativo: a mesma vantagem, alocada melhor
+
+O Resultado 10 melhorou o MECANISMO da estratégia (o take profit). Este
+melhora a GESTÃO DE CAPITAL em cima do mesmo mecanismo — sem mudar a
+estratégia, sem novo dado, só decidindo melhor QUANTO arriscar em cada
+operação.
+
+**O problema com fração fixa.** A tabela de risco (1% a 30%) testa um
+número CONSTANTE em toda a trajetória. Isso trata "1200 operações pela
+frente, capital baixo" e "poucas operações restantes, ainda longe da meta"
+como a mesma situação — e não são.
+
+**A solução: política resolvida por programação dinâmica.** Em vez de um
+número fixo, `resolverPoliticaOtima` (`src/backtest/dp-risco.ts`) acha, por
+indução reversa sobre uma grade de (capital × tempo restante), a fração de
+risco que maximiza a chance de chegar à meta em CADA combinação possível.
+A distribuição usada na indução é um histograma quantílico dos R-múltiplos
+reais (250 baldes — poucos baldes achatam a cauda direita gorda e o
+resultado fica artificialmente pior que a fração fixa, o que foi de fato o
+que aconteceu na primeira tentativa com 40 baldes; com resolução fina o
+resultado se inverte e passa a bater a fração fixa).
+
+**Validação com holdout** (a mesma disciplina de sempre — a política nunca
+pode ver os dados em que é avaliada): resolvida só com os 3427 trades da
+DESCOBERTA, avaliada só com os 3394 trades do HOLDOUT, 5 sementes:
+
+| | fração fixa (5%, melhor) | política adaptativa |
+|---|---|---|
+| chance de sucesso | 43,0–43,5% | **51,5–52,6%** |
+| chance de quebra | 43,6–44,5% | **42,1–42,9%** |
+
+Melhora nos DOIS eixos ao mesmo tempo — mais sucesso E menos ruína. Isso é
+o sinal mais forte possível de que o ganho é real: se fosse a DP se
+ajustando a ruído do próprio conjunto de treino, o holdout teria mostrado
+regressão em pelo menos um dos dois.
+
+**Número final, com o pool completo (todos os 6821 trades, mesmo padrão
+que o resto deste arquivo usa para os números "de produção"):**
+
+| | fração fixa (5%, melhor) | **política adaptativa** |
+|---|---|---|
+| chance de chegar à meta | 31,0% | **37,2–37,6%** |
+| chance de quebrar | 54,8% | 54,9–55,4% (igual, dentro do ruído) |
+| ainda tentando ao fim do horizonte | 14,2% | 7,6% |
+
+**O formato da política:** arriscar pouco (2%) na maior parte da
+trajetória — deixa a expectância positiva compor com menos variância
+desperdiçada — e só aumentar o risco (até ~8%) perto do fim do horizonte,
+SE ainda não tiver chegado à meta. Faz sentido: com muito tempo de sobra, a
+composição lenta já é suficiente; é só quando o relógio aperta que vale a
+pena trocar segurança por velocidade.
+
+**Reproduzir:** `npm run desafio` (seção "RISCO ADAPTATIVO", logo após a
+tabela de fração fixa do cenário ts-momentum).
+
+**Código:** `src/backtest/dp-risco.ts` (`resolverPoliticaOtima`,
+`simularComPolitica`, `riscoNaPolitica`), testado em
+`src/backtest/dp-risco.test.ts`, integrado em `src/cli/desafio.ts`.

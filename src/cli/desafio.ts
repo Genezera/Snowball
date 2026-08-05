@@ -32,6 +32,7 @@ import { buildStrategy } from '../strategies/index.ts';
 import { runBacktest } from '../backtest/engine.ts';
 import { makeConfig } from '../config.ts';
 import { paraRMultiplos, simularBootstrap } from '../backtest/bootstrap.ts';
+import { resolverPoliticaOtima, simularComPolitica, riscoNaPolitica } from '../backtest/dp-risco.ts';
 import { UNIVERSO_MOMENTUM, PARAMS_VALIDADOS, MAX_BARS_VALIDADO } from '../data/momentum-universe.ts';
 import { poolComExcursoes } from '../pairs/validado.ts';
 import { distanciaLiquidacaoPorPerna } from '../pairs/liquidacao.ts';
@@ -102,6 +103,51 @@ const linhasMomentum = RISCOS.map((risco) => ({
   }),
 }));
 imprimirTabela(linhasMomentum);
+
+// ── risco ADAPTATIVO (função de capital e tempo restante, não fixo) ───────
+//
+// A tabela acima usa fração de risco CONSTANTE em toda a trajetória. Isso
+// não é ótimo: quem tem 1200 operações pela frente e capital baixo não está
+// na mesma situação que quem tem poucas operações restantes e ainda não
+// chegou perto da meta. `resolverPoliticaOtima` acha, por programação
+// dinâmica sobre um histograma quantílico dos R-múltiplos reais, a fração
+// de risco que maximiza a chance de sucesso em CADA combinação de capital
+// e tempo restante. Validado com holdout (política resolvida só com a
+// DESCOBERTA, avaliada só com o HOLDOUT): bate a melhor fração fixa nos dois
+// eixos ao mesmo tempo — mais sucesso E menos ruína — não é reamostragem
+// favorável, ver docs/RESULTADOS.md item 11.
+console.log('─'.repeat(100));
+console.log('RISCO ADAPTATIVO (ts-momentum, política resolvida por DP em vez de fração fixa)\n');
+console.log('resolvendo a política ótima (poucos segundos)...');
+const TOTAL_OPS = Math.round(OPS_POR_MES * HORIZONTE_MESES);
+const politicaOtima = resolverPoliticaOtima({
+  rMultiplos, capitalInicial: CAPITAL, alvo: ALVO, pisoRuina: PISO_RUINA, totalOps: TOTAL_OPS,
+});
+const resultadoAdaptativo = simularComPolitica({
+  politica: politicaOtima, rMultiplos, capitalInicial: CAPITAL, alvo: ALVO, pisoRuina: PISO_RUINA,
+  opsPorMes: OPS_POR_MES, horizonteMeses: HORIZONTE_MESES, caminhos: CAMINHOS,
+});
+const melhorFixo = linhasMomentum.reduce((m, l) => (l.s.pSucesso > m.s.pSucesso ? l : m));
+console.log(
+  'política'.padEnd(11) + 'chega na meta'.padEnd(16) + 'QUEBRA'.padEnd(11) +
+  'ainda tentando'.padEnd(17) + 'tempo mediano'.padEnd(16) + 'capital mediano',
+);
+console.log('-'.repeat(100));
+console.log(
+  `fixa ${(melhorFixo.risco * 100).toFixed(0)}%`.padEnd(11) +
+  ((melhorFixo.s.pSucesso * 100).toFixed(1) + '%').padEnd(16) +
+  ((melhorFixo.s.pRuina * 100).toFixed(1) + '%').padEnd(11) +
+  ((melhorFixo.s.pArrastando * 100).toFixed(1) + '%').padEnd(17) +
+  fmtTempo(melhorFixo.s.mesesMediano).padEnd(16) + 'US$ ' + melhorFixo.s.capitalMediano.toFixed(0),
+);
+console.log(
+  'adaptativa'.padEnd(11) +
+  ((resultadoAdaptativo.pSucesso * 100).toFixed(1) + '%').padEnd(16) +
+  ((resultadoAdaptativo.pRuina * 100).toFixed(1) + '%').padEnd(11) +
+  ((resultadoAdaptativo.pArrastando * 100).toFixed(1) + '%').padEnd(17) +
+  fmtTempo(resultadoAdaptativo.mesesMediano).padEnd(16) + 'US$ ' + resultadoAdaptativo.capitalMediano.toFixed(0),
+);
+console.log(`\n  no início (US$ ${CAPITAL}, horizonte cheio): risco recomendado ${(riscoNaPolitica(politicaOtima, CAPITAL, 0) * 100).toFixed(0)}% por operação\n`);
 
 // ── cenário 2: pares cointegrados, BOOTSTRAP + risco de liquidação por perna ──
 //
