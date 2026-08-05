@@ -83,6 +83,45 @@ test('nunca abre duas posições simultâneas no mesmo par', () => {
   }
 });
 
+test('stop de divergência sai antes do timeout quando o spread piora na mesma direção', () => {
+  // valores pequenos e verificados à mão: base plana, depois diverge em
+  // degraus crescentes na MESMA direção, sem nunca reverter — o caso que o
+  // stop existe para cortar cedo
+  const n = 60;
+  const residuo: number[] = [];
+  for (let i = 0; i < 20; i++) residuo.push(0);
+  for (let i = 20; i < n; i++) residuo.push(0.10 + (i - 20) * 0.02); // diverge sem nunca parar
+  const barsA: Bar[] = residuo.map((v, i) => barra(Math.exp(v), i));
+  const barsB: Bar[] = residuo.map((_v, i) => barra(1, i));
+
+  const p = { zEntrada: 1.0, zSaida: 0.3, maxBarras: 30, janelaZ: 10, taxaTaker: 0, slippage: 0 };
+  const semStop = backtestPar(barsA, barsB, 1, 0, { ...p, zStop: Infinity });
+  const comStop = backtestPar(barsA, barsB, 1, 0, { ...p, zStop: 2.0 });
+  assert.ok(semStop.length >= 1 && comStop.length >= 1);
+  assert.equal(comStop[0].motivo, 'stop-divergencia');
+  assert.ok(comStop[0].saidaIdx < semStop[0].saidaIdx, 'com stop, sai mais cedo');
+  assert.ok(comStop[0].retorno > semStop[0].retorno, 'sair mais cedo limita a perda');
+});
+
+test('regressão: posição não fica presa para sempre se o resíduo travar num platô', () => {
+  // bug real: quando a janela rolante fica com variância zero (resíduo
+  // constante), o loop original pulava a barra INTEIRA — inclusive a
+  // checagem de fim-de-dado — e uma posição aberta nunca gerava trade de
+  // saída, sumindo silenciosamente da lista.
+  const n = 60;
+  const residuo: number[] = [];
+  for (let i = 0; i < 20; i++) residuo.push(0);
+  residuo.push(0.10); residuo.push(0.20); residuo.push(0.30);
+  for (let i = 23; i < n; i++) residuo.push(0.30); // trava exatamente aqui
+  const barsA: Bar[] = residuo.map((v, i) => barra(Math.exp(v), i));
+  const barsB: Bar[] = residuo.map((_v, i) => barra(1, i));
+  const trades = backtestPar(barsA, barsB, 1, 0, {
+    zEntrada: 1.0, zSaida: 0.3, maxBarras: 30, janelaZ: 10, taxaTaker: 0, slippage: 0, zStop: Infinity,
+  });
+  assert.ok(trades.length >= 1, 'a posição precisa gerar um trade de saída, mesmo com o resíduo travado');
+  assert.equal(trades[0].motivo, 'timeout', 'sem reversão nem stop, só o tempo pode fechar');
+});
+
 test('direção é sempre coerente com o sinal do z na entrada', () => {
   const { barsA, barsB } = seriesComResiduo(300, 0.5, 0.03, 3);
   const trades = backtestPar(barsA, barsB, 1, 0, { ...PARAMETROS_PADRAO, janelaZ: 20 });

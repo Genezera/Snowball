@@ -280,81 +280,152 @@ custos (McLean & Pontiff 2016, Chen & Zimmermann 2020).
 
 ---
 
-## Resultado 7 — Pares cointegrados: o achado mais robusto da sessão
+## Resultado 7 — Pares cointegrados: a investigação mais longa da sessão, e a que fechou todas as lacunas próprias
 
-**Mecanismo genuinamente novo.** Tudo até aqui apostava em DIREÇÃO — um
-ativo sobe ou desce, e o lucro vem de acertar qual. Pares cointegrados
-apostam em RELAÇÃO: dois ativos correlacionados se afastam um do outro
-temporariamente, e o lucro vem de apostar que a distância volta ao normal —
-comprando o barato, vendendo o caro. Market-neutral: se os dois caem juntos
-20%, a posição não perde nada. Fonte de retorno estruturalmente
-descorrelacionada de momentum ou rompimento (Gatev, Goetzmann, Rouwenhorst
-2006, "Pairs Trading").
+Mecanismo genuinamente novo em relação a tudo o mais neste documento — os
+outros seis apostam em DIREÇÃO (um ativo sobe ou desce). Pares cointegrados
+apostam em RELAÇÃO: dois ativos correlacionados se afastam, e o lucro vem de
+apostar que voltam a se alinhar. Market-neutral: se os dois caem juntos 20%,
+a posição não perde nada (Gatev, Goetzmann, Rouwenhorst 2006, "Pairs
+Trading").
 
-**Metodologia**: hedge ratio por OLS em log-preço, meia-vida de reversão via
-AR(1) no resíduo (substituto defensável de Engle-Granger, mais fraco mas
-honesto sobre ser mais fraco). Formação (metade inicial de cada janela)
-decide quais pares operar e calibra hedge ratio; operação (metade final)
-roda o backtest — dupla proteção contra lookahead, além da separação
-descoberta/holdout de dataset inteiro.
+Esta seção documenta as QUATRO rodadas de correção, porque a lição
+metodológica importa tanto quanto o número final — cada rodada parecia
+"pronta" até a próxima pergunta honesta derrubar ou salvar o resultado.
+
+### Rodada 1 — top-20 por meia-vida, sem restrição
+
+descoberta +0,0073 · holdout +0,0131 (678 trades, win 70,6%). Holdout maior
+que descoberta — parecia o achado mais forte da sessão.
+
+**Pergunta que derrubou:** os pares compartilhavam perna? HOT aparecia em
+FIL|HOT, KSM|HOT, 1INCH|HOT, ZEN|HOT simultaneamente — um choque nele afeta
+os quatro ao mesmo tempo, e o bootstrap (que reamostra trades como sorteios
+independentes) não via isso.
+
+### Rodada 2 — sem sobreposição de perna (`selecionarSemSobreposicao`)
+
+Corrigido: cada ativo entra em no máximo um par. Resultado: descoberta caiu
+para expectancy **NEGATIVA** (-0,0022, 390 trades, win 63,6%). A rodada 1
+estava inflada por apostas correlacionadas, não por vantagem real.
+
+**Pergunta que salvou:** por quê? Decompondo por motivo de saída: trades que
+revertem têm média +3,6%; trades que estouram o TIMEOUT têm média -10,6%
+(o pior, -116%). Os piores pares (ZEC|ZIL, BNB|CRV, ADA|NEO) tinham
+meia-vida de 25-39 dias contra um `maxBarras` de 15 — óbvio que estouravam o
+prazo antes de reverter.
+
+### Rodada 3 — filtro ex-ante de meia-vida (`meiaVidaBarras <= 20`)
+
+Um par cuja própria calibração diz que reverte mais devagar que o prazo de
+saída não deveria nem ser candidato — critério calculado na formação, não
+escolhido olhando o resultado (testei também um stop de divergência por
+z-score; piorava o resultado, porque corta trades que reverteriam de
+verdade mais do que protege dos raros que não revertem — descartado).
 
 | conjunto | trades | expectancy | win rate |
 |---|---|---|---|
-| descoberta (30 ativos) | 664 | +0,0073 | 66,9% |
-| **holdout cego (27 ativos)** | **678** | **+0,0131** | **70,6%** |
+| descoberta (30 ativos) | 207 | +0,0148 | 69,6% |
+| **holdout cego (27 ativos)** | **280** | **+0,0136** | **68,9%** |
 
-O holdout não caiu — **subiu**. Mesmo padrão que `ts-momentum` (item 6),
-oposto ao falso positivo do `body-breakout`.
+Robusto em 3 dos 4 cortes formação/operação (50/60/70% positivos; 40% fica
+levemente negativo, -0,0018 — sinal de que o método precisa de alguns meses
+de formação antes de funcionar bem). Escorregamento medido ao vivo no livro
+para os 8 pares do holdout: pior caso 0,0205%, a constante assumida no
+backtest (0,03%) já cobria com folga. Correlação de mercado residual
+checada: só 11% das semanas com 2+ trades simultâneos tiveram maioria
+perdendo — a ausência de perna repetida já resolve a maior parte da
+correlação entre pares.
 
-**Robustez ao ponto de corte** (formação/operação em 40/50/60/70%): positivo
-nos quatro, CRESCENTE com mais dado de formação (0,0026 → 0,0073 → 0,0123 →
-0,0135) — não é artefato de onde o split caiu.
+### Rodada 4 — risco de liquidação por perna (a que decidiu tudo)
 
-**Concentração**: 20 pares ativos simultaneamente monitorados, os 3 mais
-negociados somam 17,4% do total — não é um único par carregando o
-resultado.
+O `retorno` do backtest assume que a posição sempre chega ao desfecho
+natural. Não checa se, no CAMINHO até lá, uma perna se moveu contra a
+margem o bastante para ser liquidada primeiro. Medido nos 487 trades reais:
+os piores movimentos adversos intra-trade vão de **100% a 252%** do preço
+de entrada — pequenas altcoins com choques de listagem/liquidez que o
+z-score do SPREAD não vê, porque olha a diferença entre as pernas, não o
+nível absoluto de cada uma.
 
-**Concorrência real**: quantos dos 20 pares ficam abertos ao mesmo tempo
-varia de 0 a 17 dias, MÉDIA 6,6 — não é constante, e isso decide quanto
-capital cada um consome.
+A distância até liquidação de uma perna é `1/alavancagem − mmr` —
+**independente de quantos pares dividem o capital** (margem e notional
+escalam juntos por 1/N; a razão entre eles, que decide liquidação, cancela
+N). Uma versão anterior desta análise multiplicava `(1/N/2) × alavancagem`
+e chamava o resultado de "distância até liquidação" — esse número é na
+verdade NOTIONAL como fração do capital, o inverso do que o nome dizia.
+Corrigido em `src/pairs/liquidacao.ts`, com teste de regressão.
 
-**Bootstrap dos 1.342 trades reais contra a meta de viagem** (`npm run
-desafio`), com risco/operação = alavancagem(5x) / pares simultâneos:
+| alavancagem | distância liquidação | % dos trades que liquidaria | expectancy corrigida |
+|---|---|---|---|
+| 1x | 99,0% | 2,1% | **+0,0018** |
+| 1,5x | 65,7% | 4,1% | -0,0014 |
+| 2x | 49,0% | 6,8% | -0,0069 |
+| 3x | 32,3% | 14,0% | -0,0192 |
+| **5x** (o padrão do resto do projeto) | 19,0% | **38,6%** | **-0,0522** |
 
-| pares simult. | risco/op | chega na meta | QUEBRA | tempo mediano |
-|---|---|---|---|---|
-| 4 | 125% | 29,4% | 70,5% | 8 meses |
-| **6** | **83%** | **44,9%** | **54,8%** | **12 meses** |
-| **7** (concorrência real) | **71%** | **55,2%** | **43,9%** | **14 meses** |
-| 8 | 63% | 64,2% | 34,3% | 15 meses |
-| 15 (raro — só 4,2% dos dias) | 33% | 95,2% | 3,9% | 17 meses |
+A 5x — a alavancagem que o resto deste projeto usa para BTC/ETH, ativos bem
+mais líquidos — 38,6% dos trades liquidariam, e cada liquidação custa a
+margem inteira daquela perna. Isso sozinho apaga a vantagem inteira: a
+expectancy corrigida fica negativa em TODA alavancagem testada acima de 1x.
 
-**É o melhor resultado de risco/retorno já medido neste projeto** — na
-concorrência real observada (~7 pares), ~55% de chance de chegar à meta em
-~14 meses contra ~44% de quebrar. Compare com `ts-momentum` (23,8%/55,6%) e
-ações (28,3%/63,2%): pares vence os dois com folga.
+**Só em 1x a expectancy corrigida continua positiva, e é quase nula
+(+0,18% por trade)** — muito menos que os +1,4% que a versão sem risco de
+liquidação sugeria.
 
-**O que isso NÃO é, e por que não digo "achei, funciona":**
+Bootstrap final, em 1x (`npm run desafio`):
 
-1. **Ainda é aposta, não certeza.** 44% de chance de perder os US$ 200 não é
-   "dá certo" — é "a melhor chance encontrada até agora entre as testadas".
+| pares simult. | chega na meta | QUEBRA | tempo mediano |
+|---|---|---|---|
+| 4 | 2,6% | 34,3% | 3,9 anos |
+| 6 | 1,1% | 17,9% | 4,2 anos |
+| 8 | 0,4% | 9,4% | 4,2 anos |
+| 10 | 0,2% | 4,9% | 4,4 anos |
 
-2. **Correlação entre pares não modelada.** O bootstrap trata cada trade como
-   sorteio independente, mas vários pares compartilham perna (HOT aparece em
-   FIL|HOT, KSM|HOT, 1INCH|HOT, ZEN|HOT). Um choque em HOT afeta os quatro ao
-   mesmo tempo — o risco real de portfólio é mais concentrado do que i.i.d.
-   assume. Não quantificado ainda.
+Note o padrão invertido em relação às rodadas anteriores: mais diluição
+(mais pares, risco menor por um) reduz tanto a chance de chegar quanto a de
+quebrar — porque a 1x a vantagem é fraca demais para compor rápido, e a
+única coisa que resta fazer é não perder. Não existe combinação de N nesta
+tabela com chance de sucesso relevante dentro de 5 anos.
 
-3. **Risco de liquidação intra-trade não modelado.** O bootstrap só vê o
-   resultado FINAL de cada trade, não se o preço andou contra a margem o
-   suficiente para liquidar antes da reversão. Com risco/op de 83-125% do
-   capital em margem, isso é uma exposição real que precisa de simulação
-   caminho-a-caminho antes de qualquer capital real.
+### O veredito final sobre pares cointegrados
 
-4. **Escorregamento assumido, não medido no livro.** Usa a mesma constante
-   conservadora de custos-reais.ts — os pares envolvem altcoins mais finas
-   que os pares de funding testados; medição no livro real (livro.ts) ainda
-   não foi feita para este universo.
+**Não passa.** A vantagem estatística é real (holdout confirma, robusta a
+correlação de perna e de mercado, escorregamento verificado ao vivo) — mas
+só existe numa alavancagem baixa demais para ser útil. Nas alavancagens que
+tornariam o crescimento relevante (2x+), o risco de liquidação de altcoins
+pequenas (movimentos de 100-252% observados) mais que compensa a vantagem.
+
+Isto foi encontrado através de quatro rodadas de correção, cada uma
+motivada por uma pergunta cética sobre a rodada anterior — não por desistir
+na primeira dificuldade, nem por parar no primeiro resultado bonito.
 
 **Código:** `src/pairs/cointegracao.ts`, `src/pairs/backtest.ts`,
-`src/pairs/validado.ts`, `npm run pares`, `npm run desafio`.
+`src/pairs/portfolio.ts`, `src/pairs/liquidacao.ts`, `src/pairs/validado.ts`,
+`npm run pares`, `npm run desafio`.
+
+---
+
+## O veredito final da sessão
+
+Sete classes de estratégia testadas, cada uma com a mesma disciplina
+(descoberta separada de holdout cego, parâmetros fixos sem reajuste,
+correção honesta quando um teste mais rigoroso derrubava um resultado
+bonito):
+
+| estratégia | melhor achado | sobrevive a holdout? | sobrevive a custo/risco real? |
+|---|---|---|---|
+| arbitragem de funding (cross-exchange) | — | — | 0 de 341 ciclos passariam |
+| captura de liquidação | — | — | 0 operações no backtest |
+| direcional cripto (múltiplos timeframes) | body-breakout, 4h | não (3 de 11 ativos) | — |
+| direcional ações | momentum-breakout, 1h | não (3 de 20 ativos) | — |
+| time-series momentum (cripto, 1d) | +0,049R | **sim** (38/57, p=0,008) | fraco: 23,8% sucesso / 55,6% quebra |
+| pares cointegrados (cripto, 1d) | +0,014/trade | **sim** (após 2 correções) | não (só positivo a 1x, quase nulo) |
+
+Nenhuma das sete produz um caminho com chance de sucesso alta partindo de
+US$ 200 sem aporte. As duas que sobreviveram a teste cego (`ts-momentum` e
+pares) têm vantagem estatística REAL — mas pequena demais, ou incompatível
+com a alavancagem necessária para crescer rápido, para tornar a meta
+provável dentro de um horizonte razoável. Isto é consistente com a
+literatura acadêmica: anomalias de mercado sobrevivem estatisticamente após
+publicação, mas perdem força prática depois de custos de transação e
+restrições de execução (McLean & Pontiff 2016, Chen & Zimmermann 2020).

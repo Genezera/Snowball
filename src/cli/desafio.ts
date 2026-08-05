@@ -33,7 +33,8 @@ import { runBacktest } from '../backtest/engine.ts';
 import { makeConfig } from '../config.ts';
 import { paraRMultiplos, simularBootstrap } from '../backtest/bootstrap.ts';
 import { UNIVERSO_MOMENTUM, PARAMS_VALIDADOS, MAX_BARS_VALIDADO } from '../data/momentum-universe.ts';
-import { poolCompletoDePares, PARES_SIMULTANEOS_MEDIO } from '../pairs/validado.ts';
+import { poolComExcursoes } from '../pairs/validado.ts';
+import { distanciaLiquidacaoPorPerna } from '../pairs/liquidacao.ts';
 import { parseArgs, num } from './args.ts';
 
 const a = parseArgs();
@@ -102,51 +103,73 @@ const linhasMomentum = RISCOS.map((risco) => ({
 }));
 imprimirTabela(linhasMomentum);
 
-// ── cenário 2: pares cointegrados, BOOTSTRAP + concorrência real ──────────
+// ── cenário 2: pares cointegrados, BOOTSTRAP + risco de liquidação por perna ──
 //
-// Aqui "risco/op" NÃO é fração normalizada por stop (como no ts-momentum) —
-// o retorno de um trade de par já é a variação do spread menos custo, sem
-// stop nenhum. A grandeza que faz sentido é ALAVANCAGEM / PARES SIMULTÂNEOS:
-// quantos pares estão abertos ao mesmo tempo decide quanto capital cada um
-// consome. Medido diretamente do backtest (20 pares monitorados): a
-// concorrência real varia de 0 a 17, média 6,6 — não é constante, e usar essa
-// média é a aproximação mais defensável sem simular alocação dinâmica.
+// Uma versão anterior deste cenário ignorava um risco real: o `retorno` que
+// `backtestPar` calcula assume que a posição sempre chega ao desfecho natural
+// (reversão/timeout), sem checar se alguma perna se moveu contra a margem o
+// bastante para ser LIQUIDADA no meio do caminho. Medido nos trades reais
+// (descoberta+holdout): os piores movimentos adversos intra-trade vão de
+// 100% a 252% do preço de entrada — pequenas altcoins com choques de
+// liquidez/listagem que o z-score do SPREAD não vê, porque olha a diferença
+// entre as pernas, não o nível absoluto de cada uma.
+//
+// A distância até liquidação de uma perna NÃO depende de quantos pares
+// dividem o capital (margem e notional escalam juntos por 1/N, a RAZÃO entre
+// eles cancela N) — só da alavancagem: distância = 1/alavancagem − mmr. A 5x
+// (o padrão do resto do projeto, calibrado para BTC/ETH — ativos bem mais
+// líquidos que os pares aqui), 38,6% dos trades liquidariam. Mesmo a 2x,
+// 6,8% liquidariam. `poolComExcursoes` já faz essa substituição — cada trade
+// que excede a distância vira -1/alavancagem (perda da margem inteira
+// daquela perna), não o retorno teórico que o backtest assumia.
 console.log('─'.repeat(100));
-console.log('CENÁRIO: pares cointegrados (bootstrap de trades reais + concorrência observada)\n');
-console.log('carregando 57 ativos, achando pares, rodando o backtest de spread...');
-const ALAVANCAGEM_PARES = num(a.alavancagem, 5);
-const { rMultiplos: rPares, duracaoMediaBarras } = poolCompletoDePares();
-const expectancyPares = rPares.reduce((s, r) => s + r, 0) / rPares.length;
-console.log(
-  `${rPares.length} trades reais pooled · expectancy ${expectancyPares.toFixed(4)} · ` +
-  `duração média ${duracaoMediaBarras.toFixed(1)} dias · concorrência real média ${PARES_SIMULTANEOS_MEDIO} pares\n`,
-);
+console.log('CENÁRIO: pares cointegrados (bootstrap + risco de liquidação por perna)\n');
+console.log('carregando 57 ativos, achando pares, medindo excursão intra-trade de cada perna...');
 
-const NS_PARES = [2, 3, 4, 5, 6, 7, 8, 10, 15];
+const pool = poolComExcursoes();
+console.log(`\n${pool.rMultiplos.length} trades pooled · duração média ${pool.duracaoMediaBarras.toFixed(1)} dias\n`);
+console.log('alavancagem'.padEnd(14) + 'distância liquid.'.padEnd(19) + '% que liquida'.padEnd(15) + 'expectancy corrigida');
+console.log('-'.repeat(100));
+for (const alav of [1, 1.5, 2, 3, 5]) {
+  const dist = distanciaLiquidacaoPorPerna(1, alav);
+  const fracao = pool.fracaoLiquida(alav);
+  const rCorrigido = pool.rMultiplosComLiquidacao(alav);
+  const expCorrigida = rCorrigido.reduce((s, r) => s + r, 0) / rCorrigido.length;
+  console.log(
+    (`${alav}x`).padEnd(14) + ((dist * 100).toFixed(1) + '%').padEnd(19) +
+    ((fracao * 100).toFixed(1) + '%').padEnd(15) + expCorrigida.toFixed(4),
+  );
+}
+
+const ALAVANCAGEM_PARES = num(a.alavancagem, 1); // 1x: a única onde a expectancy corrigida continua positiva
+console.log(`\nusando ${ALAVANCAGEM_PARES}x (passe --alavancagem para testar outra) — tabela abaixo JÁ inclui liquidação\n`);
+const rMultiplosPares = pool.rMultiplosComLiquidacao(ALAVANCAGEM_PARES);
+// cada par completa um ciclo a cada `duracaoMediaBarras` dias; N pares
+// simultâneos rodam N ciclos em paralelo, então ops/mês escala com N
+const opsPorParPorMes = pool.duracaoMediaBarras > 0 ? 30 / pool.duracaoMediaBarras : 3;
+const NS_PARES = [2, 3, 4, 5, 6, 7, 8, 10];
 console.log(
-  'pares simult.'.padEnd(15) + 'risco/op real'.padEnd(15) + 'ops/mês'.padEnd(10) +
+  'pares simult.'.padEnd(15) + 'risco/op'.padEnd(11) + 'ops/mês'.padEnd(10) +
   'chega na meta'.padEnd(16) + 'QUEBRA'.padEnd(11) + 'tempo mediano',
 );
 console.log('-'.repeat(100));
-for (const N of NS_PARES) {
-  const riscoFracao = ALAVANCAGEM_PARES / N;
-  const opsPorMes = N * (30 / duracaoMediaBarras);
+for (const n of NS_PARES) {
+  const riscoFracao = ALAVANCAGEM_PARES / n;
+  const opsPorMes = n * opsPorParPorMes;
   const s = simularBootstrap({
-    rMultiplos: rPares, capitalInicial: CAPITAL, alvo: ALVO, pisoRuina: PISO_RUINA,
+    rMultiplos: rMultiplosPares, capitalInicial: CAPITAL, alvo: ALVO, pisoRuina: PISO_RUINA,
     opsPorMes, horizonteMeses: HORIZONTE_MESES, riscoFracao, caminhos: CAMINHOS,
   });
   console.log(
-    String(N).padEnd(15) +
-    ((riscoFracao * 100).toFixed(0) + '%').padEnd(15) +
-    opsPorMes.toFixed(1).padEnd(10) +
-    ((s.pSucesso * 100).toFixed(1) + '%').padEnd(16) +
-    ((s.pRuina * 100).toFixed(1) + '%').padEnd(11) +
+    String(n).padEnd(15) + ((riscoFracao * 100).toFixed(0) + '%').padEnd(11) + opsPorMes.toFixed(1).padEnd(10) +
+    ((s.pSucesso * 100).toFixed(1) + '%').padEnd(16) + ((s.pRuina * 100).toFixed(1) + '%').padEnd(11) +
     fmtTempo(s.mesesMediano),
   );
 }
 console.log(
-  `\n  na concorrência REAL observada (~${PARES_SIMULTANEOS_MEDIO.toFixed(0)} pares em média), o resultado` +
-  ' fica entre as linhas N=6 e N=7 acima — nem o melhor caso, nem o pior.\n',
+  `\n  a alavancagem escolhida (${ALAVANCAGEM_PARES}x) é a que mantém a expectancy corrigida positiva —` +
+  ' ver a tabela de alavancagem acima. Em 5x (o padrão do resto do projeto), a\n' +
+  '  expectancy corrigida vira NEGATIVA e nenhum N salva o resultado.\n',
 );
 
 // ── cenário 3: ações, modelo binário (saída por stop/alvo — a aproximação certa lá) ──

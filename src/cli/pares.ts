@@ -5,39 +5,33 @@
  * é buscada só na DESCOBERTA, e o HOLDOUT nunca participa do ajuste — testado
  * com o que a descoberta escolheu, sem reajuste por par.
  *
- * O par em si (quais dois ativos formar) é achado por `varrerPares` sobre a
- * METADE INICIAL de cada janela (formação); o backtest roda só na METADE
- * FINAL (o período de operação) — outra camada contra lookahead: o par não
- * pode ser escolhido olhando o período em que vai operar.
+ * Usa `rodarPares` (src/pairs/validado.ts), que já aplica as duas correções
+ * que derrubaram e depois resgataram este resultado: seleção sem sobreposição
+ * de perna (`selecionarSemSobreposicao`) e filtro ex-ante de meia-vida
+ * compatível com o prazo de saída. Ver o histórico completo no topo de
+ * validado.ts e em docs/RESULTADOS.md, item 7.
  *
  * NENHUMA ORDEM É ENVIADA. Backtest sobre dado histórico.
  */
-import { loadSeries } from '../data/store.ts';
-import { avaliarPar } from '../pairs/cointegracao.ts';
-import { backtestPar, type ParametrosPar } from '../pairs/backtest.ts';
-import { UNIVERSO_MOMENTUM, DESCOBERTA, HOLDOUT } from '../data/momentum-universe.ts';
+import { rodarPares, MAX_MEIA_VIDA_PARES } from '../pairs/validado.ts';
+import type { ParametrosPar } from '../pairs/backtest.ts';
+import { DESCOBERTA, HOLDOUT } from '../data/momentum-universe.ts';
 import { parseArgs, num } from './args.ts';
 
 const a = parseArgs();
-const MAX_PARES_POR_CONJUNTO = num(a.maxPares, 20);
+const MAX_MEIA_VIDA = num(a.maxMeiaVida, MAX_MEIA_VIDA_PARES);
 
 const GRADE: ParametrosPar[] = [];
 for (const zEntrada of [1.5, 2.0, 2.5]) {
   for (const zSaida of [0.3, 0.5]) {
     for (const maxBarras of [15, 30]) {
       for (const janelaZ of [20, 30]) {
-        GRADE.push({ zEntrada, zSaida, maxBarras, janelaZ, taxaTaker: 0.0005, slippage: 0.0003 });
+        for (const zStop of [Infinity, 3.5, 4.0]) {
+          GRADE.push({ zEntrada, zSaida, maxBarras, janelaZ, taxaTaker: 0.0005, slippage: 0.0003, zStop });
+        }
       }
     }
   }
-}
-
-function carregarUniverso(symbols: string[]) {
-  const out: Record<string, ReturnType<typeof loadSeries>['bars']> = {};
-  for (const sym of symbols) {
-    try { out[sym] = loadSeries('binanceusdm', sym, '1d').bars; } catch { /* sem dado */ }
-  }
-  return out;
 }
 
 function metricas(trades: { retorno: number }[]) {
@@ -47,52 +41,16 @@ function metricas(trades: { retorno: number }[]) {
   return { n: trades.length, expectancy: soma / trades.length, winRate: ganhos / trades.length };
 }
 
-/**
- * Acha os melhores pares na METADE de formação, testa na METADE de operação,
- * varrendo a grade de parâmetros — mas a ESCOLHA de parâmetro é feita pela
- * mesma metade de operação aqui (simplificação: sem walk-forward completo
- * dentro de cada conjunto, que seria caro com 30+27 ativos × grade × 2
- * metades). A defesa contra sobreajuste real é a separação DESCOBERTA/HOLDOUT
- * no nível de dataset inteiro, não dentro de cada metade.
- */
-function rodarConjunto(symbols: string[], params: ParametrosPar, fracaoFormacao = 0.5) {
-  const series = carregarUniverso(symbols);
-  const nomes = Object.keys(series);
-  if (nomes.length < 2) return { pares: [], trades: [] as ReturnType<typeof backtestPar> };
-
-  const meio = Math.floor(Math.min(...nomes.map((n) => series[n].length)) * fracaoFormacao);
-  const formacao: Record<string, typeof series[string]> = {};
-  for (const nome of nomes) formacao[nome] = series[nome].slice(0, meio);
-
-  const candidatos: ReturnType<typeof avaliarPar>[] = [];
-  for (let i = 0; i < nomes.length; i++) {
-    for (let j = i + 1; j < nomes.length; j++) {
-      const c = avaliarPar(nomes[i], formacao[nomes[i]], nomes[j], formacao[nomes[j]]);
-      if (c) candidatos.push(c);
-    }
-  }
-  candidatos.sort((x, y) => x!.meiaVidaBarras - y!.meiaVidaBarras); // reverte mais rápido primeiro
-
-  const top = candidatos.slice(0, MAX_PARES_POR_CONJUNTO).filter((c): c is NonNullable<typeof c> => !!c);
-  const todosTrades: ReturnType<typeof backtestPar> = [];
-  for (const c of top) {
-    const opA = series[c.a].slice(meio);
-    const opB = series[c.b].slice(meio);
-    const trades = backtestPar(opA, opB, c.hedgeRatio, c.intercepto, params);
-    todosTrades.push(...trades);
-  }
-  return { pares: top, trades: todosTrades };
-}
-
 console.log(`\n${'='.repeat(90)}`);
 console.log('PARES COINTEGRADOS — descoberta + holdout cego, mercado-neutro');
 console.log(`${'='.repeat(90)}\n`);
 console.log('NENHUMA ORDEM É ENVIADA. Backtest sobre dado histórico.\n');
+console.log(`sem sobreposição de perna · meia-vida máxima ${MAX_MEIA_VIDA} barras`);
 console.log(`buscando melhor conjunto de parâmetros na DESCOBERTA (${GRADE.length} combinações)...\n`);
 
 let melhor = { params: GRADE[0], score: -Infinity, m: metricas([]) };
 for (const params of GRADE) {
-  const { trades } = rodarConjunto(DESCOBERTA, params);
+  const { trades } = rodarPares(DESCOBERTA, 0.5, params, true, MAX_MEIA_VIDA);
   const m = metricas(trades);
   if (m.n < 10) continue;
   const score = m.expectancy * Math.sqrt(m.n); // pune expectancy alta com poucochíssimos trades
@@ -104,9 +62,9 @@ console.log(`descoberta: ${melhor.m.n} trades · expectancy ${melhor.m.expectanc
 
 console.log('─'.repeat(90));
 console.log('HOLDOUT — mesmos parâmetros, ativos nunca vistos, sem reajuste\n');
-const { trades: tradesHoldout } = rodarConjunto(HOLDOUT, melhor.params);
-const mHoldout = metricas(tradesHoldout);
-console.log(`holdout: ${mHoldout.n} trades · expectancy ${mHoldout.expectancy.toFixed(4)} · win rate ${(mHoldout.winRate * 100).toFixed(1)}%\n`);
+const rHoldout = rodarPares(HOLDOUT, 0.5, melhor.params, true, MAX_MEIA_VIDA);
+const mHoldout = metricas(rHoldout.trades);
+console.log(`holdout: ${mHoldout.n} trades · expectancy ${mHoldout.expectancy.toFixed(4)} · win rate ${(mHoldout.winRate * 100).toFixed(1)}% · ${rHoldout.candidatos.length} pares\n`);
 
 console.log('='.repeat(90));
 if (mHoldout.n < 10) {
@@ -126,8 +84,21 @@ console.log(`${'='.repeat(90)}\n`);
 console.log('─'.repeat(90));
 console.log('ROBUSTEZ AO PONTO DE CORTE (descoberta, mesmos parâmetros, formação/operação variando)\n');
 for (const frac of [0.4, 0.5, 0.6, 0.7]) {
-  const { trades } = rodarConjunto(DESCOBERTA, melhor.params, frac);
+  const { trades } = rodarPares(DESCOBERTA, frac, melhor.params, true, MAX_MEIA_VIDA);
   const m = metricas(trades);
   console.log(`formação ${(frac * 100).toFixed(0)}% · ${m.n} trades · expectancy ${m.expectancy.toFixed(4)} · win ${(m.winRate * 100).toFixed(1)}%`);
+}
+
+// ── de onde vêm os trades bons e ruins ──────────────────────────────────────
+console.log(`\n${'─'.repeat(90)}`);
+console.log('SAÍDA POR MOTIVO (holdout) — o que sustenta e o que corrói o resultado\n');
+const porMotivo: Record<string, { n: number; soma: number }> = {};
+for (const t of rHoldout.trades) {
+  const k = t.motivo;
+  porMotivo[k] = porMotivo[k] || { n: 0, soma: 0 };
+  porMotivo[k].n++; porMotivo[k].soma += t.retorno;
+}
+for (const [k, v] of Object.entries(porMotivo)) {
+  console.log(`  ${k.padEnd(18)} n=${String(v.n).padEnd(6)} soma=${v.soma.toFixed(3).padEnd(10)} média=${(v.soma / v.n).toFixed(4)}`);
 }
 console.log(`\n${'='.repeat(90)}\n`);

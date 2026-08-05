@@ -32,11 +32,19 @@ export interface ParametrosPar {
   janelaZ: number;
   taxaTaker: number;
   slippage: number;
+  /**
+   * Stop de divergência: se |z| for além disto, sai IMEDIATAMENTE, sem
+   * esperar `maxBarras`. Sem isto, um par que diverge e nunca reverte fica
+   * acumulando perda até o timeout — a cauda gorda clássica de
+   * mean-reversion sem stop ("pegar moedinha na frente do trator"). Padrão
+   * Infinity preserva o comportamento antigo (sem stop) para comparação.
+   */
+  zStop: number;
 }
 
 export const PARAMETROS_PADRAO: ParametrosPar = {
   zEntrada: 2.0, zSaida: 0.5, maxBarras: 20, janelaZ: 30,
-  taxaTaker: 0.0005, slippage: 0.0005,
+  taxaTaker: 0.0005, slippage: 0.0005, zStop: Infinity,
 };
 
 export interface TradePar {
@@ -48,7 +56,7 @@ export interface TradePar {
   zSaida: number;
   /** retorno líquido do par, em fração do notional total das duas pernas */
   retorno: number;
-  motivo: 'reversao' | 'timeout' | 'fim-dado';
+  motivo: 'reversao' | 'timeout' | 'fim-dado' | 'stop-divergencia';
 }
 
 /**
@@ -74,21 +82,31 @@ export function backtestPar(
     const media = janela.reduce((a, b) => a + b, 0) / janela.length;
     const variancia = janela.reduce((a, b) => a + (b - media) ** 2, 0) / janela.length;
     const desvio = Math.sqrt(variancia);
-    if (desvio <= 1e-12) continue;
-    const z = (residuo[i] - media) / desvio;
+    // A janela pode ficar sem variância (spread quieto, ou o resíduo travou
+    // num platô). z não é computável — mas se HÁ posição aberta, o tempo e o
+    // fim dos dados continuam valendo: pular a barra inteira aqui deixava a
+    // posição PRESA para sempre, sem nunca gerar o trade de saída (bug real,
+    // achado pelo teste de stop de divergência). Sem posição, não há o que
+    // fechar, então só pular mesmo é seguro.
+    const zIndefinido = desvio <= 1e-12;
+    const z = zIndefinido ? 0 : (residuo[i] - media) / desvio;
 
     if (!emPosicao) {
+      if (zIndefinido) continue;
       if (z >= p.zEntrada) emPosicao = { idx: i, direcao: 'curtoA', z };
       else if (z <= -p.zEntrada) emPosicao = { idx: i, direcao: 'longA', z };
       continue;
     }
 
     const barrasDentro = i - emPosicao.idx;
-    const reverteu = Math.abs(z) <= p.zSaida;
+    const reverteu = !zIndefinido && Math.abs(z) <= p.zSaida;
+    // diverge MAIS na mesma direção que abriu a posição (não o lado oposto —
+    // z passando de +3 para -3 seria reversão forte, não divergência)
+    const divergiu = !zIndefinido && (emPosicao.direcao === 'curtoA' ? z >= p.zStop : z <= -p.zStop);
     const estourouTempo = barrasDentro >= p.maxBarras;
     const fimDado = i === n - 1;
 
-    if (reverteu || estourouTempo || fimDado) {
+    if (reverteu || divergiu || estourouTempo || fimDado) {
       // retorno = variação do LOG-SPREAD na direção apostada, menos custo de
       // 2 pernas × entrada+saída (o mesmo formato de custo do resto do projeto)
       const deltaSpread = residuo[i] - residuo[emPosicao.idx];
@@ -97,7 +115,7 @@ export function backtestPar(
       trades.push({
         entradaIdx: emPosicao.idx, saidaIdx: i, direcao: emPosicao.direcao,
         zEntrada: emPosicao.z, zSaida: z, retorno: bruto - custo,
-        motivo: reverteu ? 'reversao' : fimDado ? 'fim-dado' : 'timeout',
+        motivo: reverteu ? 'reversao' : divergiu ? 'stop-divergencia' : fimDado ? 'fim-dado' : 'timeout',
       });
       emPosicao = null;
     }
