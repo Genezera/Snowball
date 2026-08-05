@@ -45,7 +45,9 @@
     "telegram:chatid": "node --env-file-if-exists=.env src/cli/telegram-chatid.ts",
     "telegram:teste": "node --env-file-if-exists=.env src/cli/telegram-teste.ts",
     "ml:preparar": "node src/cli/ml-preparar.ts",
-    "basis:scan": "node src/cli/basis-scan.ts"
+    "basis:scan": "node src/cli/basis-scan.ts",
+    "escorregamento": "node src/cli/escorregamento.ts",
+    "viabilidade": "node src/cli/viabilidade.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

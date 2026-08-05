@@ -75,6 +75,19 @@ export const TAXA_SAQUE = 0.15;
  * último preço, como se a ordem executasse sem custo de travessia. Não é o
  * maior custo, mas incide QUATRO vezes numa operação completa (duas pernas,
  * entrada e saída).
+ *
+ * ── ISTO VIROU FALLBACK, não o valor de uso ───────────────────────────────
+ *
+ * Desde 04/08/2026 o motor MEDE o escorregamento no livro real de cada par,
+ * no tamanho real da posição (ver livro.ts e `escorregamentoReal` em
+ * spread-live.ts). Esta constante só é usada quando o livro não pode ser
+ * lido — voltar ao comportamento antigo é o fallback seguro.
+ *
+ * O motivo de não bastar uma constante: medida nos doze pares vivos, a
+ * dispersão real vai de 0,0000% (TQQQ) a 0,0808% (HFT). Um número único erra
+ * nos dois sentidos, e o sentido que custa dinheiro é SUBESTIMAR — HFT e TUT
+ * custam mais que esta constante, e HFT era justamente o par que o motor mais
+ * avaliava como "quase passando".
  */
 export const ESCORREGAMENTO_PERNA = 0.0007;
 

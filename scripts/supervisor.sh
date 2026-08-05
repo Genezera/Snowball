@@ -80,7 +80,18 @@ while true; do
       if em_manutencao; then
         echo "[$(date '+%H:%M:%S')] $nome religado — atualização de código aplicada" >> vigilancia/supervisor-watchdog.log
       else
+        # CAUSA, nao so o fato. Ate aqui o watchdog registrava que o processo
+        # sumiu e religava -- e uma investigacao posterior nao tinha com o que
+        # trabalhar. As ultimas linhas do log do proprio processo sao onde o
+        # stack trace de uma excecao nao tratada aparece; capturar na hora,
+        # antes de religar (o religamento escreve por cima no mesmo arquivo).
+        causa=$(tail -n 6 "${LOG[$nome]}" 2>/dev/null | tr -d '\r' | grep -v '^\s*$' | tail -n 3)
         echo "[$(date '+%H:%M:%S')] $nome CAIU (padrão: $padrao) — religando" >> vigilancia/supervisor-watchdog.log
+        if [ -n "$causa" ]; then
+          echo "$causa" | sed 's/^/    | /' >> vigilancia/supervisor-watchdog.log
+        else
+          echo "    | (log vazio — morte sem erro registrado: sinal externo, OOM ou suspensão)" >> vigilancia/supervisor-watchdog.log
+        fi
         notificar_telegram "⚠️ <b>$nome caiu</b> — religando automaticamente"
       fi
       nohup ${CMD[$nome]} >> "${LOG[$nome]}" 2>&1 &

@@ -22,7 +22,8 @@ import { ROOT } from '../data/store.ts';
 import { varrerSpreads, dimensionarSpread, riscoDesbalanceamento, type OportunidadeSpread } from './spread.ts';
 import { lerVigilancia } from './ponte.ts';
 import { avaliarRisco, quantoTransferir, mmrDe, atualizarPico, verificarPiso, LIMIARES_PADRAO, MMR_ALT } from './protecao.ts';
-import { taxaEfetiva, posicoesSustentaveis } from './custos-reais.ts';
+import { taxaEfetiva, posicoesSustentaveis, ESCORREGAMENTO_PERNA } from './custos-reais.ts';
+import { escorregamentoDoPar, escorregamentoLimitado } from './livro.ts';
 import { dimensionar, socorrer, usoPorExchange, RESERVA_PADRAO } from './tesouraria.ts';
 import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
@@ -41,6 +42,19 @@ import { enviarTelegram } from './telegram.ts';
  * tamanho cheio continua exigindo 1,5x, como sempre exigiu.
  */
 const FRACAO_ESTAGIO_INICIAL = 0.25;
+
+/**
+ * Quanto tempo uma medição de livro vale antes de ser refeita.
+ *
+ * O ciclo do motor é de 5 min. O que muda a cada leitura é o TOPO do livro
+ * (preço), não a profundidade dele — e é a profundidade que decide o
+ * escorregamento. 15 min mantém a medição barata sem deixá-la envelhecer até
+ * o ponto de descrever outro mercado.
+ */
+const TTL_ESCORREGAMENTO = 15 * 60_000;
+
+/** Níveis de livro a pedir. 50 cobre folgado US$ 250/perna em par líquido. */
+const PROFUNDIDADE_LIVRO = 50;
 
 /**
  * Notifica só o que é raro e importa — dinheiro mudando de mãos ou o motor
@@ -195,6 +209,8 @@ export class MotorSpread {
   private stateFile: string;
   private journalFile: string;
   private exs = new Map<string, any>();
+  /** escorregamento medido por par, com TTL — ver `escorregamentoReal` */
+  private cacheEscorregamento = new Map<string, { valor: number; ts: number }>();
 
   constructor(o: Partial<OpcoesSpread> = {}) {
     this.o = { ...OPCOES_PADRAO, ...o };
@@ -348,6 +364,45 @@ export class MotorSpread {
     const e = await this.ex(exId);
     const t = await e.fetchTicker(sym);
     return t.last ?? t.close;
+  }
+
+  /**
+   * ESCORREGAMENTO MEDIDO NO LIVRO, em vez da constante de pior caso.
+   *
+   * O escorregamento responde por ~57% do custo de uma operação, e até aqui
+   * era um número único (0,07%) aplicado a todo par. Medido no livro real em
+   * 04/08/2026 nos doze pares que a vigilância tinha vivos, ele varia de
+   * 0,0000% (TQQQ) a 0,0808% (HFT) — e a constante errava nos DOIS sentidos.
+   * Ver livro.ts para os números e o raciocínio.
+   *
+   * Só é chamado para candidatas que já passaram nos filtros baratos (spread
+   * mínimo, saldo, não-duplicada), então são poucos pares por ciclo. O cache
+   * de 15 min segura o resto: o ciclo do motor é de 5 min, e o livro não muda
+   * de perfil a cada leitura — o que muda é o topo, não a profundidade.
+   *
+   * Falha em silêncio para a constante antiga. Um livro indisponível não pode
+   * travar a decisão, e voltar ao comportamento anterior é o fallback seguro.
+   */
+  private async escorregamentoReal(
+    symbol: string, exShort: string, exLong: string, notional: number,
+  ): Promise<{ valor: number; medido: boolean }> {
+    const chave = `${symbol}|${exShort}|${exLong}|${Math.round(notional)}`;
+    const emCache = this.cacheEscorregamento.get(chave);
+    if (emCache && Date.now() - emCache.ts < TTL_ESCORREGAMENTO) {
+      return { valor: emCache.valor, medido: true };
+    }
+    try {
+      const [a, b] = await Promise.all([this.ex(exShort), this.ex(exLong)]);
+      const [livroShort, livroLong] = await Promise.all([
+        a.fetchOrderBook(symbol, PROFUNDIDADE_LIVRO),
+        b.fetchOrderBook(symbol, PROFUNDIDADE_LIVRO),
+      ]);
+      const valor = escorregamentoLimitado(escorregamentoDoPar(livroShort, livroLong, notional));
+      this.cacheEscorregamento.set(chave, { valor, ts: Date.now() });
+      return { valor, medido: true };
+    } catch {
+      return { valor: ESCORREGAMENTO_PERNA, medido: false };
+    }
   }
 
   async ciclo() {
@@ -559,8 +614,6 @@ export class MotorSpread {
       // Taxa REAL do par de exchanges, não 0,05% uniforme. A bitget cobra
       // 0,06%: 20% a mais de payback, que não é arredondamento numa conta onde
       // o payback é taxa × 4 / spread.
-      const taxaReal = taxaEfetiva(melhor.exchangeShort, melhor.exchangeLong);
-
       // O tamanho sai do saldo REAL das duas exchanges, acima da reserva.
       // Precisa vir antes do portão porque o valor esperado depende do notional
       // — e o notional depende de quanto sobrou em cada conta.
@@ -570,6 +623,14 @@ export class MotorSpread {
         this.o.alavancagem, this.o.reserva,
       );
       if (!d.possivel) { bloqueadasPorSaldo++; continue; }
+
+      // Escorregamento MEDIDO no livro deste par, neste tamanho — não a
+      // constante de pior caso. Só chega aqui quem já passou nos filtros
+      // baratos, então são poucas medições por ciclo. Ver `escorregamentoReal`.
+      const slip = await this.escorregamentoReal(
+        melhor.symbol, melhor.exchangeShort, melhor.exchangeLong, d.notionalPorPerna,
+      );
+      const taxaReal = taxaEfetiva(melhor.exchangeShort, melhor.exchangeLong, slip.valor);
 
       const v = avaliarValor({
         spread: melhor.spread,
@@ -622,6 +683,9 @@ export class MotorSpread {
         symbol: melhor.symbol, short: melhor.exchangeShort, long: melhor.exchangeLong,
         spread: melhor.spread, consistencia: melhor.consistencia, apr: melhor.aprSpread,
         notional: notionalAbertura, custo: custoMontagem, preco: p, estagio: tamanhoCheio ? 2 : 1,
+        // com que custo de travessia a decisão foi tomada, e se foi medido ou
+        // assumido — sem isto não dá pra auditar a decisão depois
+        escorregamento: slip.valor, escorregamentoMedido: slip.medido,
       });
     }
 
@@ -647,12 +711,19 @@ export class MotorSpread {
       // depois não precisar re-parsear a frase pra recuperar os números
       let camposNumericos: Record<string, unknown> = {};
       if (b) {
+        // O mesmo escorregamento medido que o portão usou — quase sempre já
+        // está no cache, porque esta é justamente a candidata que o laço
+        // avaliou primeiro. Sem isto, o "faltam Xh" do painel seria calculado
+        // com um custo diferente do que barrou de verdade.
+        const slipB = await this.escorregamentoReal(
+          b.symbol, b.exchangeShort, b.exchangeLong, notionalRef,
+        );
         // notional de referência: o dimensionamento real só existe dentro do
         // laço, e aqui o que importa é o payback, que não depende do notional
         const v = avaliarValor({
           spread: b.spread, consistencia: b.consistencia,
           duracaoHoras: b.duracaoHoras ?? 0, notional: notionalRef,
-          taxa: taxaEfetiva(b.exchangeShort, b.exchangeLong),
+          taxa: taxaEfetiva(b.exchangeShort, b.exchangeLong, slipB.valor),
         });
         const paybackExigidoHoras = v.paybackHoras * this.o.margemPayback;
         // Quanto de vida ainda falta para passar no portão. É a informação
@@ -667,6 +738,7 @@ export class MotorSpread {
           exchangeShort: b.exchangeShort, exchangeLong: b.exchangeLong,
           spread: b.spread, apr: b.aprSpread, consistencia: b.consistencia,
           vidaEsperadaHoras: v.vidaEsperadaHoras, paybackExigidoHoras, faltamHoras, pctDoCaminho,
+          escorregamento: slipB.valor, escorregamentoMedido: slipB.medido,
         };
       }
       this.log(`valor esperado barrou ${bloqueadasPorPayback} candidatas${detalhe}`);
@@ -787,7 +859,12 @@ export class MotorSpread {
     // reduz: se o candidato piorar, a fatia fica do tamanho que está até
     // fechar normalmente (spread inverter, etc.).
     if (pos.estagio === 1) {
-      const taxaPos = taxaEfetiva(pos.exchangeShort, pos.exchangeLong);
+      // mesmo critério da abertura: custo medido, não assumido. Escalar é
+      // abrir de novo — não pode usar uma barra mais frouxa que a da entrada.
+      const slipPos = await this.escorregamentoReal(
+        pos.symbol, pos.exchangeShort, pos.exchangeLong, pos.notionalPorPerna,
+      );
+      const taxaPos = taxaEfetiva(pos.exchangeShort, pos.exchangeLong, slipPos.valor);
       const vPos = avaliarValor({
         spread: atual.spread, consistencia: atual.consistencia,
         duracaoHoras: atual.duracaoHoras ?? 0, notional: pos.notionalPorPerna, taxa: taxaPos,
