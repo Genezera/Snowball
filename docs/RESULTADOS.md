@@ -477,3 +477,53 @@ isso sem conseguir validar direito seria pior que não tentar; sentimento/
 notícias não tem fonte de dado histórico confiável disponível. Recusar
 essas três não é preguiça — é o mesmo padrão do resto deste documento: não
 testar o que não dá para testar com rigor.
+
+---
+
+## Resultado 9 — Funding extremo como sinal contrário: a ideia mais "ousada" da sessão, e ela não sobrevive
+
+Depois de esgotar as variações dentro das famílias já testadas, tentei um
+mecanismo genuinamente novo: usar funding extremo não como fonte de renda
+(como em tudo o mais em `src/funding/`), mas como SINAL DE POSICIONAMENTO —
+funding muito positivo significa mercado lotado de comprado, hipótese
+clássica de fragilidade que precederia correção de preço.
+
+Construído do zero: `src/data/funding-history.ts` (paginação de
+`fetchFundingRateHistory`, 2 anos de funding real para os 57 ativos do
+universo — a exchange só devolve 1000 registros por chamada, foi preciso
+paginar avançando no tempo), `src/funding/contrario.ts` (threshold rolante
+e CAUSAL por ativo — cada um tem faixa de funding própria, um corte
+absoluto global não faria sentido).
+
+Dois bugs reais achados construindo os testes: desigualdade não-estrita
+(`>=`) fazia uma janela quase constante reabrir posição todo dia depois de
+um único extremo isolado (corrigido para `>` estrita); e o desenho exige
+`limiarBaixo < 0` para o lado "long" fazer sentido econômico, o que só
+apareceu ao tentar testar com dado sintético mal construído (funding só
+positivo nunca gera limiar negativo pra cruzar).
+
+**Resultado, com a mesma disciplina descoberta/holdout do resto do
+documento:**
+
+| conjunto | trades | expectancy | win rate |
+|---|---|---|---|
+| descoberta (30 ativos) | 1.353 | -0,0017 | 50,4% |
+| holdout cego (27 ativos) | 1.003 | **-0,0037** | 48,4% |
+
+O holdout não só não confirma — piora. Win rate nos dois conjuntos fica
+exatamente na faixa de moeda honesta depois do custo (não 65-70% como
+`ts-momentum` e pares). Quebrando por direção no holdout: apostar CONTRA
+funding muito positivo (short) tem expectancy -0,0104 — claramente
+perdedor; apostar A FAVOR de funding muito negativo (long) fica em
++0,0005, essencialmente zero.
+
+**Por que faz sentido, em retrospecto:** isto é o espelho do achado de
+`ts-momentum` (item 6). Se tendência de preço persiste (o que ts-momentum
+mede como real), então funding ficar elevado DURANTE uma tendência forte é
+sintoma da tendência, não um sinal independente de que ela vai reverter.
+"Mercado lotado de comprado" em cripto tende a continuar lotado de comprado
+enquanto o preço sobe — a hipótese de fragilidade não se confirma nos dados
+reais deste universo.
+
+**Código:** `src/data/funding-history.ts`, `src/funding/contrario.ts`,
+`npm run download-funding` (ou `node src/cli/download-funding.ts`).
