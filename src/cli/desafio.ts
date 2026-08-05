@@ -33,6 +33,7 @@ import { runBacktest } from '../backtest/engine.ts';
 import { makeConfig } from '../config.ts';
 import { paraRMultiplos, simularBootstrap } from '../backtest/bootstrap.ts';
 import { resolverPoliticaOtima, simularComPolitica, riscoNaPolitica } from '../backtest/dp-risco.ts';
+import { paraRMultiplosComTempo, construirBlocos, simularPortfolioConcorrente } from '../backtest/bootstrap-concorrente.ts';
 import { UNIVERSO_MOMENTUM, PARAMS_VALIDADOS, MAX_BARS_VALIDADO } from '../data/momentum-universe.ts';
 import { poolComExcursoes } from '../pairs/validado.ts';
 import { distanciaLiquidacaoPorPerna } from '../pairs/liquidacao.ts';
@@ -148,6 +149,64 @@ console.log(
   fmtTempo(resultadoAdaptativo.mesesMediano).padEnd(16) + 'US$ ' + resultadoAdaptativo.capitalMediano.toFixed(0),
 );
 console.log(`\n  no início (US$ ${CAPITAL}, horizonte cheio): risco recomendado ${(riscoNaPolitica(politicaOtima, CAPITAL, 0) * 100).toFixed(0)}% por operação\n`);
+
+// ── AVISO sobre as duas tabelas acima ──────────────────────────────────────
+//
+// As duas tabelas de ts-momentum acima (fração fixa e risco adaptativo)
+// reamostram os 6821 trades como se fossem sorteios INDEPENDENTES, um de
+// cada vez. Isso não é como a estratégia realmente roda: em média 54,5 das
+// 57 posições do universo ficam abertas AO MESMO TEMPO, e trades cujas
+// janelas se sobrepõem têm correlação real medida de +0,13 (crash de
+// mercado atinge várias posições juntas, não uma por vez). Ignorar isso
+// SUBESTIMA risco de ruína e SUPERESTIMA a chance de sucesso — as tabelas
+// acima são otimistas demais pra guiar uma decisão real.
+//
+// A tabela abaixo (`simularPortfolioConcorrente`) corrige isso: reamostra
+// BLOCOS de calendário real (não trades individuais), preservando a
+// simultaneidade e a correlação de fato observadas. Ver docs/RESULTADOS.md
+// item 12 — é uma CORREÇÃO do item 11, não uma alternativa a ele.
+console.log('─'.repeat(100));
+console.log('CENÁRIO CORRIGIDO: ts-momentum com CONCORRÊNCIA REAL (block bootstrap no calendário)\n');
+console.log('reconstruindo trades com timestamps e agrupando em blocos de calendário...');
+const rMultiplosComTempo = paraRMultiplosComTempoTodos();
+function paraRMultiplosComTempoTodos() {
+  const out: { entryTime: number; exitTime: number; r: number }[] = [];
+  for (const sym of UNIVERSO_MOMENTUM) {
+    let series;
+    try { series = loadSeries('binanceusdm', sym, '1d'); } catch { continue; }
+    const res = runBacktest(series, buildStrategy('ts-momentum', PARAMS_VALIDADOS), cfg);
+    out.push(...paraRMultiplosComTempo(res.trades, RISCO_BACKTEST));
+  }
+  return out;
+}
+const BLOCO_DIAS = num(a.blocoDias, 63);
+const blocosCalendario = construirBlocos(rMultiplosComTempo, BLOCO_DIAS);
+console.log(`${blocosCalendario.blocos.length} blocos de ${BLOCO_DIAS} dias\n`);
+
+// caminhos menor que o resto do arquivo: cada caminho aqui gera ~29 blocos
+// x ~240 trades = milhares de eventos (vs. um sorteio simples por operação
+// no bootstrap i.i.d.), o custo por caminho e bem maior.
+const CAMINHOS_CONCORRENTE = num(a.caminhosConcorrente, 3000);
+const RISCOS_POSICAO = [0.001, 0.002, 0.003, 0.005, 0.008, 0.01, 0.015, 0.02, 0.03, 0.05];
+console.log('risco/posição   chega na meta   QUEBRA     ainda tentando   tempo mediano');
+console.log('-'.repeat(100));
+const linhasConcorrente = RISCOS_POSICAO.map((risco) => ({
+  risco,
+  s: simularPortfolioConcorrente({
+    blocosCalendario, capitalInicial: CAPITAL, alvo: ALVO, pisoRuina: PISO_RUINA,
+    riscoPorPosicao: risco, horizonteMeses: HORIZONTE_MESES, caminhos: CAMINHOS_CONCORRENTE,
+  }),
+}));
+for (const { risco, s } of linhasConcorrente) {
+  console.log(
+    `${(risco * 100).toFixed(1)}%`.padEnd(16) + `${(s.pSucesso * 100).toFixed(1)}%`.padEnd(16) +
+    `${(s.pRuina * 100).toFixed(1)}%`.padEnd(11) + `${(s.pArrastando * 100).toFixed(1)}%`.padEnd(17) +
+    fmtTempo(s.mesesMediano),
+  );
+}
+const melhorConcorrente = linhasConcorrente.reduce((m, l) => (l.s.pSucesso > m.s.pSucesso ? l : m));
+console.log(`\n  melhor chance de sucesso (com concorrência real): risco ${(melhorConcorrente.risco * 100).toFixed(1)}% por posição → ${(melhorConcorrente.s.pSucesso * 100).toFixed(1)}%`);
+console.log(`  (${BLOCO_DIAS} dias/bloco — o resultado é sensível a essa escolha, ver docs/RESULTADOS.md item 12 pra faixa de sensibilidade)\n`);
 
 // ── cenário 2: pares cointegrados, BOOTSTRAP + risco de liquidação por perna ──
 //

@@ -658,3 +658,99 @@ tabela de fração fixa do cenário ts-momentum).
 **Código:** `src/backtest/dp-risco.ts` (`resolverPoliticaOtima`,
 `simularComPolitica`, `riscoNaPolitica`), testado em
 `src/backtest/dp-risco.test.ts`, integrado em `src/cli/desafio.ts`.
+
+---
+
+## Resultado 12 — CORREÇÃO: os Resultados 10 e 11 ignoravam concorrência real
+
+Este item não é uma melhoria. É uma correção de um viés que os dois
+resultados anteriores carregavam, encontrada continuando a procurar por
+mais uma vantagem depois do Resultado 11 — e o "mais uma vantagem" acabou
+sendo achar um problema no próprio método, não na estratégia.
+
+**O que estava errado.** `bootstrap.ts` (e `dp-risco.ts` em cima dele)
+reamostra os 6821 R-múltiplos como se cada trade fosse um sorteio
+INDEPENDENTE, um de cada vez. Isso não é como `ts-momentum` roda de
+verdade: medido nos dados reais, em média **54,5 das 57 posições do
+universo ficam abertas ao mesmo tempo** (máximo: 57 — o portfólio está
+essencialmente sempre 100% posicionado). Trades cujas janelas se
+sobrepõem têm correlação real de **+0,13** (contra ~0 para pares
+aleatórios sem controle de tempo) — um crash de mercado derruba várias
+posições juntas, não uma de cada vez. Tratar 54 posições correlacionadas
+como 54 sorteios independentes sequenciais é otimista por construção:
+esconde exatamente o risco que mais importa (perda simultânea em massa).
+
+**A correção: block bootstrap no calendário.** Em vez de reamostrar trades
+individuais, `bootstrap-concorrente.ts` reamostra BLOCOS de ~63 dias
+corridos — dentro de cada bloco, a simultaneidade e a correlação reais são
+preservadas (é literalmente o que aconteceu naqueles 63 dias). A variação
+Monte Carlo vem de quais blocos (e em que ordem) compõem os 60 meses
+simulados. Cada posição arrisca uma fração PEQUENA e fixa do capital no
+momento em que abre — não uma fatia grande "por operação" sequencial.
+
+**Um bug no meio do caminho, pego antes de virar resultado.** A primeira
+versão desse filtro de blocos exigia que a SAÍDA do trade também coubesse
+no mesmo bloco de 63 dias. Isso descarta desproporcionalmente os trades
+LONGOS — e numa estratégia de tendência com alvo largo (Resultado 10), os
+trades longos são justamente os grandes vencedores. Medido: R médio dos
+trades descartados por esse filtro = **+0,48**; R médio dos mantidos =
+**-0,04**. O filtro errado teria produzido um número catastroficamente
+pior (quase 100% de ruína em qualquer risco) que não seria real, só um
+artefato de amostra enviesada. Corrigido: o bloco é definido pela ENTRADA
+do trade; a saída pode passar da borda, o trade não é cortado.
+
+**Replay único da história real (sem bootstrap, sem ruído de amostragem —
+o que literalmente teria acontecido rodando com posições concorrentes de
+verdade):** em risco por posição de 0,01% a 0,2%, o capital cresce
+modestamente (US$200→US$208-285 ao longo dos ~4,9 anos de dado). A partir
+de ~0,3-0,5%, a variância agregada das posições correlacionadas passa a
+dominar e o capital começa a cair; a partir de ~0,8% o replay único já
+quebra.
+
+**Bootstrap por blocos, risco ótimo (~0,5% por posição):**
+
+| | fração fixa i.i.d. (Resultado 11) | **concorrência real corrigida** |
+|---|---|---|
+| chance de chegar à meta | 37,2–37,6% | **~9%** |
+| chance de quebrar | 54,9–55,4% | **~45%** |
+| ainda tentando ao fim | 7,6% | ~46% |
+
+**Sensibilidade ao tamanho do bloco** (63 dias foi uma escolha razoável
+mas arbitrária — testado 21 a 126 dias, risco fixo em 0,5%):
+
+| dias/bloco | 21 | 42 | 63 | 90 | 126 |
+|---|---|---|---|---|---|
+| chance de sucesso | 14,1% | 14,0% | 8,6% | 2,9% | 1,8% |
+
+Blocos maiores capturam mais risco de regime prolongado (ex.: o mercado
+bear/choppy de 2022) mas com menos blocos totais (14 a 28), então mais
+ruído de amostragem por caminho. A faixa honesta é **~2% a ~14%**, não um
+número único — bem abaixo dos 37% do Resultado 11, que agora deve ser lido
+como um limite superior otimista, não uma estimativa central.
+
+**Tentativa de correção adicional testada e descartada:** freio de risco
+por drawdown do portfólio (reduzir a fração arriscada quando o capital
+está em queda desde o pico). Não ajudou — piora a chance de sucesso mais
+rápido do que reduz a chance de ruína (ex.: risco base 0,8% com freio:
+0,5-0,8% de sucesso, contra 8-9% sem freio). O motivo: o problema não é
+"não reagir rápido o bastante a uma perda", é a perda ACONTECER
+simultaneamente em dezenas de posições antes que qualquer freio reativo
+tenha chance de agir.
+
+**O que isso muda:** os Resultados 10 e 11 continuam válidos como
+melhorias RELATIVAS (alvo largo é melhor que alvo estreito; risco
+adaptativo é melhor que risco fixo, dentro do mesmo modelo) — mas o número
+ABSOLUTO de chance de sucesso que eles produziam era otimista por ignorar
+concorrência. A busca continua a partir da faixa corrigida (~2-14%), não
+dos 37% anteriores.
+
+**Reproduzir:** `npm run desafio` (seção "CENÁRIO CORRIGIDO: ts-momentum
+com CONCORRÊNCIA REAL"). `--blocoDias` e `--caminhosConcorrente` ajustam a
+granularidade e o número de caminhos.
+
+**Código:** `src/backtest/bootstrap-concorrente.ts`
+(`construirBlocos`, `simularPortfolioConcorrente`, `replayHistoricoReal`),
+testado em `src/backtest/bootstrap-concorrente.test.ts` (inclui teste de
+regressão que prova que a correlação intra-bloco aumenta ruína de verdade
+— se um refactor futuro voltar a tratar blocos como i.i.d., esse teste
+quebra), integrado em `src/cli/desafio.ts`.
