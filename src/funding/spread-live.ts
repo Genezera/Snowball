@@ -187,6 +187,10 @@ export interface EstadoSpread {
   limiteAnterior?: string;
   /** dinheiro por exchange: a verdade sobre onde o capital está */
   saldos?: Record<string, number>;
+  /** quanto foi DECLARADO por exchange desde o início — baseline fixa para
+   * medir lucro individual por exchange (`saldos[ex] - saldosIniciais[ex]`),
+   * nunca recalculada a partir do saldo atual */
+  saldosIniciais?: Record<string, number>;
   /** último motivo de captura indisponível logado, para não repetir todo ciclo */
   motivoCapturaAnterior?: string;
 }
@@ -323,6 +327,38 @@ export class MotorSpread {
     return this.estado.saldos;
   }
 
+  /**
+   * Adiciona ao estado qualquer exchange que apareça em `--exchanges` mas
+   * ainda não tenha saldo — o caso de expandir de 2 para N exchanges num
+   * estado que já existe em disco, sem descartar o histórico das que já
+   * operavam. Cada exchange nova entra com `capital / número de exchanges`
+   * (o mesmo valor de `--porExchange`), e o total de capital/capitalInicial
+   * cresce na mesma medida — isto NÃO é lucro, é aporte, então tem que
+   * mover os dois juntos ou o cálculo de lucro (`capital - capitalInicial`)
+   * ficaria errado.
+   *
+   * `saldosIniciais` é a baseline para o RANKING de lucro por exchange —
+   * deliberadamente o valor DECLARADO por exchange (US$ 100, por exemplo),
+   * não o saldo atual. Para as exchanges que já operavam antes desta
+   * mudança, isto retroage corretamente ao valor que de fato foi alocado
+   * ali desde o início (ver CONTINUIDADE.md: "US$ 100 em CADA exchange").
+   */
+  private sincronizarNovasExchanges() {
+    const alvo = this.o.capital / this.o.exchanges.length;
+    const s = this.saldos();
+    if (!this.estado.saldosIniciais) this.estado.saldosIniciais = {};
+    for (const ex of this.o.exchanges) {
+      if (this.estado.saldosIniciais[ex] == null) this.estado.saldosIniciais[ex] = alvo;
+      if (s[ex] == null) {
+        s[ex] = alvo;
+        this.estado.capital += alvo;
+        this.estado.capitalInicial += alvo;
+        this.log(`exchange nova configurada: ${ex} · US$ ${alvo.toFixed(2)} alocado`);
+      }
+    }
+    this.estado.pico = Math.max(this.estado.pico ?? this.estado.capitalInicial, this.estado.capital);
+  }
+
   private debitar(exchange: string, valor: number) {
     const s = this.saldos();
     s[exchange] = (s[exchange] ?? 0) - valor;
@@ -414,6 +450,13 @@ export class MotorSpread {
   }
 
   async init() {
+    const antesDeSincronizar = JSON.stringify(this.estado.saldos ?? {});
+    this.sincronizarNovasExchanges();
+    // Sem isto, a alocação nova só existia em memória até o primeiro ciclo
+    // completar (até 5 min depois) — se o processo caísse antes disso, o log
+    // dizia "configurada" mas o disco (e portanto o dashboard, que lê o
+    // arquivo, não o processo) continuava mostrando as exchanges antigas.
+    if (JSON.stringify(this.estado.saldos) !== antesDeSincronizar) this.salvar();
     const s = this.saldos();
     const r = riscoDesbalanceamento(this.o.alavancagem);
     const primeira = dimensionar(

@@ -164,6 +164,19 @@ tbody tr:nth-child(odd){background:rgba(0,0,0,.018)}
 .exprow:last-child{border-bottom:none}
 .exprow span:first-child{font-family:var(--sans);color:var(--ink-dim)}
 
+.rk-row{display:grid;grid-template-columns:34px 130px 1fr 150px 20px;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px dashed var(--line-strong);transition:background-color .5s}
+.rk-row:last-child{border-bottom:none}
+.rk-row.rk-moved{background-color:var(--amber-bg)}
+.rk-pos{font-family:var(--serif);font-weight:700;font-size:1.05rem;color:var(--ink-dim);text-align:center}
+.rk-row:first-child .rk-pos{color:var(--green)}
+.rk-ex{font-weight:700;font-size:.84rem;text-transform:uppercase;letter-spacing:.02em}
+.rk-bar-wrap{height:11px;background:var(--line);border:1px solid var(--line-strong);position:relative;overflow:hidden}
+.rk-bar-wrap i{display:block;height:100%}
+.rk-lucro{font-family:var(--mono);font-size:.82rem;font-weight:700;text-align:right;white-space:nowrap}
+.rk-arrow{font-size:.8rem;text-align:center}
+.rk-arrow.arr-up{color:var(--green)} .rk-arrow.arr-down{color:var(--red)}
+@media(max-width:760px){.rk-row{grid-template-columns:26px 90px 1fr 110px 16px;gap:8px}}
+
 .healthgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .hchip{border:1.5px solid var(--line-strong);padding:9px 11px}
 .hchip .nm{font-weight:700;font-size:.78rem;display:flex;align-items:center;gap:6px}
@@ -222,6 +235,11 @@ footer.foot{text-align:center;color:var(--ink-faint);font-size:.71rem;padding:26
       <div class="procgrid" id="procgrid"></div>
       <div class="wdlog" id="wdlog"></div>
     </div>
+  </section>
+
+  <section class="ledger">
+    <div class="ledger-head"><h2>Ranking de exchanges — lucro individual</h2><span class="note">US$ 100 declarado em cada, desde o início</span></div>
+    <div class="ledger-body" id="ranking-box"></div>
   </section>
 
   <section class="ledger">
@@ -495,6 +513,36 @@ setInterval(function(){
   });
 },900);
 
+// ---- ranking de exchanges por lucro individual ----
+var rankAnterior={};
+function renderRanking(d){
+  var r=d.rankingExchanges||[];
+  renderIfChanged('ranking',r,function(){
+    var host=el('ranking-box');
+    if(!r.length){host.innerHTML='<div class="empty">sem exchanges configuradas ainda</div>';return}
+    var maxAbs=Math.max.apply(null,r.map(function(x){return Math.abs(x.lucro)}).concat([0.01]));
+    host.innerHTML=r.map(function(x){
+      var pctBar=Math.max(2,Math.min(100,(Math.abs(x.lucro)/maxAbs)*100));
+      var cor=x.lucro>=0?'var(--green)':'var(--red)';
+      var cls=x.lucro>=0?'up':'down';
+      var moveu=rankAnterior[x.exchange]!=null&&rankAnterior[x.exchange]!==x.posicao;
+      var subiu=moveu&&rankAnterior[x.exchange]>x.posicao;
+      var seta=moveu?('<span class="rk-arrow '+(subiu?'arr-up':'arr-down')+'">'+(subiu?'▲':'▼')+'</span>'):'<span class="rk-arrow"></span>';
+      return '<div class="rk-row'+(moveu?' rk-moved':'')+'">'+
+        '<span class="rk-pos">#'+x.posicao+'</span>'+
+        '<span class="rk-ex">'+esc(x.exchange)+'</span>'+
+        '<span class="rk-bar-wrap"><i style="width:'+pctBar+'%;background:'+cor+'"></i></span>'+
+        '<span class="rk-lucro '+cls+'">'+(x.lucro>=0?'+':'')+fmtUsd(x.lucro)+' ('+(x.lucroPct>=0?'+':'')+fmtPct(x.lucroPct,2)+')</span>'+
+        seta+
+        '</div>';
+    }).join('');
+    r.forEach(function(x){rankAnterior[x.exchange]=x.posicao});
+    setTimeout(function(){
+      document.querySelectorAll('.rk-moved').forEach(function(n){n.classList.remove('rk-moved')});
+    },2200);
+  });
+}
+
 // ---- contas por exchange ----
 function renderContas(d){
   var contas=d.contas||[];
@@ -659,6 +707,7 @@ function render(d){
   renderKpis(d);
   renderCurva(d);
   renderBarras(d);
+  renderRanking(d);
   renderProcessos(d);
   renderPosicoes(d);
   renderContas(d);

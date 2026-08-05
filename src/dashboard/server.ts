@@ -425,6 +425,22 @@ async function montarDados() {
       };
     });
 
+    // ── ranking de lucro por exchange ───────────────────────────────────────
+    //
+    // `saldosIniciais` é o valor DECLARADO por exchange (ex.: US$ 100), fixo
+    // desde que a exchange entrou em operação — nunca recalculado a partir do
+    // saldo atual. Lucro individual = saldo agora menos essa baseline. É o
+    // "qual exchange rende mais" pedido, sem misturar com o total agregado.
+    const saldosIniciais: Record<string, number> = estado?.saldosIniciais ?? {};
+    const rankingExchanges = Object.entries(saldos)
+      .map(([ex, saldo]) => {
+        const inicial = saldosIniciais[ex] ?? saldo;
+        const lucro = saldo - inicial;
+        return { exchange: ex, saldo, inicial, lucro, lucroPct: inicial > 0 ? lucro / inicial : 0 };
+      })
+      .sort((a, b) => b.lucro - a.lucro)
+      .map((r, i) => ({ ...r, posicao: i + 1 }));
+
     // ── equilíbrio de direção: quanto cada exchange drena numa alta ─────────
     const dreno: Record<string, number> = {};
     for (const p of abertas) {
@@ -468,7 +484,7 @@ async function montarDados() {
       // 'leitura' é só o ponto periódico pra curva de capital não ficar com um
       // ponto só — não é uma decisão, então some da tabela "Decisões do motor"
       // mas continua contando pra `curva` acima, que lê o `diario` completo.
-      estado, posicoes, contas, diario: diario.filter((e) => e.evento !== 'leitura').slice(-80).reverse(), curva,
+      estado, posicoes, contas, rankingExchanges, diario: diario.filter((e) => e.evento !== 'leitura').slice(-80).reverse(), curva,
       pagamentosPorDia: [...porDia].map(([dia, total]) => ({ dia, total })),
       scan: scan.slice(0, 15),
       atualizadoEm: Date.now(),

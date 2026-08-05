@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 declare -A CMD=(
   [vigilancia]="node src/cli/vigilancia.ts --equity 100 --intervalo 5"
   [custodia]="node src/cli/custodia.ts --intervalo 15"
-  [motor]="node --env-file-if-exists=.env src/cli/spread-live.ts --porExchange 100 --alavancagem 5"
+  [motor]="node --env-file-if-exists=.env src/cli/spread-live.ts --porExchange 100 --alavancagem 5 --exchanges binanceusdm,bybit,okx,gate,bitget,bingx"
   [dashboard]="node src/dashboard/server.ts"
   [coletor]="node src/cli/coletor.ts --intervalo 5"
 )
