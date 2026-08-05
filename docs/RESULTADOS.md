@@ -754,3 +754,62 @@ testado em `src/backtest/bootstrap-concorrente.test.ts` (inclui teste de
 regressão que prova que a correlação intra-bloco aumenta ruína de verdade
 — se um refactor futuro voltar a tratar blocos como i.i.d., esse teste
 quebra), integrado em `src/cli/desafio.ts`.
+
+---
+
+## Resultado 13 — Quatro tentativas de mitigar a concorrência, todas descartadas
+
+Continuando a busca a partir do Resultado 12 (~9% de sucesso / ~45% de
+ruína no risco ótimo), testei quatro formas de atacar diretamente o
+problema identificado (54 posições correlacionadas abrindo juntas). As
+quatro foram implementadas e medidas no mesmo bootstrap por blocos —
+nenhuma superou a fração fixa simples.
+
+**1. Orçamento de risco total dividido pelas posições abertas** (em vez de
+cada posição arriscar uma fatia fixa, um orçamento total é dividido pelo
+número de posições abertas no momento — reduz automaticamente cada posição
+quando o mercado está "lotado" de sinais correlacionados). Resultado:
+10,1% sucesso / 43,5% ruína no orçamento ótimo (20%) — dentro do ruído do
+resultado com fração fixa (9,3%/44,7%). Não ajuda porque, com ~54 posições
+tipicamente abertas, `orçamento/N` já converge para quase o mesmo valor que
+uma fração fixa a maior parte do tempo.
+
+**2. Teto rígido de posições concorrentes** (nunca deixar mais que K
+posições abertas ao mesmo tempo, com o mesmo orçamento total de risco).
+Piorou — de 9,6% sucesso/46,1% ruína sem teto para 7,2%/85,9% com teto de
+3. Motivo: um teto baixo concentra o mesmo orçamento em menos apostas
+maiores, removendo a diversificação que a própria concorrência (mesmo
+correlacionada a +0,13) ainda oferecia.
+
+**3. Freio por drawdown do portfólio** (reduzir o risco quando o capital
+cai desde o pico — já reportado no Resultado 12, repetido aqui pelo
+contexto). Falha porque reage tarde: quando o drawdown aparece, as
+posições que causaram a perda correlacionada já foram abertas no tamanho
+antigo.
+
+**4. Freio por resultado realizado recente** (pausar novas entradas
+quando a média móvel dos últimos K trades fechados fica abaixo de um
+limiar — mais rápido que o freio por drawdown, porque não depende de
+acumular perda no capital). Falhou de um jeito diferente: é gatilho
+demais. A variância de um R individual é alta (desvio-padrão ~1,9), então
+a média de 5 a 20 trades fica negativa com frequência mesmo em períodos
+calmos — o freio pausa a estratégia quase o tempo todo (sucesso E ruína
+caem para perto de 0%, a estratégia simplesmente para de operar).
+
+**Conclusão:** os ~9% de sucesso / ~45% de ruína do Resultado 12 não são
+um artefato de como o risco é dimensionado — são um platô real para esta
+estratégia dado o nível de correlação medido entre as 57 posições. Escapar
+dele exigiria reduzir a correlação de verdade (universo mais diversificado
+fora de cripto, ou um sinal que discrimine crash sistêmico de sinal
+individual ANTES do trade abrir, não depois) — não apenas outro jeito de
+alocar o mesmo risco entre os mesmos trades correlacionados.
+
+**Também confirmado nesta rodada:** o alvo largo do Resultado 10
+(`takePct=5.0`) continua sendo melhor que o original (`takePct=0.40`)
+mesmo sob o modelo de concorrência corrigido — em todo nível de risco
+testado, sucesso maior e ruína menor (ex.: a 0,5%/posição, 8,6%/46,8%
+contra 6,5%/53,1%). A melhoria do Resultado 10 é real e sobrevive à
+correção do Resultado 12; não é a causa do problema de concorrência.
+
+Nenhum código novo — as quatro tentativas foram descartadas antes de
+qualquer uma justificar formalização.
