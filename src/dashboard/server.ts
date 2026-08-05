@@ -134,12 +134,19 @@ async function atualizarPrecosAoVivo() {
  * CommandLine de cada node.exe via PowerShell, cacheada 10s pra não
  * atropelar o sistema com um subprocesso a cada requisição.
  */
+// padrao e so o NOME DO ARQUIVO (sem diretorio) -- nao o caminho inteiro.
+// Motivo (mesmo bug ja corrigido em scripts/supervisor.sh): o Git Bash
+// reescreve caminhos estilo POSIX (src/cli/vigilancia.ts) para estilo
+// Windows (src\cli\vigilancia.ts) ao invocar node.exe, um binario nativo,
+// e a CommandLine que o Windows registra fica com contrabarra. Casar pelo
+// caminho completo com barra normal nunca dava match -- o painel mostrava
+// os 5 processos como "nao detectado" mesmo todos vivos.
 const PROCESSOS_ESPERADOS = [
-  { chave: 'vigilancia', nome: 'Vigilância', padrao: 'src/cli/vigilancia.ts' },
-  { chave: 'custodia', nome: 'Custódia', padrao: 'src/cli/custodia.ts' },
-  { chave: 'motor', nome: 'Motor', padrao: 'src/cli/spread-live.ts' },
-  { chave: 'dashboard', nome: 'Dashboard', padrao: 'src/dashboard/server.ts' },
-  { chave: 'coletor', nome: 'Coletor', padrao: 'src/cli/coletor.ts' },
+  { chave: 'vigilancia', nome: 'Vigilância', padrao: 'vigilancia.ts' },
+  { chave: 'custodia', nome: 'Custódia', padrao: 'custodia.ts' },
+  { chave: 'motor', nome: 'Motor', padrao: 'spread-live.ts' },
+  { chave: 'dashboard', nome: 'Dashboard', padrao: 'server.ts' },
+  { chave: 'coletor', nome: 'Coletor', padrao: 'coletor.ts' },
 ];
 
 let saudeProcessosCache: { ts: number; dados: any[] } = { ts: 0, dados: [] };
