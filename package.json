@@ -51,7 +51,8 @@
     "captura": "node src/cli/captura.ts",
     "backtest:captura": "node src/cli/backtest-captura.ts",
     "meta": "node src/cli/meta.ts",
-    "equity": "node src/cli/equity.ts"
+    "equity": "node src/cli/equity.ts",
+    "desafio": "node src/cli/desafio.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
