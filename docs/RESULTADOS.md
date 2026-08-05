@@ -429,3 +429,51 @@ provável dentro de um horizonte razoável. Isto é consistente com a
 literatura acadêmica: anomalias de mercado sobrevivem estatisticamente após
 publicação, mas perdem força prática depois de custos de transação e
 restrições de execução (McLean & Pontiff 2016, Chen & Zimmermann 2020).
+
+---
+
+## Resultado 8 — Três mecanismos fora da família "direção/reversão", checados e descartados rápido
+
+Depois do veredito do Resultado 7, testei três mecanismos genuinamente
+diferentes de tudo o mais no documento — nenhum é "outra estratégia de
+rompimento", são categorias de operação distintas.
+
+**Basis de futuros com vencimento (calendar spread).** Diferente de funding
+perpétuo: um futuro trimestral CONVERGE ao spot no vencimento por
+construção, não por hipótese estatística de reversão. Medido ao vivo em
+BTC/ETH na Bybit (os únicos com histórico de vencimento longo o bastante):
+estrutura a termo limpa e consistente, ~4,2-4,6% ao ano anualizado no
+contrato de 324 dias. É real e de baixo risco (quase arbitragem) — mas
+pequeno demais para a meta: US$ 200 a 4,5%/ano rende ~US$ 9/ano, e exige
+capital travado quase 1 ano. Contratos de vencimento curto (2-23 dias)
+mostraram basis aparentemente enorme quando anualizado (até 180%), mas é
+artefato de anualizar uma diferença minúscula sobre uma janela curtíssima —
+não é capturável depois do custo de abrir/fechar duas pernas.
+
+**Arbitragem de preço spot entre exchanges.** Medido ao vivo em 7
+exchanges (binance, bybit, okx, gate, bitget, kucoin, mexc) para BTC, ETH,
+SOL, DOGE, SHIB: spread entre a exchange mais barata e a mais cara ficou
+entre 0,027% e 0,061% — abaixo do custo de ida e volta em duas exchanges
+(~0,2-0,4%). O mercado já está eficiente demais nessa camada para um
+participante de varejo com execução via REST (não colocado, não
+low-latency). Descartado sem precisar de backtest.
+
+**Sazonalidade (dia da semana).** Primeira leitura, pooled em 57 ativos:
+quarta/sexta/sábado positivos, domingo/terça/quinta negativos, parecendo um
+padrão real. **Armadilha estatística**: 57 ativos cripto são altamente
+correlacionados entre si — o mesmo dia de alta de Bitcoin aparece 57 vezes
+no pool, inflando N artificialmente. Testado do jeito certo (só BTC,
+metade inicial vs metade final da amostra, 5 anos): 4 de 7 dias mantêm o
+mesmo sinal entre as metades — exatamente o esperado por puro acaso
+(p=0,50). Sem efeito real; a versão pooled era ruído de correlação, não
+sinal.
+
+**Por que parei aqui, e não em scalping/opções/notícias:** scalping de
+verdade exige order book L2 histórico e execução de baixa latência que este
+projeto não tem (só OHLCV via REST); opções cripto (venda de prêmio de
+volatilidade) têm risco de perda ilimitada numa posição descoberta e
+exigiriam infraestrutura de hedge de delta que não existe aqui — construir
+isso sem conseguir validar direito seria pior que não tentar; sentimento/
+notícias não tem fonte de dado histórico confiável disponível. Recusar
+essas três não é preguiça — é o mesmo padrão do resto deste documento: não
+testar o que não dá para testar com rigor.
