@@ -682,6 +682,12 @@ export class MotorSpread {
 
     let bloqueadasPorSaldo = 0;
     let bloqueadasPorPayback = 0;
+    // motivo real do dimensionamento (ex.: "notional de US$ 12 abaixo do
+    // mínimo de US$ 5", "sem margem livre acima da reserva de 30%") — antes
+    // o log descartava isto e recalculava um resumo de saldo bruto, que
+    // mostrava "US$ 99.57 livre de 99.57" (parecendo sobra) mesmo quando o
+    // bloqueio era a RESERVA ou o NOTIONAL MÍNIMO, não falta de dinheiro.
+    let motivoBloqueioSaldo = '';
 
     for (const melhor of ops) {
       if (this.posicoes.length >= maxAgora) break;
@@ -712,7 +718,14 @@ export class MotorSpread {
         melhor.exchangeShort, melhor.exchangeLong,
         this.o.alavancagem, this.o.reserva,
       );
-      if (!d.possivel) { bloqueadasPorSaldo++; continue; }
+      if (!d.possivel) {
+        bloqueadasPorSaldo++;
+        // guarda o motivo da candidata com MELHOR pontuação que foi barrada
+        // (a primeira do loop ordenado) — é o caso mais informativo pra
+        // mostrar, em vez do último ou de uma média
+        if (!motivoBloqueioSaldo) motivoBloqueioSaldo = `${melhor.symbol.replace('/USDT:USDT', '')}: ${d.motivo}`;
+        continue;
+      }
 
       // Escorregamento MEDIDO no livro deste par, neste tamanho — não a
       // constante de pior caso. Só chega aqui quem já passou nos filtros
@@ -781,15 +794,21 @@ export class MotorSpread {
 
     if (bloqueadasPorSaldo && this.posicoes.length < maxAgora) {
       const u = usoPorExchange(this.saldos(), this.exposicaoPorExchange());
-      const resumo = Object.entries(u)
+      // saldo BRUTO (antes da reserva) — contexto, não a causa do bloqueio.
+      // A causa de verdade é `motivoBloqueioSaldo`, que já veio de
+      // `dimensionar()` considerando a reserva de 30% e o notional mínimo.
+      // Mostrar só o bruto ("US$ 99.57 livre de 99.57") sem isso fazia
+      // parecer que sobrava dinheiro quando o bloqueio era outra coisa.
+      const bruto = Object.entries(u)
         .map(([ex, x]) => `${ex} US$ ${x.livre.toFixed(2)} livre de ${x.saldo.toFixed(2)}`)
         .join(' · ');
-      this.log(`saldo barrou ${bloqueadasPorSaldo} candidatas · ${resumo}`);
+      const motivo = `${motivoBloqueioSaldo || 'sem candidata dimensionável'} · saldo bruto: ${bruto}`;
+      this.log(`saldo barrou ${bloqueadasPorSaldo} candidatas · ${motivo}`);
       // Sem isto o painel "Decisões do motor" ficava mudo entre uma abertura e
       // outra — o motor decide a cada ciclo, mas só a decisão de MONTAR era
       // gravada. "Não abrir" também é uma decisão, e é a mais frequente das
       // duas.
-      this.diario('bloqueado', { motivo: `saldo insuficiente · ${resumo}` });
+      this.diario('bloqueado', { motivo: `saldo insuficiente · ${motivo}` });
     }
 
     // Não abrir é um resultado, não uma falha. Enquanto nenhum par tiver
