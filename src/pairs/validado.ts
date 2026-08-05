@@ -71,6 +71,8 @@ export interface ResultadoPares {
   /** excursões adversas intra-trade, no MESMO índice que `trades` */
   excursoes: ExcursaoTrade[];
   duracaoMediaBarras: number;
+  /** timestamps reais de entrada/saída, no MESMO índice que `trades` — para bootstrap por calendário */
+  tempos: { entryTime: number; exitTime: number }[];
 }
 
 /**
@@ -115,16 +117,35 @@ export function rodarPares(
 
   const trades: TradePar[] = [];
   const excursoes: ExcursaoTrade[] = [];
+  const tempos: { entryTime: number; exitTime: number }[] = [];
   for (const c of top) {
     const opA = series[c.a].slice(corte), opB = series[c.b].slice(corte);
     const ts = backtestPar(opA, opB, c.hedgeRatio, c.intercepto, params);
     trades.push(...ts);
     excursoes.push(...excursoesAdversas(ts, opA, opB));
+    for (const t of ts) tempos.push({ entryTime: opA[t.entradaIdx].t, exitTime: opA[Math.min(t.saidaIdx, opA.length - 1)].t });
   }
   const duracaoMediaBarras = trades.length
     ? trades.reduce((s, t) => s + (t.saidaIdx - t.entradaIdx), 0) / trades.length
     : 0;
-  return { candidatos: top, trades, excursoes, duracaoMediaBarras };
+  return { candidatos: top, trades, excursoes, duracaoMediaBarras, tempos };
+}
+
+/**
+ * Trades de pares com timestamps reais — a base para misturar com
+ * `ts-momentum` no bootstrap por calendário (`portfolio-misto.ts`,
+ * Resultado 14). Mesmo pool de `poolComExcursoes` (descoberta+holdout),
+ * mas com `entryTime`/`exitTime` em vez de índices de barra.
+ */
+export function poolComTempo(): { entryTime: number; exitTime: number; r: number; piorMovimento: number }[] {
+  const d = rodarPares(DESCOBERTA);
+  const h = rodarPares(HOLDOUT);
+  const trades = [...d.trades, ...h.trades];
+  const excursoes = [...d.excursoes, ...h.excursoes];
+  const tempos = [...d.tempos, ...h.tempos];
+  return trades
+    .map((t, i) => ({ entryTime: tempos[i].entryTime, exitTime: tempos[i].exitTime, r: t.retorno, piorMovimento: excursoes[i].piorMovimento }))
+    .filter((t) => t.exitTime > t.entryTime);
 }
 
 export interface PoolPares {

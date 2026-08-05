@@ -813,3 +813,68 @@ correção do Resultado 12; não é a causa do problema de concorrência.
 
 Nenhum código novo — as quatro tentativas foram descartadas antes de
 qualquer uma justificar formalização.
+
+---
+
+## Resultado 14 — Portfólio misto (momentum + pares): a saída real do platô
+
+Depois de quatro tentativas descartadas de realocar risco DENTRO da mesma
+estratégia (Resultado 13), esta funcionou porque ataca a causa raiz:
+diversificação de verdade exige um mecanismo estruturalmente diferente, não
+outro jeito de dividir o mesmo risco entre os mesmos trades correlacionados.
+
+**A ideia.** Pares cointegrados sozinho não escala — só fica com
+expectância positiva a 1x de alavancagem (Resultado 7), lento demais para
+a meta sozinho. Mas pares é MERCADO-NEUTRO: aposta na convergência de um
+spread entre dois ativos, não na direção do mercado. Um crash sistêmico
+(que derruba dezenas de posições de momentum juntas, Resultado 12) afeta
+pares de um jeito diferente — as duas pernas se movem juntas na maioria
+dos casos, o spread continua fazendo sentido.
+
+**Medido:** correlação entre trades de momentum e trades de pares que se
+sobrepõem no tempo = **+0,065** — menos da metade da correlação interna do
+momentum (+0,130, Resultado 12). Pares não é independente de momentum
+(ambos são cripto), mas é BEM menos correlacionado que momentum consigo
+mesmo.
+
+**Uma armadilha no caminho, pega antes de virar resultado.** Um teste
+inicial sem a correção de liquidação de pares (Resultado 7) mostrou
+sucesso de até 41,9% em risco de pares alto (30%) — parecia bom demais.
+Era: em 30% de risco por posição, com `PARES_SIMULTANEOS_MEDIO=6,6`, a
+alavancagem implícita é `0,30×6,6≈2x` — exatamente a faixa onde o
+Resultado 7 já tinha mostrado a expectância de pares virar NEGATIVA por
+liquidação. Sem a correção, o retorno cru de `backtestPar` (que assume que
+toda posição chega ao desfecho natural) inflava o resultado do mesmo jeito
+que já tinha acontecido uma vez antes com pares sozinho. Corrigido
+aplicando `distanciaLiquidacaoPorPerna` dinamicamente por trade, dado o
+risco testado — depois da correção, risco de pares acima de ~15-20%
+(alavancagem >1-1,3x) volta a piorar o resultado, como esperado.
+
+**Número final** (universo completo, block bootstrap, alavancagem de pares
+sempre <1x — dentro da faixa seguramente validada no Resultado 7):
+
+| combinação | chance de sucesso | chance de quebra |
+|---|---|---|
+| só momentum (Resultado 12, baseline) | ~9-10% | ~44-46% |
+| momentum 0,35% + pares 5% | ~10,5% | **~14-16%** |
+| momentum 0,4% + pares 5% | ~11,5-11,8% | ~23-25% |
+| momentum 0,5% + pares 5% | ~12,6-12,8% | ~40-42% |
+
+Melhora em AMBOS os eixos ao mesmo tempo, robusto em múltiplas sementes —
+o mesmo tipo de sinal que confirmou o Resultado 11. O ponto mais defensável
+depende do apetite a risco: `momentum 0,35% + pares 5%` corta a chance de
+quebra em dois terços (46%→15%) mantendo a chance de sucesso praticamente
+igual; `momentum 0,5% + pares 5%` melhora sucesso em ~30% relativo mantendo
+a quebra igual à baseline.
+
+**Reproduzir:** `npm run desafio` (seção "PORTFÓLIO MISTO").
+
+**Código:** `src/backtest/portfolio-misto.ts` (`construirBlocosMistos`,
+`simularPortfolioMisto` — correção de liquidação de pares aplicada
+dinamicamente por trade, dado o risco testado), testado em
+`src/backtest/portfolio-misto.test.ts` (inclui teste de regressão que
+prova que a diversificação reduz ruína de verdade, e que a correção de
+liquidação dispara quando deveria). `src/pairs/validado.ts` ganhou
+`poolComTempo()` (trades de pares com timestamps reais, para bootstrap por
+calendário) e `ResultadoPares.tempos`, aditivo — não muda nenhum resultado
+existente. Integrado em `src/cli/desafio.ts`.

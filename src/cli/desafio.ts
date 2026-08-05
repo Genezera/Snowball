@@ -34,8 +34,9 @@ import { makeConfig } from '../config.ts';
 import { paraRMultiplos, simularBootstrap } from '../backtest/bootstrap.ts';
 import { resolverPoliticaOtima, simularComPolitica, riscoNaPolitica } from '../backtest/dp-risco.ts';
 import { paraRMultiplosComTempo, construirBlocos, simularPortfolioConcorrente } from '../backtest/bootstrap-concorrente.ts';
+import { construirBlocosMistos, simularPortfolioMisto } from '../backtest/portfolio-misto.ts';
 import { UNIVERSO_MOMENTUM, PARAMS_VALIDADOS, MAX_BARS_VALIDADO } from '../data/momentum-universe.ts';
-import { poolComExcursoes } from '../pairs/validado.ts';
+import { poolComExcursoes, poolComTempo, PARES_SIMULTANEOS_MEDIO } from '../pairs/validado.ts';
 import { distanciaLiquidacaoPorPerna } from '../pairs/liquidacao.ts';
 import { parseArgs, num } from './args.ts';
 
@@ -207,6 +208,46 @@ for (const { risco, s } of linhasConcorrente) {
 const melhorConcorrente = linhasConcorrente.reduce((m, l) => (l.s.pSucesso > m.s.pSucesso ? l : m));
 console.log(`\n  melhor chance de sucesso (com concorrência real): risco ${(melhorConcorrente.risco * 100).toFixed(1)}% por posição → ${(melhorConcorrente.s.pSucesso * 100).toFixed(1)}%`);
 console.log(`  (${BLOCO_DIAS} dias/bloco — o resultado é sensível a essa escolha, ver docs/RESULTADOS.md item 12 pra faixa de sensibilidade)\n`);
+
+// ── PORTFÓLIO MISTO: ts-momentum + pares, misturados no mesmo bootstrap ────
+//
+// Pares sozinho (cenário abaixo) não escala — só fica com expectância
+// positiva a 1x de alavancagem. Mas correlação medida entre trades de
+// momentum e trades de pares que se sobrepõem no tempo é +0,065, BEM menor
+// que a correlação interna do momentum (+0,130, Resultado 12) — pares é
+// mercado-neutro, reage diferente a um choque de mercado. Misturar uma
+// fatia de risco em pares (com a correção de liquidação do Resultado 7
+// aplicada dinamicamente) reduz o risco agregado de ruína sem precisar de
+// mais edge nenhum. Ver docs/RESULTADOS.md item 14.
+console.log('─'.repeat(100));
+console.log('PORTFÓLIO MISTO: ts-momentum + pares cointegrados (block bootstrap combinado)\n');
+console.log('reconstruindo trades de pares com timestamps...');
+const tradesPares = poolComTempo().map((t) => ({ ...t, estrategia: 'pares' as const }));
+const tradesMomentumTag = rMultiplosComTempo.map((t) => ({ ...t, estrategia: 'momentum' as const }));
+const blocosMistos = construirBlocosMistos([...tradesMomentumTag, ...tradesPares], BLOCO_DIAS);
+console.log(`${tradesPares.length} trades de pares, ${blocosMistos.blocos.length} blocos combinados\n`);
+
+const CANDIDATOS_MISTO: Array<{ nome: string; momentum: number; pares: number }> = [
+  { nome: 'só momentum (baseline corrigido)', momentum: melhorConcorrente.risco, pares: 0 },
+  { nome: 'momentum 0,35% + pares 5%', momentum: 0.0035, pares: 0.05 },
+  { nome: 'momentum 0,4% + pares 4%', momentum: 0.004, pares: 0.04 },
+  { nome: 'momentum 0,4% + pares 5%', momentum: 0.004, pares: 0.05 },
+  { nome: 'momentum 0,5% + pares 5%', momentum: 0.005, pares: 0.05 },
+];
+console.log('combinação'.padEnd(35) + 'chega na meta'.padEnd(16) + 'QUEBRA'.padEnd(11) + 'ainda tentando');
+console.log('-'.repeat(100));
+for (const c of CANDIDATOS_MISTO) {
+  const s = simularPortfolioMisto({
+    blocosCalendario: blocosMistos, capitalInicial: CAPITAL, alvo: ALVO, pisoRuina: PISO_RUINA,
+    riscoPorEstrategia: { momentum: c.momentum, pares: c.pares }, horizonteMeses: HORIZONTE_MESES,
+    caminhos: CAMINHOS_CONCORRENTE, correcaoLiquidacaoPares: { paresSimultaneosMedio: PARES_SIMULTANEOS_MEDIO },
+  });
+  console.log(
+    c.nome.padEnd(35) + `${(s.pSucesso * 100).toFixed(1)}%`.padEnd(16) +
+    `${(s.pRuina * 100).toFixed(1)}%`.padEnd(11) + `${(s.pArrastando * 100).toFixed(1)}%`,
+  );
+}
+console.log();
 
 // ── cenário 2: pares cointegrados, BOOTSTRAP + risco de liquidação por perna ──
 //
