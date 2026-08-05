@@ -230,3 +230,50 @@ sobreajuste que o projeto inteiro existe para detectar.
 
 5. **Nada foi aprovado para dinheiro real.** O único portão que resta é paper
    trading, e ele mede justamente o que o backtest não consegue.
+
+---
+
+## Resultado 6 — Time-series momentum (Moskowitz/Ooi/Pedersen), a primeira vantagem que sobreviveu holdout cego
+
+**A classe é diferente de tudo o mais neste documento.** As estratégias acima
+leem padrão de vela (corpo, rompimento, zscore) e saem por stop/alvo em
+minutos-horas. `ts-momentum` lê só o retorno acumulado num lookback longo
+(30 dias), entra na direção dele, e sai por TEMPO (maxBarsInTrade), não por
+preço. É o resultado mais replicado da literatura de factor investing — 58
+mercados, 25+ anos, positivo em todos os 58 (Moskowitz, Ooi, Pedersen 2012).
+
+**Metodologia, para não repetir o erro do item 6 abaixo:** universo de 57
+perpétuos binanceusdm (1d, 5 anos), dividido ANTES de qualquer ajuste em
+DESCOBERTA (30 ativos, onde a grade de parâmetros foi buscada) e HOLDOUT (27
+ativos, nunca tocados até o teste final, parâmetros fixos sem reajuste).
+
+| conjunto | positivos | fração | expectancy mediana |
+|---|---|---|---|
+| descoberta (30) | 18 | 60% | +0,03R |
+| **holdout cego (27)** | **20** | **74%** | **+0,049R** |
+| combinado (57) | 38 | 67% | — |
+
+P sob H0 de moeda justa: **0,008**. O holdout não caiu em relação à
+descoberta — é o padrão OPOSTO ao de um falso positivo (comparar com o item
+6: 100% → 15%).
+
+**O que isso NÃO é:** uma estratégia rápida. Frequência real ~26-34
+trades/ano por ativo, CAGR individual de 0-4% ao ano com dimensionamento por
+risco fixo de 0,5%. O ganho é a ROBUSTEZ da vantagem, não a velocidade dela.
+
+**Bootstrap contra a meta de viagem** (`npm run desafio`, `npm run momentum`):
+reamostrando os 7.634 trades reais (não um modelo binário — a distribuição
+tem cauda direita gorda, poucos trades grandes carregam o resultado), o
+melhor ponto de risco fracionário (5% por operação, portfólio de ~8 ativos)
+dá 23,8% de chance de chegar a US$ 2.234 partindo de US$ 200 sem aporte, e
+55,6% de chance de quebrar antes.
+
+**Leitura honesta:** é a vantagem mais robusta já medida neste projeto, e
+ainda assim modesta demais para tornar a meta provável sem aporte. Expectancy
+real (~0,04-0,05R) é isto: real, mas pequena — consistente com a literatura
+de que anomalias sobrevivem estatisticamente mas perdem força prática após
+custos (McLean & Pontiff 2016, Chen & Zimmermann 2020).
+
+**Código:** `src/strategies/index.ts` (`tsMomentum`, `xsMomentum`),
+`src/data/momentum-universe.ts`, `src/backtest/bootstrap.ts`,
+`npm run momentum`, `npm run desafio`.

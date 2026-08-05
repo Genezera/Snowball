@@ -60,4 +60,20 @@ export const GRIDS: Record<string, ParamGrid> = {
     stopPct: [0.01, 0.015],
     takePct: [0.02, 0.03],
   },
+  // Time-series momentum (Moskowitz/Ooi/Pedersen). Lookback em barras — a 4h,
+  // 60 barras ~10 dias, 180 ~30 dias. Stop/alvo largos: são rede de segurança,
+  // a saída de verdade é por tempo (maxBarsInTrade no config do backtest).
+  'ts-momentum': {
+    lookback: [30, 60, 120],
+    minRet: [0.03, 0.05, 0.08],
+    stopPct: [0.10, 0.15],
+    takePct: [0.30, 0.50],
+  },
+  'xs-momentum': {
+    formacao: [90, 180],
+    manutencao: [21, 42],
+    minRet: [0.05, 0.10, 0.15],
+    stopPct: [0.10, 0.15],
+    takePct: [0.25, 0.40],
+  },
 };

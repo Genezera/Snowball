@@ -455,6 +455,102 @@ export function trendRider(p: StratParams = {}): Strategy {
   };
 }
 
+/**
+ * TIME-SERIES MOMENTUM (Moskowitz/Ooi/Pedersen, "Time Series Momentum", 2012).
+ *
+ * Classe de estratégia DIFERENTE de tudo o mais neste arquivo. As outras cinco
+ * leem padrão de VELA (corpo, rompimento, zscore de curtíssimo prazo) e saem
+ * por stop/alvo fixo em minutos a horas. Esta lê só o RETORNO acumulado num
+ * lookback longo, entra na direção dele, e sai por TEMPO (`maxBarsInTrade`),
+ * não por preço — o stop/alvo aqui são rede de segurança, não o mecanismo.
+ *
+ * O paper mede o efeito em 58 contratos futuros — ações, câmbio, commodities,
+ * juros — ao longo de 25+ anos, positivo em TODOS os 58, robusto a
+ * sub-amostra, lookback e período de manutenção. É o resultado mais replicado
+ * da literatura de factor investing, e ninguém neste projeto tinha testado.
+ *
+ * A pergunta que decide se serve aqui: ele sobrevive em cripto de 4h/1d, com
+ * os custos reais deste projeto, fora da amostra? Só o walk-forward responde.
+ */
+export function tsMomentum(p: StratParams = {}): Strategy {
+  const lookback = (p.lookback as number) ?? 60;
+  const minRet = (p.minRet as number) ?? 0.05;
+  const stopPct = (p.stopPct as number) ?? 0.15;
+  const takePct = (p.takePct as number) ?? 0.40;
+  const allowShort = (p.allowShort as boolean) ?? true;
+
+  const cache = new WeakMap<Bar[], any>();
+  const prep = (bars: Bar[]) => {
+    let v = cache.get(bars);
+    if (!v) v = { ctx: buildCtx(bars) };
+    cache.set(bars, v);
+    return v;
+  };
+
+  return {
+    name: `ts-momentum(lb${lookback} min${minRet})`,
+    warmup: lookback + 2,
+    onBar(bars, i): Signal | null {
+      if (i < lookback) return null;
+      const c = bars[i].c, cPrev = bars[i - lookback].c;
+      if (!(c > 0) || !(cPrev > 0)) return null;
+      const ret = c / cPrev - 1;
+      if (Math.abs(ret) < minRet) return null;
+      const side: Side = ret > 0 ? 'long' : 'short';
+      if (side === 'short' && !allowShort) return null;
+      const v = prep(bars);
+      return { side, stopPct, takePct, features: commonFeatures(bars, i, v.ctx) };
+    },
+  };
+}
+
+/**
+ * MOMENTUM CROSS-SECTIONAL — formação 30d / manutenção 7d.
+ *
+ * Documentado especificamente em cripto: o quintil que mais subiu num período
+ * de formação tende a superar o que mais caiu no período de manutenção
+ * seguinte. Diferente do time-series momentum: aqui o sinal é o RANKING entre
+ * ativos, não o sinal absoluto de um só.
+ *
+ * Implementado como sinal de UM ativo, parametrizado pelo período de formação
+ * e manutenção — a parte cross-sectional (ranquear vários ativos e operar só
+ * os extremos) fica no CLI de scan, que decide QUAL ativo alimentar aqui. Esta
+ * função decide SE o ativo (dado que já foi selecionado por estar no extremo)
+ * ainda vale abrir agora, ou se o momentum de formação já esfriou.
+ */
+export function xsMomentum(p: StratParams = {}): Strategy {
+  const formacao = (p.formacao as number) ?? 180; // ~30 dias em barras de 4h
+  const manutencao = (p.manutencao as number) ?? 42; // ~7 dias em barras de 4h
+  const minRet = (p.minRet as number) ?? 0.10;
+  const stopPct = (p.stopPct as number) ?? 0.12;
+  const takePct = (p.takePct as number) ?? 0.30;
+  const allowShort = (p.allowShort as boolean) ?? true;
+
+  const cache = new WeakMap<Bar[], any>();
+  const prep = (bars: Bar[]) => {
+    let v = cache.get(bars);
+    if (!v) v = { ctx: buildCtx(bars) };
+    cache.set(bars, v);
+    return v;
+  };
+
+  return {
+    name: `xs-momentum(form${formacao}/manu${manutencao})`,
+    warmup: formacao + 2,
+    onBar(bars, i): Signal | null {
+      if (i < formacao) return null;
+      const c = bars[i].c, cForm = bars[i - formacao].c;
+      if (!(c > 0) || !(cForm > 0)) return null;
+      const retFormacao = c / cForm - 1;
+      if (Math.abs(retFormacao) < minRet) return null;
+      const side: Side = retFormacao > 0 ? 'long' : 'short';
+      if (side === 'short' && !allowShort) return null;
+      const v = prep(bars);
+      return { side, stopPct, takePct, features: { ...commonFeatures(bars, i, v.ctx), retFormacao, manutencao } };
+    },
+  };
+}
+
 export const REGISTRY: Record<string, (p?: StratParams) => Strategy> = {
   'momentum-breakout': momentumBreakout,
   'ma-cross': maCross,
@@ -462,6 +558,8 @@ export const REGISTRY: Record<string, (p?: StratParams) => Strategy> = {
   'body-breakout': bodyBreakout,
   'vwma-dip': vwmaDip,
   'trend-rider': trendRider,
+  'ts-momentum': tsMomentum,
+  'xs-momentum': xsMomentum,
 };
 
 export function buildStrategy(name: string, params: StratParams = {}): Strategy {

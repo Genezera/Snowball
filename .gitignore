@@ -1,8 +1,11 @@
 # dependências
 node_modules/
 
-# séries de preço baixadas — 136 MB, reproduzíveis com `npm run download`
-data/
+# séries de preço baixadas — 136 MB, reproduzíveis com `npm run download`.
+# ANCORADO na raiz (/data/): sem a barra inicial, o padrão "data/" também
+# casava com src/data/ em qualquer profundidade, e isso deixou store.ts e
+# stocks.ts — código-fonte, não dado — fora do git desde sempre.
+/data/
 
 # estado de execução: posições abertas, diários, logs
 spread/
