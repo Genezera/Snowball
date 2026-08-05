@@ -1,62 +1,113 @@
 /**
- * A META: um Audi RS3 ou RS6.
+ * A META do projeto, com conta visível em vez de intenção.
  *
- * Este arquivo existe para que o objetivo tenha uma conta visível em vez de uma
- * intenção. Ele não promete nada — pega o alvo, pega o que o projeto MEDIU, e
- * responde quanto tempo leva em cada cenário.
+ * Meta atual: 10 dias em Teerã, ida e volta, vivendo tranquilo.
  *
- * ── as referências, todas externas e verificáveis ─────────────────────────
+ * ── por que esta meta é diferente das anteriores ──────────────────────────
  *
- *   S&P 500, longo prazo                    ~10% ao ano
- *   Citadel (um dos melhores do mundo)      ~20% bruto
- *   Medallion / Renaissance                  39% líquido, 62% bruto
+ * O alvo do Audi exigia multiplicar o capital por ~900x. Nenhum retorno
+ * sustentado do mundo real chega perto disso partindo de US$ 200 — no ritmo do
+ * Medallion, o melhor fundo já construído, levava 20,8 anos.
  *
- * O Medallion é o teto histórico da atividade: o melhor fundo já construído,
- * com os melhores matemáticos, dados e infraestrutura do mundo, fechado a
- * investidores externos desde 1993. Nada acima disso existe de forma
- * sustentada, e usar um número maior num plano é planejar sobre ficção.
+ * A viagem exige ~11x. Isso está dentro do que existe. A conta muda de
+ * "impossível" para "quanto tempo, e com qual aporte" — que é uma pergunta
+ * respondível.
  *
- * ── o que este projeto mediu ──────────────────────────────────────────────
+ * ── os custos, pesquisados em 08/2026, não estimados ──────────────────────
  *
- * Depois de testar arbitragem de funding (0 de 341 ciclos), captura de
- * liquidação (0 operações no backtest), direcional em cripto (3 aprovados em
- * 11 ativos) e direcional em ações (3 positivos em 20 ativos independentes),
- * a melhor expectancy validada foi da ordem de 0,1R com ~4 operações por mês
- * por ativo. Ver docs/O-QUE-FALHOU.md.
+ * PASSAGEM GRU → THR (ida e volta)
+ *   melhor preço encontrado          R$ 7.407
+ *   média dos últimos 12 meses       R$ 9.611
+ *   outubro é 17% mais barato que a média anual
+ *   comprando com 7+ semanas de antecedência: −41% em média
+ *   Turkish Airlines costuma ser a rota mais barata
  *
- * ── a conta que decide ────────────────────────────────────────────────────
+ * DIÁRIA EM TEERÃ (fontes de orçamento de viagem)
+ *   mochileiro          US$ 25–50/dia
+ *   intermediário       US$ 60–100/dia   ← "viver tranquilamente"
+ *   hostel a partir de US$ 10/noite; hotel simples US$ 20; refeição
+ *   econômica US$ 5, restaurante médio US$ 15–20
  *
- * Com aporte mensal A, capital inicial C e retorno mensal r, o capital em n
- * meses é:
+ * ── a restrição prática que muda o planejamento financeiro ────────────────
  *
- *   V(n) = C·(1+r)^n + A·[((1+r)^n − 1)/r]
+ * CARTÃO INTERNACIONAL NÃO FUNCIONA NO IRÃ. Visa e Mastercard não operam lá
+ * por causa das sanções, e caixas eletrônicos não aceitam cartão estrangeiro.
+ * O dinheiro precisa entrar em ESPÉCIE (euro ou dólar), trocado nas casas de
+ * câmbio locais ("sarafi"), ou carregado num cartão pré-pago iraniano de
+ * turista.
  *
- * O segundo termo domina quando C é pequeno. É por isso que, partindo de
- * US$ 200, o aporte decide o prazo e o retorno decide a margem — e não o
- * contrário, que é como a intuição costuma tratar.
+ * Isso não é detalhe de viagem — é requisito do plano. A meta não é "ter o
+ * saldo na conta", é "ter em espécie, em euro, antes de embarcar". Um sistema
+ * que rende bem mas deixa o dinheiro preso numa exchange não cumpre a meta.
  */
 import { parseArgs, num, str } from './args.ts';
 
 const a = parseArgs();
 
-/** Preço no Brasil, com imposto de importação — a ordem de grandeza que importa. */
-const CARROS: Record<string, { nome: string; brl: number }> = {
-  rs3: { nome: 'Audi RS3', brl: 600_000 },
-  rs6: { nome: 'Audi RS6', brl: 1_000_000 },
+interface Meta {
+  nome: string;
+  brl: number;
+  detalhe: [string, number][];
+}
+
+const USD_BRL = num(a.cambio, 5.5);
+
+const METAS: Record<string, Meta> = {
+  'teera-economico': {
+    nome: 'Teerã · 10 dias · econômico',
+    brl: 0,
+    detalhe: [
+      ['passagem GRU↔THR (melhor preço, outubro, 7+ semanas antes)', 7_407],
+      ['10 dias a US$ 45/dia (hotel simples + refeições)', 45 * 10 * USD_BRL],
+      ['visto, seguro e taxas', 800],
+      ['reserva de 15% (câmbio, imprevisto)', 0],
+    ],
+  },
+  'teera': {
+    nome: 'Teerã · 10 dias · tranquilo',
+    brl: 0,
+    detalhe: [
+      ['passagem GRU↔THR (média de 12 meses)', 8_500],
+      ['10 dias a US$ 75/dia (hotel bom + restaurantes + passeios)', 75 * 10 * USD_BRL],
+      ['visto, seguro e taxas', 900],
+      ['reserva de 15% (câmbio, imprevisto)', 0],
+    ],
+  },
+  rs3: { nome: 'Audi RS3', brl: 600_000, detalhe: [] },
+  rs6: { nome: 'Audi RS6', brl: 1_000_000, detalhe: [] },
 };
 
-const alvoChave = str(a.carro, 'rs6').toLowerCase();
-const carro = CARROS[alvoChave] ?? CARROS.rs6;
-const USD_BRL = num(a.cambio, 5.5);
+const chave = str(a.meta, 'teera').toLowerCase();
+const meta = METAS[chave] ?? METAS.teera;
+
+// fecha a conta das metas detalhadas (reserva é % do resto)
+if (meta.detalhe.length) {
+  const subtotal = meta.detalhe.slice(0, -1).reduce((s, [, v]) => s + v, 0);
+  meta.detalhe[meta.detalhe.length - 1][1] = subtotal * 0.15;
+  meta.brl = subtotal * 1.15;
+}
+
 const CAPITAL = num(a.capital, 200);
-const alvoUSD = carro.brl / USD_BRL;
+const alvoUSD = meta.brl / USD_BRL;
 
 console.log(`\n${'='.repeat(92)}`);
-console.log(`META · ${carro.nome} · R$ ${carro.brl.toLocaleString('pt-BR')} ≈ US$ ${Math.round(alvoUSD).toLocaleString('pt-BR')} (câmbio ${USD_BRL})`);
+console.log(`META · ${meta.nome}`);
 console.log(`${'='.repeat(92)}\n`);
-console.log(`capital atual: US$ ${CAPITAL} · fator necessário: ${(alvoUSD / CAPITAL).toFixed(0)}x\n`);
 
-/** Meses até V(n) ≥ alvo. Devolve Infinity se não converge em 100 anos. */
+if (meta.detalhe.length) {
+  console.log('composição do custo (pesquisado em 08/2026):\n');
+  for (const [item, v] of meta.detalhe) {
+    console.log('  ' + item.padEnd(58) + ('R$ ' + Math.round(v).toLocaleString('pt-BR')).padStart(12));
+  }
+  console.log('  ' + '-'.repeat(70));
+  console.log('  ' + 'TOTAL'.padEnd(58) + ('R$ ' + Math.round(meta.brl).toLocaleString('pt-BR')).padStart(12));
+  console.log('  ' + ''.padEnd(58) + ('US$ ' + Math.round(alvoUSD).toLocaleString('pt-BR')).padStart(12));
+} else {
+  console.log(`R$ ${meta.brl.toLocaleString('pt-BR')} ≈ US$ ${Math.round(alvoUSD).toLocaleString('pt-BR')}`);
+}
+
+console.log(`\ncapital atual: US$ ${CAPITAL} (R$ ${Math.round(CAPITAL * USD_BRL).toLocaleString('pt-BR')}) · falta ${(alvoUSD / CAPITAL).toFixed(1)}x\n`);
+
 function mesesAte(capital: number, aporteMensal: number, cagr: number, alvo: number): number {
   const r = Math.pow(1 + cagr, 1 / 12) - 1;
   let v = capital;
@@ -66,68 +117,66 @@ function mesesAte(capital: number, aporteMensal: number, cagr: number, alvo: num
   }
   return Infinity;
 }
+const fmt = (m: number) => !isFinite(m) ? '>100 anos' : m < 24 ? `${m} meses` : `${(m / 12).toFixed(1)} anos`;
 
-const fmt = (m: number) => {
-  if (!isFinite(m)) return 'nunca (>100 anos)';
-  const anos = m / 12;
-  return anos >= 1 ? `${anos.toFixed(1)} anos` : `${m} meses`;
-};
-
-// ── Parte 1: sem aporte ───────────────────────────────────────────────────
+// ── só com o capital, sem aporte ──────────────────────────────────────────
 console.log('─'.repeat(92));
-console.log('PARTE 1 — só com o capital atual, sem aporte nenhum\n');
-console.log('cenário'.padEnd(42) + 'CAGR'.padEnd(10) + 'tempo até a meta');
+console.log('SEM APORTE — só o capital atual rendendo\n');
+console.log('ritmo'.padEnd(46) + 'CAGR'.padEnd(10) + 'tempo até a meta');
 console.log('-'.repeat(92));
-const CENARIOS: [string, number][] = [
-  ['S&P 500 (só comprar e segurar)', 0.10],
-  ['bom sistema sistemático', 0.20],
-  ['excepcional, sustentado por anos', 0.50],
-  ['Medallion — o melhor da história', 0.39],
-  ['dobrar todo ano (não existe sustentado)', 1.00],
-];
-for (const [nome, cagr] of CENARIOS.sort((x, y) => x[1] - y[1])) {
-  console.log(nome.padEnd(42) + ((cagr * 100).toFixed(0) + '%').padEnd(10) + fmt(mesesAte(CAPITAL, 0, cagr, alvoUSD)));
+for (const [nome, cagr] of [
+  ['S&P 500, comprar e segurar', 0.10],
+  ['sistema sistemático bom', 0.20],
+  ['Medallion — o melhor fundo da história', 0.39],
+] as [string, number][]) {
+  console.log(nome.padEnd(46) + ((cagr * 100).toFixed(0) + '%').padEnd(10) + fmt(mesesAte(CAPITAL, 0, cagr, alvoUSD)));
 }
 
-// ── Parte 2: com aporte, que é onde a conta muda ──────────────────────────
+// ── com aporte ────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(92)}`);
-console.log('PARTE 2 — com aporte mensal, que é o termo que realmente decide\n');
-const APORTES = [100, 300, 500, 1000, 2000];
-const CAGRS = [0.10, 0.20, 0.39];
-console.log('aporte/mês'.padEnd(14) + CAGRS.map((c) => `${(c * 100).toFixed(0)}% a.a.`.padEnd(16)).join(''));
+console.log('COM APORTE MENSAL — o termo que decide o prazo\n');
+const APORTES_BRL = [300, 500, 800, 1200, 2000];
+const CAGRS = [0, 0.10, 0.20];
+console.log('aporte/mês'.padEnd(16) + CAGRS.map((c) => (c === 0 ? 'guardado (0%)' : `${(c * 100).toFixed(0)}% a.a.`).padEnd(18)).join(''));
 console.log('-'.repeat(92));
-for (const ap of APORTES) {
+for (const brl of APORTES_BRL) {
+  const usd = brl / USD_BRL;
   console.log(
-    (`US$ ${ap}`).padEnd(14) +
-    CAGRS.map((c) => fmt(mesesAte(CAPITAL, ap, c, alvoUSD)).padEnd(16)).join(''),
+    (`R$ ${brl}`).padEnd(16) +
+    CAGRS.map((c) => fmt(mesesAte(CAPITAL, usd, c, alvoUSD)).padEnd(18)).join(''),
   );
 }
 
-// ── Parte 3: o que o retorno realmente compra ─────────────────────────────
+// ── o que o sistema realmente adiciona ────────────────────────────────────
 console.log(`\n${'─'.repeat(92)}`);
-console.log('PARTE 3 — o que cada peça contribui, no mesmo prazo\n');
-const PRAZO = num(a.anos, 10) * 12;
-console.log(`em ${PRAZO / 12} anos, partindo de US$ ${CAPITAL}:\n`);
-console.log('aporte/mês'.padEnd(14) + 'total aportado'.padEnd(18) + CAGRS.map((c) => `${(c * 100).toFixed(0)}% a.a.`.padEnd(16)).join(''));
+console.log('O QUE O SISTEMA DE TRADING ADICIONA, EM MESES ECONOMIZADOS\n');
+console.log('aporte/mês'.padEnd(16) + 'só guardando'.padEnd(18) + 'com 20% a.a.'.padEnd(18) + 'ganho');
 console.log('-'.repeat(92));
-for (const ap of APORTES) {
-  const linha = CAGRS.map((c) => {
-    const r = Math.pow(1 + c, 1 / 12) - 1;
-    let v = CAPITAL;
-    for (let n = 0; n < PRAZO; n++) v = v * (1 + r) + ap;
-    return (`US$ ${Math.round(v).toLocaleString('pt-BR')}`).padEnd(16);
-  }).join('');
-  console.log((`US$ ${ap}`).padEnd(14) + (`US$ ${(ap * PRAZO).toLocaleString('pt-BR')}`).padEnd(18) + linha);
+for (const brl of APORTES_BRL) {
+  const usd = brl / USD_BRL;
+  const semSistema = mesesAte(CAPITAL, usd, 0, alvoUSD);
+  const comSistema = mesesAte(CAPITAL, usd, 0.20, alvoUSD);
+  const ganho = semSistema - comSistema;
+  console.log(
+    (`R$ ${brl}`).padEnd(16) + fmt(semSistema).padEnd(18) + fmt(comSistema).padEnd(18) +
+    (ganho > 0 ? `${ganho} ${ganho === 1 ? 'mês' : 'meses'} antes` : 'sem diferença'),
+  );
 }
 
 console.log(`\n${'='.repeat(92)}`);
 console.log('A LEITURA HONESTA\n');
-const semAporte39 = mesesAte(CAPITAL, 0, 0.39, alvoUSD);
-console.log(`Partindo de US$ ${CAPITAL} sem aporte, no ritmo do MELHOR FUNDO DA HISTÓRIA,`);
-console.log(`a meta leva ${fmt(semAporte39)}. Não é pessimismo — é o teto da atividade.`);
+const so200 = mesesAte(CAPITAL, 0, 0.20, alvoUSD);
+console.log(`Esta meta é alcançável — diferente do Audi, ela cabe no que existe de retorno real.`);
 console.log();
-console.log('O que muda o prazo de verdade é o aporte. O que o sistema de trading precisa');
-console.log('fazer não é multiplicar: é NÃO PERDER o que entra, e adicionar alguns pontos');
-console.log('percentuais por ano em cima. Um sistema que rende 20% ao ano sobre aportes');
-console.log('consistentes chega; um que promete 300% ao ano quebra antes do primeiro ano.');
+console.log(`Mas o capital de US$ ${CAPITAL} sozinho, mesmo a 20% ao ano, leva ${fmt(so200)}.`);
+console.log(`O que decide o prazo continua sendo o aporte: guardar R$ 800/mês chega em`);
+console.log(`${fmt(mesesAte(CAPITAL, 800 / USD_BRL, 0, alvoUSD))} sem trading nenhum, e em ${fmt(mesesAte(CAPITAL, 800 / USD_BRL, 0.20, alvoUSD))} com um sistema de 20% ao ano.`);
+console.log();
+console.log('O papel do sistema não é gerar a viagem. É encurtar o prazo e não destruir');
+console.log('o que foi aportado. Um sistema que perde 30% num mês ruim atrasa a viagem');
+console.log('mais do que qualquer sequência boa adianta.');
+console.log();
+console.log('LEMBRETE OPERACIONAL: cartão internacional não funciona no Irã. O dinheiro');
+console.log('precisa sair em espécie (euro) antes de embarcar — planejar o saque junto');
+console.log('com o prazo, não depois.');
 console.log(`${'='.repeat(92)}\n`);
