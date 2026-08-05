@@ -140,3 +140,44 @@ Cinco bugs que passaram por revisão e sobreviveram até alguém executar:
 
 O quinto é o mais instrutivo: código escrito, revisado e documentado não é
 código que funciona. Só executar revela.
+
+---
+
+## 6. Direcional em ações — e o falso positivo do próprio teste de consistência
+
+**A ideia:** a comissão de varejo nos EUA é zero, o que elimina o pedágio que
+condenou o scalping em cripto. Com 3 anos de dados de 1h (Yahoo devolve ~1.064
+dias), dava para rodar walk-forward de verdade.
+
+**O resultado, primeira rodada — 7 ativos (F, COIN, MU, SOXL, NVDA, SNDK, TSLA,
+AMD):**
+
+| estratégia | ativos | positivos | fração | expectancy mediana |
+|---|---|---|---|---|
+| momentum-breakout | 7 | 7 | **100%** | +0,066R |
+| body-breakout | 7 | 3 | 43% | −0,032R |
+| ma-cross | 7 | 0 | 0% | −0,142R |
+
+Cem por cento de consistência entre ativos. Este é exatamente o teste que o
+projeto construiu como **defesa contra falso positivo** — e ele aprovou.
+
+**O resultado, segunda rodada — 20 ativos que a pesquisa nunca tinha visto**
+(AAPL, MSFT, AMZN, GOOGL, META, NFLX, PLTR, SOFI, RIVN, LCID, MARA, RIOT, AAL,
+CCL, SNAP, INTC, BAC, PFE, T, NIO):
+
+| amostra | positivos | fração | expectancy mediana |
+|---|---|---|---|
+| 7 originais | 7 | 100% | +0,066R |
+| **20 novos** | **3** | **15%** | **−0,092R** |
+
+**Por que foi descartado:** os 7 originais eram o universo que a pesquisa
+anterior vinha iterando — não uma amostra independente. A consistência de 100%
+media a seleção, não a vantagem.
+
+**A lição que importa, e é metodológica:** *um teste de robustez aplicado sobre
+a amostra em que se iterou não é um teste de robustez.* O projeto tinha o
+instrumento certo (consistência entre ativos) e ainda assim produziu um falso
+positivo, porque o instrumento foi apontado para dentro. A defesa só vale sobre
+dado que nunca participou de nenhuma decisão.
+
+**Código:** `npm run equity` — funcional, reexecutável, fora de produção.
