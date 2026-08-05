@@ -48,7 +48,8 @@
     "basis:scan": "node src/cli/basis-scan.ts",
     "escorregamento": "node src/cli/escorregamento.ts",
     "viabilidade": "node src/cli/viabilidade.ts",
-    "captura": "node src/cli/captura.ts"
+    "captura": "node src/cli/captura.ts",
+    "backtest:captura": "node src/cli/backtest-captura.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
