@@ -878,3 +878,40 @@ liquidação dispara quando deveria). `src/pairs/validado.ts` ganhou
 `poolComTempo()` (trades de pares com timestamps reais, para bootstrap por
 calendário) e `ResultadoPares.tempos`, aditivo — não muda nenhum resultado
 existente. Integrado em `src/cli/desafio.ts`.
+
+---
+
+## Resultado 15 — Basis trade: fecha a lacuna de dado que `basis.ts` deixava em aberto
+
+`src/funding/basis.ts` documentava explicitamente uma lacuna: os números ali
+("payback em N horas") dizem quanto tempo um funding favorável PRECISARIA
+viver pra cobrir o custo, não quanto tempo ele COSTUMA viver de verdade —
+"as duas coisas são diferentes, e só a segunda decide se vale a pena".
+
+Usando o histórico de funding já baixado (57 ativos, o mesmo do Resultado 9),
+reconstruí ciclos causais reais: entra quando o funding atual E a média
+móvel de 6 períodos (~2 dias) são positivos, sai quando o funding vira
+negativo ou estoura 30 períodos (~10 dias).
+
+**10.977 ciclos reais, duração média 2,4 dias:**
+
+| | valor |
+|---|---|
+| funding bruto capturado (médio) | +0,051% por ciclo |
+| custo de ida e volta (2 pernas × entrada/saída) | 0,300% por ciclo |
+| expectância líquida | **-0,249%** |
+| win rate | 2,3% |
+
+O funding bruto é ~6x MENOR que o custo de round-trip — não é um resultado
+marginal, é estrutural: ciclos de funding favorável, na prática, não vivem
+tempo suficiente pra cobrir nem de longe o custo de abrir e fechar as duas
+pernas. Confirma quantitativamente, com dado real de persistência (que
+antes não existia), a decisão original do projeto (do início desta sessão)
+de abandonar funding arb como caminho — e explica por que: o problema nunca
+foi escala, foi a própria unidade econômica do ciclo.
+
+Diferente de pares (Resultado 14), que tinha expectância PEQUENA MAS
+POSITIVA e por isso serviu como diversificador mesmo sem escalar sozinho,
+basis trade tem expectância NEGATIVA — misturar um fluxo com expectância
+negativa não reduz risco de portfólio, só dilui retorno. Descartado como
+candidato a terceiro fluxo, sem precisar formalizar em código de produção.
