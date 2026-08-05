@@ -3,49 +3,44 @@
 O que falta, em ordem de importância. Cada item diz **por que importa** e **como
 saber que terminou**.
 
-Última atualização: 2026-07-31
+Última atualização: 2026-08-05
+
+---
+
+## Concluído nesta sessão
+
+### B1. Conectar o MCP trader.dev — Feito em 05/08/2026
+
+Chave rotacionada e autenticada. Rodei `body-breakout` (BTC 4h, ago/2021–ago/2026)
+no engine do trader.dev (paridade TradingView, comissão forçada em 0,05%) e
+cruzei com o motor próprio: **os dois batem** quando o motor próprio usa o
+mesmo custo taker — ver Resultado 16 em [RESULTADOS.md](RESULTADOS.md). A
+divergência inicial (trader.dev −2,1% vs. Resultado 3 do projeto +15,7%) não
+era bug de tradução — era o preset **maker** (mais barato, otimista) contra
+**taker** (realista). Com custo equivalente, ambos os motores concordam:
+PF ~0,99, retorno ~0.
+
+### B2. Validar `body-breakout` 4h com mais rigor — Resolvido, resultado negativo
+
+**Não é mais "precisa validar" — já foi, e não passou.** A validação
+cross-engine que o B1 previa ("pronto quando eu conseguir cruzar com o meu")
+mostrou que mesmo no seu melhor caso documentado (BTC 4h, único ativo com
+walk-forward "aprovado" no Resultado 3), o resultado positivo dependia do
+preset de custo maker. Com taker — o custo real de quem não consegue
+preenchimento garantido em ordem limite, exatamente a ressalva #2 que o
+próprio `RESULTADOS.md` já registrava sem medir — o profit factor cai para
+~0,99 em ambos os motores, independentemente implementados. Não há mais
+motivo para reabrir este item sem um dado ou mecanismo novo.
 
 ---
 
 ## Bloqueado — depende de você
 
-### B1. Conectar o MCP trader.dev
-
-**Estado:** registrado na config, não utilizável.
-
-**O que falta:** (a) reiniciar o Claude Code, (b) você criar conta no
-StrategyFactory.ai e pegar a chave de API. Eu não crio contas nem digito
-credenciais.
-
-**Por que importa:** você definiu como fonte principal. Além disso é o caminho
-mais direto para os dados de ações (F, COIN, ALTR) que hoje faltam.
-
-**Pronto quando:** as ferramentas `trader-dev` aparecerem na sessão e eu
-conseguir rodar um backtest lá para cruzar com o meu.
-
-Detalhes em [MCP.md](MCP.md).
+(vazio — nada bloqueado no momento)
 
 ---
 
 ## Prioridade alta
-
-### B2. Validar o candidato `body-breakout` 4h com mais rigor
-
-**Por que:** é o único resultado com sinal estrutural (expectancy positiva nos 5
-ativos). Mas foi encontrado depois de 75 combinações testadas, e isso não está
-corrigido em lugar nenhum.
-
-**O que fazer:**
-- Rodar em ativos **fora** do conjunto usado para descobrir (ADA, LINK, AVAX,
-  XRP, BNB). Se o padrão se mantiver em ativos nunca vistos, é edge.
-- Testar estabilidade dos parâmetros: se `minBody=0.5` funciona e `0.45` e
-  `0.55` não, é ruído. Edge real tem platô, não pico.
-- Testar em 2h e 6h. Se só 4h funciona, é sorte; se a curva é suave no
-  timeframe, é estrutura.
-- Aplicar o filtro de ML sobre ele (ainda não foi feito em 4h).
-
-**Pronto quando:** houver ou não um platô consistente em ativos e parâmetros
-não usados na descoberta.
 
 ### B3. Paper trading
 

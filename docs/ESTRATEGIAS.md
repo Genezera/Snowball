@@ -122,8 +122,12 @@ corpo. Adotado 0,5.
 
 Nome no código: `body-breakout`
 
-**Resultado:** é o candidato do projeto. Em 4 horas, expectancy positiva
-out-of-sample nos 5 ativos testados. Ver [RESULTADOS.md](RESULTADOS.md).
+**Resultado:** foi o candidato do projeto por um tempo — em 4 horas, teve
+expectancy positiva out-of-sample nos 5 ativos testados com custo **maker**.
+Não sobrevive a custo **taker**: confirmado por dois motores de backtest
+independentes (o deste projeto e o do trader.dev, via MCP), profit factor
+cai para ~0,99. Ver Resultado 16 em [RESULTADOS.md](RESULTADOS.md). Não é
+mais candidato ativo.
 
 ---
 

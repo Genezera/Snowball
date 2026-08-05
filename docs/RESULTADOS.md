@@ -915,3 +915,64 @@ POSITIVA e por isso serviu como diversificador mesmo sem escalar sozinho,
 basis trade tem expectância NEGATIVA — misturar um fluxo com expectância
 negativa não reduz risco de portfólio, só dilui retorno. Descartado como
 candidato a terceiro fluxo, sem precisar formalizar em código de produção.
+
+---
+
+## Resultado 16 — Cruzamento com trader.dev: `body-breakout` não sobrevive a custo taker, confirmado por dois motores independentes
+
+Fecha o item B1 do backlog ("rodar lá e cruzar com o meu"), pendente desde o
+início do projeto porque a chave de API dependia do usuário.
+
+**Primeira tentativa — divergência alarmante.** Rodei `body-breakout` (regra
+exata: `SMA(bodyFraction,10)>0.5`, `close>SMA(close,100)`, rompimento de 20
+barras, stop 1,5%/take 3%) em BTCUSDT 4h (ago/2021–ago/2026) no engine do
+trader.dev (paridade TradingView, comissão forçada em 0,05%, sizing 100% do
+equity): **retorno −2,1%, PF 0,98, 197 trades, win rate 26,4%**. Isso
+contradizia tanto o Resultado 3 deste documento (BTC 4h, walk-forward
+aprovado, +15,7%) quanto o número alegado no vídeo original ("validado no
+trader.dev pelo próprio autor": +112%, PF 1,71, 65 trades).
+
+**Investigação, não conclusão precipitada.** Rodei o motor próprio
+(`npm run backtest -- --exchange binanceusdm --symbol BTC/USDT:USDT
+--timeframe 4h --strategy body-breakout`) nas duas configurações de custo:
+
+| Preset de custo | Trades | PF | Retorno | Win rate |
+|---|---|---|---|---|
+| `binance-futures-maker` (0,02%/lado) | 145 | 1,093 | +4,71% | 37,9% |
+| `binance-futures` (0,05%/lado, **taker**) | 145 | **0,992** | **−0,40%** | 37,2% |
+| trader.dev (0,05%/lado forçado, engine independente) | 197 | **0,98** | **−2,1%** | 26,4% |
+
+**A divergência não era bug de tradução Pine — era comparar maker com
+taker.** O Resultado 3 original (+15,7%, "aprovado") usava o preset maker,
+mais barato. Colocando o motor próprio no MESMO custo que o trader.dev força
+(taker, 0,05%/lado), os dois motores — implementados de forma totalmente
+independente, um em TypeScript próprio, outro em Pine Script v6 rodando
+noutro provedor — **convergem para a mesma conclusão: profit factor em
+torno de 0,99, retorno essencialmente zero ou negativo.**
+
+A contagem de trades ainda diverge (145 vs. 197) — provavelmente por causa
+do timing de preenchimento (o motor próprio executa o sinal na ABERTURA da
+barra seguinte, o Pine no trader.dev fecha a ordem no FECHAMENTO da própria
+barra de sinal, por `process_orders_on_close`). Não investiguei essa
+diferença residual porque ela não muda a conclusão: nenhum dos dois motores,
+sob custo realista, aprova a estratégia.
+
+**Por que isso importa mais do que "mais uma estratégia reprovada".** É a
+primeira vez neste projeto que uma conclusão é confirmada por uma
+implementação **genuinamente independente** (outro motor, outra linguagem,
+outro provedor de dado), não só por variar parâmetros dentro do próprio
+código. Isso fecha com evidência concreta a ressalva #2 que já estava
+registrada sem medir ("seleção adversa em ordem limite não modelada — o
+preset maker é um teto otimista"): agora sabemos que, no caso de
+`body-breakout` BTC 4h, esse teto otimista era a diferença inteira entre
+"aprovado" e "não sobrevive".
+
+**Consequência para o backlog:** B2 ("validar `body-breakout` com mais
+rigor") está resolvido — não com mais rigor dentro do mesmo método, mas com
+uma fonte de validação categoricamente diferente. Fechado, resultado
+negativo. Não há motivo para retestar sem um mecanismo ou dado novo.
+
+**Reproduzir:** `npm run backtest -- --exchange binanceusdm --symbol
+BTC/USDT:USDT --timeframe 4h --strategy body-breakout --cost
+binance-futures` (motor próprio) e `quick_backtest` via MCP trader-dev com o
+Pine acima (símbolo `BTCUSDT`, timeframe `240`, mesma janela).
