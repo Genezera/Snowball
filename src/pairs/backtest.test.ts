@@ -5,7 +5,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { backtestPar, PARAMETROS_PADRAO } from './backtest.ts';
+import { backtestPar, PARAMETROS_PADRAO, calcularZ, passoZScore } from './backtest.ts';
 import type { Bar } from '../core/types.ts';
 
 function criarRng(semente: number) {
@@ -129,4 +129,78 @@ test('direção é sempre coerente com o sinal do z na entrada', () => {
     if (t.direcao === 'curtoA') assert.ok(t.zEntrada > 0, 'curtoA deveria vir de z positivo');
     else assert.ok(t.zEntrada < 0, 'longA deveria vir de z negativo');
   }
+});
+
+// ── calcularZ / passoZScore — a versão passo-a-passo usada pelo motor ao vivo ─
+
+test('calcularZ: janela vazia é indefinida', () => {
+  assert.equal(calcularZ([]).indefinido, true);
+});
+
+test('calcularZ: janela sem variância (resíduo constante) é indefinida', () => {
+  assert.equal(calcularZ([0.1, 0.1, 0.1, 0.1]).indefinido, true);
+});
+
+test('calcularZ: bate com a conta manual de z-score sobre a janela', () => {
+  const janela = [1, 2, 3, 4, 5];
+  const media = 3, desvio = Math.sqrt(2); // populacional
+  const { z, indefinido } = calcularZ(janela);
+  assert.equal(indefinido, false);
+  assert.ok(Math.abs(z - (5 - media) / desvio) < 1e-9);
+});
+
+test('passoZScore: sem posição e z indefinido, mantém (nunca abre no escuro)', () => {
+  const d = passoZScore([0.1, 0.1, 0.1], null, PARAMETROS_PADRAO);
+  assert.equal(d.acao, 'manter');
+});
+
+test('passoZScore: sem posição, z cruza pra cima abre curtoA (A ficou caro)', () => {
+  const janela = [0, 0, 0, 0, 0, 0, 0, 0, 0, 10]; // último ponto bem acima da média
+  const d = passoZScore(janela, null, { ...PARAMETROS_PADRAO, zEntrada: 1.0 });
+  assert.equal(d.acao, 'abrir');
+  assert.equal((d as any).direcao, 'curtoA');
+});
+
+test('passoZScore: sem posição, z cruza pra baixo abre longA (A ficou barato)', () => {
+  const janela = [0, 0, 0, 0, 0, 0, 0, 0, 0, -10];
+  const d = passoZScore(janela, null, { ...PARAMETROS_PADRAO, zEntrada: 1.0 });
+  assert.equal(d.acao, 'abrir');
+  assert.equal((d as any).direcao, 'longA');
+});
+
+test('passoZScore: com posição aberta e |z| dentro de zSaida, fecha por reversão', () => {
+  // janela em zigue-zague: a média fica perto do último ponto (z pequeno em
+  // módulo), ao contrário de uma janela que só diverge no fim (onde o
+  // próprio ponto final domina a variância e nunca fica "perto de zero")
+  const janela = [3, -3, 3, -3, 3, -3, 3, -3, 3, 0];
+  const { z, indefinido } = calcularZ(janela);
+  assert.equal(indefinido, false);
+  assert.ok(Math.abs(z) < 0.5, 'pré-condição do teste: z precisa ser pequeno em módulo');
+  const pos = { direcao: 'curtoA' as const, barrasDentro: 3 };
+  const d = passoZScore(janela, pos, { ...PARAMETROS_PADRAO, zSaida: 0.5, maxBarras: 100, zStop: Infinity });
+  assert.equal(d.acao, 'fechar');
+  assert.equal((d as any).motivo, 'reversao');
+});
+
+test('passoZScore: com posição aberta e tempo estourado, fecha por timeout mesmo sem reverter', () => {
+  const janela = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5]; // sem variância — z indefinido, não reverteu
+  const pos = { direcao: 'curtoA' as const, barrasDentro: 30 };
+  const d = passoZScore(janela, pos, { ...PARAMETROS_PADRAO, maxBarras: 20, zStop: Infinity });
+  assert.equal(d.acao, 'fechar');
+  assert.equal((d as any).motivo, 'timeout');
+});
+
+test('passoZScore: com posição curtoA e z diverge mais na mesma direção, fecha por stop', () => {
+  const janela = [0, 0, 0, 0, 0, 0, 0, 0, 0, 10];
+  const pos = { direcao: 'curtoA' as const, barrasDentro: 2 };
+  const d = passoZScore(janela, pos, { ...PARAMETROS_PADRAO, zSaida: 0.1, zStop: 1.5, maxBarras: 100 });
+  assert.equal(d.acao, 'fechar');
+  assert.equal((d as any).motivo, 'stop-divergencia');
+});
+
+test('passoZScore: com posição aberta, sem reverter/divergir/estourar, mantém', () => {
+  const janela = [0, 0, 0, 0, 0, 0, 0, 0, 0, 3];
+  const pos = { direcao: 'curtoA' as const, barrasDentro: 2 };
+  const d = passoZScore(janela, pos, { ...PARAMETROS_PADRAO, zSaida: 0.1, zStop: Infinity, maxBarras: 100 });
+  assert.equal(d.acao, 'manter');
 });

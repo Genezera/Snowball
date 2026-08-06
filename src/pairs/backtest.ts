@@ -122,3 +122,67 @@ export function backtestPar(
   }
   return trades;
 }
+
+/**
+ * Z-score do resíduo mais recente sobre uma janela rolante — a mesma conta
+ * de dentro do laço de `backtestPar`, extraída para poder ser chamada um
+ * passo de cada vez por um motor ao vivo (que não tem "toda a série", só o
+ * que já aconteceu até agora).
+ */
+export function calcularZ(janelaResiduo: number[]): { z: number; indefinido: boolean } {
+  const n = janelaResiduo.length;
+  if (n === 0) return { z: 0, indefinido: true };
+  const ultimo = janelaResiduo[n - 1];
+  const media = janelaResiduo.reduce((a, b) => a + b, 0) / n;
+  const variancia = janelaResiduo.reduce((a, b) => a + (b - media) ** 2, 0) / n;
+  const desvio = Math.sqrt(variancia);
+  if (desvio <= 1e-12) return { z: 0, indefinido: true };
+  return { z: (ultimo - media) / desvio, indefinido: false };
+}
+
+export interface PosicaoParEmAndamento {
+  direcao: 'longA' | 'curtoA';
+  barrasDentro: number;
+}
+
+export type DecisaoPasso =
+  | { acao: 'manter' }
+  | { acao: 'abrir'; direcao: 'longA' | 'curtoA' }
+  | { acao: 'fechar'; motivo: 'reversao' | 'timeout' | 'stop-divergencia' };
+
+/**
+ * Um passo da MESMA regra de entrada/saída de `backtestPar`, mas avaliando
+ * só o instante atual — o que um motor ao vivo tem, em vez da série inteira
+ * de uma vez. Pura, sem estado: quem chama decide o que fazer com a decisão
+ * (abrir posição de verdade, fechar, etc.) e mantém o `barrasDentro` entre
+ * chamadas.
+ *
+ * Mantida deliberadamente separada de `backtestPar` — duplica a lógica em
+ * vez de refatorar o laço existente pra reusar isto, porque `backtestPar` já
+ * está validado e testado, e o risco de quebrar esse resultado ao
+ * generalizá-lo pra dois formatos de chamada (lote e passo-a-passo) supera o
+ * benefício de não repetir ~10 linhas.
+ */
+export function passoZScore(
+  janelaResiduo: number[],
+  posicaoAtual: PosicaoParEmAndamento | null,
+  p: ParametrosPar,
+): DecisaoPasso {
+  const { z, indefinido } = calcularZ(janelaResiduo);
+
+  if (!posicaoAtual) {
+    if (indefinido) return { acao: 'manter' };
+    if (z >= p.zEntrada) return { acao: 'abrir', direcao: 'curtoA' };
+    if (z <= -p.zEntrada) return { acao: 'abrir', direcao: 'longA' };
+    return { acao: 'manter' };
+  }
+
+  const reverteu = !indefinido && Math.abs(z) <= p.zSaida;
+  const divergiu = !indefinido && (posicaoAtual.direcao === 'curtoA' ? z >= p.zStop : z <= -p.zStop);
+  const estourouTempo = posicaoAtual.barrasDentro >= p.maxBarras;
+
+  if (reverteu) return { acao: 'fechar', motivo: 'reversao' };
+  if (divergiu) return { acao: 'fechar', motivo: 'stop-divergencia' };
+  if (estourouTempo) return { acao: 'fechar', motivo: 'timeout' };
+  return { acao: 'manter' };
+}

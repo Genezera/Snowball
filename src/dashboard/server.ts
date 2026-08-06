@@ -269,6 +269,50 @@ function preenchimento() {
 }
 
 /**
+ * MOTOR DE PARES — resumo LEVE de propósito. A lição do modo agressivo (que
+ * foi tirado do dashboard porque 40 posições com gráfico de candle cada uma
+ * deixavam a aba lenta) não se repete aqui: nenhuma posição de par ganha
+ * candle chart, só uma tabela agregada com o que já basta pra acompanhar.
+ */
+let paresCache: { ts: number; dados: any } = { ts: 0, dados: null };
+
+function pares() {
+  if (Date.now() - paresCache.ts < 15_000) return paresCache.dados;
+  try {
+    const dir = path.join(ROOT, 'pares');
+    const estadoPath = path.join(dir, 'estado.json');
+    if (!fs.existsSync(estadoPath)) return paresCache.dados;
+    const e = JSON.parse(fs.readFileSync(estadoPath, 'utf8'));
+
+    const diarioPath = path.join(dir, 'diario.jsonl');
+    let recentes: any[] = [];
+    if (fs.existsSync(diarioPath)) {
+      const linhas = fs.readFileSync(diarioPath, 'utf8').trim().split('\n').filter(Boolean);
+      recentes = linhas.slice(-30).map((l) => { try { return JSON.parse(l); } catch { return null; } })
+        .filter((r) => r && (r.evento === 'abre' || r.evento === 'fecha')).reverse();
+    }
+
+    const dados = {
+      capital: e.capital, capitalInicial: e.capitalInicial, pico: e.pico,
+      paresCalibrados: (e.pares ?? []).length,
+      posicoesAbertas: (e.posicoes ?? []).map((p: any) => ({
+        a: p.a, b: p.b, direcao: p.direcao, zEntrada: p.zEntrada,
+        horasAberta: (Date.now() - p.abertaEm) / 3_600_000,
+      })),
+      fechados: e.fechados, vitorias: e.vitorias,
+      taxaVitoria: e.fechados > 0 ? e.vitorias / e.fechados : null,
+      custosTotal: e.custosTotal, pnlAcumulado: e.pnlAcumulado,
+      halted: e.halted, haltReason: e.haltReason,
+      recentes,
+    };
+    paresCache = { ts: Date.now(), dados };
+    return dados;
+  } catch {
+    return paresCache.dados;
+  }
+}
+
+/**
  * SAÚDE DOS PROCESSOS — antes só existia no watchdog (vigilancia/supervisor-
  * watchdog.log), invisível pra quem só olha o navegador. Consulta o
  * CommandLine de cada node.exe via PowerShell, cacheada 10s pra não
@@ -289,6 +333,7 @@ const PROCESSOS_ESPERADOS = [
   { chave: 'coletor', nome: 'Coletor', padrao: 'coletor.ts' },
   { chave: 'momentum', nome: 'Modo Agressivo', padrao: 'momentum-live.ts' },
   { chave: 'preenchimento', nome: 'Preenchimento', padrao: 'preenchimento-live.ts' },
+  { chave: 'pares', nome: 'Pares', padrao: 'pares-live.ts' },
 ];
 
 let saudeProcessosCache: { ts: number; dados: any[] } = { ts: 0, dados: [] };
@@ -676,6 +721,7 @@ async function montarDados() {
       operacoes: lerOperacoes(path.join(DIR, 'diario.jsonl')),
       rankingPares: rankingPares(),
       preenchimento: preenchimento(),
+      pares: pares(),
       // diagnóstico de memória do próprio dashboard — achado depois de quedas
       // sem erro registrado (candidato a vazamento). Barato de calcular, só
       // leituras de tamanho, nada pesado.

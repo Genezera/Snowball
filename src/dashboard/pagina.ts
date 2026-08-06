@@ -258,6 +258,12 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       </section>
 
       <section class="card">
+        <h2>Pares cointegrados — mercado-neutro <span class="note" id="coint-tag"></span></h2>
+        <p class="caption">Aposta na relação entre dois ativos (compra o barato, vende o caro), não na direção do mercado — se os dois caem juntos, a posição não perde nada. Roda em paralelo ao modo normal e ao modo agressivo, capital próprio, isolado. Resultado 14 (docs/RESULTADOS.md): misturado com o momentum, corta a chance de ruína de ~46% para ~15%.</p>
+        <div id="coint-box"></div>
+      </section>
+
+      <section class="card">
         <h2>Processos <span class="note">watchdog verifica a cada 30s</span></h2>
         <div class="procgrid" id="procgrid"></div>
       </section>
@@ -911,6 +917,39 @@ function renderPreenchimento(d){
   });
 }
 
+// ---- motor de pares cointegrados (resumo leve — sem candle chart por posição) ----
+function renderPares(d){
+  var p=d.pares;
+  renderIfChanged('coint',p,function(){
+    var host=el('coint-box');
+    if(!p){
+      el('coint-tag').textContent='';
+      host.innerHTML='<div class="empty">motor de pares ainda não gravou estado — deve estar no primeiro ciclo (recalibração inicial demora ~30s)</div>';
+      return;
+    }
+    el('coint-tag').textContent=fmtUsd(p.capital)+' · '+p.paresCalibrados+' pares calibrados';
+    var variacao=p.capitalInicial?((p.capital-p.capitalInicial)/p.capitalInicial):0;
+    var pos=p.posicoesAbertas||[];
+    var kpis='<div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">'+
+      '<div class="kpi"><div class="lbl">Capital</div><div class="val num '+(variacao>=0?'up':'down')+'">'+fmtUsd(p.capital)+'</div><div class="sub">'+(variacao>=0?'+':'')+fmtPct(variacao,2)+' desde o início</div></div>'+
+      '<div class="kpi"><div class="lbl">Posições abertas</div><div class="val num">'+pos.length+'</div><div class="sub">de '+p.paresCalibrados+' pares calibrados</div></div>'+
+      '<div class="kpi"><div class="lbl">Trades fechados</div><div class="val num">'+fmtNum(p.fechados||0)+'</div><div class="sub">'+(p.taxaVitoria!=null?fmtPct(p.taxaVitoria,0)+' de vitórias':'sem trades ainda')+'</div></div>'+
+      '<div class="kpi"><div class="lbl">Custos pagos</div><div class="val num">'+fmtUsd(p.custosTotal||0)+'</div><div class="sub">taxas + slippage acumulados</div></div>'+
+      '</div>';
+    if(p.halted){
+      kpis='<div class="empty" style="border-color:var(--coral);color:var(--coral);margin-bottom:14px">motor pausado: '+esc(p.haltReason||'')+'</div>'+kpis;
+    }
+    var tabelaPos=!pos.length?'<div class="empty">nenhuma posição aberta agora — nenhum dos pares calibrados cruzou o z-score de entrada</div>':
+      '<div style="overflow-x:auto"><table><thead><tr><th>Par</th><th>Direção</th><th>Z entrada</th><th>Aberta há</th></tr></thead><tbody>'+
+      pos.map(function(x){
+        var nomeA=(x.a||'').replace('/USDT:USDT',''), nomeB=(x.b||'').replace('/USDT:USDT','');
+        var desc=x.direcao==='curtoA'?('venda '+nomeA+' / compra '+nomeB):('compra '+nomeA+' / venda '+nomeB);
+        return '<tr><td style="font-weight:700">'+esc(nomeA)+' / '+esc(nomeB)+'</td><td>'+esc(desc)+'</td><td class="num">'+x.zEntrada.toFixed(2)+'</td><td>'+fmtHoras(x.horasAberta)+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+    host.innerHTML=kpis+tabelaPos;
+  });
+}
+
 // ---- contas por exchange ----
 function renderContas(d){
   var contas=d.contas||[];
@@ -1338,6 +1377,7 @@ function render(d){
   renderRanking(d);
   renderRankingPares(d);
   renderPreenchimento(d);
+  renderPares(d);
   renderProcessos(d);
   renderPosicoes(d);
   renderContas(d);
