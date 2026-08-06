@@ -481,7 +481,7 @@ const servidor = http.createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === '/logo.png' || url.pathname === '/logo-fundo-branco.png') {
+  if (url.pathname === '/logo.png' || url.pathname === '/logo-fundo-branco.png' || url.pathname === '/favicon.png') {
     const arquivo = path.join(ROOT, 'assets', url.pathname.slice(1));
     try {
       const buf = fs.readFileSync(arquivo);

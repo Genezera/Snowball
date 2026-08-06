@@ -25,6 +25,7 @@ export const PAGINA = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Snowball · Terminal</title>
+<link rel="icon" type="image/png" href="/favicon.png">
 <style>
 :root{
   --bg:#070910; --bg2:#0c0f1a; --panel:#10141f; --panel-hi:#141926;
@@ -59,7 +60,7 @@ body{
 .topbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(7,9,16,.78);border-bottom:1px solid var(--border)}
 .topbar-in{max-width:1480px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;margin-right:6px}
-.brand-logo{height:34px;width:auto;display:block;filter:drop-shadow(0 0 10px var(--mint-glow))}
+.brand-logo{height:52px;width:auto;display:block;filter:drop-shadow(0 0 10px var(--mint-glow))}
 .brand h1{font-size:1.02rem;font-weight:800;margin:0;letter-spacing:-.01em}
 .tabs{display:flex;gap:2px;flex:1;overflow-x:auto}
 .tab{position:relative;padding:9px 15px;border-radius:10px;font-size:.82rem;font-weight:700;color:var(--dim);cursor:pointer;white-space:nowrap;transition:color .2s,background-color .2s;border:1px solid transparent;user-select:none}
