@@ -125,6 +125,20 @@ async function atualizarPrecosAoVivo() {
       }
     } catch { /* exchange momentaneamente indisponível; mantém o último preço conhecido */ }
   }));
+
+  // PODA: sem isto, cada símbolo que já passou pelo top-15 da varredura fica
+  // pra sempre em precosAoVivo, mesmo depois de sair do ranking — o dicionário
+  // só cresce, nunca encolhe. Achado analisando quedas sem erro registrado no
+  // dashboard (candidato a vazamento de memória). Remove qualquer chave que
+  // não seja mais alvo (posição aberta ou candidata atual do top-15).
+  const chavesValidas = new Set<string>();
+  for (const [exchange, simbolos] of porExchange) {
+    for (const symbol of simbolos) chavesValidas.add(`${exchange}|${symbol}`);
+  }
+  for (const chave of Object.keys(precosAoVivo)) {
+    if (!chavesValidas.has(chave)) delete precosAoVivo[chave];
+  }
+
   if (mudou) void transmitir();
 }
 
@@ -146,6 +160,20 @@ async function lerCandles(exchange: string, symbol: string, timeframe: string): 
   cacheCandles.set(chave, { ts: Date.now(), candles });
   return candles;
 }
+
+// PODA de cacheCandles: sem isto, toda posição que já fechou (ou toda
+// candidata que já saiu do topo da varredura) deixa pra trás uma entrada de
+// ~120 candles que nunca mais é pedida, mas nunca é liberada — mesmo
+// problema de precosAoVivo acima. Uma posição já viu dezenas de símbolos
+// diferentes passarem pelo top-15 ao longo de horas. Varre a cada 5 min e
+// remove chaves que não são pedidas há mais de 10 min (bem acima do poll de
+// 20s do cliente — só sobrevive o que está genuinamente sendo exibido).
+setInterval(() => {
+  const limite = Date.now() - 10 * 60_000;
+  for (const [chave, v] of cacheCandles) {
+    if (v.ts < limite) cacheCandles.delete(chave);
+  }
+}, 5 * 60_000);
 
 /**
  * RANKING DE PARES DE EXCHANGE — não "qual exchange rende mais" (uma
@@ -639,6 +667,15 @@ async function montarDados() {
       estado, posicoes, contas, rankingExchanges, diario: diario.filter((e) => e.evento !== 'leitura').slice(-80).reverse(), curva,
       operacoes: lerOperacoes(path.join(DIR, 'diario.jsonl')),
       rankingPares: rankingPares(),
+      // diagnóstico de memória do próprio dashboard — achado depois de quedas
+      // sem erro registrado (candidato a vazamento). Barato de calcular, só
+      // leituras de tamanho, nada pesado.
+      diagnostico: {
+        memoriaRssMB: Math.round(process.memoryUsage().rss / 1e6),
+        clientesSSE: clientes.size,
+        cacheCandlesEntradas: cacheCandles.size,
+        precosAoVivoEntradas: Object.keys(precosAoVivo).length,
+      },
       modoAgressivo,
       pagamentosPorDia: [...porDia].map(([dia, total]) => ({ dia, total })),
       scan: scan.slice(0, 15),
@@ -699,4 +736,17 @@ servidor.listen(PORTA, () => {
 
   void atualizarVarredura();
   setInterval(() => void atualizarVarredura(), 10 * 60_000);
+
+  // Log de memória a cada 10 min — antes deste dashboard não tinha NENHUMA
+  // visibilidade de tendência de memória, só o fato de eventualmente cair
+  // sem erro registrado (candidato a OOM). Agora, se acontecer de novo, dá
+  // pra ver no log se a memória estava subindo sem parar antes da queda, em
+  // vez de descobrir só quando o watchdog religa.
+  setInterval(() => {
+    const m = process.memoryUsage();
+    console.log(
+      `[memoria] rss=${(m.rss / 1e6).toFixed(0)}MB heap=${(m.heapUsed / 1e6).toFixed(0)}/${(m.heapTotal / 1e6).toFixed(0)}MB ` +
+      `clientesSSE=${clientes.size} cacheCandles=${cacheCandles.size} precosAoVivo=${Object.keys(precosAoVivo).length}`,
+    );
+  }, 10 * 60_000);
 });

@@ -425,9 +425,13 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
           <div id="ml-box"></div>
         </div>
         <div class="card">
-          <h2>Sobre este painel</h2>
-          <p class="caption" style="margin:0">HTML + CSS + SVG + JS puro, sem dependência externa, servido pelo próprio motor. Nenhuma ordem é enviada de nenhum modo — os dois motores só leem as exchanges e simulam.</p>
+          <h2>Saúde do dashboard <span class="note">memória, achado depois de quedas sem erro</span></h2>
+          <div id="diag-box"></div>
         </div>
+      </section>
+      <section class="card">
+        <h2>Sobre este painel</h2>
+        <p class="caption" style="margin:0">HTML + CSS + SVG + JS puro, sem dependência externa, servido pelo próprio motor. Nenhuma ordem é enviada de nenhum modo — os dois motores só leem as exchanges e simulam.</p>
       </section>
     </div>
 
@@ -1077,6 +1081,25 @@ function renderMl(d){
   });
 }
 
+// ---- saúde do dashboard: memória e caches, achado depois de quedas sem erro ----
+var memoriaAnterior=null;
+function renderDiag(d){
+  var g=d.diagnostico;
+  if(!g)return;
+  renderIfChanged('diag',g,function(){
+    var tendencia='';
+    if(memoriaAnterior!=null&&g.memoriaRssMB>memoriaAnterior){
+      tendencia=' <span class="down" style="font-size:.68rem">(subindo — normal logo após reiniciar, preocupante se não parar)</span>';
+    }
+    memoriaAnterior=g.memoriaRssMB;
+    el('diag-box').innerHTML=
+      '<div class="exprow"><span>Memória (RSS)</span><span class="num">'+g.memoriaRssMB+' MB'+tendencia+'</span></div>'+
+      '<div class="exprow"><span>Conexões SSE abertas</span><span class="num">'+g.clientesSSE+'</span></div>'+
+      '<div class="exprow"><span>Candles em cache</span><span class="num">'+g.cacheCandlesEntradas+'</span></div>'+
+      '<div class="exprow"><span>Preços ao vivo rastreados</span><span class="num">'+g.precosAoVivoEntradas+'</span></div>';
+  });
+}
+
 // ---- basis ----
 function renderBasis(d){
   var b=d.basis||{vivas:0,fechadas:0,duracaoMedianaHoras:0,duracaoMaximaHoras:0,top:[]};
@@ -1452,6 +1475,7 @@ function render(d){
   renderCustodia(d);
   renderColeta(d);
   renderMl(d);
+  renderDiag(d);
   renderBasis(d);
   renderTimeline(d);
   renderTimelineMom(d);
