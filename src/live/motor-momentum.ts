@@ -124,6 +124,25 @@ export function avaliarSaida(
   return null;
 }
 
+/**
+ * Preços de stop e alvo na abertura. Extraída como função pura porque achei
+ * um bug real nela rodando ao vivo: com `takePct >= 1` (o caso de
+ * ts-momentum de alvo largo, 5.0 — Resultado 10), o lado SHORT dava
+ * `entryPrice*(1-takePct)` NEGATIVO, um preço-alvo que nenhum ativo real
+ * jamais atinge. 35 de 40 posições abertas no primeiro ciclo corrigido do
+ * bug de barra fechada tinham esse alvo impossível. O teto de 0,95 mantém
+ * a intenção original ("alvo bem largo, quase nunca bate") sem virar
+ * matematicamente impossível — o preço só pode cair até 5% do valor de
+ * entrada, nunca menos que isso. A mesma correção foi aplicada em
+ * backtest/engine.ts e nos outros executores que repetem esta fórmula.
+ */
+export function calcularAlvos(entryPrice: number, side: Side, stopPct: number, takePct: number): { stopPrice: number; takePrice: number } {
+  return {
+    stopPrice: side === 'long' ? entryPrice * (1 - stopPct) : entryPrice * (1 + stopPct),
+    takePrice: side === 'long' ? entryPrice * (1 + takePct) : entryPrice * (1 - Math.min(takePct, 0.95)),
+  };
+}
+
 /** PnL líquido de fechar uma posição a `refPrice`, com slippage e taxa de saída. */
 export function calcularFechamento(
   pos: { side: Side; entryPrice: number; qty: number },
@@ -300,10 +319,10 @@ export class MotorMomentum {
     const entryPrice = side === 'long' ? refPrice * (1 + slip) : refPrice * (1 - slip);
     const qty = notional / entryPrice;
     const custo = notional * taxa;
+    const alvos = calcularAlvos(entryPrice, side, stopPct, takePct);
     const pos: PosicaoMomentum = {
       symbol, side, entryPrice, qty, notional,
-      stopPrice: side === 'long' ? entryPrice * (1 - stopPct) : entryPrice * (1 + stopPct),
-      takePrice: side === 'long' ? entryPrice * (1 + takePct) : entryPrice * (1 - takePct),
+      stopPrice: alvos.stopPrice, takePrice: alvos.takePrice,
       abertaEm: Date.now(), abertaBarT: barT,
     };
     this.estado.posicoes.push(pos);

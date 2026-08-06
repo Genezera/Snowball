@@ -296,7 +296,9 @@ export class LiveExecutor {
     this.state.position = {
       side, entryPrice, qty, notional,
       stopPrice: side === 'long' ? entryPrice * (1 - stopPct) : entryPrice * (1 + stopPct),
-      takePrice: side === 'long' ? entryPrice * (1 + takePct) : entryPrice * (1 - takePct),
+      // teto de 0,95 no lado short: takePct >= 1 gerava preço-alvo negativo
+      // (inalcançável) — ver mesma correção em backtest/engine.ts
+      takePrice: side === 'long' ? entryPrice * (1 + takePct) : entryPrice * (1 - Math.min(takePct, 0.95)),
       openedAt: Date.now(),
       openedBarT: barT,
     };

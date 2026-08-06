@@ -293,7 +293,9 @@ export class PaperOrchestrator {
       legIndex: li, symbol: leg.symbol, strategy: leg.strategy.name, side: sig.side,
       entryTime: Date.now(), entryPrice, entryBarT: bar.t,
       stopPrice: sig.side === 'long' ? entryPrice * (1 - sig.stopPct) : entryPrice * (1 + sig.stopPct),
-      takePrice: sig.side === 'long' ? entryPrice * (1 + sig.takePct) : entryPrice * (1 - sig.takePct),
+      // teto de 0,95 no lado short: takePct >= 1 gerava preço-alvo negativo
+      // (inalcançável) — ver mesma correção em backtest/engine.ts
+      takePrice: sig.side === 'long' ? entryPrice * (1 + sig.takePct) : entryPrice * (1 - Math.min(sig.takePct, 0.95)),
       qty: sized.notional / entryPrice, notional: sized.notional,
       riskUsed: effRisk, equityAtEntry: this.state.equity,
     });

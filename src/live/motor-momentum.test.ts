@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { avaliarSaida, calcularFechamento, indiceUltimaBarraFechada } from './motor-momentum.ts';
+import { avaliarSaida, calcularFechamento, indiceUltimaBarraFechada, calcularAlvos } from './motor-momentum.ts';
 import type { Bar } from '../core/types.ts';
 
 const DIA = 86_400_000;
@@ -82,6 +82,29 @@ test('avaliarSaida: barsHeld conta em dias inteiros a partir da barra de abertur
   assert.equal(avaliarSaida(pos, bar({ t: DIA * 28, l: 98, h: 102 }), 20), null);
   // 20 dias depois: estoura
   assert.equal(avaliarSaida(pos, bar({ t: DIA * 29, l: 98, h: 102, c: 100 }), 20)?.reason, 'timeout');
+});
+
+test('calcularAlvos: REGRESSÃO — short com takePct>=1 não pode mais dar preço-alvo negativo', () => {
+  // exatamente o parâmetro real do ts-momentum de alvo largo (Resultado 10)
+  // que gerou 35 posições com alvo impossível no primeiro ciclo corrigido
+  const alvos = calcularAlvos(100, 'short', 0.12, 5.0);
+  assert.ok(alvos.takePrice > 0, 'preço-alvo tem que ser um preço real, nunca negativo');
+  assert.equal(alvos.takePrice, 100 * (1 - 0.95)); // teto em 0,95, não 5.0
+});
+
+test('calcularAlvos: short com takePct pequeno (as 5 estratégias direcionais originais) não muda de comportamento', () => {
+  const alvos = calcularAlvos(100, 'short', 0.015, 0.03);
+  assert.equal(alvos.takePrice, 100 * (1 - 0.03)); // sem teto agindo, igual a antes da correção
+});
+
+test('calcularAlvos: long nunca precisou de teto — takePct>=1 continua dando alvo positivo grande', () => {
+  const alvos = calcularAlvos(100, 'long', 0.12, 5.0);
+  assert.equal(alvos.takePrice, 100 * (1 + 5.0));
+});
+
+test('calcularAlvos: stop não muda com a correção, só o alvo', () => {
+  const alvos = calcularAlvos(100, 'short', 0.12, 5.0);
+  assert.equal(alvos.stopPrice, 100 * (1 + 0.12));
 });
 
 test('calcularFechamento: long lucrativo — fill abaixo do preco de referencia (slippage contra), pnl positivo se o preco subiu o bastante', () => {

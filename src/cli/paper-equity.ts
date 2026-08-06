@@ -196,7 +196,9 @@ async function ciclo() {
       idx: i, symbol: PARES[i].symbol, strategy: PARES[i].strategy, side: sig.side,
       entryTime: Date.now(), entryPrice: entrada, entryBarT: ult.t,
       stopPrice: sig.side === 'long' ? entrada * (1 - sig.stopPct) : entrada * (1 + sig.stopPct),
-      takePrice: sig.side === 'long' ? entrada * (1 + sig.takePct) : entrada * (1 - sig.takePct),
+      // teto de 0,95 no lado short: takePct >= 1 gerava preço-alvo negativo
+      // (inalcançável) — ver mesma correção em backtest/engine.ts
+      takePrice: sig.side === 'long' ? entrada * (1 + sig.takePct) : entrada * (1 - Math.min(sig.takePct, 0.95)),
       qty: sized.notional / entrada, notional: sized.notional,
       riskUsed: efetivo, equityAtEntry: estado.equity,
     });

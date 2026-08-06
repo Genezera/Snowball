@@ -208,7 +208,9 @@ export function runPortfolio(legs: Leg[], cfg: PortfolioConfig): PortfolioResult
         leg: p.leg, symbol: leg.symbol, strategy: leg.strategy.name, side: p.sig.side,
         entryTime: t, entryPrice, entryIndex: bi,
         stopPrice: p.sig.side === 'long' ? entryPrice * (1 - p.sig.stopPct) : entryPrice * (1 + p.sig.stopPct),
-        takePrice: p.sig.side === 'long' ? entryPrice * (1 + p.sig.takePct) : entryPrice * (1 - p.sig.takePct),
+        // teto de 0,95 no lado short: takePct >= 1 gerava preço-alvo negativo
+        // (inalcançável) — ver mesma correção em backtest/engine.ts
+        takePrice: p.sig.side === 'long' ? entryPrice * (1 + p.sig.takePct) : entryPrice * (1 - Math.min(p.sig.takePct, 0.95)),
         qty: sized.notional / entryPrice, notional: sized.notional,
         entryFee: sized.notional * fee, equityAtEntry: equity,
         riskFraction: cfg.risk.riskPerTrade,

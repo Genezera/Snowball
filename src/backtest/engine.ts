@@ -123,8 +123,14 @@ export function runBacktest(series: Series, strategy: Strategy, cfg: BacktestCon
           entryIndex: i,
           stopPrice:
             sig.side === 'long' ? entryPrice * (1 - sig.stopPct) : entryPrice * (1 + sig.stopPct),
+          // short com takePct >= 1 (ex.: ts-momentum de alvo largo, 5.0) dava
+          // preço-alvo NEGATIVO — matematicamente inalcançável, achado rodando
+          // o modo agressivo ao vivo (35 de 40 posições nunca poderiam sair
+          // por alvo). O teto de 0,95 preserva "alvo bem largo, quase nunca
+          // bate" sem virar impossível — o preço só pode cair até 5% do
+          // valor de entrada, nunca menos.
           takePrice:
-            sig.side === 'long' ? entryPrice * (1 + sig.takePct) : entryPrice * (1 - sig.takePct),
+            sig.side === 'long' ? entryPrice * (1 + sig.takePct) : entryPrice * (1 - Math.min(sig.takePct, 0.95)),
           qty,
           notional: sized.notional,
           entryFee: sized.notional * fee,
