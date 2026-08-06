@@ -198,6 +198,15 @@ tbody tr:nth-child(odd){background:rgba(0,0,0,.018)}
 ::-webkit-scrollbar-thumb{background:var(--line-strong)}
 ::-webkit-scrollbar-track{background:transparent}
 
+.modo-divisor{display:flex;align-items:center;gap:14px;margin:30px 0 16px}
+.modo-divisor .linha{flex:1;height:1.5px;background:var(--line-strong)}
+.modo-divisor .rotulo{font-family:var(--serif);font-weight:700;font-size:1rem;white-space:nowrap;display:flex;align-items:center;gap:9px}
+.modo-divisor .tag{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:2px 9px;border:1px solid currentColor}
+.modo-divisor.agressivo .tag{color:var(--red)}
+.modo-divisor.normal .tag{color:var(--blue)}
+.aviso-agressivo{font-size:.76rem;color:var(--ink-dim);background:var(--amber-bg);border:1px solid var(--amber);padding:10px 14px;margin-bottom:16px;line-height:1.5}
+.aviso-agressivo b{color:var(--amber)}
+
 footer.foot{text-align:center;color:var(--ink-faint);font-size:.71rem;padding:26px 0 0;font-family:var(--mono)}
 </style></head>
 <body>
@@ -214,6 +223,12 @@ footer.foot{text-align:center;color:var(--ink-faint);font-size:.71rem;padding:26
       <button class="themebtn" id="btn-theme" type="button">modo</button>
       <span id="clock">--:--:--</span>
     </div>
+  </div>
+
+  <div class="modo-divisor normal">
+    <span class="linha"></span>
+    <span class="rotulo"><span class="tag">Modo Normal</span> Arbitragem de funding, delta-neutro</span>
+    <span class="linha"></span>
   </div>
 
   <section class="figures" id="kpis"></section>
@@ -292,6 +307,40 @@ footer.foot{text-align:center;color:var(--ink-faint);font-size:.71rem;padding:26
   <section class="ledger">
     <div class="ledger-head"><h2>Decisões do motor</h2></div>
     <div class="ledger-body"><div class="timeline" id="timeline"></div></div>
+  </section>
+
+  <div class="modo-divisor agressivo">
+    <span class="linha"></span>
+    <span class="rotulo"><span class="tag">Modo Agressivo</span> ts-momentum, multi-ativo</span>
+    <span class="linha"></span>
+  </div>
+
+  <div class="aviso-agressivo">
+    <b>Experimental — sem garantia de lucro em nenhum prazo.</b> É a única, de 7 famílias de
+    estratégia testadas neste projeto, que sobreviveu a holdout cego (p=0,008 — ver Resultado 6/10
+    em <code>docs/RESULTADOS.md</code>). Bootstrap por blocos mede ~9-13% de chance de bater a meta
+    em anos, ~15-45% de chance de perder o capital, dependendo do risco. Roda em paralelo ao Modo
+    Normal, só em papel — nenhuma ordem é enviada aqui também.
+  </div>
+
+  <section class="figures" id="kpis-mom"></section>
+
+  <section class="ledger">
+    <div class="ledger-head"><h2>Curva de capital — modo agressivo</h2><span class="note" id="curva-mom-tag"></span></div>
+    <div class="ledger-body"><div class="chart-wrap"><svg id="svg-curva-mom" viewBox="0 0 1000 190" preserveAspectRatio="none"></svg></div></div>
+  </section>
+
+  <section class="ledger">
+    <div class="ledger-head"><h2>Posições abertas — modo agressivo</h2><span class="note" id="pos-mom-tag"></span></div>
+    <div class="ledger-body" style="overflow-x:auto;padding:0"><table id="pos-mom-table">
+      <thead><tr><th>Ativo</th><th>Lado</th><th>Entrada</th><th>Stop</th><th>Alvo</th><th>Aberta há</th></tr></thead>
+      <tbody id="pos-mom-body"></tbody>
+    </table></div>
+  </section>
+
+  <section class="ledger">
+    <div class="ledger-head"><h2>Decisões do modo agressivo</h2></div>
+    <div class="ledger-body"><div class="timeline" id="timeline-mom"></div></div>
   </section>
 
   <footer class="foot">SNOWBALL — nenhuma ordem enviada além do paper trading declarado — atualizado <span id="foot-ts">—</span></footer>
@@ -694,6 +743,108 @@ function renderTimeline(d){
   });
 }
 
+// ---- modo agressivo (ts-momentum multi-ativo) ----
+function renderKpisMom(d){
+  var m=d.modoAgressivo;
+  var host=el('kpis-mom');
+  if(!m){
+    if(!host.dataset.vazio){host.innerHTML='<div class="fig" style="grid-column:1/-1"><div class="lbl">Modo agressivo</div><div class="sub" style="margin-top:6px">ainda não iniciou — sem estado em disco</div></div>';host.dataset.vazio='1'}
+    return;
+  }
+  host.dataset.vazio='';
+  var e=m.estado||{};
+  var cap=e.capital!=null?e.capital:0;
+  var capIni=e.capitalInicial||cap||1;
+  var variacao=(cap-capIni)/capIni;
+  var winrate=m.taxaVitoria;
+  var itens=[
+    {id:'km-capital',lbl:'Capital atual',val:cap,fmt:fmtUsd,sub:(variacao>=0?'+':'')+fmtPct(variacao,2)+' desde o início',cls:variacao>=0?'up':'down'},
+    {id:'km-pico',lbl:'Pico',val:e.pico||cap,fmt:fmtUsd,sub:'capital inicial '+fmtUsd(capIni)},
+    {id:'km-trades',lbl:'Trades fechados',val:e.fechados||0,fmt:function(n){return fmtNum(Math.round(n))},sub:winrate!=null?fmtPct(winrate,0)+' de vitórias':'sem trades ainda'},
+    {id:'km-pos',lbl:'Posições abertas',val:(e.posicoes||[]).length,fmt:function(n){return fmtNum(Math.round(n))},sub:'de '+ (m.universoTotal||57)+' ativos monitorados'},
+    {id:'km-custos',lbl:'Custos pagos',val:e.custosTotal||0,fmt:fmtUsd,sub:'taxas + slippage acumulados'}
+  ];
+  if(!host.dataset.built){
+    host.innerHTML=itens.map(function(it){
+      return '<div class="fig"><div class="lbl">'+esc(it.lbl)+'</div><div class="val '+(it.cls||'')+'" id="'+it.id+'">—</div><div class="sub" id="'+it.id+'-sub">—</div></div>';
+    }).join('');
+    host.dataset.built='1';
+  }
+  itens.forEach(function(it){
+    animateNumber(it.id,it.val,it.fmt);
+    var subNode=el(it.id+'-sub'); if(subNode) subNode.textContent=it.sub;
+    var valNode=el(it.id); if(valNode&&it.cls){valNode.className='val '+it.cls}
+  });
+}
+
+function renderCurvaMom(d){
+  var m=d.modoAgressivo;
+  var pts=((m&&m.curva)||[]).filter(function(p){return isFinite(p.capital)});
+  renderIfChanged('curva-mom',pts,function(){
+    el('curva-mom-tag').textContent=pts.length+' pontos';
+    var svg=el('svg-curva-mom');
+    if(pts.length<2){svg.innerHTML=pts.length?'':'<text x="500" y="95" text-anchor="middle" fill="var(--ink-faint)" font-size="14">sem trades fechados ainda — a curva aparece no primeiro fechamento</text>';return}
+    var W=1000,H=190,pad=10;
+    var vals=pts.map(function(p){return p.capital});
+    var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+    if(lo===hi){lo-=1;hi+=1}
+    var n=pts.length;
+    function X(i){return pad+(W-2*pad)*(i/(n-1))}
+    function Y(v){return H-pad-(H-2*pad)*((v-lo)/(hi-lo))}
+    var out=['<line class="ax" x1="'+pad+'" y1="'+(H-pad)+'" x2="'+(W-pad)+'" y2="'+(H-pad)+'"/>'];
+    out.push('<line class="ax" x1="'+pad+'" y1="'+pad+'" x2="'+pad+'" y2="'+(H-pad)+'"/>');
+    var line=[];
+    for(var i=0;i<n;i++){
+      var x=X(i).toFixed(1),y=Y(pts[i].capital).toFixed(1);
+      line.push((i===0?'M':'L')+x+','+y);
+    }
+    out.push('<path class="eqline" d="'+line.join(' ')+'" stroke="var(--red)"/>');
+    var lastX=X(n-1).toFixed(1),lastY=Y(pts[n-1].capital).toFixed(1);
+    out.push('<circle class="eqdot" cx="'+lastX+'" cy="'+lastY+'" r="3.4" stroke="var(--red)"/>');
+    svg.innerHTML=out.join('');
+  });
+}
+
+function renderPosicoesMom(d){
+  var m=d.modoAgressivo;
+  var pos=(m&&m.posicoes)||[];
+  el('pos-mom-tag').textContent=pos.length?(pos.length+' aberta'+(pos.length>1?'s':'')):'nenhuma';
+  renderIfChanged('posicoes-mom',pos,function(){
+    var body=el('pos-mom-body');
+    if(!pos.length){
+      body.innerHTML='<tr><td colspan="6" style="color:var(--ink-faint);text-align:center;padding:20px">nenhuma posição aberta agora</td></tr>';
+      return;
+    }
+    body.innerHTML=pos.map(function(p){
+      return '<tr>'+
+        '<td>'+esc((p.symbol||'').replace('/USDT:USDT',''))+'</td>'+
+        '<td><span class="badge '+(p.side==='long'?'ok':'bad')+'">'+esc(p.side)+'</span></td>'+
+        '<td>'+fmtUsd(p.entryPrice)+'</td>'+
+        '<td>'+fmtUsd(p.stopPrice)+' ('+fmtPct(-p.distanciaStop,1)+')</td>'+
+        '<td>'+fmtUsd(p.takePrice)+' (+'+fmtPct(p.distanciaAlvo,1)+')</td>'+
+        '<td>'+fmtHoras(p.horasAberta)+'</td>'+
+        '</tr>';
+    }).join('');
+  });
+}
+
+function renderTimelineMom(d){
+  var m=d.modoAgressivo;
+  var itens=(m&&m.diario)||[];
+  renderIfChanged('timeline-mom',itens,function(){
+    var host=el('timeline-mom');
+    if(!itens.length){host.innerHTML='<div class="empty">sem eventos ainda — o modo agressivo só age em fechamento de barra diária</div>';return}
+    host.innerHTML=itens.map(function(e){
+      var cor=corEvento[e.evento]||'var(--ink-faint)';
+      var titulo=(e.evento||'evento')+(e.symbol?' · '+e.symbol.replace('/USDT:USDT',''):'');
+      var motivo=e.motivo||(e.pnl!=null?('pnl '+fmtUsd(e.pnl)+(e.reason?' · '+e.reason:'')):'');
+      return '<div class="tl-item"><span class="tl-bar" style="background:'+cor+'"></span>'+
+        '<div class="tl-body"><b>'+esc(titulo)+'</b><div class="motivo">'+esc(motivo)+'</div></div>'+
+        '<div class="tl-time">'+timeAgo(e.ts)+'</div></div>';
+    }).join('');
+  });
+}
+
 // ---- vigilância / status do stream ----
 function renderStatus(d){
   var v=d.vigilancia||{};
@@ -718,6 +869,10 @@ function render(d){
   renderMl(d);
   renderBasis(d);
   renderTimeline(d);
+  renderKpisMom(d);
+  renderCurvaMom(d);
+  renderPosicoesMom(d);
+  renderTimelineMom(d);
   renderStatus(d);
 }
 

@@ -10,6 +10,7 @@ node_modules/
 # estado de execução: posições abertas, diários, logs
 spread/
 vigilancia/
+momentum/
 renda/
 paper/
 state/

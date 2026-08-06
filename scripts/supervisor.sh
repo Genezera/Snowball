@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Watchdog: verifica os 5 processos do Snowball a cada 30s e religa
+# Watchdog: verifica os 6 processos do Snowball a cada 30s e religa
 # automaticamente qualquer um que tiver caído. Existe porque o motor caiu
 # uma vez (bug de import faltando) e ficou 3h30 sem ninguém religar --
 # `start` dos .cmd nao funciona neste ambiente sandboxed sem sessao de
@@ -13,6 +13,9 @@ declare -A CMD=(
   [motor]="node --env-file-if-exists=.env src/cli/spread-live.ts --porExchange 100 --alavancagem 5 --exchanges binanceusdm,bybit,okx,gate,bitget,bingx"
   [dashboard]="node src/dashboard/server.ts"
   [coletor]="node src/cli/coletor.ts --intervalo 5"
+  # modo agressivo: ts-momentum multi-ativo, papel -- roda EM PARALELO ao
+  # motor delta-neutro acima, nao no lugar dele. Os dois so coletam dado.
+  [momentum]="node --env-file-if-exists=.env src/cli/momentum-live.ts --equity 200 --risco 0.005 --alavancagem 2"
 )
 declare -A LOG=(
   [vigilancia]="vigilancia/live.log"
@@ -20,6 +23,7 @@ declare -A LOG=(
   [motor]="spread/live.log"
   [dashboard]="spread/dashboard.log"
   [coletor]="vigilancia/coletor.log"
+  [momentum]="momentum/live.log"
 )
 
 vivo() {
