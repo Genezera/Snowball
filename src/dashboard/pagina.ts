@@ -207,6 +207,10 @@ tbody tr:nth-child(odd){background:rgba(0,0,0,.018)}
 .aviso-agressivo{font-size:.76rem;color:var(--ink-dim);background:var(--amber-bg);border:1px solid var(--amber);padding:10px 14px;margin-bottom:16px;line-height:1.5}
 .aviso-agressivo b{color:var(--amber)}
 
+.op-badge{display:inline-block;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border:1px solid currentColor;white-space:nowrap}
+#ops-table td, #ops-mom-table td{vertical-align:top}
+.op-det{color:var(--ink-dim);font-size:.78rem}
+
 footer.foot{text-align:center;color:var(--ink-faint);font-size:.71rem;padding:26px 0 0;font-family:var(--mono)}
 </style></head>
 <body>
@@ -309,6 +313,14 @@ footer.foot{text-align:center;color:var(--ink-faint);font-size:.71rem;padding:26
     <div class="ledger-body"><div class="timeline" id="timeline"></div></div>
   </section>
 
+  <section class="ledger">
+    <div class="ledger-head"><h2>Histórico de operações — modo normal</h2><span class="note" id="ops-tag">tudo que foi de fato executado, sem os bloqueios</span></div>
+    <div class="ledger-body" style="overflow-x:auto;padding:0"><table id="ops-table">
+      <thead><tr><th>Quando</th><th>Tipo</th><th>Ativo</th><th>Detalhes</th></tr></thead>
+      <tbody id="ops-body"></tbody>
+    </table></div>
+  </section>
+
   <div class="modo-divisor agressivo">
     <span class="linha"></span>
     <span class="rotulo"><span class="tag">Modo Agressivo</span> ts-momentum, multi-ativo</span>
@@ -341,6 +353,14 @@ footer.foot{text-align:center;color:var(--ink-faint);font-size:.71rem;padding:26
   <section class="ledger">
     <div class="ledger-head"><h2>Decisões do modo agressivo</h2></div>
     <div class="ledger-body"><div class="timeline" id="timeline-mom"></div></div>
+  </section>
+
+  <section class="ledger">
+    <div class="ledger-head"><h2>Histórico de operações — modo agressivo</h2><span class="note" id="ops-mom-tag"></span></div>
+    <div class="ledger-body" style="overflow-x:auto;padding:0"><table id="ops-mom-table">
+      <thead><tr><th>Quando</th><th>Tipo</th><th>Ativo</th><th>Detalhes</th></tr></thead>
+      <tbody id="ops-mom-body"></tbody>
+    </table></div>
   </section>
 
   <footer class="foot">SNOWBALL — nenhuma ordem enviada além do paper trading declarado — atualizado <span id="foot-ts">—</span></footer>
@@ -743,6 +763,91 @@ function renderTimeline(d){
   });
 }
 
+// ---- histórico de operações (modo normal) — só o que foi de fato executado ----
+var TIPO_LABEL={
+  abre:'Abriu', fecha:'Fechou', funding:'Funding', reinveste:'Reinveste',
+  escalona:'Escalonou', socorre:'Socorreu'
+};
+function detalheOperacaoNormal(e){
+  if(e.evento==='abre'){
+    var pct=(e.spread*100).toFixed(4)+'%', aprPct=(e.apr*100).toFixed(1)+'%';
+    return 'vendido '+esc(e.exchangeShort||e.short||'—')+' / comprado '+esc(e.exchangeLong||e.long||'—')+
+      ' · spread '+pct+' ('+aprPct+' APR) · consistência '+fmtPct(e.consistencia,0)+
+      ' · notional '+fmtUsd(e.notional)+'/perna'+(e.estagio===1?' (fatia inicial)':'')+
+      ' · custo '+fmtUsd(e.custo);
+  }
+  if(e.evento==='fecha'){
+    return esc(e.motivo||'—')+' · funding acumulado '+fmtUsd(e.fundingAcumulado)+' · custo de saída '+fmtUsd(e.custo);
+  }
+  if(e.evento==='funding'){
+    return 'spread '+fmtPct(e.spread,4)+' · +'+fmtUsd(e.ganho)+' · capital '+fmtUsd(e.capital);
+  }
+  if(e.evento==='reinveste'){
+    return '+'+fmtUsd(e.notionalExtra)+'/perna · notional agora '+fmtUsd(e.notionalNovo)+' · custo '+fmtUsd(e.custo);
+  }
+  if(e.evento==='escalona'){
+    return 'provou 1,5x o payback · notional +'+fmtUsd(e.notionalAdicionado)+' → '+fmtUsd(e.notionalNovo)+'/perna · custo '+fmtUsd(e.custo);
+  }
+  if(e.evento==='socorre'){
+    return 'reforço de '+fmtUsd(e.valor)+' em '+esc(e.exchange)+' · distância era '+fmtPct(e.distanciaLiquidacao,1)+' · preço '+fmtPct(e.variacao,1)+' desde a entrada';
+  }
+  return '';
+}
+function renderOperacoes(d){
+  var ops=d.operacoes||[];
+  el('ops-tag').textContent=ops.length+' operações registradas';
+  renderIfChanged('ops',ops,function(){
+    var body=el('ops-body');
+    if(!ops.length){
+      body.innerHTML='<tr><td colspan="4" style="color:var(--ink-faint);text-align:center;padding:20px">nenhuma operação real ainda — só bloqueios até agora</td></tr>';
+      return;
+    }
+    body.innerHTML=ops.map(function(e){
+      var cor=corEvento[e.evento]||'var(--ink-faint)';
+      return '<tr>'+
+        '<td style="font-family:var(--mono);font-size:.72rem;white-space:nowrap">'+timeAgo(e.ts)+'</td>'+
+        '<td><span class="op-badge" style="color:'+cor+'">'+esc(TIPO_LABEL[e.evento]||e.evento)+'</span></td>'+
+        '<td style="font-weight:700">'+esc((e.symbol||'').replace('/USDT:USDT',''))+'</td>'+
+        '<td class="op-det">'+detalheOperacaoNormal(e)+'</td>'+
+        '</tr>';
+    }).join('');
+  });
+}
+
+// ---- histórico de operações (modo agressivo) ----
+function detalheOperacaoMom(e){
+  if(e.evento==='abre'){
+    return esc(e.side)+' @ '+fmtUsd(e.entryPrice)+' · notional '+fmtUsd(e.notional)+
+      ' · stop '+fmtUsd(e.stopPrice)+' · alvo '+fmtUsd(e.takePrice);
+  }
+  if(e.evento==='fecha'){
+    var cls=e.pnl>=0?'up':'down';
+    return '('+esc(e.reason||'—')+') @ '+fmtUsd(e.exitPrice)+' · pnl <span class="'+cls+'">'+(e.pnl>=0?'+':'')+fmtUsd(e.pnl)+'</span> · capital '+fmtUsd(e.capital);
+  }
+  return '';
+}
+function renderOperacoesMom(d){
+  var m=d.modoAgressivo;
+  var ops=(m&&m.operacoes)||[];
+  el('ops-mom-tag').textContent=ops.length+' operações registradas';
+  renderIfChanged('ops-mom',ops,function(){
+    var body=el('ops-mom-body');
+    if(!ops.length){
+      body.innerHTML='<tr><td colspan="4" style="color:var(--ink-faint);text-align:center;padding:20px">nenhuma operação ainda — o modo agressivo só age em fechamento de barra diária</td></tr>';
+      return;
+    }
+    body.innerHTML=ops.map(function(e){
+      var cor=corEvento[e.evento]||'var(--ink-faint)';
+      return '<tr>'+
+        '<td style="font-family:var(--mono);font-size:.72rem;white-space:nowrap">'+timeAgo(e.ts)+'</td>'+
+        '<td><span class="op-badge" style="color:'+cor+'">'+esc(TIPO_LABEL[e.evento]||e.evento)+'</span></td>'+
+        '<td style="font-weight:700">'+esc((e.symbol||'').replace('/USDT:USDT',''))+'</td>'+
+        '<td class="op-det">'+detalheOperacaoMom(e)+'</td>'+
+        '</tr>';
+    }).join('');
+  });
+}
+
 // ---- modo agressivo (ts-momentum multi-ativo) ----
 function renderKpisMom(d){
   var m=d.modoAgressivo;
@@ -869,10 +974,12 @@ function render(d){
   renderMl(d);
   renderBasis(d);
   renderTimeline(d);
+  renderOperacoes(d);
   renderKpisMom(d);
   renderCurvaMom(d);
   renderPosicoesMom(d);
   renderTimelineMom(d);
+  renderOperacoesMom(d);
   renderStatus(d);
 }
 

@@ -268,6 +268,24 @@ function lerEstado() {
 }
 
 /**
+ * Histórico de OPERAÇÕES DE VERDADE — abre, fecha, funding, reinveste,
+ * escalona, socorre. Deliberadamente separado do `diario` que alimenta
+ * "Decisões do motor": aquele mistura tudo (inclusive "bloqueado", que é a
+ * maioria esmagadora dos eventos) e, com o corte de 80 linhas, uma sequência
+ * de bloqueios recentes empurraria pra fora as operações reais mais antigas.
+ * Aqui lê uma janela bem maior do arquivo ANTES de filtrar, porque bloqueio
+ * é raro perto de operação de verdade nesta escala.
+ */
+const EVENTOS_OPERACAO = new Set(['abre', 'fecha', 'funding', 'reinveste', 'escalona', 'socorre']);
+
+function lerOperacoes(caminhoDiario: string, limiteLinhas = 4000, limiteResultado = 200) {
+  if (!fs.existsSync(caminhoDiario)) return [];
+  const linhas = fs.readFileSync(caminhoDiario, 'utf8').trim().split('\n').filter(Boolean).slice(-limiteLinhas);
+  const eventos = linhas.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  return eventos.filter((e) => EVENTOS_OPERACAO.has(e.evento)).slice(-limiteResultado).reverse();
+}
+
+/**
  * Modo agressivo (ts-momentum multi-ativo) — mesmo padrão de leitura do modo
  * normal, mas de `momentum/` em vez de `spread/`. Os dois motores são
  * independentes: capital, estado e diário separados, cada um só paper.
@@ -519,6 +537,7 @@ async function montarDados() {
       curva: curvaMom,
       diario: diarioMom.filter((e: any) => e.evento !== 'init').slice(-60).reverse(),
       taxaVitoria: estadoMom.fechados > 0 ? estadoMom.vitorias / estadoMom.fechados : null,
+      operacoes: lerOperacoes(path.join(DIR_MOMENTUM, 'diario.jsonl')),
     } : null;
 
     return {
@@ -526,6 +545,7 @@ async function montarDados() {
       // ponto só — não é uma decisão, então some da tabela "Decisões do motor"
       // mas continua contando pra `curva` acima, que lê o `diario` completo.
       estado, posicoes, contas, rankingExchanges, diario: diario.filter((e) => e.evento !== 'leitura').slice(-80).reverse(), curva,
+      operacoes: lerOperacoes(path.join(DIR, 'diario.jsonl')),
       modoAgressivo,
       pagamentosPorDia: [...porDia].map(([dia, total]) => ({ dia, total })),
       scan: scan.slice(0, 15),
