@@ -1,12 +1,21 @@
 /**
- * Dashboard — sétima geração, reconstruída do zero a pedido explícito do
- * usuário: a geração anterior (papel claro, "livro-caixa") ficou "estranha".
- * Esta é outra virada de conceito — terminal de trading moderno de verdade:
- * abas clicáveis, fita de preços ao vivo rolando, gráfico de candles real
- * por trás de cada posição aberta com a ENTRADA desenhada em cima, tudo
- * animado com propósito. Mesmo contrato de dados do server.ts
- * (retrato() via /api/stream e /api/dados), mais uma rota nova só pra
- * candles (/api/candles?exchange=&symbol=&timeframe=).
+ * Dashboard — oitava geração: centro de operações quantitativas.
+ *
+ * Pedido explícito do usuário: reestruturar a experiência inteira (não só
+ * ajustar cores) em torno da identidade visual da logo — sidebar em vez de
+ * abas no topo, seções novas (Oportunidades, Risco, Pesquisa, Histórico,
+ * Logs), visual glacial/técnico. Mesmo contrato de dados de sempre
+ * (retrato() via /api/stream e /api/dados, /api/candles, /api/logs — novo)
+ * — nada na forma como os processos escrevem estado mudou, só como esta
+ * página lê e mostra.
+ *
+ * O que NÃO mudou nesta reescrita, de propósito — lógica já testada em
+ * produção, só resposicionada em outro lugar da tela:
+ *   · desenharCurva / desenharCandles / desenharPonte (SVG dos gráficos)
+ *   · garantirGrafico / observarCandle (candle sob demanda, lazy-load)
+ *   · computeFluxo / agregarPorExchange (a ponte "de onde veio o dinheiro")
+ *   · renderIfChanged / animateNumber (anti-flicker)
+ *   · a conexão SSE com fallback pra polling
  *
  * Regras que já quebraram este arquivo antes, continuam valendo:
  *
@@ -17,71 +26,137 @@
  *    literals — só concatenação com "+" e Array.join('').
  * 3. render(d) roda a cada evento do SSE — cada seção só toca o DOM quando
  *    o dado dela mudou de verdade (renderIfChanged), senão pisca.
- * 4. Os gráficos de candle têm o PRÓPRIO ciclo de atualização (poll a cada
- *    ~20s, independente do SSE) porque candle fechado não muda a cada
- *    evento de disco — só quando a exchange fecha uma vela nova.
+ * 4. Nenhuma lista de posições ganha gráfico de candle individual SEM
+ *    carregamento sob demanda — foi isso que deixou o modo agressivo (40
+ *    posições) lento o bastante pra ser tirado do painel.
+ *
+ * O que este painel deliberadamente NÃO tenta ser, por falta de dado real
+ * pra sustentar (ver o pedido original, item 25 — honestidade visual):
+ * paleta de comandos, replay histórico, heatmap de correlação, ferramentas
+ * de desenho manual em candle, monitor de drift de ML. Adicionar qualquer
+ * um desses exigiria inventar dado ou construir um pipeline novo — nenhum
+ * dos dois cabe numa reestruturação que também promete não quebrar o que
+ * já funciona.
  */
 export const PAGINA = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Snowball · Terminal</title>
+<title>Snowball · Centro de Operações</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <style>
+/* ============================================================
+   TOKENS — paleta glacial da identidade Snowball
+   ============================================================ */
 :root{
-  --bg:#070910; --bg2:#0c0f1a; --panel:#10141f; --panel-hi:#141926;
-  --border:rgba(255,255,255,.07); --border-hi:rgba(255,255,255,.16);
-  --text:#eef1f8; --dim:#8991a8; --faint:#565e75;
-  --mint:#38bdf8; --mint-glow:rgba(56,189,248,.45);
-  --coral:#ff5470; --coral-glow:rgba(255,84,112,.4);
+  --bg-main:#050b18; --bg-secondary:#091426;
+  --surface:rgba(12,29,51,.72); --surface-strong:rgba(13,35,63,.94);
+  --panel:#0c1526; --panel-hi:#101d34;
+  --border:rgba(91,211,255,.14); --border-hi:rgba(91,211,255,.30);
+  --cyan:#17d9ff; --cyan-glow:rgba(23,217,255,.42);
+  --ice:#75e8ff; --blue:#168cff; --navy:#061c40;
   --violet:#8b6cf2; --violet-glow:rgba(139,108,242,.4);
-  --amber:#ffb84d; --blue:#4d9fff;
+  --white:#f7fbff; --text:#eef4fb; --dim:#8ea3c2; --faint:#516a8c;
+  --positive:#36e3a0; --positive-glow:rgba(54,227,160,.4);
+  --warning:#ffc857; --warning-glow:rgba(255,200,87,.4);
+  --danger:#ff5c7a; --danger-glow:rgba(255,92,122,.4);
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace;
-  --radius:18px;
+  --radius:16px; --radius-sm:10px;
+  --sidebar-w:230px; --sidebar-w-collapsed:64px;
+  --dur:.22s; --ease:cubic-bezier(.2,.7,.2,1);
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;scroll-behavior:smooth}
+html,body{margin:0;padding:0}
 body{
   background:
-    radial-gradient(1200px 700px at 15% -10%, rgba(56,189,248,.09), transparent 60%),
-    radial-gradient(1000px 800px at 100% 0%, rgba(139,108,242,.10), transparent 55%),
-    radial-gradient(900px 600px at 50% 110%, rgba(77,159,255,.07), transparent 55%),
-    var(--bg);
+    radial-gradient(1100px 650px at 12% -8%, rgba(23,217,255,.08), transparent 58%),
+    radial-gradient(950px 760px at 100% 4%, rgba(139,108,242,.09), transparent 55%),
+    radial-gradient(1px 1px at 20% 30%, rgba(117,232,255,.5), transparent),
+    var(--bg-main);
+  background-size:auto,auto,26px 26px,auto;
   color:var(--text); font-family:var(--sans); min-height:100vh;
-  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* grade técnica sutil, fixa no fundo */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(91,211,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(91,211,255,.035) 1px,transparent 1px);
+  background-size:38px 38px; mask-image:radial-gradient(1200px 800px at 30% 0%,#000,transparent 75%);
 }
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:99px}
 ::-webkit-scrollbar-track{background:transparent}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.up{color:var(--mint)} .down{color:var(--coral)} .neu{color:var(--dim)}
+.up{color:var(--positive)} .down{color:var(--danger)} .neu{color:var(--dim)}
+a{color:inherit}
+button{font-family:inherit;cursor:pointer}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+.app.perf-off *{animation:none!important;transition:none!important}
 
-/* ---- topo ---- */
-.topbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(7,9,16,.78);border-bottom:1px solid var(--border)}
-.topbar-in{max-width:1480px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
-.brand-logo{height:52px;width:auto;display:block;filter:drop-shadow(0 0 10px var(--mint-glow))}
-.brand h1{font-size:1.02rem;font-weight:800;margin:0;letter-spacing:-.01em}
-.tabs{display:flex;gap:2px;flex:1;overflow-x:auto}
-.tab{position:relative;padding:9px 15px;border-radius:10px;font-size:.82rem;font-weight:700;color:var(--dim);cursor:pointer;white-space:nowrap;transition:color .2s,background-color .2s;border:1px solid transparent;user-select:none}
-.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
-.tab.active{color:var(--text);background:rgba(255,255,255,.06);border-color:var(--border-hi)}
-.tab.active::after{content:'';position:absolute;left:14%;right:14%;bottom:-1px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--mint),var(--violet));box-shadow:0 0 8px var(--mint-glow)}
-.tab .dot-mini{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle}
-.topmeta{display:flex;align-items:center;gap:8px}
-.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:999px;padding:6px 11px;font-size:.72rem;color:var(--dim)}
+/* ============================================================
+   SHELL — sidebar + topbar
+   ============================================================ */
+.app{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{
+  width:var(--sidebar-w);flex:none;position:sticky;top:0;height:100vh;overflow-y:auto;
+  background:var(--surface-strong);backdrop-filter:blur(20px);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;transition:width var(--dur) var(--ease);z-index:40;
+}
+.app.sb-collapsed .sidebar{width:var(--sidebar-w-collapsed)}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:18px 16px;border-bottom:1px solid var(--border)}
+.sb-brand img{height:30px;width:auto;flex:none;filter:drop-shadow(0 0 8px var(--cyan-glow))}
+.sb-brand .mark{width:30px;height:30px;flex:none;border-radius:9px;display:none;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--cyan),var(--blue));box-shadow:0 0 14px var(--cyan-glow)}
+.app.sb-collapsed .sb-brand img{display:none}
+.app.sb-collapsed .sb-brand .mark{display:flex}
+.sb-nav{flex:1;padding:10px 10px;display:flex;flex-direction:column;gap:2px}
+.sb-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius-sm);color:var(--dim);font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;position:relative;border:1px solid transparent;transition:background-color var(--dur),color var(--dur),border-color var(--dur)}
+.sb-item:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.sb-item.active{color:var(--white);background:linear-gradient(90deg,rgba(23,217,255,.14),rgba(23,217,255,.02));border-color:var(--border-hi)}
+.sb-item.active .sb-ic{color:var(--cyan)}
+.sb-item .sb-ic{flex:none;width:18px;height:18px;color:var(--faint);transition:color var(--dur)}
+.sb-item .sb-label{overflow:hidden;text-overflow:ellipsis;flex:1}
+.sb-item .sb-dot{width:6px;height:6px;border-radius:50%;flex:none}
+.app.sb-collapsed .sb-label{display:none}
+.app.sb-collapsed .sb-item{justify-content:center}
+.sb-item[data-tip]{position:relative}
+.app.sb-collapsed .sb-item[data-tip]:hover::after{
+  content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);
+  background:var(--surface-strong);border:1px solid var(--border-hi);color:var(--white);
+  padding:6px 10px;border-radius:8px;font-size:.72rem;white-space:nowrap;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5)
+}
+.sb-foot{padding:12px;border-top:1px solid var(--border)}
+.sb-toggle{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--dim);padding:9px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:.72rem;font-weight:700;transition:background-color var(--dur),color var(--dur)}
+.sb-toggle:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.sb-toggle svg{transition:transform var(--dur)}
+.app.sb-collapsed .sb-toggle svg{transform:rotate(180deg)}
+.app.sb-collapsed .sb-toggle .sb-label{display:none}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:35;backdrop-filter:blur(18px);background:rgba(5,11,24,.82);border-bottom:1px solid var(--border)}
+.topbar-in{padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sb-open-btn{display:none;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;color:var(--dim);width:34px;height:34px;align-items:center;justify-content:center;flex:none}
+.page-title{font-size:.98rem;font-weight:800;margin-right:auto}
+.page-title .sub{display:block;font-size:.68rem;font-weight:600;color:var(--faint);margin-top:1px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:999px;padding:6px 11px;font-size:.72rem;color:var(--dim)}
+.pill.paper{color:var(--ice);border-color:rgba(117,232,255,.35);background:rgba(23,217,255,.07);font-weight:800;letter-spacing:.04em}
 .led{width:7px;height:7px;border-radius:50%;flex:none}
-.led.on{background:var(--mint);box-shadow:0 0 0 0 var(--mint-glow);animation:pulse 1.8s infinite}
-.led.off{background:var(--coral)}
-.led.mid{background:var(--amber)}
-@keyframes pulse{0%{box-shadow:0 0 0 0 var(--mint-glow)}70%{box-shadow:0 0 0 8px rgba(56,189,248,0)}100%{box-shadow:0 0 0 0 rgba(56,189,248,0)}}
-#clock{font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+.led.on{background:var(--positive);box-shadow:0 0 0 0 var(--positive-glow);animation:pulse 1.8s infinite}
+.led.off{background:var(--danger)}
+.led.mid{background:var(--warning)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--positive-glow)}70%{box-shadow:0 0 0 8px rgba(54,227,160,0)}100%{box-shadow:0 0 0 0 rgba(54,227,160,0)}}
+.iconbtn{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:9px;color:var(--dim);width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:background-color var(--dur),color var(--dur)}
+.iconbtn:hover{color:var(--text);background:rgba(255,255,255,.07)}
+.iconbtn.active{color:var(--cyan);border-color:var(--border-hi)}
+#clock{font-family:var(--mono);font-size:.7rem;color:var(--dim);white-space:nowrap}
+#clock .utc{color:var(--faint)}
 
 /* ---- fita de preços ---- */
-.ticker-wrap{border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);overflow:hidden;white-space:nowrap;position:relative}
+.ticker-wrap{border-bottom:1px solid var(--border);background:rgba(255,255,255,.012);overflow:hidden;white-space:nowrap;position:relative}
 .ticker-wrap::before,.ticker-wrap::after{content:'';position:absolute;top:0;bottom:0;width:60px;z-index:2;pointer-events:none}
-.ticker-wrap::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
-.ticker-wrap::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
+.ticker-wrap::before{left:0;background:linear-gradient(90deg,var(--bg-main),transparent)}
+.ticker-wrap::after{right:0;background:linear-gradient(270deg,var(--bg-main),transparent)}
 .ticker-track{display:inline-flex;gap:0;animation:ticker-scroll 55s linear infinite;padding:7px 0}
 .ticker-wrap:hover .ticker-track{animation-play-state:paused}
 @keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -90,26 +165,26 @@ body{
 .tick-item .px{font-family:var(--mono)}
 .tick-item .chg{font-family:var(--mono);font-size:.7rem}
 
-.wrap{max-width:1480px;margin:0 auto;padding:20px 22px 90px}
-.tabpanel{display:none;animation:fadeUp .38s ease both}
+.wrap{padding:20px 24px 90px}
+.tabpanel{display:none;animation:fadeUp .32s var(--ease) both}
 .tabpanel.active{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 section{margin-bottom:18px}
-.card{background:linear-gradient(180deg,var(--panel),var(--panel-hi));border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;transition:border-color .25s,transform .25s,box-shadow .25s}
+.card{background:linear-gradient(180deg,var(--surface),var(--panel-hi));backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;transition:border-color var(--dur)}
 .card:hover{border-color:var(--border-hi)}
 .card h2{margin:0 0 3px;font-size:.92rem;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.card .caption{font-size:.72rem;color:var(--faint);margin:0 0 14px;line-height:1.5}
+.card .caption{font-size:.72rem;color:var(--faint);margin:0 0 14px;line-height:1.55}
 .card .note{font-size:.68rem;color:var(--dim);font-weight:500}
 
 .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
 @media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
-.kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;transition:transform .2s,border-color .2s}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;transition:transform var(--dur),border-color var(--dur)}
 .kpi:hover{transform:translateY(-2px);border-color:var(--border-hi)}
-.kpi .lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:800}
-.kpi .val{font-family:var(--mono);font-size:1.35rem;font-weight:800;margin-top:5px;letter-spacing:-.01em}
-.kpi .sub{font-size:.68rem;color:var(--dim);margin-top:3px}
+.kpi .lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:800}
+.kpi .val{font-family:var(--mono);font-size:1.3rem;font-weight:800;margin-top:5px;letter-spacing:-.01em}
+.kpi .sub{font-size:.66rem;color:var(--dim);margin-top:3px}
 
 .grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
@@ -117,8 +192,6 @@ section{margin-bottom:18px}
 
 .chart-wrap{width:100%;height:210px}
 .chart-wrap svg{width:100%;height:100%;overflow:visible}
-.eqline{fill:none;stroke:url(#gradline);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.eqarea{fill:url(#gradfill)}
 
 /* ---- gráfico de candles ---- */
 .candle-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:12px}
@@ -132,11 +205,11 @@ section{margin-bottom:18px}
 .leg-dot{width:8px;height:8px;border-radius:2px}
 @keyframes candleIn{from{opacity:0;transform:scaleY(.3)}to{opacity:1;transform:scaleY(1)}}
 
-.procgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.procgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 @media(max-width:900px){.procgrid{grid-template-columns:repeat(2,1fr)}}
-.proc{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;transition:border-color .25s}
-.proc.vivo{border-color:rgba(56,189,248,.28)}
-.proc.morto{border-color:rgba(255,84,112,.4)}
+.proc{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;transition:border-color var(--dur)}
+.proc.vivo{border-color:rgba(23,217,255,.26)}
+.proc.morto{border-color:rgba(255,92,122,.4)}
 .proc .row{display:flex;align-items:center;gap:8px}
 .proc .nome{font-weight:700;font-size:.84rem}
 .proc .info{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:6px}
@@ -148,23 +221,24 @@ section{margin-bottom:18px}
 .poscard{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}
 .poscard .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .poscard .sym{font-weight:900;font-size:1.05rem}
-.badge{font-size:.64rem;font-weight:800;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
-.badge.ok{background:rgba(56,189,248,.14);color:var(--mint)}
-.badge.warn{background:rgba(255,184,77,.14);color:var(--amber)}
-.badge.bad{background:rgba(255,84,112,.14);color:var(--coral)}
+.badge{font-size:.62rem;font-weight:800;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em}
+.badge.ok{background:rgba(54,227,160,.14);color:var(--positive)}
+.badge.warn{background:rgba(255,200,87,.14);color:var(--warning)}
+.badge.bad{background:rgba(255,92,122,.14);color:var(--danger)}
 .legs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
 .leg{background:rgba(255,255,255,.03);border-radius:10px;padding:8px 10px;border:1px solid var(--border)}
 .leg .exid{font-size:.64rem;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
 .leg .price{font-family:var(--mono);font-size:.94rem;font-weight:800;margin-top:3px;transition:color .35s}
-.flash-up{color:var(--mint)!important;text-shadow:0 0 10px var(--mint-glow)}
-.flash-down{color:var(--coral)!important;text-shadow:0 0 10px var(--coral-glow)}
+.flash-up{color:var(--positive)!important;text-shadow:0 0 10px var(--positive-glow)}
+.flash-down{color:var(--danger)!important;text-shadow:0 0 10px var(--danger-glow)}
 .gauge{height:6px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:10px}
 .gauge i{display:block;height:100%;border-radius:99px;transition:width .6s ease}
 .poscard .meta{display:flex;justify-content:space-between;font-size:.7rem;color:var(--dim);margin-top:8px;font-family:var(--mono)}
-.empty{color:var(--dim);font-size:.85rem;padding:24px;text-align:center;border:1px dashed var(--border);border-radius:14px}
+.empty{color:var(--dim);font-size:.85rem;padding:26px 20px;text-align:center;border:1px dashed var(--border);border-radius:14px;line-height:1.6}
+.empty svg{display:block;margin:0 auto 10px;opacity:.6}
 
 table{width:100%;border-collapse:collapse;font-size:.78rem}
-th{text-align:left;color:var(--faint);font-weight:800;font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;padding:9px 10px;border-bottom:1px solid var(--border)}
+th{text-align:left;color:var(--faint);font-weight:800;font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;padding:9px 10px;border-bottom:1px solid var(--border)}
 td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.035);font-family:var(--mono)}
 tbody tr{transition:background-color .15s}
 tbody tr:hover{background:rgba(255,255,255,.03)}
@@ -175,8 +249,8 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .acctrow .head{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:6px}
 .acctrow .head b{text-transform:uppercase;letter-spacing:.03em;font-size:.72rem;color:var(--dim)}
 .barmeter{position:relative;height:9px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden}
-.barmeter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--mint),var(--violet))}
-.barmeter .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--amber)}
+.barmeter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.barmeter .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--warning)}
 
 .exprow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.82rem}
 .exprow:last-child{border-bottom:none}
@@ -194,40 +268,96 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .tl-body .motivo{color:var(--dim);margin-top:2px;font-size:.75rem;line-height:1.4}
 .tl-time{color:var(--faint);font-size:.66rem;font-family:var(--mono);white-space:nowrap}
 
-.op-badge{display:inline-block;font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px}
+.op-badge{display:inline-block;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px}
 .op-det{color:var(--dim);font-size:.76rem}
 
 .progress-readiness{height:8px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:10px}
-.progress-readiness i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--mint))}
+.progress-readiness i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
 
+/* ---- toolbar de tabela (busca/filtro) ---- */
+.tbl-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tbl-toolbar input[type=text]{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:8px 12px;font-size:.78rem;font-family:var(--sans);min-width:200px;flex:1}
+.tbl-toolbar input[type=text]:focus{outline:none;border-color:var(--border-hi)}
+.tbl-toolbar select{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:8px 10px;font-size:.76rem;font-family:var(--sans)}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--text)}
+th.sortable .arrow{opacity:.5;margin-left:3px}
+
+/* ---- badges de pesquisa ---- */
+.strat-badge{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.strat-badge.producao{background:rgba(54,227,160,.14);color:var(--positive)}
+.strat-badge.validada{background:rgba(23,217,255,.14);color:var(--cyan)}
+.strat-badge.parcial{background:rgba(255,200,87,.14);color:var(--warning)}
+.strat-badge.descartada{background:rgba(255,92,122,.14);color:var(--danger)}
+.strat-badge.pesquisa{background:rgba(139,108,242,.14);color:var(--violet)}
+
+/* ---- visualizador de logs ---- */
+.log-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.log-view{background:#030710;border:1px solid var(--border);border-radius:12px;padding:12px 14px;max-height:520px;overflow-y:auto;font-family:var(--mono);font-size:.72rem;line-height:1.65}
+.log-line{white-space:pre-wrap;word-break:break-word;color:var(--dim);border-left:2px solid transparent;padding-left:8px}
+.log-line.erro{color:var(--danger);border-left-color:var(--danger)}
+.log-empty{color:var(--faint);text-align:center;padding:30px}
+
+/* ---- aviso paper / halted ---- */
+.aviso{font-size:.76rem;color:var(--dim);background:rgba(23,217,255,.06);border:1px solid rgba(23,217,255,.25);border-radius:14px;padding:12px 16px;margin-bottom:16px;line-height:1.55}
+.aviso b{color:var(--cyan)}
+.aviso.perigo{background:rgba(255,92,122,.08);border-color:rgba(255,92,122,.35);color:var(--danger)}
 
 footer.foot{text-align:center;color:var(--faint);font-size:.7rem;padding:30px 0 0;font-family:var(--mono)}
 code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-size:.9em}
+
+@media(max-width:860px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform var(--dur) var(--ease)}
+  .app.mobile-open .sidebar{transform:translateX(0)}
+  .app.sb-collapsed .sidebar{width:var(--sidebar-w)}
+  .app.sb-collapsed .sb-label{display:block}
+  .sb-open-btn{display:flex}
+  .wrap{padding:16px 14px 80px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
 </style></head>
 <body>
+<div class="app" id="app">
 
-  <div class="topbar"><div class="topbar-in">
-    <div class="brand">
-      <img src="/logo.png" alt="Snowball" class="brand-logo">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <img src="/logo.png" alt="Snowball">
+      <div class="mark"></div>
     </div>
-    <div class="tabs" id="tabs">
-      <div class="tab active" data-tab="visao">Visão geral</div>
-      <div class="tab" data-tab="normal"><span class="dot-mini" style="background:var(--mint)"></span>Modo normal</div>
-      <div class="tab" data-tab="mercado">Mercado</div>
-      <div class="tab" data-tab="sistema">Sistema</div>
+    <nav class="sb-nav" id="sb-nav">
+      <div class="sb-item active" data-tab="visao" data-tip="Visão geral" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-grid"/></svg><span class="sb-label">Visão geral</span></div>
+      <div class="sb-item" data-tab="operacoes" data-tip="Operações" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-scale"/></svg><span class="sb-label">Operações</span></div>
+      <div class="sb-item" data-tab="oportunidades" data-tip="Oportunidades" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-radar"/></svg><span class="sb-label">Oportunidades</span></div>
+      <div class="sb-item" data-tab="exchanges" data-tip="Exchanges" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-nodes"/></svg><span class="sb-label">Exchanges</span></div>
+      <div class="sb-item" data-tab="risco" data-tip="Risco" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-shield"/></svg><span class="sb-label">Risco</span></div>
+      <div class="sb-item" data-tab="processos" data-tip="Processos" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-cpu"/></svg><span class="sb-label">Processos</span></div>
+      <div class="sb-item" data-tab="pesquisa" data-tip="Pesquisa" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-flask"/></svg><span class="sb-label">Pesquisa</span></div>
+      <div class="sb-item" data-tab="historico" data-tip="Histórico" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-clock"/></svg><span class="sb-label">Histórico</span></div>
+      <div class="sb-item" data-tab="logs" data-tip="Logs" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-terminal"/></svg><span class="sb-label">Logs</span></div>
+      <div class="sb-item" data-tab="sistema" data-tip="Sistema" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-cog"/></svg><span class="sb-label">Sistema</span></div>
+    </nav>
+    <div class="sb-foot">
+      <button class="sb-toggle" id="sb-toggle-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg><span class="sb-label">Recolher</span></button>
     </div>
-    <div class="topmeta">
+  </aside>
+
+  <div class="main">
+    <div class="topbar"><div class="topbar-in">
+      <button class="sb-open-btn" id="sb-open-btn" aria-label="Abrir menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <div class="page-title" id="page-title">Visão geral<span class="sub" id="page-sub">centro de operações — dois motores, papel</span></div>
+      <span class="pill paper">PAPER</span>
       <span class="pill"><span class="led" id="led-vig"></span><span id="txt-vig">carregando</span></span>
       <span class="pill"><span class="led" id="led-stream"></span><span id="txt-stream">carregando</span></span>
-      <span class="pill" id="clock">--:--:--</span>
-    </div>
-  </div></div>
+      <span class="pill" id="clock">--:--:-- <span class="utc">· UTC --:--</span></span>
+      <button class="iconbtn" id="btn-pause" title="Pausar atualizações visuais" aria-label="Pausar atualizações visuais"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+      <button class="iconbtn" id="btn-fullscreen" title="Tela cheia" aria-label="Tela cheia"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3"/></svg></button>
+    </div></div>
 
-  <div class="ticker-wrap"><div class="ticker-track" id="ticker-track"></div></div>
+    <div class="ticker-wrap"><div class="ticker-track" id="ticker-track"></div></div>
 
-  <div class="wrap">
+    <div class="wrap">
 
-    <!-- ============ VISÃO GERAL ============ -->
+    <!-- ============ VISÃO GERAL (Command Center) ============ -->
     <div class="tabpanel active" id="panel-visao">
       <section class="kpis" id="kpis-geral"></section>
 
@@ -252,25 +382,13 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       </section>
 
       <section class="card">
-        <h2>Ordem limite vs. mercado — mede se maker preenche rápido o bastante <span class="note" id="preench-tag"></span></h2>
-        <p class="caption">Ordem a mercado (taker) custa 0,05-0,06%; ordem limite (maker) custa ~0,02% — mas só preenche se o preço tocar nela, e o toque costuma vir acompanhado de movimento contra quem forneceu a liquidez. Isto simula uma ordem limite "no toque" nas duas pernas dos melhores candidatos da vigilância, sem enviar ordem nenhuma, e mede as duas coisas: preenche rápido? o preço se move contra depois?</p>
-        <div id="preench-box"></div>
-      </section>
-
-      <section class="card">
-        <h2>Pares cointegrados — mercado-neutro <span class="note" id="coint-tag"></span></h2>
-        <p class="caption">Aposta na relação entre dois ativos (compra o barato, vende o caro), não na direção do mercado — se os dois caem juntos, a posição não perde nada. Roda em paralelo ao modo normal e ao modo agressivo, capital próprio, isolado. Resultado 14 (docs/RESULTADOS.md): misturado com o momentum, corta a chance de ruína de ~46% para ~15%.</p>
-        <div id="coint-box"></div>
-      </section>
-
-      <section class="card">
         <h2>Processos <span class="note">watchdog verifica a cada 30s</span></h2>
         <div class="procgrid" id="procgrid"></div>
       </section>
     </div>
 
-    <!-- ============ MODO NORMAL ============ -->
-    <div class="tabpanel" id="panel-normal">
+    <!-- ============ OPERAÇÕES (modo normal) ============ -->
+    <div class="tabpanel" id="panel-operacoes">
       <section class="kpis" id="kpis"></section>
 
       <section class="grid2">
@@ -287,33 +405,9 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       </section>
 
       <section class="card">
-        <h2>Posições abertas <span class="note" id="pos-tag"></span></h2>
-        <p class="caption">Cada posição é DUAS pernas — vendida numa exchange, comprada em outra, mesmo ativo. O gráfico mostra o candle real do mercado com a entrada marcada.</p>
+        <h2>Posições — duas pernas, market-neutro <span class="note" id="pos-tag"></span></h2>
+        <p class="caption">Cada posição é DUAS pernas — vendida numa exchange, comprada em outra, mesmo ativo, tamanho equivalente. O gráfico mostra o candle real do mercado com a entrada marcada.</p>
         <div class="poscards" id="poscards"></div>
-      </section>
-
-      <section class="grid2">
-        <div class="card">
-          <h2>Contas por exchange</h2>
-          <div class="acct" id="acct"></div>
-        </div>
-        <div class="card">
-          <h2>Exposição &amp; direção</h2>
-          <p class="caption">Concentração é o risco de custódia; dreno é o quanto uma alta forte do mercado desequilibraria as contas.</p>
-          <div id="exposure"></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Varredura — ranking ao vivo <span class="note" id="scan-tag"></span></h2>
-        <p class="caption">Candidatas ordenadas por quanto já cruzaram o portão de valor esperado (coluna "Caminho"). "Passa" = o motor pode abrir; "Barra" = ainda não vale o custo.</p>
-        <div style="overflow-x:auto"><table id="scan-table">
-          <thead><tr>
-            <th>Par</th><th>Rota</th><th>Spread</th><th>APR</th><th>Consist.</th>
-            <th>Vida esp.</th><th>Payback</th><th>Caminho</th><th>Portão</th>
-          </tr></thead>
-          <tbody id="scan-body"></tbody>
-        </table></div>
       </section>
 
       <section class="card">
@@ -332,7 +426,132 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
           <tbody id="fluxo-ex-body"></tbody>
         </table></div>
       </section>
+    </div>
 
+    <!-- ============ OPORTUNIDADES ============ -->
+    <div class="tabpanel" id="panel-oportunidades">
+      <section class="card">
+        <h2>Varredura — ranking ao vivo <span class="note" id="scan-tag"></span></h2>
+        <p class="caption">Candidatas ordenadas por quanto já cruzaram o portão de valor esperado (coluna "Caminho"). "Passa" = o motor pode abrir; "Barra" = ainda não vale o custo.</p>
+        <div class="tbl-toolbar">
+          <input type="text" id="scan-busca" placeholder="Buscar ativo ou exchange...">
+          <select id="scan-filtro">
+            <option value="todos">Todos os status</option>
+            <option value="passa">Só passou o portão</option>
+            <option value="barra">Só barrados</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto"><table id="scan-table">
+          <thead><tr>
+            <th class="sortable" data-col="symbol">Par</th><th>Rota</th>
+            <th class="sortable" data-col="spread">Spread</th><th class="sortable" data-col="apr">APR</th>
+            <th class="sortable" data-col="consistencia">Consist.</th>
+            <th class="sortable" data-col="vidaEsperadaHoras">Vida esp.</th>
+            <th class="sortable" data-col="paybackHoras">Payback</th>
+            <th class="sortable" data-col="pctDoCaminho">Caminho</th><th>Portão</th>
+          </tr></thead>
+          <tbody id="scan-body"></tbody>
+        </table></div>
+      </section>
+    </div>
+
+    <!-- ============ EXCHANGES ============ -->
+    <div class="tabpanel" id="panel-exchanges">
+      <section class="card">
+        <h2>Preços ao vivo <span class="note">pernas de posições abertas + melhores candidatas da varredura</span></h2>
+        <div id="mercado-grid" class="procgrid"></div>
+      </section>
+      <section class="grid2">
+        <div class="card">
+          <h2>Contas por exchange</h2>
+          <div class="acct" id="acct"></div>
+        </div>
+        <div class="card">
+          <h2>Saúde das exchanges</h2>
+          <div class="healthgrid" id="custodia-grid"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ RISCO ============ -->
+    <div class="tabpanel" id="panel-risco">
+      <section class="card">
+        <h2>Exposição &amp; direção</h2>
+        <p class="caption">Concentração é o risco de custódia (quanto do capital está numa exchange só); dreno é o quanto uma alta forte do mercado desequilibraria as contas.</p>
+        <div id="exposure"></div>
+      </section>
+      <section class="card">
+        <h2>Distância até liquidação, por posição</h2>
+        <p class="caption">Fração de movimento adverso de preço que a margem de cada perna ainda aguenta antes de liquidar. Quanto maior, mais seguro.</p>
+        <div id="risco-liq-box"></div>
+      </section>
+      <section class="card">
+        <h2>Travas de risco</h2>
+        <div id="risco-travas-box"></div>
+      </section>
+    </div>
+
+    <!-- ============ PROCESSOS ============ -->
+    <div class="tabpanel" id="panel-processos">
+      <section class="card">
+        <h2>Arquitetura — como os processos se falam</h2>
+        <p class="caption">Por arquivo em disco, não chamada direta — se um cai, os outros percebem pela idade do dado em vez de travar.</p>
+        <div id="arq-diagrama"></div>
+      </section>
+      <section class="card">
+        <h2>Processos <span class="note">watchdog verifica a cada 30s</span></h2>
+        <div class="procgrid" id="procgrid-2"></div>
+        <div class="wdlog" id="wdlog"></div>
+      </section>
+    </div>
+
+    <!-- ============ PESQUISA ============ -->
+    <div class="tabpanel" id="panel-pesquisa">
+      <section class="card">
+        <h2>Famílias de estratégia testadas <span class="note">mesma disciplina de holdout cego em todas</span></h2>
+        <p class="caption">Descoberta separada de holdout, parâmetros fixos sem reajuste, correção honesta sempre que um teste mais rigoroso derrubava um resultado bonito. Números completos e metodologia em <code>docs/RESULTADOS.md</code>.</p>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Família</th><th>Melhor achado</th><th>Holdout</th><th>Custo/risco real</th><th>Status</th></tr></thead>
+          <tbody id="estrategias-body"></tbody>
+        </table></div>
+      </section>
+
+      <section class="card">
+        <h2>Modo agressivo — ts-momentum <span class="note" id="agressivo-tag"></span></h2>
+        <p class="caption">Multi-ativo, experimental, roda em paralelo no backend — sem cards por posição aqui de propósito (40 posições com gráfico cada uma é o que deixava esta seção lenta).</p>
+        <div id="agressivo-box"></div>
+      </section>
+
+      <section class="card">
+        <h2>Pares cointegrados — mercado-neutro <span class="note" id="coint-tag"></span></h2>
+        <p class="caption">Aposta na relação entre dois ativos (compra o barato, vende o caro), não na direção do mercado. Resultado 14: misturado com o momentum, corta a chance de ruína de ~46% para ~15%.</p>
+        <div id="coint-box"></div>
+      </section>
+
+      <section class="card">
+        <h2>Ordem limite vs. mercado — mede se maker preenche rápido o bastante <span class="note" id="preench-tag"></span></h2>
+        <p class="caption">Ordem a mercado (taker) custa 0,05-0,06%; ordem limite (maker) custa ~0,02% — mas só preenche se o preço tocar nela, e o toque costuma vir acompanhado de movimento contra quem forneceu a liquidez. Isto simula uma ordem limite "no toque" nas duas pernas dos melhores candidatos da vigilância, sem enviar ordem nenhuma.</p>
+        <div id="preench-box"></div>
+      </section>
+
+      <section class="card">
+        <h2>Basis trade <span class="note">spot+perp, coleta — não opera</span></h2>
+        <div id="basis-box"></div>
+      </section>
+
+      <section class="card">
+        <h2>Prontidão de ML</h2>
+        <div id="ml-box"></div>
+      </section>
+    </div>
+
+    <!-- ============ HISTÓRICO ============ -->
+    <div class="tabpanel" id="panel-historico">
+      <section class="card">
+        <h2>Decisões do motor</h2>
+        <p class="caption">Cada avaliação de cada ciclo, inclusive os bloqueios — é o log de raciocínio completo, não só o resultado.</p>
+        <div class="timeline" id="timeline"></div>
+      </section>
       <section class="card">
         <h2>Histórico de operações <span class="note" id="ops-tag">tudo que foi de fato executado, sem os bloqueios</span></h2>
         <div style="overflow-x:auto"><table id="ops-table">
@@ -340,61 +559,71 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
           <tbody id="ops-body"></tbody>
         </table></div>
       </section>
-
-      <section class="card">
-        <h2>Decisões do motor</h2>
-        <p class="caption">Cada avaliação de cada ciclo, inclusive os bloqueios — é o log de raciocínio completo, não só o resultado.</p>
-        <div class="timeline" id="timeline"></div>
-      </section>
     </div>
 
-    <!-- ============ MERCADO ============ -->
-    <div class="tabpanel" id="panel-mercado">
+    <!-- ============ LOGS ============ -->
+    <div class="tabpanel" id="panel-logs">
       <section class="card">
-        <h2>Preços ao vivo <span class="note">pernas de posições abertas + melhores candidatas da varredura</span></h2>
-        <div id="mercado-grid" class="procgrid" style="grid-template-columns:repeat(4,1fr)"></div>
-      </section>
-      <section class="grid2">
-        <div class="card">
-          <h2>Saúde das exchanges</h2>
-          <div class="healthgrid" id="custodia-grid"></div>
+        <h2>Visualizador de logs <span class="note">arquivos reais dos processos, em disco</span></h2>
+        <div class="log-toolbar">
+          <select id="log-processo">
+            <option value="vigilancia">vigilância</option>
+            <option value="motor">motor</option>
+            <option value="custodia">custódia</option>
+            <option value="dashboard">dashboard</option>
+            <option value="coletor">coletor</option>
+            <option value="momentum">modo agressivo</option>
+            <option value="pares">pares</option>
+            <option value="preenchimento">preenchimento</option>
+            <option value="watchdog">watchdog</option>
+          </select>
+          <input type="text" id="log-busca" placeholder="Filtrar linhas...">
+          <button class="iconbtn active" id="log-seguir" title="Seguir automaticamente">⇩</button>
+          <button class="iconbtn" id="log-pausar" title="Pausar polling">⏸</button>
+          <button class="iconbtn" id="log-copiar" title="Copiar tudo">⧉</button>
         </div>
-        <div class="card">
-          <h2>Basis trade <span class="note">spot+perp, coleta — não opera</span></h2>
-          <div id="basis-box"></div>
-        </div>
+        <div class="log-view" id="log-view"><div class="log-empty">selecione um processo</div></div>
       </section>
     </div>
 
     <!-- ============ SISTEMA ============ -->
     <div class="tabpanel" id="panel-sistema">
-      <section class="card">
-        <h2>Processos <span class="note">watchdog verifica a cada 30s</span></h2>
-        <div class="procgrid" id="procgrid-2"></div>
-        <div class="wdlog" id="wdlog"></div>
-      </section>
       <section class="grid3">
         <div class="card">
           <h2>Coleta de longo prazo</h2>
           <div id="coleta-box"></div>
         </div>
         <div class="card">
-          <h2>Prontidão de ML</h2>
-          <div id="ml-box"></div>
-        </div>
-        <div class="card">
           <h2>Saúde do dashboard <span class="note">memória, achado depois de quedas sem erro</span></h2>
           <div id="diag-box"></div>
         </div>
-      </section>
-      <section class="card">
-        <h2>Sobre este painel</h2>
-        <p class="caption" style="margin:0">HTML + CSS + SVG + JS puro, sem dependência externa, servido pelo próprio motor. Nenhuma ordem é enviada de nenhum modo — os dois motores só leem as exchanges e simulam.</p>
+        <div class="card">
+          <h2>Sobre este painel</h2>
+          <p class="caption" style="margin:0">HTML + CSS + SVG + JS puro, sem dependência externa, servido pelo próprio motor. Nenhuma ordem é enviada de nenhum modo — os motores só leem as exchanges e simulam.</p>
+        </div>
       </section>
     </div>
 
     <footer class="foot">SNOWBALL — nenhuma ordem enviada além do paper trading declarado — atualizado <span id="foot-ts">—</span></footer>
+    </div>
   </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="ic-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></symbol>
+<symbol id="ic-scale" viewBox="0 0 24 24"><path d="M12 3v18M5 7l-3 6a3 3 0 006 0l-3-6zM19 7l-3 6a3 3 0 006 0l-3-6zM5 7h14M8 21h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="ic-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><path d="M12 12L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="ic-nodes" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2.4" stroke="currentColor" stroke-width="1.8"/><circle cx="19" cy="6" r="2.4" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="18" r="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M7 7l8-1M6.5 8l5 8M17.5 8l-4.5 8" stroke="currentColor" stroke-width="1.6"/></symbol>
+<symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="ic-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+<symbol id="ic-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9a2 2 0 001.7 3h11.6a2 2 0 001.7-3L14 9V3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 15h8" stroke="currentColor" stroke-width="1.6"/></symbol>
+<symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="ic-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 9l3 3-3 3M13 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="ic-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="ic-snow" viewBox="0 0 24 24"><path d="M12 2v20M4.2 6l15.6 12M19.8 6L4.2 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/></symbol>
+</defs>
+</svg>
 
 <script>
 'use strict';
@@ -435,27 +664,72 @@ function esc(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ---- abas ----
+// ---- sidebar: navegação + colapso + mobile ----
+var PAGE_INFO={
+  visao:{t:'Visão geral',s:'centro de operações — dois motores, papel'},
+  operacoes:{t:'Operações',s:'delta-neutro — posições, fluxo de capital, decisões'},
+  oportunidades:{t:'Oportunidades',s:'ranking ao vivo da vigilância, com o veredito do portão'},
+  exchanges:{t:'Exchanges',s:'saldos, saúde e preços ao vivo'},
+  risco:{t:'Risco',s:'exposição, concentração, distância até liquidação'},
+  processos:{t:'Processos',s:'arquitetura e saúde dos 8 processos supervisionados'},
+  pesquisa:{t:'Pesquisa',s:'famílias de estratégia, modo agressivo, pares, preenchimento'},
+  historico:{t:'Histórico',s:'linha do tempo completa de decisões e operações'},
+  logs:{t:'Logs',s:'streaming dos arquivos de log reais'},
+  sistema:{t:'Sistema',s:'coleta, prontidão de ML, diagnóstico do dashboard'}
+};
 (function(){
-  var tabs=document.querySelectorAll('.tab');
-  tabs.forEach(function(t){
-    t.addEventListener('click',function(){
-      var alvo=t.getAttribute('data-tab');
-      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
-      document.querySelectorAll('.tabpanel').forEach(function(x){x.classList.remove('active')});
-      t.classList.add('active');
-      el('panel-'+alvo).classList.add('active');
-      try{localStorage.setItem('snowball-aba',alvo)}catch(e){}
-    });
+  var app=el('app');
+  var items=document.querySelectorAll('.sb-item');
+  function ativar(alvo){
+    items.forEach(function(x){x.classList.remove('active')});
+    document.querySelectorAll('.tabpanel').forEach(function(x){x.classList.remove('active')});
+    var item=document.querySelector('.sb-item[data-tab="'+alvo+'"]');
+    var panel=el('panel-'+alvo);
+    if(!item||!panel)return;
+    item.classList.add('active');
+    panel.classList.add('active');
+    var info=PAGE_INFO[alvo];
+    if(info){el('page-title').innerHTML=esc(info.t)+'<span class="sub">'+esc(info.s)+'</span>'}
+    try{localStorage.setItem('snowball-aba',alvo)}catch(e){}
+    app.classList.remove('mobile-open');
+  }
+  items.forEach(function(t){
+    t.addEventListener('click',function(){ativar(t.getAttribute('data-tab'))});
+    t.addEventListener('keydown',function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();ativar(t.getAttribute('data-tab'))}});
   });
   var salva=null;
   try{salva=localStorage.getItem('snowball-aba')}catch(e){}
-  if(salva){var tabSalva=document.querySelector('.tab[data-tab="'+salva+'"]'); if(tabSalva) tabSalva.click();}
+  if(salva&&PAGE_INFO[salva])ativar(salva);
+
+  var toggleBtn=el('sb-toggle-btn');
+  toggleBtn.addEventListener('click',function(){
+    app.classList.toggle('sb-collapsed');
+    try{localStorage.setItem('snowball-sb-collapsed',app.classList.contains('sb-collapsed')?'1':'0')}catch(e){}
+  });
+  try{if(localStorage.getItem('snowball-sb-collapsed')==='1')app.classList.add('sb-collapsed')}catch(e){}
+
+  el('sb-open-btn').addEventListener('click',function(){app.classList.toggle('mobile-open')});
+})();
+
+// ---- pausar atualizações visuais / tela cheia ----
+var PAUSADO=false;
+(function(){
+  var btn=el('btn-pause');
+  btn.addEventListener('click',function(){
+    PAUSADO=!PAUSADO;
+    btn.classList.toggle('active',PAUSADO);
+    btn.title=PAUSADO?'Retomar atualizações visuais':'Pausar atualizações visuais';
+  });
+  el('btn-fullscreen').addEventListener('click',function(){
+    if(document.fullscreenElement)document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(function(){});
+  });
 })();
 
 // ---- anti-flicker ----
 var lastHash={};
 function renderIfChanged(key,data,fn){
+  if(PAUSADO)return;
   var h;
   try{h=JSON.stringify(data)}catch(e){h=String(Date.now())}
   if(lastHash[key]===h)return;
@@ -502,7 +776,7 @@ function renderTicker(d){
   });
 }
 
-// ---- KPIs (visão geral + normal) ----
+// ---- KPIs (visão geral + operações) ----
 function montarKpisNormal(d){
   var e=d.estado||{};
   var cap=e.capital!=null?e.capital:0;
@@ -530,17 +804,16 @@ function aplicarFiguras(host,itens){
 }
 function renderKpis(d){
   aplicarFiguras(el('kpis'),montarKpisNormal(d));
-  // visão geral: mesmas figuras do modo normal, prefixando IDs pra não colidir
   var geral=el('kpis-geral');
   var itensGeral=montarKpisNormal(d).map(function(it){return {id:'g-'+it.id,lbl:it.lbl,val:it.val,fmt:it.fmt,sub:it.sub,cls:it.cls,raw:it.raw}});
   aplicarFiguras(geral,itensGeral);
 }
 
-// ---- curva de capital (genérica — usada 3x: normal, mini geral, agressivo) ----
+// ---- curva de capital ----
 function desenharCurva(svgId, pts, corStroke){
   var svg=el(svgId);
   if(!svg)return;
-  if(pts.length<2){svg.innerHTML=pts.length?'':'';return}
+  if(pts.length<2){svg.innerHTML='';return}
   var W=1000,H=190,pad=8;
   var vals=pts.map(function(p){return p.capital});
   var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
@@ -569,8 +842,8 @@ function desenharCurva(svgId, pts, corStroke){
 function renderCurva(d){
   var pts=(d.curva||[]).filter(function(p){return isFinite(p.capital)});
   renderIfChanged('curva',pts,function(){
-    desenharCurva('svg-curva',pts,'#38bdf8');
-    desenharCurva('svg-curva-2',pts,'#38bdf8');
+    desenharCurva('svg-curva',pts,'#17d9ff');
+    desenharCurva('svg-curva-2',pts,'#17d9ff');
   });
 }
 // ---- funding por dia ----
@@ -588,9 +861,9 @@ function renderBarras(d){
       var x=pad+i*((W-2*pad)/linhas.length);
       var neg=l.total<0;
       var y=neg?(H-24):(H-24-h);
-      var cor=neg?'#ff5470':'#38bdf8';
+      var cor=neg?'#ff5c7a':'#17d9ff';
       out.push('<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+cor+'"><title>'+esc(l.dia)+': '+fmtUsd(l.total)+'</title></rect>');
-      out.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" font-size="13" fill="#565e75" text-anchor="middle" font-family="ui-monospace,monospace">'+esc(l.dia.slice(5))+'</text>');
+      out.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" font-size="13" fill="#516a8c" text-anchor="middle" font-family="ui-monospace,monospace">'+esc(l.dia.slice(5))+'</text>');
     });
     svg.innerHTML=out.join('');
   });
@@ -598,11 +871,10 @@ function renderBarras(d){
 
 // ---- gráfico de candles (com a entrada da posição marcada) ----
 var GRAFICOS={};
-// Carregamento preguiçoso dos candles: com até 40+ posições no modo agressivo,
-// buscar o gráfico de todas de uma vez na hora de abrir a aba disparava 40
-// fetches simultâneos, cada um batendo numa chamada de exchange ao vivo no
-// servidor (mesmo limite de taxa da binanceusdm pra todas) — é isso que
-// deixava a aba muito lenta pra abrir. Só busca o candle quando o card entra
+// Carregamento preguiçoso: buscar o gráfico de todas as posições de uma vez
+// dispararia N fetches simultâneos batendo numa chamada de exchange ao vivo
+// no servidor — foi isso que deixou o modo agressivo (40 posições) lento o
+// bastante pra ser tirado do painel. Só busca o candle quando o card entra
 // de fato na tela.
 var CANDLE_OBSERVER=null;
 function elementPertoDaTela(box){
@@ -611,8 +883,6 @@ function elementPertoDaTela(box){
   return r.bottom>-folga&&r.top<(window.innerHeight||800)+folga;
 }
 function observarCandle(box,cb){
-  // checagem síncrona primeiro: cobre o caso comum (card já visível) sem
-  // depender do IntersectionObserver dar o primeiro retrato a tempo.
   if(elementPertoDaTela(box)){cb();return}
   if(!('IntersectionObserver' in window)){cb();return}
   var disparado=false;
@@ -624,8 +894,6 @@ function observarCandle(box,cb){
     clearTimeout(fallback);
     cb();
   };
-  // seguro contra ambientes onde o IntersectionObserver não dispara (ex.:
-  // aba sem compositor ativo) — sem isto, o card nunca carregaria o gráfico.
   var fallback=setTimeout(disparar,4000);
   if(!CANDLE_OBSERVER){
     CANDLE_OBSERVER=new IntersectionObserver(function(entries){
@@ -637,12 +905,8 @@ function observarCandle(box,cb){
   box._candleCb=disparar;
   CANDLE_OBSERVER.observe(box);
 }
-function corEventoBadge(ev){
-  var m={abre:'#38bdf8',fecha:'#ff5470',funding:'#4d9fff',reinveste:'#ffb84d',escalona:'#8b6cf2',socorre:'#ffb84d'};
-  return m[ev]||'#8991a8';
-}
 function desenharCandles(svgEl, candles, entryPrice, side){
-  if(!candles||candles.length<2){svgEl.innerHTML='<text x="500" y="130" text-anchor="middle" fill="#565e75" font-size="14">sem dado de candle ainda</text>';return}
+  if(!candles||candles.length<2){svgEl.innerHTML='<text x="500" y="130" text-anchor="middle" fill="#516a8c" font-size="14">sem dado de candle ainda</text>';return}
   var W=1000,H=260,padL=8,padR=54,padT=14,padB=22;
   var highs=candles.map(function(c){return c[2]}), lows=candles.map(function(c){return c[3]});
   var hi=Math.max.apply(null,highs), lo=Math.min.apply(null,lows);
@@ -654,16 +918,15 @@ function desenharCandles(svgEl, candles, entryPrice, side){
   function Y(v){return padT+plotH*(1-(v-lo)/(hi-lo))}
   var cw=Math.max(1.5,(plotW/n)*0.62);
   var out=[];
-  // grade horizontal + rótulos de preço
   for(var g=0;g<=3;g++){
     var v=lo+(hi-lo)*(g/3), y=Y(v).toFixed(1);
-    out.push('<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="rgba(255,255,255,.05)"/>');
-    out.push('<text x="'+(W-padR+6)+'" y="'+(Number(y)+3)+'" font-size="12" fill="#565e75" font-family="ui-monospace,monospace">'+v.toFixed(v<1?5:2)+'</text>');
+    out.push('<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="rgba(117,232,255,.06)"/>');
+    out.push('<text x="'+(W-padR+6)+'" y="'+(Number(y)+3)+'" font-size="12" fill="#516a8c" font-family="ui-monospace,monospace">'+v.toFixed(v<1?5:2)+'</text>');
   }
   candles.forEach(function(c,i){
     var o=c[1],h=c[2],l=c[3],cl=c[4];
     var alta=cl>=o;
-    var cor=alta?'#38bdf8':'#ff5470';
+    var cor=alta?'#17d9ff':'#ff5c7a';
     var x=X(i);
     out.push('<line x1="'+x.toFixed(1)+'" y1="'+Y(h).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+Y(l).toFixed(1)+'" stroke="'+cor+'" stroke-width="1.2"/>');
     var yo=Y(o),yc=Y(cl);
@@ -672,10 +935,10 @@ function desenharCandles(svgEl, candles, entryPrice, side){
   });
   if(entryPrice){
     var ye=Y(entryPrice).toFixed(1);
-    var corEntrada=side==='short'?'#ff5470':'#38bdf8';
+    var corEntrada=side==='short'?'#ff5c7a':'#17d9ff';
     out.push('<line x1="'+padL+'" y1="'+ye+'" x2="'+(W-padR)+'" y2="'+ye+'" stroke="'+corEntrada+'" stroke-width="1.4" stroke-dasharray="5,4"/>');
     out.push('<rect x="'+(W-padR+2)+'" y="'+(Number(ye)-9)+'" width="50" height="18" rx="4" fill="'+corEntrada+'"/>');
-    out.push('<text x="'+(W-padR+27)+'" y="'+(Number(ye)+4)+'" font-size="11" fill="#070910" font-weight="700" text-anchor="middle" font-family="ui-monospace,monospace">'+entryPrice.toFixed(entryPrice<1?5:2)+'</text>');
+    out.push('<text x="'+(W-padR+27)+'" y="'+(Number(ye)+4)+'" font-size="11" fill="#050b18" font-weight="700" text-anchor="middle" font-family="ui-monospace,monospace">'+entryPrice.toFixed(entryPrice<1?5:2)+'</text>');
     out.push('<text x="'+padL+'" y="'+(Number(ye)-6)+'" font-size="11" fill="'+corEntrada+'" font-family="ui-monospace,monospace">entrada ('+esc(side)+')</text>');
   }
   svgEl.innerHTML=out.join('');
@@ -689,8 +952,8 @@ function garantirGrafico(container, key, exchange, symbol, timeframe, entryPrice
     box.innerHTML='<div class="candle-head"><span class="tt">Mercado — '+esc((symbol||'').replace('/USDT:USDT',''))+'</span>'+
       '<span class="exs">'+esc(exchange)+' · '+esc(timeframe)+'</span></div>'+
       '<div class="candle-svg-wrap"><svg id="'+id+'" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg></div>'+
-      '<div class="candle-legend"><span><i class="leg-dot" style="background:#38bdf8"></i>alta</span><span><i class="leg-dot" style="background:#ff5470"></i>baixa</span>'+
-      '<span><i class="leg-dot" style="background:'+(side==='short'?'#ff5470':'#38bdf8')+'"></i>preço de entrada</span></div>';
+      '<div class="candle-legend"><span><i class="leg-dot" style="background:#17d9ff"></i>alta</span><span><i class="leg-dot" style="background:#ff5c7a"></i>baixa</span>'+
+      '<span><i class="leg-dot" style="background:'+(side==='short'?'#ff5c7a':'#17d9ff')+'"></i>preço de entrada</span></div>';
     container.appendChild(box);
   }
   if(!GRAFICOS[key]){
@@ -712,10 +975,6 @@ function garantirGrafico(container, key, exchange, symbol, timeframe, entryPrice
   } else {
     GRAFICOS[key].entryPrice=entryPrice;
     GRAFICOS[key].side=side;
-    // O registro em GRAFICOS já existia, mas se o DOM precisou ser recriado
-    // (ex.: card reconstruído porque o número de posições mudou), o SVG novo
-    // está vazio e só seria pintado de novo daqui a até 20s (o intervalo do
-    // poll). Repinta na hora com o último candle já em cache, sem esperar.
     if(precisouRecriarDom&&GRAFICOS[key].ultimoCandles){
       var svgAgora=el(id);
       if(svgAgora) desenharCandles(svgAgora,GRAFICOS[key].ultimoCandles,entryPrice,side);
@@ -729,6 +988,10 @@ function limparGraficosOrfaos(chavesVivas){
 }
 
 // ---- processos ----
+var ICONE_PROCESSO={
+  'Vigilância':'ic-radar','Custódia':'ic-shield','Motor':'ic-cog','Dashboard':'ic-terminal',
+  'Coletor':'ic-clock','Modo Agressivo':'ic-flask','Preenchimento':'ic-scale','Pares':'ic-nodes'
+};
 function renderProcessos(d){
   var procs=d.processos||[];
   renderIfChanged('processos',procs,function(){
@@ -744,11 +1007,31 @@ function renderProcessos(d){
   });
   var wd=d.watchdog||[];
   renderIfChanged('watchdog',wd,function(){
-    el('wdlog').innerHTML=wd.length ? wd.map(function(l){return '<div>'+esc(l)+'</div>'}).join('') : '<div style="color:#565e75">sem eventos registrados ainda</div>';
+    el('wdlog').innerHTML=wd.length ? wd.map(function(l){return '<div>'+esc(l)+'</div>'}).join('') : '<div style="color:#516a8c">sem eventos registrados ainda</div>';
   });
 }
 
-// ---- posições abertas (modo normal) — com gráfico de candle ----
+// ---- diagrama de arquitetura (estático, leve) ----
+(function(){
+  var host=el('arq-diagrama');
+  if(!host)return;
+  host.innerHTML=
+    '<svg viewBox="0 0 900 260" style="width:100%;height:auto;max-height:260px" role="img" aria-label="Vigilância e Custódia alimentam o Motor, que alimenta o Dashboard; Coletor arquiva o histórico; Watchdog supervisiona todos">'+
+    '<defs><marker id="arqseta" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0L6,3L0,6Z" fill="#17d9ff"/></marker></defs>'+
+    '<g font-family="ui-sans-serif,system-ui" font-size="13" fill="#eef4fb">'+
+    '<rect x="20" y="20" width="160" height="52" rx="10" fill="rgba(23,217,255,.08)" stroke="#17d9ff" stroke-width="1.2"/><text x="100" y="51" text-anchor="middle">Vigilância</text>'+
+    '<rect x="20" y="188" width="160" height="52" rx="10" fill="rgba(139,108,242,.08)" stroke="#8b6cf2" stroke-width="1.2"/><text x="100" y="219" text-anchor="middle">Custódia</text>'+
+    '<rect x="370" y="104" width="160" height="52" rx="10" fill="rgba(54,227,160,.08)" stroke="#36e3a0" stroke-width="1.2"/><text x="450" y="135" text-anchor="middle">Motor + Pares</text>'+
+    '<rect x="720" y="104" width="160" height="52" rx="10" fill="rgba(255,200,87,.08)" stroke="#ffc857" stroke-width="1.2"/><text x="800" y="135" text-anchor="middle">Dashboard</text>'+
+    '<rect x="370" y="20" width="160" height="52" rx="10" fill="rgba(255,92,122,.06)" stroke="#ff5c7a" stroke-width="1.2"/><text x="450" y="51" text-anchor="middle">Coletor → histórico</text>'+
+    '<rect x="370" y="188" width="160" height="52" rx="10" fill="rgba(117,232,255,.06)" stroke="#75e8ff" stroke-width="1.2"/><text x="450" y="219" text-anchor="middle">Watchdog → todos</text>'+
+    '<path d="M180,46L370,127" stroke="#17d9ff" stroke-width="1.4" fill="none" marker-end="url(#arqseta)" opacity=".7"/>'+
+    '<path d="M180,214L370,133" stroke="#8b6cf2" stroke-width="1.4" fill="none" marker-end="url(#arqseta)" opacity=".7"/>'+
+    '<path d="M530,130L720,130" stroke="#36e3a0" stroke-width="1.4" fill="none" marker-end="url(#arqseta)" opacity=".7"/>'+
+    '</g></svg>';
+})();
+
+// ---- posições abertas (operações) — com gráfico de candle ----
 var ultimoPreco={};
 function flashClass(key,val){
   if(val==null)return '';
@@ -761,12 +1044,15 @@ setInterval(function(){
   document.querySelectorAll('.flash-up,.flash-down').forEach(function(n){n.classList.remove('flash-up');n.classList.remove('flash-down')});
 },900);
 
+function iconeVazio(){
+  return '<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><use href="#ic-radar"/></svg>';
+}
 function renderPosicoes(d){
   var pos=d.posicoes||[];
   el('pos-tag').textContent=pos.length?(pos.length+' aberta'+(pos.length>1?'s':'')):'nenhuma';
   var host=el('poscards');
   if(!pos.length){
-    host.innerHTML='<div class="empty">Nenhuma posição aberta agora — o portão de valor esperado ainda não achou nada que pague o próprio custo. Isso é o resultado correto quando o mercado não oferece spread suficiente.</div>';
+    host.innerHTML='<div class="empty">'+iconeVazio()+'Nenhuma posição aberta agora — o motor está protegendo o capital enquanto aguarda uma oportunidade que pague os próprios custos. Isso é o resultado correto quando o mercado não oferece spread suficiente.</div>';
     host.dataset.count='0';
     limparGraficosOrfaos([]);
     return;
@@ -778,17 +1064,11 @@ function renderPosicoes(d){
   var chaves=[];
   pos.forEach(function(p,idx){
     var distMin=p.distanciaMinima;
-    var corGauge=distMin>0.08?'#38bdf8':(distMin>0.03?'#ffb84d':'#ff5470');
+    var corGauge=distMin>0.08?'#17d9ff':(distMin>0.03?'#ffc857':'#ff5c7a');
     var pctGauge=Math.max(2,Math.min(100,(distMin/0.15)*100));
     var badge=distMin>0.08?'ok':(distMin>0.03?'warn':'bad');
     var keyS='p'+idx+'s', keyL='p'+idx+'l';
     var card=el('poscard-'+idx);
-    // O ESQUELETO só é escrito UMA VEZ por card. Escrever de novo a cada
-    // render (mesmo com o mesmo conteúdo) apagava o <div class="candle-slot">
-    // e, com ele, o SVG do candle que garantirGrafico tinha desenhado lá
-    // dentro — o gráfico "aparecia e sumia" porque cada tick de preço (a
-    // cada ~2,5s) recriava o slot vazio de novo. Agora só o que muda de
-    // verdade (preço, gauge, meta) é atualizado depois da primeira escrita.
     if(!card.dataset.built){
       card.innerHTML=
         '<div class="top"><span class="sym"></span><span class="badge"></span></div>'+
@@ -824,7 +1104,6 @@ function renderPosicoes(d){
 }
 
 // ---- ranking de exchanges ----
-var rankAnterior={};
 function renderRanking(d){
   var r=d.rankingExchanges||[];
   renderIfChanged('ranking',r,function(){
@@ -833,7 +1112,7 @@ function renderRanking(d){
     var maxAbs=Math.max.apply(null,r.map(function(x){return Math.abs(x.lucro)}).concat([0.01]));
     host.innerHTML='<table><tbody>'+r.map(function(x){
       var pctBar=Math.max(2,Math.min(100,(Math.abs(x.lucro)/maxAbs)*100));
-      var cor=x.lucro>=0?'#38bdf8':'#ff5470';
+      var cor=x.lucro>=0?'#17d9ff':'#ff5c7a';
       var cls=x.lucro>=0?'up':'down';
       return '<tr><td style="font-weight:800;width:36px">#'+x.posicao+'</td>'+
         '<td style="font-weight:800;text-transform:uppercase">'+esc(x.exchange)+'</td>'+
@@ -869,7 +1148,7 @@ function renderRankingPares(d){
       var par=x.exchangeA+'+'+x.exchangeB;
       var nTrades=trades[par]||0;
       var pctBar=Math.max(2,Math.min(100,(x.folga/maxFolga)*100));
-      var cor=idx===0?'#38bdf8':(x.folga>=0.05?'#ffb84d':'#8991a8');
+      var cor=idx===0?'#17d9ff':(x.folga>=0.05?'#ffc857':'#8ea3c2');
       return '<tr>'+
         '<td style="font-weight:800;text-transform:uppercase">'+(idx===0?'★ ':'')+esc(x.exchangeA)+' + '+esc(x.exchangeB)+'</td>'+
         '<td>'+fmtNum(x.amostra)+' ciclos</td>'+
@@ -937,7 +1216,7 @@ function renderPares(d){
       '<div class="kpi"><div class="lbl">Custos pagos</div><div class="val num">'+fmtUsd(p.custosTotal||0)+'</div><div class="sub">taxas + slippage acumulados</div></div>'+
       '</div>';
     if(p.halted){
-      kpis='<div class="empty" style="border-color:var(--coral);color:var(--coral);margin-bottom:14px">motor pausado: '+esc(p.haltReason||'')+'</div>'+kpis;
+      kpis='<div class="empty" style="border-color:var(--danger);color:var(--danger);margin-bottom:14px">motor pausado: '+esc(p.haltReason||'')+'</div>'+kpis;
     }
     var tabelaPos=!pos.length?'<div class="empty">nenhuma posição aberta agora — nenhum dos pares calibrados cruzou o z-score de entrada</div>':
       '<div style="overflow-x:auto"><table><thead><tr><th>Par</th><th>Direção</th><th>Z entrada</th><th>Aberta há</th></tr></thead><tbody>'+
@@ -950,55 +1229,65 @@ function renderPares(d){
   });
 }
 
-// ---- contas por exchange ----
-function renderContas(d){
-  var contas=d.contas||[];
-  renderIfChanged('contas',contas,function(){
-    var host=el('acct');
-    if(!contas.length){host.innerHTML='<div class="empty">sem saldos ainda</div>';return}
-    host.innerHTML=contas.map(function(c){
-      var pct=Math.min(100,(c.fracaoUsada||0)*100);
-      var markPct=c.saldo>0?Math.min(100,(c.alvoReserva/c.saldo)*100):0;
-      return '<div class="acctrow">'+
-        '<div class="head"><b>'+esc(c.exchange)+'</b><span class="num">'+fmtUsd(c.saldo)+'</span></div>'+
-        '<div class="barmeter"><i style="width:'+pct+'%"></i><span class="mark" style="left:'+(100-markPct)+'%"></span></div>'+
-        '<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--dim);margin-top:5px" class="num">'+
-          '<span>margem usada '+fmtUsd(c.margemUsada)+'</span><span>livre '+fmtUsd(c.livre)+'</span></div>'+
-        '</div>';
-    }).join('');
+// ---- modo agressivo (resumo leve) ----
+function renderAgressivoResumo(d){
+  var procs=d.processos||[];
+  var proc=procs.filter(function(p){return p.nome==='Modo Agressivo'})[0];
+  renderIfChanged('agressivo-resumo',proc,function(){
+    el('agressivo-tag').textContent=proc&&proc.vivo?'processo vivo':'processo não detectado';
+    var host=el('agressivo-box');
+    host.innerHTML='<p class="caption" style="margin:0">ts-momentum multi-ativo, a única de 7 famílias de estratégia testadas neste projeto que sobreviveu a holdout cego (p=0,008 — Resultado 6/10). Bootstrap por blocos mede ~9-13% de chance de bater a meta em anos, ~15-45% de chance de perder o capital — não é lucro garantido em nenhum prazo. Estado detalhado fica só no backend (<code>momentum/diario.jsonl</code>) — foi tirado do painel porque 40 posições com candle chart cada uma deixavam esta seção lenta.</p>';
   });
 }
 
-// ---- exposição ----
-function renderExposicao(d){
-  var conc=d.concentracao||{exchange:'—',fracao:0};
-  var teto=(d.config&&d.config.tetoPorExchange)||0.4;
-  var dreno=d.dreno||{};
-  var payload={conc:conc,teto:teto,dreno:dreno,piorDreno:d.piorDreno};
-  renderIfChanged('exposicao',payload,function(){
-    var estourou=conc.fracao>teto;
-    var linhas=Object.keys(dreno).map(function(k){return {ex:k,v:dreno[k]}}).sort(function(a,b){return Math.abs(b.v)-Math.abs(a.v)}).slice(0,5);
-    var out=[];
-    out.push('<div class="exprow"><span>Maior concentração</span><span class="'+(estourou?'down':'up')+'">'+esc(conc.exchange)+' · '+fmtPct(conc.fracao,1)+' (teto '+fmtPct(teto,0)+')</span></div>');
-    out.push('<div class="exprow"><span>Pior dreno direcional</span><span>'+fmtUsd(d.piorDreno||0)+'</span></div>');
-    linhas.forEach(function(l){
-      out.push('<div class="exprow"><span>'+esc(l.ex)+'</span><span class="'+(l.v>=0?'up':'down')+'">'+fmtUsd(l.v)+'</span></div>');
-    });
-    if(!linhas.length) out.push('<div class="exprow"><span style="color:var(--faint)">sem posições abertas para medir exposição</span></div>');
-    el('exposure').innerHTML=out.join('');
-  });
-}
+// ---- tabela estática de famílias de estratégia (dados de docs/RESULTADOS.md) ----
+var FAMILIAS_ESTRATEGIA=[
+  {fam:'Arbitragem de funding (cross-exchange)',achado:'—',holdout:'—',custo:'✅ em produção (paper)',status:'producao'},
+  {fam:'Direcional cripto (múltiplos timeframes)',achado:'body-breakout, 4h',holdout:'⚠ parcial',custo:'❌ não sobrevive a custo taker',status:'descartada'},
+  {fam:'Direcional ações',achado:'momentum-breakout, 1h',holdout:'⚠ parcial',custo:'—',status:'parcial'},
+  {fam:'Time-series momentum (cripto, 1d)',achado:'+0,049R',holdout:'✅ p=0,008',custo:'⚠ fraco isolado',status:'validada'},
+  {fam:'Pares cointegrados (cripto, 1d)',achado:'+0,014/trade',holdout:'✅ após 2 correções',custo:'⚠ só a baixa alavancagem',status:'validada'},
+  {fam:'Momentum + pares (portfólio misto)',achado:'~9-12% chance de sucesso',holdout:'✅',custo:'✅ em produção (paper)',status:'producao'},
+  {fam:'Basis trade (spot+perp)',achado:'−0,249%/ciclo',holdout:'—',custo:'❌ estrutural',status:'descartada'},
+  {fam:'Captura de liquidação',achado:'—',holdout:'—',custo:'❌ 0 operações no dado real',status:'descartada'}
+];
+(function(){
+  var host=el('estrategias-body');
+  if(!host)return;
+  var rotulo={producao:'produção paper',validada:'validada',parcial:'parcial',descartada:'descartada',pesquisa:'pesquisa'};
+  host.innerHTML=FAMILIAS_ESTRATEGIA.map(function(f){
+    return '<tr><td style="font-weight:700">'+esc(f.fam)+'</td><td>'+esc(f.achado)+'</td><td>'+esc(f.holdout)+'</td><td>'+esc(f.custo)+'</td>'+
+      '<td><span class="strat-badge '+f.status+'">'+esc(rotulo[f.status])+'</span></td></tr>';
+  }).join('');
+})();
 
-// ---- varredura ----
+// ---- oportunidades: busca + filtro + ordenação (client-side, dataset pequeno) ----
+var scanEstado={busca:'',filtro:'todos',ordCol:'pctDoCaminho',ordDir:-1};
 function renderScan(d){
-  var scan=(d.scan||[]).slice().sort(function(a,b){return (b.pctDoCaminho||0)-(a.pctDoCaminho||0)});
+  var scanBruto=(d.scan||[]);
   el('scan-tag').textContent=(d.vigilancia?d.vigilancia.fonte:'') + (d.idadeVarreduraMin!=null&&d.idadeVarreduraMin>=0?' · dado de '+d.idadeVarreduraMin+' min':'');
-  renderIfChanged('scan',scan,function(){
+  window._scanBruto=scanBruto;
+  aplicarFiltroScan();
+}
+function aplicarFiltroScan(){
+  var scan=(window._scanBruto||[]).slice();
+  var termo=scanEstado.busca.toLowerCase();
+  if(termo){
+    scan=scan.filter(function(o){
+      var alvo=((o.symbol||'')+' '+(o.exchangeShort||'')+' '+(o.exchangeLong||'')).toLowerCase();
+      return alvo.indexOf(termo)!==-1;
+    });
+  }
+  if(scanEstado.filtro==='passa')scan=scan.filter(function(o){return o.passaPortao});
+  if(scanEstado.filtro==='barra')scan=scan.filter(function(o){return !o.passaPortao});
+  var col=scanEstado.ordCol,dir=scanEstado.ordDir;
+  scan.sort(function(a,b){return ((b[col]||0)-(a[col]||0))*dir});
+  renderIfChanged('scan',{scan:scan,estado:scanEstado},function(){
     var body=el('scan-body');
-    if(!scan.length){body.innerHTML='<tr><td colspan="9" style="color:var(--faint);text-align:center;padding:20px">sem candidatos no momento</td></tr>';return}
+    if(!scan.length){body.innerHTML='<tr><td colspan="9" style="color:var(--faint);text-align:center;padding:20px">sem candidatos que batam com o filtro</td></tr>';return}
     body.innerHTML=scan.map(function(o){
       var pct=Math.max(0,Math.min(100,o.pctDoCaminho||0));
-      var corBar=o.passaPortao?'#38bdf8':(pct>60?'#ffb84d':'#ff5470');
+      var corBar=o.passaPortao?'#17d9ff':(pct>60?'#ffc857':'#ff5c7a');
       return '<tr>'+
         '<td>'+esc((o.symbol||'').replace('/USDT:USDT',''))+'</td>'+
         '<td>'+esc(o.exchangeShort)+' → '+esc(o.exchangeLong)+'</td>'+
@@ -1013,6 +1302,23 @@ function renderScan(d){
     }).join('');
   });
 }
+(function(){
+  var busca=el('scan-busca'), filtro=el('scan-filtro');
+  if(!busca)return;
+  var deb=null;
+  busca.addEventListener('input',function(){
+    clearTimeout(deb);
+    deb=setTimeout(function(){scanEstado.busca=busca.value;aplicarFiltroScan()},180);
+  });
+  filtro.addEventListener('change',function(){scanEstado.filtro=filtro.value;aplicarFiltroScan()});
+  document.querySelectorAll('#scan-table th.sortable').forEach(function(th){
+    th.addEventListener('click',function(){
+      var col=th.getAttribute('data-col');
+      if(scanEstado.ordCol===col)scanEstado.ordDir*=-1; else {scanEstado.ordCol=col;scanEstado.ordDir=-1}
+      aplicarFiltroScan();
+    });
+  });
+})();
 
 // ---- mercado (grade de preços ao vivo) ----
 function renderMercado(d){
@@ -1040,10 +1346,10 @@ function renderCustodia(d){
     var host=el('custodia-grid');
     var ids=Object.keys(c.saude||{});
     if(!ids.length){host.innerHTML='<div class="empty">sem dado de custódia ainda</div>';return}
-    var corNivel={ok:'#38bdf8',atencao:'#ffb84d',alerta:'#ff5470',critico:'#ff5470',desconhecido:'#565e75'};
+    var corNivel={ok:'#17d9ff',atencao:'#ffc857',alerta:'#ff5c7a',critico:'#ff5c7a',desconhecido:'#516a8c'};
     host.innerHTML=ids.map(function(id){
       var s=c.saude[id];
-      var cor=corNivel[s.nivel]||'#565e75';
+      var cor=corNivel[s.nivel]||'#516a8c';
       return '<div class="hchip"><div class="nm"><span class="led" style="background:'+cor+';box-shadow:none;position:static;animation:none"></span>'+esc(id)+'</div>'+
         '<div class="dt">'+esc(s.detalhe||s.nivel)+'</div></div>';
     }).join('');
@@ -1077,7 +1383,7 @@ function renderMl(d){
   });
 }
 
-// ---- saúde do dashboard: memória e caches, achado depois de quedas sem erro ----
+// ---- saúde do dashboard: memória e caches ----
 var memoriaAnterior=null;
 function renderDiag(d){
   var g=d.diagnostico;
@@ -1118,8 +1424,8 @@ function renderBasis(d){
 
 // ---- timeline de decisões ----
 var corEvento={
-  abertura:'#38bdf8','abre':'#38bdf8', fechamento:'#ff5470','fecha':'#ff5470',
-  bloqueado:'#565e75', funding:'#4d9fff', transferencia:'#4d9fff', reinvestimento:'#ffb84d', socorre:'#ffb84d', escalona:'#8b6cf2'
+  abertura:'#17d9ff','abre':'#17d9ff', fechamento:'#ff5c7a','fecha':'#ff5c7a',
+  bloqueado:'#516a8c', funding:'#168cff', transferencia:'#168cff', reinvestimento:'#ffc857', socorre:'#ffc857', escalona:'#8b6cf2'
 };
 function renderTimeline(d){
   var itens=(d.diario||[]).slice(0,60);
@@ -1127,7 +1433,7 @@ function renderTimeline(d){
     var host=el('timeline');
     if(!itens.length){host.innerHTML='<div class="empty">sem eventos ainda</div>';return}
     host.innerHTML=itens.map(function(e){
-      var cor=corEvento[e.evento]||'#565e75';
+      var cor=corEvento[e.evento]||'#516a8c';
       var titulo=(e.evento||'evento')+(e.symbol?' · '+e.symbol.replace('/USDT:USDT',''):'');
       return '<div class="tl-item"><span class="tl-dot" style="background:'+cor+'"></span>'+
         '<div class="tl-body"><b>'+esc(titulo)+'</b><div class="motivo">'+esc(e.motivo||'')+'</div></div>'+
@@ -1135,19 +1441,8 @@ function renderTimeline(d){
     }).join('');
   });
 }
+
 // ---- de onde veio o dinheiro (ponte/waterfall) ----
-//
-// Cada evento do histórico de operações vira uma de quatro categorias:
-//   GANHOU (verde)    — dinheiro que ENTROU (funding recebido)
-//   INVESTIU (azul)   — dinheiro que SAIU pra montar/escalonar posição
-//   PERDEU (vermelho) — dinheiro que SAIU pra fechar posição
-//   SOCORREU (laranja)— não entra nem sai do total: só muda de saldo livre
-//                       pra margem, dentro da MESMA exchange
-//
-// A soma ganhou-investiu-perdeu bate exatamente com a variação real do
-// capital (é a mesma conta que o motor faz internamente) — por isso dá pra
-// desenhar como ponte: capital inicial + ganhou - investiu - perdeu =
-// capital atual, sem sobra nem falta.
 function categoriaOperacao(e){
   if(e.evento==='funding')return {cat:'ganhou',valor:e.ganho||0};
   if(e.evento==='abre')return {cat:'investiu',valor:e.custo||0};
@@ -1168,10 +1463,10 @@ function narrativaFluxo(e){
   return '';
 }
 var CAT_INFO={
-  ganhou:{cor:'#38bdf8',label:'Ganhou'},
-  investiu:{cor:'#4d9fff',label:'Investiu'},
-  perdeu:{cor:'#ff5470',label:'Perdeu'},
-  socorreu:{cor:'#ffb84d',label:'Socorreu'}
+  ganhou:{cor:'#36e3a0',label:'Ganhou'},
+  investiu:{cor:'#168cff',label:'Investiu'},
+  perdeu:{cor:'#ff5c7a',label:'Perdeu'},
+  socorreu:{cor:'#ffc857',label:'Socorreu'}
 };
 function computeFluxo(operacoes){
   var tot={ganhou:0,investiu:0,perdeu:0,socorreu:0};
@@ -1184,10 +1479,6 @@ function computeFluxo(operacoes){
   });
   return {tot:tot,itens:itens};
 }
-
-// gráfico de ponte genérico: passos absolutos (tipo 'total', desenha do
-// fundo do gráfico até o valor) ou relativos (tipo 'delta', desenha entre
-// dois valores, com linha pontilhada ligando ao próximo)
 function desenharPonte(svgEl, passos){
   if(!svgEl)return;
   if(!passos.length){svgEl.innerHTML='';return}
@@ -1201,7 +1492,7 @@ function desenharPonte(svgEl, passos){
   function Y(v){return padT+(H-padT-padB)*(1-(v-lo)/(hi-lo))}
   var baseY=Y(0);
   var out=[];
-  out.push('<line x1="'+padX+'" y1="'+baseY.toFixed(1)+'" x2="'+(W-padX)+'" y2="'+baseY.toFixed(1)+'" stroke="rgba(255,255,255,.08)"/>');
+  out.push('<line x1="'+padX+'" y1="'+baseY.toFixed(1)+'" x2="'+(W-padX)+'" y2="'+baseY.toFixed(1)+'" stroke="rgba(117,232,255,.1)"/>');
   passos.forEach(function(p,idx){
     var x=padX+idx*colW+colW*0.16;
     var bw=colW*0.68;
@@ -1213,7 +1504,7 @@ function desenharPonte(svgEl, passos){
     var valorMostrado=p.tipo==='total'?p.valor:(p.para-p.de);
     var labelTop=Math.min(y1,y2)-10;
     out.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+labelTop.toFixed(1)+'" text-anchor="middle" font-size="13" font-weight="700" fill="'+p.cor+'" font-family="ui-monospace,monospace">'+(p.tipo==='delta'&&valorMostrado>=0?'+':'')+fmtUsd(Math.abs(valorMostrado)).replace('US$ ','')+'</text>');
-    out.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-padB+18)+'" text-anchor="middle" font-size="12" fill="#8991a8">'+esc(p.label)+'</text>');
+    out.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-padB+18)+'" text-anchor="middle" font-size="12" fill="#8ea3c2">'+esc(p.label)+'</text>');
     if(idx<n-1){
       var nx=padX+(idx+1)*colW+colW*0.16;
       out.push('<line x1="'+(x+bw).toFixed(1)+'" y1="'+y2.toFixed(1)+'" x2="'+nx.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="rgba(255,255,255,.22)" stroke-dasharray="4,4"/>');
@@ -1223,13 +1514,6 @@ function desenharPonte(svgEl, passos){
 }
 
 // ---- o mesmo fluxo, quebrado por exchange ----
-//
-// Cada trade tem DUAS pernas (short numa exchange, long em outra) — ganho e
-// custo são divididos meio a meio entre as duas, porque é literalmente
-// assim que o dinheiro se move (repartir() no motor faz a mesma divisão).
-// Eventos antigos (de antes desta seção existir) podem não ter as exchanges
-// gravadas no próprio evento — nesse caso, busca no evento "abre" mais
-// recente daquele ativo, que sempre tem.
 function mapaExchangesPorSimbolo(operacoes){
   var mapa={};
   (operacoes||[]).forEach(function(e){
@@ -1259,7 +1543,7 @@ function agregarPorExchange(operacoes){
     var c=categoriaOperacao(e);
     if(!c)return;
     var exs=exchangesDoEvento(e,mapa);
-    if(!exs)return; // sem como saber a exchange (ativo nunca visto num "abre"), fica de fora
+    if(!exs)return;
     add(exs.short,c.cat,c.valor/2);
     add(exs.long,c.cat,c.valor/2);
   });
@@ -1294,11 +1578,11 @@ function renderFluxo(d){
   renderIfChanged('fluxo',ops,function(){
     var f=computeFluxo(ops);
     var passos=[
-      {tipo:'total',label:'Capital inicial',valor:capIni,cor:'#8991a8'},
+      {tipo:'total',label:'Capital inicial',valor:capIni,cor:'#8ea3c2'},
       {tipo:'delta',label:'Ganhou',de:capIni,para:capIni+f.tot.ganhou,cor:CAT_INFO.ganhou.cor},
       {tipo:'delta',label:'Investiu',de:capIni+f.tot.ganhou,para:capIni+f.tot.ganhou-f.tot.investiu,cor:CAT_INFO.investiu.cor},
       {tipo:'delta',label:'Perdeu',de:capIni+f.tot.ganhou-f.tot.investiu,para:capIni+f.tot.ganhou-f.tot.investiu-f.tot.perdeu,cor:CAT_INFO.perdeu.cor},
-      {tipo:'total',label:'Capital atual',valor:capAtual,cor:'#8991a8'}
+      {tipo:'total',label:'Capital atual',valor:capAtual,cor:'#8ea3c2'}
     ];
     desenharPonte(el('svg-fluxo'),passos);
 
@@ -1315,7 +1599,6 @@ function renderFluxo(d){
 
     var lHost=el('fluxo-lista');
     if(!f.itens.length){lHost.innerHTML='<div class="empty">sem movimentação de dinheiro ainda</div>';return}
-    // ops já vem do servidor mais recente primeiro — sem reverter de novo aqui
     lHost.innerHTML=f.itens.slice(0,40).map(function(it){
       var info=CAT_INFO[it.cat];
       var sinal=it.cat==='ganhou'?'+':(it.cat==='socorreu'?'↔':'−');
@@ -1350,7 +1633,7 @@ function renderOperacoes(d){
     var body=el('ops-body');
     if(!ops.length){body.innerHTML='<tr><td colspan="4" style="color:var(--faint);text-align:center;padding:20px">nenhuma operação real ainda — só bloqueios até agora</td></tr>';return}
     body.innerHTML=ops.map(function(e){
-      var cor=corEvento[e.evento]||'#565e75';
+      var cor=corEvento[e.evento]||'#516a8c';
       return '<tr>'+
         '<td class="num" style="font-size:.72rem;white-space:nowrap">'+timeAgo(e.ts)+'</td>'+
         '<td><span class="op-badge" style="color:'+cor+';border:1px solid '+cor+'">'+esc(TIPO_LABEL[e.evento]||e.evento)+'</span></td>'+
@@ -1360,6 +1643,57 @@ function renderOperacoes(d){
     }).join('');
   });
 }
+
+// ---- risco: exposição/direção + distância até liquidação consolidada ----
+function renderExposicao(d){
+  var conc=d.concentracao||{exchange:'—',fracao:0};
+  var teto=(d.config&&d.config.tetoPorExchange)||0.4;
+  var dreno=d.dreno||{};
+  var payload={conc:conc,teto:teto,dreno:dreno,piorDreno:d.piorDreno};
+  renderIfChanged('exposicao',payload,function(){
+    var estourou=conc.fracao>teto;
+    var linhas=Object.keys(dreno).map(function(k){return {ex:k,v:dreno[k]}}).sort(function(a,b){return Math.abs(b.v)-Math.abs(a.v)}).slice(0,5);
+    var out=[];
+    out.push('<div class="exprow"><span>Maior concentração</span><span class="'+(estourou?'down':'up')+'">'+esc(conc.exchange)+' · '+fmtPct(conc.fracao,1)+' (teto '+fmtPct(teto,0)+')</span></div>');
+    out.push('<div class="exprow"><span>Pior dreno direcional</span><span>'+fmtUsd(d.piorDreno||0)+'</span></div>');
+    linhas.forEach(function(l){
+      out.push('<div class="exprow"><span>'+esc(l.ex)+'</span><span class="'+(l.v>=0?'up':'down')+'">'+fmtUsd(l.v)+'</span></div>');
+    });
+    if(!linhas.length) out.push('<div class="exprow"><span style="color:var(--faint)">sem posições abertas para medir exposição</span></div>');
+    el('exposure').innerHTML=out.join('');
+  });
+}
+function renderRiscoLiquidacao(d){
+  var pos=d.posicoes||[];
+  renderIfChanged('risco-liq',pos,function(){
+    var host=el('risco-liq-box');
+    if(!pos.length){host.innerHTML='<div class="empty">sem posições abertas — nada para medir risco de liquidação agora.</div>';return}
+    host.innerHTML='<div style="overflow-x:auto"><table><thead><tr><th>Ativo</th><th>Perna em risco</th><th>Distância mínima</th><th>Com reserva</th></tr></thead><tbody>'+
+      pos.map(function(p){
+        var distMin=p.distanciaMinima;
+        var cls=distMin>0.08?'up':(distMin>0.03?'':'down');
+        return '<tr><td style="font-weight:700">'+esc((p.symbol||'').replace('/USDT:USDT',''))+'</td>'+
+          '<td>'+esc(p.pernaEmRisco||'—')+'</td>'+
+          '<td class="'+cls+'">'+fmtPct(distMin,1)+'</td>'+
+          '<td>'+fmtPct(p.distanciaComReserva,1)+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+  });
+}
+function renderRiscoTravas(d){
+  var e=d.estado||{};
+  renderIfChanged('risco-travas',e,function(){
+    var host=el('risco-travas-box');
+    var itens=[
+      {lbl:'Máximo de posições simultâneas',val:(d.config&&d.config.maxPosicoes)||'—',ok:true},
+      {lbl:'Teto de concentração por exchange',val:fmtPct((d.config&&d.config.tetoPorExchange)||0.4,0),ok:true},
+      {lbl:'Reserva alvo por exchange',val:fmtPct((d.config&&d.config.reserva)||0.3,0),ok:true},
+      {lbl:'Margem de payback exigida (folga)',val:(d.config&&d.config.margemPayback||1.5)+'x',ok:true}
+    ];
+    host.innerHTML='<div class="exprow"><span style="color:var(--faint)">Travas fixas do motor — não são ajustadas dinamicamente por posição, de propósito.</span></div>'+
+      itens.map(function(it){return '<div class="exprow"><span>'+esc(it.lbl)+'</span><span class="up">'+esc(String(it.val))+'</span></div>'}).join('');
+  });
+}
+
 // ---- status ----
 function renderStatus(d){
   var v=d.vigilancia||{};
@@ -1378,10 +1712,13 @@ function render(d){
   renderRankingPares(d);
   renderPreenchimento(d);
   renderPares(d);
+  renderAgressivoResumo(d);
   renderProcessos(d);
   renderPosicoes(d);
   renderContas(d);
   renderExposicao(d);
+  renderRiscoLiquidacao(d);
+  renderRiscoTravas(d);
   renderScan(d);
   renderMercado(d);
   renderCustodia(d);
@@ -1396,27 +1733,97 @@ function render(d){
   renderStatus(d);
 }
 
-// ---- relógio ----
-setInterval(function(){el('clock').textContent=new Date().toLocaleTimeString('pt-BR')},1000);
+// ---- contas ----
+function renderContas(d){
+  var contas=d.contas||[];
+  renderIfChanged('contas',contas,function(){
+    var host=el('acct');
+    if(!contas.length){host.innerHTML='<div class="empty">sem saldos ainda</div>';return}
+    host.innerHTML=contas.map(function(c){
+      var pct=Math.min(100,(c.fracaoUsada||0)*100);
+      var markPct=c.saldo>0?Math.min(100,(c.alvoReserva/c.saldo)*100):0;
+      return '<div class="acctrow">'+
+        '<div class="head"><b>'+esc(c.exchange)+'</b><span class="num">'+fmtUsd(c.saldo)+'</span></div>'+
+        '<div class="barmeter"><i style="width:'+pct+'%"></i><span class="mark" style="left:'+(100-markPct)+'%"></span></div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--dim);margin-top:5px" class="num">'+
+          '<span>margem usada '+fmtUsd(c.margemUsada)+'</span><span>livre '+fmtUsd(c.livre)+'</span></div>'+
+        '</div>';
+    }).join('');
+  });
+}
+
+// ---- visualizador de logs ----
+(function(){
+  var sel=el('log-processo'), busca=el('log-busca'), view=el('log-view');
+  var btnSeguir=el('log-seguir'), btnPausar=el('log-pausar'), btnCopiar=el('log-copiar');
+  if(!sel)return;
+  var seguir=true, pausado=false, linhasAtuais=[], poll=null;
+  function pintar(){
+    var termo=busca.value.toLowerCase();
+    var filtradas=termo?linhasAtuais.filter(function(l){return l.texto.toLowerCase().indexOf(termo)!==-1}):linhasAtuais;
+    if(!filtradas.length){view.innerHTML='<div class="log-empty">sem linhas ainda</div>';return}
+    view.innerHTML=filtradas.map(function(l){
+      return '<div class="log-line'+(l.erro?' erro':'')+'">'+esc(l.texto)+'</div>';
+    }).join('');
+    if(seguir)view.scrollTop=view.scrollHeight;
+  }
+  function buscarLog(){
+    if(pausado)return;
+    fetch('/api/logs?processo='+encodeURIComponent(sel.value)+'&linhas=400')
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(j&&j.ok){linhasAtuais=j.linhas||[];pintar()}
+      }).catch(function(){});
+  }
+  sel.addEventListener('change',buscarLog);
+  busca.addEventListener('input',pintar);
+  btnSeguir.addEventListener('click',function(){seguir=!seguir;btnSeguir.classList.toggle('active',seguir)});
+  btnPausar.addEventListener('click',function(){
+    pausado=!pausado;
+    btnPausar.classList.toggle('active',pausado);
+    btnPausar.title=pausado?'Retomar':'Pausar polling';
+  });
+  btnCopiar.addEventListener('click',function(){
+    var texto=linhasAtuais.map(function(l){return l.texto}).join('\\n');
+    if(navigator.clipboard)navigator.clipboard.writeText(texto).catch(function(){});
+  });
+  buscarLog();
+  poll=setInterval(buscarLog,4000);
+  // só busca quando a aba de logs está de fato aberta
+  var logTab=document.querySelector('.sb-item[data-tab="logs"]');
+  if(logTab)logTab.addEventListener('click',buscarLog);
+})();
+
+// ---- relógio (local + UTC) ----
+setInterval(function(){
+  var agora=new Date();
+  var utc=agora.toISOString().slice(11,16);
+  el('clock').innerHTML=agora.toLocaleTimeString('pt-BR')+' <span class="utc">· UTC '+utc+'</span>';
+},1000);
+
+// ---- documento em segundo plano: pausa animações caras ----
+document.addEventListener('visibilitychange',function(){
+  PAUSADO=document.hidden;
+});
 
 // ---- conexão: SSE com fallback para polling ----
-var es=null, poll=null;
-function pararPolling(){if(poll){clearInterval(poll);poll=null}}
+var esConn=null, pollConn=null;
+function pararPolling(){if(pollConn){clearInterval(pollConn);pollConn=null}}
 function iniciarPolling(){
   pararPolling();
   el('led-stream').className='led mid';
   el('txt-stream').textContent='sondando (sem stream)';
-  poll=setInterval(function(){
+  pollConn=setInterval(function(){
     fetch('/api/dados').then(function(r){return r.json()}).then(render).catch(function(){});
   },5000);
 }
 function conectar(){
   el('led-stream').className='led mid';
   el('txt-stream').textContent='conectando';
-  try{es=new EventSource('/api/stream')}catch(e){iniciarPolling();return}
-  es.onopen=function(){el('led-stream').className='led on';el('txt-stream').textContent='ao vivo'};
-  es.onmessage=function(ev){pararPolling();try{render(JSON.parse(ev.data))}catch(e){}};
-  es.onerror=function(){es.close();iniciarPolling();setTimeout(conectar,4000)};
+  try{esConn=new EventSource('/api/stream')}catch(e){iniciarPolling();return}
+  esConn.onopen=function(){el('led-stream').className='led on';el('txt-stream').textContent='ao vivo'};
+  esConn.onmessage=function(ev){pararPolling();try{render(JSON.parse(ev.data))}catch(e){}};
+  esConn.onerror=function(){esConn.close();iniciarPolling();setTimeout(conectar,4000)};
 }
 conectar();
 </script>

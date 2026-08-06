@@ -377,6 +377,35 @@ function lerWatchdog(limite = 20) {
   return linhas.slice(-limite).reverse();
 }
 
+/**
+ * VISUALIZADOR DE LOGS — lê os arquivos .log reais de cada processo. Lista
+ * fixa (whitelist), não um caminho arbitrário vindo do cliente — o parâmetro
+ * `processo` só seleciona qual destas chaves, nunca um path.
+ */
+const LOG_PATHS: Record<string, string> = {
+  vigilancia: path.join(ROOT, 'vigilancia', 'live.log'),
+  custodia: path.join(ROOT, 'vigilancia', 'custodia.log'),
+  motor: path.join(ROOT, 'spread', 'live.log'),
+  dashboard: path.join(ROOT, 'spread', 'dashboard.log'),
+  coletor: path.join(ROOT, 'vigilancia', 'coletor.log'),
+  momentum: path.join(ROOT, 'momentum', 'live.log'),
+  preenchimento: path.join(ROOT, 'preenchimento', 'live.log'),
+  pares: path.join(ROOT, 'pares', 'live.log'),
+  watchdog: path.join(ROOT, 'vigilancia', 'supervisor-watchdog.log'),
+};
+
+function lerLog(processo: string, limite: number): { texto: string; erro: boolean }[] {
+  const p = LOG_PATHS[processo];
+  if (!p || !fs.existsSync(p)) return [];
+  const linhas = fs.readFileSync(p, 'utf8').split('\n');
+  // remove só a última linha se vazia (arquivo termina em \n) — preserva linhas em branco no meio
+  if (linhas.length && linhas[linhas.length - 1] === '') linhas.pop();
+  return linhas.slice(-limite).map((texto) => ({
+    texto,
+    erro: /erro|error|falha|caiu|failed|exceç|exception/i.test(texto),
+  }));
+}
+
 /** Totais do coletor de longo prazo — antes só visível rodando `npm run analise` manualmente. */
 function lerColeta() {
   const p = path.join(ROOT, 'vigilancia', 'coletor-estado.json');
@@ -551,6 +580,20 @@ const servidor = http.createServer(async (req, res) => {
     } catch {
       res.writeHead(404);
       res.end();
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/logs') {
+    const processo = url.searchParams.get('processo') ?? 'vigilancia';
+    const linhas = Math.min(2000, Math.max(1, Number(url.searchParams.get('linhas') ?? 300)));
+    try {
+      const texto = lerLog(processo, linhas);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, processo, linhas: texto }));
+    } catch (e) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, erro: (e as Error).message }));
     }
     return;
   }
