@@ -189,6 +189,13 @@ export class MotorMomentum {
     this.estado = this.carregar();
   }
 
+  /** Ver o comentário gêmeo em motor-pares.ts — mesma correção, achada ao
+   * vivo lá primeiro (o motor de pares ficou 1h+ travado sem erro nenhum). */
+  private async comTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+    p.catch(() => {});
+    return Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
+  }
+
   private carregar(): EstadoMomentum {
     if (fs.existsSync(this.stateFile)) {
       const s = JSON.parse(fs.readFileSync(this.stateFile, 'utf8')) as EstadoMomentum;
@@ -216,7 +223,7 @@ export class MotorMomentum {
   async init() {
     const Ex = (ccxt as any)[this.o.exchange];
     this.ex = new Ex({ enableRateLimit: true });
-    await this.ex.loadMarkets();
+    await this.comTimeout(this.ex.loadMarkets(), 30_000, null);
     this.log(
       `motor momentum pronto · US$ ${this.estado.capital.toFixed(2)} · ${UNIVERSO_MOMENTUM.length} ativos · ` +
       `risco ${(this.o.riscoPorPosicao * 100).toFixed(2)}%/posição · ${this.estrategia.name}`,
@@ -227,7 +234,8 @@ export class MotorMomentum {
   private async barrasDe(symbol: string): Promise<Bar[] | null> {
     try {
       const need = PARAMS_VALIDADOS.lookback + 30;
-      const raw: number[][] = await this.ex.fetchOHLCV(symbol, '1d', undefined, need);
+      const raw = await this.comTimeout<number[][] | null>(this.ex.fetchOHLCV(symbol, '1d', undefined, need), 20_000, null);
+      if (!raw) { this.log(`falha lendo ${symbol}: timeout de 20s`); return null; }
       const bars: Bar[] = raw.map((r) => ({ t: r[0], o: r[1], h: r[2], l: r[3], c: r[4], v: r[5] }));
       this.barsCache.set(symbol, bars);
       return bars;

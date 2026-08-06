@@ -128,6 +128,21 @@ export class MotorPares {
     this.estado = this.carregar();
   }
 
+  /**
+   * Achado ao vivo: o motor ficou 1h+ travado sem logar erro nenhum, sem
+   * cair (o watchdog só percebe processo MORTO, não processo PRESO). Mesma
+   * causa já corrigida em monitor-preenchimento.ts — `fetchOHLCV` sem
+   * timeout próprio pode nunca resolver nem rejeitar em certas condições de
+   * rede, e `enableRateLimit` sozinho não protege contra isso. `Promise.race`
+   * garante que o ciclo sempre segue adiante; o `.catch` vazio evita que a
+   * promessa perdedora, se rejeitar mais tarde, vire um unhandledRejection
+   * que derruba o processo — a MESMA classe de bug, então a mesma correção.
+   */
+  private async comTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+    p.catch(() => {});
+    return Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
+  }
+
   private carregar(): EstadoPares {
     if (fs.existsSync(this.stateFile)) {
       const s = JSON.parse(fs.readFileSync(this.stateFile, 'utf8')) as EstadoPares;
@@ -152,7 +167,7 @@ export class MotorPares {
   async init() {
     const Ex = (ccxt as any)[this.o.exchange];
     this.ex = new Ex({ enableRateLimit: true });
-    await this.ex.loadMarkets();
+    await this.comTimeout(this.ex.loadMarkets(), 30_000, null);
     this.log(
       `motor de pares pronto · US$ ${this.estado.capital.toFixed(2)} · ${UNIVERSO_MOMENTUM.length} ativos no universo · ` +
       `risco ${(this.o.riscoPorPosicao * 100).toFixed(1)}%/posição · alavancagem ${ALAVANCAGEM_PARES}x`,
@@ -162,7 +177,10 @@ export class MotorPares {
 
   private async barrasDe(symbol: string): Promise<Bar[] | null> {
     try {
-      const raw: number[][] = await this.ex.fetchOHLCV(symbol, '1d', undefined, BARRAS_POR_ATIVO);
+      const raw = await this.comTimeout<number[][] | null>(
+        this.ex.fetchOHLCV(symbol, '1d', undefined, BARRAS_POR_ATIVO), 20_000, null,
+      );
+      if (!raw) { this.log(`falha lendo ${symbol}: timeout de 20s`); return null; }
       const bars: Bar[] = raw.map((r) => ({ t: r[0], o: r[1], h: r[2], l: r[3], c: r[4], v: r[5] }));
       this.barsCache.set(symbol, bars);
       return bars;
