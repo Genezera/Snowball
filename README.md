@@ -85,29 +85,35 @@ valor esperado barrou 12 candidatas · melhor: SSPC · vida 0.7h de 2.1h exigida
 
 ---
 
-## 🏗️ O que o sistema faz — arquitetura de 5 processos
+## 🏗️ O que o sistema faz — arquitetura de 7 processos
 
-Cinco processos independentes, cada um com seu próprio supervisor, que se
+Sete processos independentes, cada um com seu próprio supervisor, que se
 falam **por arquivo em disco**, não por chamada direta — se um cai, os
 outros percebem pela idade do dado em vez de travar.
 
 ```
-  🔭 VIGILÂNCIA   (5 min)   varre 3.492 pares em 5 exchanges,
-        │                    guarda o ciclo de vida de cada oportunidade
+  🔭 VIGILÂNCIA        (5 min)   varre 3.492 pares em 6 exchanges,
+        │                        guarda o ciclo de vida de cada oportunidade
         ▼
-  🧠 MOTOR        (5 min)   lê o ranking, aplica o portão de valor
-        │                    esperado, decide — NUNCA ENVIA ORDEM
+  🧠 MOTOR             (5 min)   lê o ranking, aplica o portão de valor
+        │                        esperado, decide — NUNCA ENVIA ORDEM
         ▼
-  📈 DASHBOARD     live      painel em localhost:8787, SSE em tempo real
+  📈 DASHBOARD          live      painel em localhost:8787, SSE em tempo real
 
-  🏥 CUSTÓDIA     (15 min)  saúde de cada exchange → o motor evacua
-                              sozinho se uma for sinalizada
+  🏥 CUSTÓDIA          (15 min)  saúde de cada exchange → o motor evacua
+                                    sozinho se uma for sinalizada
 
-  🗄️ COLETOR      (5 min)   arquiva o histórico de longo prazo antes
-                              da poda de 7 dias apagar
+  🗄️ COLETOR           (5 min)   arquiva o histórico de longo prazo antes
+                                    da poda de 7 dias apagar
+
+  🚀 MODO AGRESSIVO    (20 min)  ts-momentum multi-ativo em paralelo,
+                                    capital e diário próprios, experimental
+
+  🎯 PREENCHIMENTO     (10 s)    mede se ordem limite (maker) preenche
+                                    rápido o bastante — só leitura, sem ordem
 ```
 
-Um **watchdog** (`scripts/supervisor.sh`) checa os 5 a cada 30 segundos e
+Um **watchdog** (`scripts/supervisor.sh`) checa os 7 a cada 30 segundos e
 religa sozinho qualquer um que cair — com log da causa, distinção entre
 "caiu de verdade" e "eu apliquei uma atualização de código", e aviso opcional
 no Telegram.
@@ -120,7 +126,7 @@ propósito, zero dependência externa (SVG + JS puro). Mostra:
 - 💰 capital, funding recebido, custos pagos — com números que sobem
   contando em vez de trocar de repente
 - 📉 curva de capital e funding por dia, desenhados ao vivo
-- 💓 saúde dos 5 processos com pulso, e o log do watchdog
+- 💓 saúde dos 7 processos com pulso, e o log do watchdog
 - 📍 posições abertas com preço ao vivo por perna e gauge de distância até
   liquidação
 - 🏦 saldo por exchange, exposição, concentração, dreno direcional
@@ -134,13 +140,20 @@ propósito, zero dependência externa (SVG + JS puro). Mostra:
 
 ## 📍 Estado atual
 
-**Paper trading, 24h.** Capital simulado de **US$ 100 por exchange**
-(binance + bybit, US$ 200 total). **Nenhuma ordem foi enviada a nenhuma
-exchange, em nenhum momento deste projeto** — é leitura de mercado e
-simulação, ponto final.
+**Paper trading, 24h.** Dois motores independentes, cada um só coletando
+dado:
 
-O motor está corretamente **sem posição aberta** na maior parte do tempo: o
-portão de valor esperado é rigoroso de propósito, depois de um episódio em
+- **Modo normal** (delta-neutro) — **US$ 100 por exchange**, nas 6 exchanges
+  monitoradas (binance, bybit, okx, gate, bitget, bingx), ~US$ 600 no total,
+  usando a que o mercado favorecer em cada ciclo.
+- **Modo agressivo** (ts-momentum multi-ativo) — **US$ 200**, experimental,
+  rodando em paralelo, sem prejudicar o motor normal.
+
+**Nenhuma ordem foi enviada a nenhuma exchange, em nenhum momento deste
+projeto** — é leitura de mercado e simulação, ponto final.
+
+O motor normal fica corretamente **sem posição aberta** boa parte do tempo:
+o portão de valor esperado é rigoroso de propósito, depois de um episódio em
 que a ausência dele custou US$ 2,30 reais (nunca mais que isso, e nunca de
 novo — ver [`docs/O-QUE-FALHOU.md`](docs/O-QUE-FALHOU.md)).
 
@@ -148,7 +161,14 @@ A frente de pesquisa mais avançada — fora do que já está em produção — 
 **portfólio misto de time-series momentum + pares cointegrados**, dois
 mecanismos com vantagem estatística confirmada em holdout cego, combinados
 porque a correlação entre eles é baixa o suficiente para reduzir risco de
-ruína sem apagar o retorno. Ainda em backtest, não em paper.
+ruína sem apagar o retorno. O ts-momentum já roda ao vivo no modo agressivo;
+a combinação com pares ainda está em backtest, não em paper.
+
+Rodando também: uma medição ao vivo de **se ordem limite (maker) preenche
+rápido o bastante** para trocar o custo taker (0,05–0,06%) pelo maker
+(~0,02%) sem risco de perna — a única alavanca identificada até agora para
+reduzir custo sem inventar risco novo. Ver o card "Ordem limite vs. mercado"
+no painel.
 
 ### 🔬 Sete famílias de estratégia testadas, com a mesma disciplina
 
@@ -204,14 +224,14 @@ revisado e documentado não é código que funciona; só executar revela.
 |---|---|---|
 | **Runtime** | Node.js 24, TypeScript nativo (`strip-only`, zero build step) | todo o motor, sem `tsc`, sem bundler |
 | **Conectividade de exchange** | [ccxt](https://github.com/ccxt/ccxt) | preço, funding rate, saldo, ordens (não usadas) — 5+ exchanges |
-| **Exchanges monitoradas** | Binance, Bybit, OKX, Gate, Bitget, BingX | vigilância varre todas; motor opera hoje em Binance + Bybit |
+| **Exchanges monitoradas** | Binance, Bybit, OKX, Gate, Bitget, BingX | vigilância varre todas; motor normal opera nas 6, financiadas e ranqueadas por lucro individual |
 | **Persistência** | JSON + JSONL em disco | sem banco de dados — cada processo lê/escreve arquivo, robusto a queda |
 | **Painel** | HTML + CSS + SVG + JS puro, servido por `node:http` | sem framework, sem build, sem CDN — abre offline |
 | **Validação quantitativa** | Motor de backtest próprio (`src/backtest/`) | custos, slippage, funding, gaps, bootstrap por blocos de calendário |
 | **Machine learning** | GBDT implementado do zero + meta-labeling com purged CV | `src/ml/` — sem scikit-learn, sem PyTorch |
 | **Cruzamento externo** | [MCP](https://modelcontextprotocol.io) do trader.dev | backtest Pine Script independente, engine de paridade TradingView |
 | **Servidor MCP próprio** | `src/mcp/server.ts` | expõe o motor deste projeto como ferramenta MCP |
-| **Confiabilidade** | Watchdog em bash (`scripts/supervisor.sh`) | religa os 5 processos sozinho, notifica Telegram (opcional) |
+| **Confiabilidade** | Watchdog em bash (`scripts/supervisor.sh`) | religa os 7 processos sozinho, notifica Telegram (opcional) |
 | **Notificação** | Telegram Bot API (opcional) | alerta de queda/religamento, sem dependência de terceiro no caminho crítico |
 
 Zero dependências além de `ccxt` e o SDK do MCP — de propósito, para que
@@ -235,9 +255,12 @@ npm install
 run-tudo.cmd
 ```
 
-Sobe vigilância → custódia → motor → dashboard → coletor, na ordem certa
-(a vigilância precisa estar de pé antes do motor, senão o primeiro ciclo
-cai para uma varredura mais estreita).
+Sobe os 5 processos originais (vigilância → custódia → motor → dashboard →
+coletor), na ordem certa (a vigilância precisa estar de pé antes do motor,
+senão o primeiro ciclo cai para uma varredura mais estreita). Modo agressivo
+e preenchimento não estão neste atalho ainda — suba com `npm run
+momentum-live` / `npm run preenchimento-live`, ou use o watchdog abaixo, que
+já cobre os 7.
 
 ### Com o watchdog (recomendado em produção)
 
@@ -245,16 +268,18 @@ cai para uma varredura mais estreita).
 bash scripts/supervisor.sh
 ```
 
-Checa os 5 processos a cada 30s e religa sozinho o que cair.
+Checa os 7 processos a cada 30s e religa sozinho o que cair.
 
 ### Separadamente
 
 ```bash
 node src/cli/vigilancia.ts --equity 100 --intervalo 5   # varre o mercado inteiro
 npm run custodia                                        # saúde das exchanges
-npm run spread                                          # motor, US$ 100, 5x
+npm run spread                                          # motor normal, US$ 100/exchange, 5x
 node src/dashboard/server.ts                            # painel em :8787
 node src/cli/coletor.ts --intervalo 5                    # arquivo de longo prazo
+npm run momentum-live                                    # modo agressivo, ts-momentum, US$ 200
+npm run preenchimento-live                                # mede preenchimento de ordem maker
 ```
 
 > ⚠️ **O motor pode ficar sem abrir posição — e isso é esperado.** Ele só
@@ -264,7 +289,7 @@ node src/cli/coletor.ts --intervalo 5                    # arquivo de longo praz
 ### Análise e testes
 
 ```bash
-npm test                    # 246 testes das travas de risco e seleção
+npm test                    # 277 testes das travas de risco e seleção
 npm run quanto               # quanto rende, por exchange
 npm run semanas              # projeção semana a semana, com custo de rotação
 npm run ruina                # 20 mil simulações contra choques de preço
@@ -294,14 +319,14 @@ src/
 ├── validate/        walk-forward, Sharpe deflacionado, Monte Carlo
 ├── ml/               GBDT do zero, meta-labeling, purged CV
 ├── risk/             capital mínimo viável, simulador da bola de neve
-├── live/             executor paper/testnet/live com kill switches
+├── live/             modo agressivo (ts-momentum), monitor de preenchimento, kill switches
 ├── dashboard/        painel em tempo real (server.ts + pagina.ts)
 ├── mcp/               servidor MCP próprio
 ├── data/              carregamento e cache de séries históricas
 ├── core/              tipos, indicadores, volatilidade
 └── cli/               ~70 pontos de entrada, um por análise/operação
 scripts/
-└── supervisor.sh      watchdog dos 5 processos
+└── supervisor.sh      watchdog dos 7 processos
 docs/                  18+ documentos — cada decisão, cada bug, cada número
 ```
 
