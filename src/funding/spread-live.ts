@@ -428,7 +428,8 @@ export class MotorSpread {
       `custo US$ ${custoSaida.toFixed(3)} · funding acumulado US$ ${pos.fundingAcumulado.toFixed(3)}`,
     );
     this.diario('fecha', {
-      symbol: pos.symbol, motivo, custo: custoSaida,
+      symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
+      motivo, custo: custoSaida,
       fundingAcumulado: pos.fundingAcumulado, capital: this.estado.capital,
     });
   }
@@ -1108,7 +1109,8 @@ export class MotorSpread {
       this.estado.pagamentos++;
       this.estado.ultimoCicloTs = Date.now();
       this.diario('funding', {
-        symbol: pos.symbol, spread: fracaoRecebida, ganho,
+        symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
+        spread: fracaoRecebida, ganho,
         capital: this.estado.capital, modo: 'captura',
       });
     }
@@ -1141,7 +1143,8 @@ export class MotorSpread {
       `resultado desta perna US$ ${liquido.toFixed(3)}`,
     );
     this.diario('fecha', {
-      symbol: pos.symbol, motivo, custo: custoSaida, modo: 'captura',
+      symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
+      motivo, custo: custoSaida, modo: 'captura',
       fundingAcumulado: pos.fundingAcumulado, capital: this.estado.capital,
       minutosMontada: (Date.now() - pos.abertaEm) / 60_000,
     });
@@ -1239,7 +1242,8 @@ export class MotorSpread {
             `notional US$ ${pos.notionalPorPerna.toFixed(2)}/perna · custo US$ ${custoEscalonamento.toFixed(3)}`,
           );
           this.diario('escalona', {
-            symbol: pos.symbol, notionalNovo: pos.notionalPorPerna,
+            symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
+            notionalNovo: pos.notionalPorPerna,
             notionalAdicionado, custo: custoEscalonamento,
           });
         }
@@ -1271,7 +1275,10 @@ export class MotorSpread {
         `funding ${pos.symbol.replace('/USDT:USDT', '')} spread ${(atual.spread * 100).toFixed(4)}% → ` +
         `US$ ${ganho.toFixed(4)} · capital US$ ${this.estado.capital.toFixed(2)}`,
       );
-      this.diario('funding', { symbol: pos.symbol, spread: atual.spread, ganho, capital: this.estado.capital });
+      this.diario('funding', {
+        symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
+        spread: atual.spread, ganho, capital: this.estado.capital,
+      });
     }
 
     // ── proteção: distância de liquidação de cada perna ────────────────────
@@ -1363,7 +1370,10 @@ export class MotorSpread {
           `REINVESTE +US$ ${extra.notionalPorPerna.toFixed(3)}/perna · ` +
           `notional agora US$ ${pos.notionalPorPerna.toFixed(2)} · se paga em ${diasPagar.toFixed(1)} dias`,
         );
-        this.diario('reinveste', { notionalExtra: extra.notionalPorPerna, notionalNovo: pos.notionalPorPerna, custo: extra.custoMontagem });
+        this.diario('reinveste', {
+          symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
+          notionalExtra: extra.notionalPorPerna, notionalNovo: pos.notionalPorPerna, custo: extra.custoMontagem,
+        });
       }
     }
 

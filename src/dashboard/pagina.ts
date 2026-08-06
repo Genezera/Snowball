@@ -314,6 +314,15 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       </section>
 
       <section class="card">
+        <h2>Por exchange — o mesmo dinheiro, separado por conta</h2>
+        <p class="caption">Cada trade tem duas pernas em exchanges diferentes; ganho/custo é dividido meio a meio entre as duas. "Socorreu" aqui é o valor que ENTROU naquela exchange especificamente (reforço vindo do saldo livre dela mesma).</p>
+        <div style="overflow-x:auto"><table id="fluxo-ex-table">
+          <thead><tr><th>Exchange</th><th>Saldo agora</th><th>Ganhou</th><th>Investiu</th><th>Perdeu</th><th>Socorreu</th></tr></thead>
+          <tbody id="fluxo-ex-body"></tbody>
+        </table></div>
+      </section>
+
+      <section class="card">
         <h2>Histórico de operações <span class="note" id="ops-tag">tudo que foi de fato executado, sem os bloqueios</span></h2>
         <div style="overflow-x:auto"><table id="ops-table">
           <thead><tr><th>Quando</th><th>Tipo</th><th>Ativo</th><th>Detalhes</th></tr></thead>
@@ -1162,6 +1171,70 @@ function desenharPonte(svgEl, passos){
   svgEl.innerHTML=out.join('');
 }
 
+// ---- o mesmo fluxo, quebrado por exchange ----
+//
+// Cada trade tem DUAS pernas (short numa exchange, long em outra) — ganho e
+// custo são divididos meio a meio entre as duas, porque é literalmente
+// assim que o dinheiro se move (repartir() no motor faz a mesma divisão).
+// Eventos antigos (de antes desta seção existir) podem não ter as exchanges
+// gravadas no próprio evento — nesse caso, busca no evento "abre" mais
+// recente daquele ativo, que sempre tem.
+function mapaExchangesPorSimbolo(operacoes){
+  var mapa={};
+  (operacoes||[]).forEach(function(e){
+    if(e.evento==='abre'&&e.symbol){
+      var es=e.exchangeShort||e.short, el2=e.exchangeLong||e.long;
+      if(es&&el2&&!mapa[e.symbol]) mapa[e.symbol]={short:es,long:el2};
+    }
+  });
+  return mapa;
+}
+function exchangesDoEvento(e,mapa){
+  var es=e.exchangeShort||e.short, el2=e.exchangeLong||e.long;
+  if(es&&el2)return {short:es,long:el2};
+  var m=mapa[e.symbol];
+  return m||null;
+}
+function agregarPorExchange(operacoes){
+  var mapa=mapaExchangesPorSimbolo(operacoes);
+  var por={};
+  function add(ex,cat,valor){
+    if(!ex)return;
+    if(!por[ex])por[ex]={ganhou:0,investiu:0,perdeu:0,socorreu:0};
+    por[ex][cat]+=valor;
+  }
+  (operacoes||[]).forEach(function(e){
+    if(e.evento==='socorre'){ add(e.exchange,'socorreu',e.valor||0); return; }
+    var c=categoriaOperacao(e);
+    if(!c)return;
+    var exs=exchangesDoEvento(e,mapa);
+    if(!exs)return; // sem como saber a exchange (ativo nunca visto num "abre"), fica de fora
+    add(exs.short,c.cat,c.valor/2);
+    add(exs.long,c.cat,c.valor/2);
+  });
+  return por;
+}
+function renderFluxoPorExchange(d){
+  var ops=d.operacoes||[];
+  var contas=d.contas||[];
+  renderIfChanged('fluxo-ex',{ops:ops,contas:contas},function(){
+    var por=agregarPorExchange(ops);
+    var host=el('fluxo-ex-body');
+    if(!contas.length){host.innerHTML='<tr><td colspan="6" style="color:var(--faint);text-align:center;padding:20px">sem contas ainda</td></tr>';return}
+    host.innerHTML=contas.map(function(c){
+      var f=por[c.exchange]||{ganhou:0,investiu:0,perdeu:0,socorreu:0};
+      function cel(v,cor){return '<td style="color:'+cor+'">'+(v?fmtUsd(v):'—')+'</td>'}
+      return '<tr><td style="font-weight:800;text-transform:uppercase">'+esc(c.exchange)+'</td>'+
+        '<td class="num">'+fmtUsd(c.saldo)+'</td>'+
+        cel(f.ganhou,CAT_INFO.ganhou.cor)+
+        cel(f.investiu,CAT_INFO.investiu.cor)+
+        cel(f.perdeu,CAT_INFO.perdeu.cor)+
+        cel(f.socorreu,CAT_INFO.socorreu.cor)+
+        '</tr>';
+    }).join('');
+  });
+}
+
 function renderFluxo(d){
   var ops=d.operacoes||[];
   var e=d.estado||{};
@@ -1335,6 +1408,7 @@ function render(d){
   renderOperacoes(d);
   renderOperacoesMom(d);
   renderFluxo(d);
+  renderFluxoPorExchange(d);
   renderFluxoMom(d);
   renderStatus(d);
 }
