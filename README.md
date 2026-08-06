@@ -1,5 +1,15 @@
 <p align="center">
-  <img src="assets/logo-fundo-branco.png" alt="Snowball" width="220">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo.png">
+    <img src="assets/logo-fundo-branco.png" alt="Snowball" width="220">
+  </picture>
+</p>
+
+<p align="center">
+  <img alt="Paper trading only" src="https://img.shields.io/badge/modo-paper%20trading-38bdf8?style=flat-square">
+  <img alt="Node" src="https://img.shields.io/badge/node-24%2B-38bdf8?style=flat-square">
+  <img alt="Zero build" src="https://img.shields.io/badge/build-none-38bdf8?style=flat-square">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-302%20passing-36e3a0?style=flat-square">
 </p>
 
 # ❄️ Snowball
@@ -85,9 +95,9 @@ valor esperado barrou 12 candidatas · melhor: SSPC · vida 0.7h de 2.1h exigida
 
 ---
 
-## 🏗️ O que o sistema faz — arquitetura de 7 processos
+## 🏗️ O que o sistema faz — arquitetura de 8 processos
 
-Sete processos independentes, cada um com seu próprio supervisor, que se
+Oito processos independentes, cada um com seu próprio supervisor, que se
 falam **por arquivo em disco**, não por chamada direta — se um cai, os
 outros percebem pela idade do dado em vez de travar.
 
@@ -104,37 +114,50 @@ outros percebem pela idade do dado em vez de travar.
                                     sozinho se uma for sinalizada
 
   🗄️ COLETOR           (5 min)   arquiva o histórico de longo prazo antes
-                                    da poda de 7 dias apagar
+                                    da poda de 7 dias apagar, e treina o
+                                    modelo de ML sozinho quando há dado
+                                    suficiente
 
   🚀 MODO AGRESSIVO    (20 min)  ts-momentum multi-ativo em paralelo,
                                     capital e diário próprios, experimental
+
+  ⚖️ PARES             (20 min)  pares cointegrados, mercado-neutro,
+                                    capital próprio, experimental
 
   🎯 PREENCHIMENTO     (10 s)    mede se ordem limite (maker) preenche
                                     rápido o bastante — só leitura, sem ordem
 ```
 
-Um **watchdog** (`scripts/supervisor.sh`) checa os 7 a cada 30 segundos e
+Um **watchdog** (`scripts/supervisor.sh`) checa os 8 a cada 30 segundos e
 religa sozinho qualquer um que cair — com log da causa, distinção entre
 "caiu de verdade" e "eu apliquei uma atualização de código", e aviso opcional
-no Telegram.
+no Telegram. `iniciar.cmd` e `parar.cmd` na raiz sobem/derrubam tudo com
+segurança (nunca duplicam instância, nunca perdem estado).
 
 ### O painel
 
-Terminal de observação em tempo real — vidro fosco, tudo animado com
-propósito, zero dependência externa (SVG + JS puro). Mostra:
+Centro de operações em tempo real — sidebar colapsável com 10 seções, tema
+claro/escuro, identidade visual glacial baseada na logo do projeto, zero
+dependência externa (SVG + JS puro, sem framework, sem build). Mostra:
 
 - 💰 capital, funding recebido, custos pagos — com números que sobem
   contando em vez de trocar de repente
-- 📉 curva de capital e funding por dia, desenhados ao vivo
-- 💓 saúde dos 7 processos com pulso, e o log do watchdog
+- 📉 curva de capital com marcadores reais de evento (abertura/fechamento/
+  funding) desenhados em cima
+- 💓 saúde dos 8 processos com pulso e ícone próprio, diagrama de
+  arquitetura, log do watchdog
 - 📍 posições abertas com preço ao vivo por perna e gauge de distância até
   liquidação
 - 🏦 saldo por exchange, exposição, concentração, dreno direcional
-- 🔍 ranking completo da varredura com o veredito do portão (passa/barra)
-- 🏥 saúde de cada exchange, coleta de longo prazo, prontidão de ML,
-  monitor de basis trade
+- 🔍 ranking completo da varredura com o veredito do portão (passa/barra),
+  com busca, filtro, ordenação e heatmap de spread
+- 🏥 saúde de cada exchange, coleta de longo prazo, prontidão e treino real
+  de ML, monitor de basis trade
 - 📜 linha do tempo de cada decisão do motor, com o motivo — nunca só o
   resultado
+- ⌨️ paleta de comandos (Ctrl+K) buscando em páginas, processos, exchanges
+  e ativos, com dado real
+- 📋 visualizador de logs em tempo real dos 8 processos
 
 ---
 
@@ -231,7 +254,7 @@ revisado e documentado não é código que funciona; só executar revela.
 | **Machine learning** | GBDT implementado do zero + meta-labeling com purged CV | `src/ml/` — sem scikit-learn, sem PyTorch |
 | **Cruzamento externo** | [MCP](https://modelcontextprotocol.io) do trader.dev | backtest Pine Script independente, engine de paridade TradingView |
 | **Servidor MCP próprio** | `src/mcp/server.ts` | expõe o motor deste projeto como ferramenta MCP |
-| **Confiabilidade** | Watchdog em bash (`scripts/supervisor.sh`) | religa os 7 processos sozinho, notifica Telegram (opcional) |
+| **Confiabilidade** | Watchdog em bash (`scripts/supervisor.sh`) | religa os 8 processos sozinho, notifica Telegram (opcional) |
 | **Notificação** | Telegram Bot API (opcional) | alerta de queda/religamento, sem dependência de terceiro no caminho crítico |
 
 Zero dependências além de `ccxt` e o SDK do MCP — de propósito, para que
@@ -249,26 +272,28 @@ build).
 npm install
 ```
 
-### Tudo de uma vez (recomendado)
+### Tudo de uma vez (recomendado — Windows)
 
 ```bash
-run-tudo.cmd
+iniciar.cmd
 ```
 
-Sobe os 5 processos originais (vigilância → custódia → motor → dashboard →
-coletor), na ordem certa (a vigilância precisa estar de pé antes do motor,
-senão o primeiro ciclo cai para uma varredura mais estreita). Modo agressivo
-e preenchimento não estão neste atalho ainda — suba com `npm run
-momentum-live` / `npm run preenchimento-live`, ou use o watchdog abaixo, que
-já cobre os 7.
+Sobe o watchdog, que sobe e supervisiona os 8 processos sozinho, na ordem
+certa. Recusa duplicar se já tiver uma instância rodando. Pra parar tudo com
+segurança (sem apagar nenhum estado — cada motor salva o próprio a cada
+ciclo, então `iniciar.cmd` depois retoma de onde parou):
 
-### Com o watchdog (recomendado em produção)
+```bash
+parar.cmd
+```
+
+### Com o watchdog direto (Linux/Mac, ou Windows via Git Bash)
 
 ```bash
 bash scripts/supervisor.sh
 ```
 
-Checa os 7 processos a cada 30s e religa sozinho o que cair.
+Checa os 8 processos a cada 30s e religa sozinho o que cair.
 
 ### Separadamente
 
@@ -279,6 +304,7 @@ npm run spread                                          # motor normal, US$ 100/
 node src/dashboard/server.ts                            # painel em :8787
 node src/cli/coletor.ts --intervalo 5                    # arquivo de longo prazo
 npm run momentum-live                                    # modo agressivo, ts-momentum, US$ 200
+npm run pares-live                                        # pares cointegrados, mercado-neutro, US$ 200
 npm run preenchimento-live                                # mede preenchimento de ordem maker
 ```
 
@@ -289,7 +315,7 @@ npm run preenchimento-live                                # mede preenchimento d
 ### Análise e testes
 
 ```bash
-npm test                    # 277 testes das travas de risco e seleção
+npm test                    # 302 testes das travas de risco e seleção
 npm run quanto               # quanto rende, por exchange
 npm run semanas              # projeção semana a semana, com custo de rotação
 npm run ruina                # 20 mil simulações contra choques de preço
@@ -317,16 +343,16 @@ src/
 ├── strategies/     as 5 estratégias direcionais originais + ts-momentum
 ├── backtest/       motor de backtest, bootstrap, portfólio, métricas
 ├── validate/        walk-forward, Sharpe deflacionado, Monte Carlo
-├── ml/               GBDT do zero, meta-labeling, purged CV
+├── ml/               GBDT do zero, meta-labeling, purged CV, treino real sobre o arquivo da vigilância
 ├── risk/             capital mínimo viável, simulador da bola de neve
-├── live/             modo agressivo (ts-momentum), monitor de preenchimento, kill switches
+├── live/             modo agressivo (ts-momentum), pares cointegrados, monitor de preenchimento
 ├── dashboard/        painel em tempo real (server.ts + pagina.ts)
 ├── mcp/               servidor MCP próprio
 ├── data/              carregamento e cache de séries históricas
 ├── core/              tipos, indicadores, volatilidade
 └── cli/               ~70 pontos de entrada, um por análise/operação
 scripts/
-└── supervisor.sh      watchdog dos 7 processos
+└── supervisor.sh      watchdog dos 8 processos
 docs/                  18+ documentos — cada decisão, cada bug, cada número
 ```
 

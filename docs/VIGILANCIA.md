@@ -276,8 +276,7 @@ preso num spread que inverteu é pagar para perder.
 | `src/funding/vigilancia.ts` | ciclo de vida, ranking, poda do histórico |
 | `src/funding/ponte.ts` | conversão vigilância → motor + guarda de idade |
 | `src/cli/vigilancia.ts` | processo contínuo |
-| `run-vigilancia.cmd` | supervisor da vigilância |
-| `run-tudo.cmd` | sobe os três processos na ordem certa |
+| `scripts/supervisor.sh` | watchdog dos 8 processos, sobe na ordem certa |
 
 Estado em `vigilancia/` (fora do git — é dado de execução, não código).
 
@@ -286,12 +285,12 @@ Estado em `vigilancia/` (fora do git — é dado de execução, não código).
 ## Como subir
 
 ```bat
-run-tudo.cmd
+iniciar.cmd
 ```
 
-A ordem importa. A vigilância sobe primeiro e o script espera 25 s antes de subir
-o motor, para que o primeiro ciclo do motor já encontre dado fresco em vez de
-cair para a varredura estreita.
+A ordem importa. A vigilância sobe primeiro, para que o primeiro ciclo do motor
+já encontre dado fresco em vez de cair para a varredura estreita — quem cuida
+disso agora é `scripts/supervisor.sh`, chamado por `iniciar.cmd`.
 
 O dashboard em `http://localhost:8787` mostra qual fonte está no ar, quantas
 varreduras já correram e quantos spreads estão vivos.

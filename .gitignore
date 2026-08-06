@@ -7,20 +7,23 @@ node_modules/
 # stocks.ts — código-fonte, não dado — fora do git desde sempre.
 /data/
 
-# estado de execução: posições abertas, diários, logs
-spread/
-vigilancia/
-momentum/
-preenchimento/
-pares/
-renda/
-paper/
-state/
-models/
-research/
+# estado de execução: posições abertas, diários, logs.
+# ANCORADO na raiz (/pasta/): sem a barra inicial, "research/" casava com
+# src/research/ e deixou scout.ts (código-fonte real) fora do git desde
+# sempre, sem ninguém perceber — o mesmo bug que /data/ já tinha tido.
+/spread/
+/vigilancia/
+/momentum/
+/preenchimento/
+/pares/
+/renda/
+/paper/
+/state/
+/models/
+/research/
 
 # relatórios gerados
-reports/
+/reports/
 
 # saídas temporárias de execução
 *.log

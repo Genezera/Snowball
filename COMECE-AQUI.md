@@ -1,25 +1,34 @@
 # Comece aqui
 
-Renan — o projeto em uma página, atualizado em **02/08/2026**.
+Renan — o projeto em uma página, atualizado em **06/08/2026**. Para o handoff
+completo (o que mudou, o que tem cuidado técnico, o que falta), leia
+[CONTINUIDADE.md](CONTINUIDADE.md) — este arquivo aqui é só o resumo rápido.
 
 ---
 
 ## Onde está agora
 
-**Rodando de novo desde 18:04 de 03/08/2026**, depois de ~7h parado. Capital
-de paper em **US$ 100,00 por exchange**, intacto.
+**8 processos rodando**, supervisionados pelo watchdog. Três motores
+independentes, todos paper:
+
+- **Modo normal** (delta-neutro) — US$ 100 por exchange, nas 6 exchanges
+  (~US$ 600 total), usando a que o mercado favorecer.
+- **Modo agressivo** (ts-momentum) — US$ 200, experimental, só no backend.
+- **Pares cointegrados** (mercado-neutro) — US$ 200, experimental, novo.
 
 Nenhuma ordem foi enviada a nenhuma exchange, em nenhum momento deste projeto.
 Tudo é leitura de mercado e simulação.
 
-Quando ligado, o motor está **barrando todas as candidatas** — e isso é o
-comportamento correto, não uma falha. Ele só monta um par que já tenha vivido o
-suficiente para pagar o próprio custo de montagem.
+O motor normal está **barrando quase todas as candidatas** — e isso é o
+comportamento correto, não uma falha. Nenhum dos 15 pares de exchange
+monitorados tem spread com vida suficiente pra pagar o próprio custo agora
+(folga real ~0,004–0,06, precisa de 1,5).
 
-```
-valor esperado barrou 5 candidatas · melhor candidata AAVE ·
-vida esperada 2.1h contra payback de 84.8h · valor esperado −US$ 0,163
-```
+Uma medição real rodando desde esta sessão (item B6 do backlog): se ordem
+limite (maker) preenche rápido o bastante pra valer a pena trocar pela ordem
+a mercado. **Achado, com 1000+ amostras: a seleção adversa medida é maior do
+que a constante de custo que ela substituiria** — o oposto do que se
+esperava. Ver `docs/RESULTADOS.md` quando for atualizado com esse número.
 
 ---
 
@@ -129,16 +138,22 @@ compensa acima de 90% de preenchimento.
 ## Como ligar de volta
 
 ```bash
-run-tudo.cmd
+iniciar.cmd
 ```
 
-Quatro processos: vigilância, custódia, motor, dashboard em `localhost:8787`.
+Sobe o watchdog, que sobe e supervisiona os 8 processos sozinho. Dashboard em
+`localhost:8787`. Pra parar tudo com segurança, sem perder nada:
 
 ```bash
-npm test            # 56 testes das travas de risco e seleção
+parar.cmd
+```
+
+```bash
+npm test            # 302 testes das travas de risco e seleção
 npm run ruina       # 20 mil simulações contra choques de preço
 npm run execucao    # maker × taker, com o risco de perna solta
 npm run semanas     # projeção semana a semana
+npm run desafio      # bootstrap por bloco de calendário (portfólio misto)
 ```
 
 ---
@@ -147,6 +162,7 @@ npm run semanas     # projeção semana a semana
 
 | Documento | Para quê |
 |---|---|
+| [CONTINUIDADE.md](CONTINUIDADE.md) | handoff completo e atualizado — leia primeiro se for mexer no código |
 | [docs/QUANTO-RENDE.md](docs/QUANTO-RENDE.md) | a conta de payback e as projeções |
 | [docs/PROTECAO-RUINA.md](docs/PROTECAO-RUINA.md) | as travas de risco e o teste de ruína |
 | [docs/VIGILANCIA.md](docs/VIGILANCIA.md) | a varredura do mercado inteiro |
