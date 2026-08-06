@@ -14,6 +14,7 @@
     "team": "node src/cli/team.ts --equity 100",
     "spread": "node --env-file-if-exists=.env src/cli/spread-live.ts --porExchange 100 --alavancagem 5 --exchanges binanceusdm,bybit,okx,gate,bitget,bingx",
     "momentum-live": "node --env-file-if-exists=.env src/cli/momentum-live.ts --equity 200 --risco 0.005 --alavancagem 2",
+    "preenchimento-live": "node --env-file-if-exists=.env src/cli/preenchimento-live.ts --intervalo 10",
     "spread:scan": "node src/cli/spread.ts --equity 100 --alavancagem 5",
     "spread:verificar": "node src/cli/verificar.ts --equity 100 --alavancagem 5",
     "spread:maximizar": "node src/cli/maxdiario.ts --equity 100",

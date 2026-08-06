@@ -16,6 +16,10 @@ declare -A CMD=(
   # modo agressivo: ts-momentum multi-ativo, papel -- roda EM PARALELO ao
   # motor delta-neutro acima, nao no lugar dele. Os dois so coletam dado.
   [momentum]="node --env-file-if-exists=.env src/cli/momentum-live.ts --equity 200 --risco 0.005 --alavancagem 2"
+  # medição de preenchimento maker: só LEITURA de ticker, nenhuma ordem, roda
+  # isolado dos outros -- mede se ordem limite preenche rápido o bastante
+  # para trocar o custo taker (0,05-0,06%) pelo maker (~0,02%).
+  [preenchimento]="node --env-file-if-exists=.env src/cli/preenchimento-live.ts --intervalo 10"
 )
 declare -A LOG=(
   [vigilancia]="vigilancia/live.log"
@@ -24,6 +28,7 @@ declare -A LOG=(
   [dashboard]="spread/dashboard.log"
   [coletor]="vigilancia/coletor.log"
   [momentum]="momentum/live.log"
+  [preenchimento]="preenchimento/live.log"
 )
 
 vivo() {
