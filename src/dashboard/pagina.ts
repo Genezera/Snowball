@@ -253,6 +253,15 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       </section>
 
       <section class="card">
+        <h2>Ranking de pares — a melhor combinação de 2 exchanges <span class="note" id="pares-tag"></span></h2>
+        <p class="caption">A estrutura sempre usa DUAS exchanges por posição — vendida numa, comprada na outra. "Folga" é a mesma conta que o portão real usa (vida útil média ÷ payback exigido pela taxa combinada das duas), calculada com a média histórica de cada par, não uma candidata isolada. Quando for pra dinheiro real com só 2 exchanges, é este número que decide quais.</p>
+        <div style="overflow-x:auto"><table id="pares-table">
+          <thead><tr><th>Par</th><th>Amostra</th><th>Taxa combinada</th><th>Spread médio</th><th>Vida útil média</th><th>Payback exigido</th><th>Folga</th><th>Trades reais</th></tr></thead>
+          <tbody id="pares-body"></tbody>
+        </table></div>
+      </section>
+
+      <section class="card">
         <h2>Processos <span class="note">watchdog verifica a cada 30s</span></h2>
         <div class="procgrid" id="procgrid"></div>
       </section>
@@ -901,6 +910,46 @@ function renderRanking(d){
   });
 }
 
+// ---- ranking de pares de exchange ----
+function contarTradesReaisPorPar(operacoes){
+  var cont={};
+  (operacoes||[]).forEach(function(e){
+    if(e.evento!=='abre')return;
+    var es=e.exchangeShort||e.short, el2=e.exchangeLong||e.long;
+    if(!es||!el2)return;
+    var par=[es,el2].sort().join('+');
+    cont[par]=(cont[par]||0)+1;
+  });
+  return cont;
+}
+function renderRankingPares(d){
+  var r=d.rankingPares||[];
+  var ops=d.operacoes||[];
+  renderIfChanged('pares',{r:r,ops:ops},function(){
+    el('pares-tag').textContent=r.length+' pares com amostra suficiente';
+    var host=el('pares-body');
+    if(!r.length){host.innerHTML='<tr><td colspan="8" style="color:var(--faint);text-align:center;padding:20px">vigilância ainda não tem amostra suficiente pra nenhum par</td></tr>';return}
+    var trades=contarTradesReaisPorPar(ops);
+    var maxFolga=Math.max.apply(null,r.map(function(x){return x.folga}).concat([0.01]));
+    host.innerHTML=r.map(function(x,idx){
+      var par=x.exchangeA+'+'+x.exchangeB;
+      var nTrades=trades[par]||0;
+      var pctBar=Math.max(2,Math.min(100,(x.folga/maxFolga)*100));
+      var cor=idx===0?'#1fe3a8':(x.folga>=0.05?'#ffb84d':'#8991a8');
+      return '<tr>'+
+        '<td style="font-weight:800;text-transform:uppercase">'+(idx===0?'★ ':'')+esc(x.exchangeA)+' + '+esc(x.exchangeB)+'</td>'+
+        '<td>'+fmtNum(x.amostra)+' ciclos</td>'+
+        '<td>'+fmtPct(x.taxaCombinada,3)+'</td>'+
+        '<td>'+fmtPct(x.spreadMedio,4)+'</td>'+
+        '<td>'+fmtHoras(x.vidaEsperadaHoras)+'</td>'+
+        '<td>'+fmtHoras(x.paybackHoras)+'</td>'+
+        '<td>'+x.folga.toFixed(2)+'<span class="mini-bar"><i style="width:'+pctBar+'%;background:'+cor+'"></i></span></td>'+
+        '<td'+(nTrades?' class="up"':'')+'>'+(nTrades||'—')+'</td>'+
+        '</tr>';
+    }).join('');
+  });
+}
+
 // ---- contas por exchange ----
 function renderContas(d){
   var contas=d.contas||[];
@@ -1392,6 +1441,7 @@ function render(d){
   renderCurvaMom(d);
   renderBarras(d);
   renderRanking(d);
+  renderRankingPares(d);
   renderProcessos(d);
   renderPosicoes(d);
   renderPosicoesMom(d);

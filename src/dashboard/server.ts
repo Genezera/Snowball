@@ -148,6 +148,64 @@ async function lerCandles(exchange: string, symbol: string, timeframe: string): 
 }
 
 /**
+ * RANKING DE PARES DE EXCHANGE — não "qual exchange rende mais" (uma
+ * exchange participa de várias rotas diferentes, então isso não diz muito),
+ * é "qual COMBINAÇÃO de 2 exchanges entrega o melhor spread pelo custo".
+ * Importa de verdade porque a estrutura exige duas pernas em exchanges
+ * diferentes por construção — quando for pra dinheiro real, provavelmente
+ * só 2 exchanges serão financiadas, e esta é a pergunta que decide quais.
+ *
+ * Usa a MESMA fórmula do portão real (`avaliarValor`/`taxaEfetiva`), só que
+ * com a média histórica de spread/consistência/duração de cada par em vez
+ * do valor instantâneo de uma candidata — é uma nota de qualidade do par,
+ * não uma decisão de abrir posição.
+ *
+ * Cache de 30s: agrega até milhares de ciclos de `vigilancia/ciclos.json` a
+ * cada chamada, caro demais para refazer a cada requisição do SSE.
+ */
+const EXCHANGES_RANKING_PARES = ['binanceusdm', 'bybit', 'okx', 'gate', 'bitget', 'bingx'];
+let rankingParesCache: { ts: number; dados: any[] } = { ts: 0, dados: [] };
+
+function rankingPares() {
+  if (Date.now() - rankingParesCache.ts < 30_000) return rankingParesCache.dados;
+  try {
+    const p = path.join(ROOT, 'vigilancia', 'ciclos.json');
+    if (!fs.existsSync(p)) return rankingParesCache.dados;
+    const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
+    const ciclos: any[] = Object.values(raw.ciclos ?? raw);
+    const porPar = new Map<string, { n: number; spreadSum: number; consistSum: number; duracaoSum: number; duracaoN: number }>();
+    for (const c of ciclos) {
+      if (!c.observacoes || c.observacoes < 3) continue;
+      if (!EXCHANGES_RANKING_PARES.includes(c.exchangeShort) || !EXCHANGES_RANKING_PARES.includes(c.exchangeLong)) continue;
+      const par = [c.exchangeShort, c.exchangeLong].sort().join('+');
+      const acc = porPar.get(par) ?? { n: 0, spreadSum: 0, consistSum: 0, duracaoSum: 0, duracaoN: 0 };
+      acc.n++;
+      acc.spreadSum += c.spreadMedio;
+      acc.consistSum += c.consistencia;
+      if (c.fechadoEm) { acc.duracaoSum += (c.fechadoEm - c.abertoEm) / 3_600_000; acc.duracaoN++; }
+      porPar.set(par, acc);
+    }
+    const dados = [...porPar.entries()].map(([par, acc]) => {
+      const [exchangeA, exchangeB] = par.split('+');
+      const spreadMedio = acc.spreadSum / acc.n;
+      const consistenciaMedia = acc.consistSum / acc.n;
+      const duracaoMediaHoras = acc.duracaoN ? acc.duracaoSum / acc.duracaoN : 0;
+      const taxaCombinada = taxaEfetiva(exchangeA, exchangeB);
+      const v = avaliarValor({ spread: spreadMedio, consistencia: consistenciaMedia, duracaoHoras: duracaoMediaHoras, notional: 1, taxa: taxaCombinada });
+      return {
+        exchangeA, exchangeB, amostra: acc.n,
+        spreadMedio, consistenciaMedia, duracaoMediaHoras,
+        taxaCombinada, paybackHoras: v.paybackHoras, vidaEsperadaHoras: v.vidaEsperadaHoras, folga: v.folga,
+      };
+    }).sort((a, b) => b.folga - a.folga);
+    rankingParesCache = { ts: Date.now(), dados };
+    return dados;
+  } catch {
+    return rankingParesCache.dados;
+  }
+}
+
+/**
  * SAÚDE DOS PROCESSOS — antes só existia no watchdog (vigilancia/supervisor-
  * watchdog.log), invisível pra quem só olha o navegador. Consulta o
  * CommandLine de cada node.exe via PowerShell, cacheada 10s pra não
@@ -580,6 +638,7 @@ async function montarDados() {
       // mas continua contando pra `curva` acima, que lê o `diario` completo.
       estado, posicoes, contas, rankingExchanges, diario: diario.filter((e) => e.evento !== 'leitura').slice(-80).reverse(), curva,
       operacoes: lerOperacoes(path.join(DIR, 'diario.jsonl')),
+      rankingPares: rankingPares(),
       modoAgressivo,
       pagamentosPorDia: [...porDia].map(([dia, total]) => ({ dia, total })),
       scan: scan.slice(0, 15),
