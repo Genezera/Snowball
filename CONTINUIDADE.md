@@ -307,8 +307,8 @@ de virar problema real.
 
 | # | O quê | Estado |
 |---|---|---|
-| 1 | Fase 2 do dashboard (paleta de comandos, replay, heatmaps, ilustrações) | não iniciada — pedir confirmação de escopo antes |
-| 2 | Testar `iniciar.cmd`/`parar.cmd` rodando de verdade | lógica verificada, execução real ainda não feita (pararia o sistema ao vivo) |
+| 1 | Fase 2 do dashboard (paleta de comandos, marcadores de evento na curva, heatmap de spread) | feita — tema claro e ícones SVG reais também entraram |
+| 2 | Testar `iniciar.cmd`/`parar.cmd` rodando de verdade | feito — 3 ciclos reais de parar/iniciar (achou e corrigiu um bug real: `bash.exe` do WSL em `system32` mascarando o Git Bash). Estado conferido byte-a-byte antes/depois em todos os ciclos |
 | 3 | Decidir se maker vale a pena (item B6) | precisa de mais amostra — sinal atual é NEGATIVO pra troca, ao contrário do esperado |
 | 4 | Rotacionar a chave do trader.dev | pendente, depende do usuário (exige login que a IA não faz) |
 | 5 | Memória do dashboard/preenchimento subindo aos poucos (~450MB) | monitorado (`diagnostico` no payload), não é crítico ainda, sem causa raiz confirmada |
