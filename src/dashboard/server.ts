@@ -481,6 +481,19 @@ const servidor = http.createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === '/logo.png' || url.pathname === '/logo-fundo-branco.png') {
+    const arquivo = path.join(ROOT, 'assets', url.pathname.slice(1));
+    try {
+      const buf = fs.readFileSync(arquivo);
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+      res.end(buf);
+    } catch {
+      res.writeHead(404);
+      res.end();
+    }
+    return;
+  }
+
   if (url.pathname === '/api/candles') {
     const exchange = url.searchParams.get('exchange') ?? '';
     const symbol = url.searchParams.get('symbol') ?? '';

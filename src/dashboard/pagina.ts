@@ -59,7 +59,7 @@ body{
 .topbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);background:rgba(7,9,16,.78);border-bottom:1px solid var(--border)}
 .topbar-in{max-width:1480px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;margin-right:6px}
-.brand .mark{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--mint),var(--violet));display:flex;align-items:center;justify-content:center;font-weight:900;color:#070910;font-size:1rem;box-shadow:0 0 22px var(--mint-glow)}
+.brand-logo{height:34px;width:auto;display:block;filter:drop-shadow(0 0 10px var(--mint-glow))}
 .brand h1{font-size:1.02rem;font-weight:800;margin:0;letter-spacing:-.01em}
 .tabs{display:flex;gap:2px;flex:1;overflow-x:auto}
 .tab{position:relative;padding:9px 15px;border-radius:10px;font-size:.82rem;font-weight:700;color:var(--dim);cursor:pointer;white-space:nowrap;transition:color .2s,background-color .2s;border:1px solid transparent;user-select:none}
@@ -209,8 +209,7 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
 
   <div class="topbar"><div class="topbar-in">
     <div class="brand">
-      <div class="mark">S</div>
-      <h1>Snowball</h1>
+      <img src="/logo.png" alt="Snowball" class="brand-logo">
     </div>
     <div class="tabs" id="tabs">
       <div class="tab active" data-tab="visao">Visão geral</div>

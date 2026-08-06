@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo-fundo-branco.png" alt="Snowball" width="220">
+</p>
+
 # ❄️ Snowball
 
 > Laboratório de pesquisa quantitativa que começou tentando replicar um bot de
