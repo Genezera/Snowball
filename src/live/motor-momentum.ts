@@ -80,6 +80,29 @@ export interface OpcoesMomentum {
 }
 
 /**
+ * Índice da barra FECHADA mais recente, ou -1 se nenhuma fechou ainda.
+ *
+ * BUG REAL encontrado ao vivo (não achado em revisão de código, achado
+ * rodando: o motor ficou ~8h sem processar nada, sempre "0 ativos com barra
+ * nova"): olhar só `bars[bars.length-1]` para decidir se "a última barra
+ * fechou" está errado por construção. No instante em que uma barra fecha, a
+ * exchange já começou a formar a PRÓXIMA — então `bars[length-1]` é SEMPRE
+ * a barra do dia corrente, ainda incompleta, e a que acabou de fechar fica
+ * em `bars[length-2]`, nunca examinada. O motor nunca via nada fechado,
+ * para sempre, não é uma questão de esperar mais tempo passar.
+ *
+ * A correção anda de trás para frente até achar a primeira barra cujo
+ * fechamento (abrir + 1 dia) já passou — normalmente `length-2`, mas
+ * anda mais se o motor ficou fora do ar por mais de um dia.
+ */
+export function indiceUltimaBarraFechada(bars: Bar[], agora: number, stepMs = 86_400_000): number {
+  for (let i = bars.length - 1; i >= 0; i--) {
+    if (bars[i].t + stepMs <= agora) return i;
+  }
+  return -1;
+}
+
+/**
  * Decide se uma posição sai NESTA barra, e por quê. Pura — não mexe em
  * estado, só olha o range da barra contra os níveis da posição. Extraída da
  * classe para poder testar sem precisar de rede (ccxt) nem de um motor
@@ -213,10 +236,9 @@ export class MotorMomentum {
       if (!bars || bars.length < this.estrategia.warmup + 1) continue;
 
       const step = 86_400_000;
-      // só processa a última barra se ela já FECHOU (o abrir dela + 1 dia <= agora)
-      const i = bars.length - 1;
+      const i = indiceUltimaBarraFechada(bars, agora, step);
+      if (i < 0) continue; // nenhuma barra fechada ainda (não deveria acontecer com warmup suficiente)
       const bar = bars[i];
-      if (bar.t + step > agora) continue; // barra de hoje ainda em formação
       if (bar.t <= (this.estado.ultimaBarra[symbol] ?? 0)) continue; // já processada
       this.estado.ultimaBarra[symbol] = bar.t;
       processados++;

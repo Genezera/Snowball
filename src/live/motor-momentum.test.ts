@@ -1,10 +1,40 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { avaliarSaida, calcularFechamento } from './motor-momentum.ts';
+import { avaliarSaida, calcularFechamento, indiceUltimaBarraFechada } from './motor-momentum.ts';
 import type { Bar } from '../core/types.ts';
 
 const DIA = 86_400_000;
 const bar = (over: Partial<Bar> = {}): Bar => ({ t: DIA * 10, o: 100, h: 101, l: 99, c: 100, v: 1000, ...over });
+const barraEm = (dia: number): Bar => ({ t: DIA * dia, o: 1, h: 1, l: 1, c: 1, v: 1 });
+
+test('indiceUltimaBarraFechada: regressão do bug real — a barra do dia corrente (incompleta) nunca é a fechada', () => {
+  // exatamente o formato que fetchOHLCV devolve: a última barra é sempre a
+  // que está se formando agora, mesmo que só tenha começado há segundos
+  const bars = [barraEm(3), barraEm(4), barraEm(5)];
+  const agora = DIA * 5 + 1000; // poucos segundos depois de a barra do dia 5 abrir
+  const idx = indiceUltimaBarraFechada(bars, agora, DIA);
+  assert.equal(idx, 1); // a barra do dia 4, que fechou ao virar o dia 5 — NÃO a do dia 5
+  assert.equal(bars[idx].t, DIA * 4);
+});
+
+test('indiceUltimaBarraFechada: nenhuma barra fechada ainda (só a incompleta) devolve -1', () => {
+  const bars = [barraEm(5)];
+  const agora = DIA * 5 + 1000;
+  assert.equal(indiceUltimaBarraFechada(bars, agora, DIA), -1);
+});
+
+test('indiceUltimaBarraFechada: motor ficou fora do ar por dias — anda mais pra trás até achar a fechada mais recente', () => {
+  const bars = [barraEm(1), barraEm(2), barraEm(3), barraEm(4), barraEm(5)];
+  const agora = DIA * 5 + 1000; // só a barra do dia 5 está incompleta
+  const idx = indiceUltimaBarraFechada(bars, agora, DIA);
+  assert.equal(bars[idx].t, DIA * 4); // a mais recente que já fechou, não a mais antiga
+});
+
+test('indiceUltimaBarraFechada: bem no instante exato do fechamento, a barra já conta como fechada', () => {
+  const bars = [barraEm(4), barraEm(5)];
+  const agora = DIA * 5; // t + step da barra do dia 4 é exatamente DIA*5
+  assert.equal(bars[indiceUltimaBarraFechada(bars, agora, DIA)].t, DIA * 4);
+});
 
 test('avaliarSaida: long sai por stop quando a minima da barra toca o stop', () => {
   const pos = { side: 'long' as const, stopPrice: 95, takePrice: 120, abertaBarT: DIA * 9 };
