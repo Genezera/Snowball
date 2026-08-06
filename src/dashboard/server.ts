@@ -29,6 +29,7 @@ import { lerVigilancia, saudeVigilancia } from '../funding/ponte.ts';
 import { avaliarValor } from '../funding/valor.ts';
 import { posicoesSustentaveis, taxaEfetiva } from '../funding/custos-reais.ts';
 import { estatisticasCicloBasis, type EstadoVigilanciaBasis } from '../funding/vigilancia-basis.ts';
+import { agregarEstatisticas } from '../funding/preenchimento.ts';
 import { PAGINA } from './pagina.ts';
 
 const execAsync = promisify(exec);
@@ -230,6 +231,40 @@ function rankingPares() {
     return dados;
   } catch {
     return rankingParesCache.dados;
+  }
+}
+
+/**
+ * MEDIÇÃO DE PREENCHIMENTO MAKER — agrega o diário do monitor (item B6): taxa
+ * de preenchimento, tempo mediano até encher e a reação de preço depois,
+ * separado por lado (venda = perna short, compra = perna long). Cache de
+ * 15s: o diário só cresce a cada poucos minutos, não vale reler a cada tick.
+ */
+let preenchimentoCache: { ts: number; dados: any } = { ts: 0, dados: null };
+
+function preenchimento() {
+  if (Date.now() - preenchimentoCache.ts < 15_000) return preenchimentoCache.dados;
+  try {
+    const p = path.join(ROOT, 'preenchimento', 'diario.jsonl');
+    if (!fs.existsSync(p)) return preenchimentoCache.dados;
+    const linhas = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
+    const registros = linhas.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+
+    const paraStats = (rs: any[]) => agregarEstatisticas(rs.map((r) => ({
+      preenchido: r.preenchido, msParaEncher: r.msParaEncher,
+      reacao: r.retornoPosPct != null ? { retornoPct: r.retornoPosPct, favoravel: r.favoravel } : null,
+    })));
+
+    const dados = {
+      geral: paraStats(registros),
+      venda: paraStats(registros.filter((r) => r.lado === 'venda')),
+      compra: paraStats(registros.filter((r) => r.lado === 'compra')),
+      recentes: registros.slice(-30).reverse(),
+    };
+    preenchimentoCache = { ts: Date.now(), dados };
+    return dados;
+  } catch {
+    return preenchimentoCache.dados;
   }
 }
 
@@ -680,6 +715,7 @@ async function montarDados() {
       estado, posicoes, contas, rankingExchanges, diario: diario.filter((e) => e.evento !== 'leitura').slice(-80).reverse(), curva,
       operacoes: lerOperacoes(path.join(DIR, 'diario.jsonl')),
       rankingPares: rankingPares(),
+      preenchimento: preenchimento(),
       // diagnóstico de memória do próprio dashboard — achado depois de quedas
       // sem erro registrado (candidato a vazamento). Barato de calcular, só
       // leituras de tamanho, nada pesado.

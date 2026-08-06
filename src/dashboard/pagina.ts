@@ -262,6 +262,12 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       </section>
 
       <section class="card">
+        <h2>Ordem limite vs. mercado — mede se maker preenche rápido o bastante <span class="note" id="preench-tag"></span></h2>
+        <p class="caption">Ordem a mercado (taker) custa 0,05-0,06%; ordem limite (maker) custa ~0,02% — mas só preenche se o preço tocar nela, e o toque costuma vir acompanhado de movimento contra quem forneceu a liquidez. Isto simula uma ordem limite "no toque" nas duas pernas dos melhores candidatos da vigilância, sem enviar ordem nenhuma, e mede as duas coisas: preenche rápido? o preço se move contra depois?</p>
+        <div id="preench-box"></div>
+      </section>
+
+      <section class="card">
         <h2>Processos <span class="note">watchdog verifica a cada 30s</span></h2>
         <div class="procgrid" id="procgrid"></div>
       </section>
@@ -667,6 +673,45 @@ function renderBarras(d){
 
 // ---- gráfico de candles (com a entrada da posição marcada) ----
 var GRAFICOS={};
+// Carregamento preguiçoso dos candles: com até 40+ posições no modo agressivo,
+// buscar o gráfico de todas de uma vez na hora de abrir a aba disparava 40
+// fetches simultâneos, cada um batendo numa chamada de exchange ao vivo no
+// servidor (mesmo limite de taxa da binanceusdm pra todas) — é isso que
+// deixava a aba muito lenta pra abrir. Só busca o candle quando o card entra
+// de fato na tela.
+var CANDLE_OBSERVER=null;
+function elementPertoDaTela(box){
+  var r=box.getBoundingClientRect();
+  var folga=400;
+  return r.bottom>-folga&&r.top<(window.innerHeight||800)+folga;
+}
+function observarCandle(box,cb){
+  // checagem síncrona primeiro: cobre o caso comum (card já visível) sem
+  // depender do IntersectionObserver dar o primeiro retrato a tempo.
+  if(elementPertoDaTela(box)){cb();return}
+  if(!('IntersectionObserver' in window)){cb();return}
+  var disparado=false;
+  var disparar=function(){
+    if(disparado)return;
+    disparado=true;
+    box._candleCb=null;
+    if(CANDLE_OBSERVER)CANDLE_OBSERVER.unobserve(box);
+    clearTimeout(fallback);
+    cb();
+  };
+  // seguro contra ambientes onde o IntersectionObserver não dispara (ex.:
+  // aba sem compositor ativo) — sem isto, o card nunca carregaria o gráfico.
+  var fallback=setTimeout(disparar,4000);
+  if(!CANDLE_OBSERVER){
+    CANDLE_OBSERVER=new IntersectionObserver(function(entries){
+      entries.forEach(function(ent){
+        if(ent.isIntersecting&&ent.target._candleCb)ent.target._candleCb();
+      });
+    },{rootMargin:'400px'});
+  }
+  box._candleCb=disparar;
+  CANDLE_OBSERVER.observe(box);
+}
 function corEventoBadge(ev){
   var m={abre:'#38bdf8',fecha:'#ff5470',funding:'#4d9fff',reinveste:'#ffb84d',escalona:'#8b6cf2',socorre:'#ffb84d'};
   return m[ev]||'#8991a8';
@@ -724,7 +769,7 @@ function garantirGrafico(container, key, exchange, symbol, timeframe, entryPrice
     container.appendChild(box);
   }
   if(!GRAFICOS[key]){
-    GRAFICOS[key]={entryPrice:entryPrice,side:side,ultimoCandles:null};
+    GRAFICOS[key]={entryPrice:entryPrice,side:side,ultimoCandles:null,timer:null};
     var atualizar=function(){
       fetch('/api/candles?exchange='+encodeURIComponent(exchange)+'&symbol='+encodeURIComponent(symbol)+'&timeframe='+encodeURIComponent(timeframe))
         .then(function(r){return r.json()})
@@ -735,8 +780,10 @@ function garantirGrafico(container, key, exchange, symbol, timeframe, entryPrice
           }
         }).catch(function(){});
     };
-    atualizar();
-    GRAFICOS[key].timer=setInterval(atualizar,20000);
+    observarCandle(container,function(){
+      atualizar();
+      GRAFICOS[key].timer=setInterval(atualizar,20000);
+    });
   } else {
     GRAFICOS[key].entryPrice=entryPrice;
     GRAFICOS[key].side=side;
@@ -951,6 +998,39 @@ function renderRankingPares(d){
         '<td'+(nTrades?' class="up"':'')+'>'+(nTrades||'—')+'</td>'+
         '</tr>';
     }).join('');
+  });
+}
+
+// ---- medição de preenchimento maker (item B6) ----
+function renderPreenchimento(d){
+  var p=d.preenchimento;
+  renderIfChanged('preench',p,function(){
+    var host=el('preench-box');
+    if(!p||!p.geral||!p.geral.amostras){
+      el('preench-tag').textContent='';
+      host.innerHTML='<div class="empty">monitor ainda coletando — sem amostra suficiente ainda</div>';
+      return;
+    }
+    el('preench-tag').textContent=p.geral.amostras+' amostras';
+    var linha=function(nome,s){
+      if(!s||!s.amostras)return '<tr><td>'+nome+'</td><td colspan="4" style="color:var(--faint)">sem amostra</td></tr>';
+      var tempo=s.msParaEncherMediana!=null?fmtHoras(s.msParaEncherMediana/3_600_000):'—';
+      var reacao=s.retornoPosPreenchimentoMedio!=null?fmtPct(s.retornoPosPreenchimentoMedio,3):'—';
+      var favoravel=s.fracaoFavoravel!=null?fmtPct(s.fracaoFavoravel,0):'—';
+      return '<tr>'+
+        '<td style="font-weight:700">'+nome+'</td>'+
+        '<td>'+fmtNum(s.amostras)+'</td>'+
+        '<td>'+fmtPct(s.taxaPreenchimento,0)+'</td>'+
+        '<td>'+tempo+'</td>'+
+        '<td'+(s.retornoPosPreenchimentoMedio>0?' class="down"':' class="up"')+'>'+reacao+'</td>'+
+        '<td>'+favoravel+'</td>'+
+        '</tr>';
+    };
+    host.innerHTML='<div style="overflow-x:auto"><table>'+
+      '<thead><tr><th>Perna</th><th>Amostras</th><th>Taxa de preenchimento</th><th>Tempo mediano</th><th>Reação pós-preenchimento</th><th>% favorável</th></tr></thead>'+
+      '<tbody>'+linha('geral',p.geral)+linha('venda (perna short)',p.venda)+linha('compra (perna long)',p.compra)+'</tbody>'+
+      '</table></div>'+
+      '<p class="caption" style="margin-top:10px">Reação positiva = o preço continuou na direção que favoreceu quem negociou com a gente (seleção adversa). Com poucas amostras, nenhum destes números ainda vale decisão — mesma regra da vigilância: cautela até acumular horas de dado real.</p>';
   });
 }
 
@@ -1465,6 +1545,7 @@ function render(d){
   renderBarras(d);
   renderRanking(d);
   renderRankingPares(d);
+  renderPreenchimento(d);
   renderProcessos(d);
   renderPosicoes(d);
   renderPosicoesMom(d);
