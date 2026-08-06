@@ -88,7 +88,16 @@ async function comTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T>
 }
 
 async function exchangePara(id: string) {
-  if (!pool[id]) pool[id] = new (ccxt as any)[id]({ enableRateLimit: true });
+  // bybit por padrão também carrega mercado de OPÇÕES no loadMarkets — o
+  // endpoint dela (instruments-info?category=option) trava ~10s por request
+  // neste ambiente e nunca é usado aqui (só perpétuo). Restringir os tipos
+  // evita esperar por algo que nunca vai preencher pedido nenhum. É uma
+  // opção ESPECÍFICA da bybit — outras exchanges usam convenção de tipo
+  // diferente ('swap' em vez de 'linear', etc.) e quebram se ela for
+  // aplicada por igual (visto ao vivo: okx e bitget passaram a errar).
+  const opts: any = { enableRateLimit: true };
+  if (id === 'bybit') opts.options = { fetchMarkets: { types: ['spot', 'linear', 'inverse'] } };
+  if (!pool[id]) pool[id] = new (ccxt as any)[id](opts);
   if (!marketsCarregados.has(id)) {
     const ok = await comTimeout(pool[id].loadMarkets().then(() => true), 15_000, false);
     if (ok) marketsCarregados.add(id); // timeout: não marca — tenta carregar de novo na próxima passada

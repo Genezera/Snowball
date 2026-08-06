@@ -288,6 +288,7 @@ const PROCESSOS_ESPERADOS = [
   { chave: 'dashboard', nome: 'Dashboard', padrao: 'server.ts' },
   { chave: 'coletor', nome: 'Coletor', padrao: 'coletor.ts' },
   { chave: 'momentum', nome: 'Modo Agressivo', padrao: 'momentum-live.ts' },
+  { chave: 'preenchimento', nome: 'Preenchimento', padrao: 'preenchimento-live.ts' },
 ];
 
 let saudeProcessosCache: { ts: number; dados: any[] } = { ts: 0, dados: [] };
@@ -423,26 +424,6 @@ function lerOperacoes(caminhoDiario: string, limiteLinhas = 4000, limiteResultad
   const linhas = fs.readFileSync(caminhoDiario, 'utf8').trim().split('\n').filter(Boolean).slice(-limiteLinhas);
   const eventos = linhas.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
   return eventos.filter((e) => EVENTOS_OPERACAO.has(e.evento)).slice(-limiteResultado).reverse();
-}
-
-/**
- * Modo agressivo (ts-momentum multi-ativo) — mesmo padrão de leitura do modo
- * normal, mas de `momentum/` em vez de `spread/`. Os dois motores são
- * independentes: capital, estado e diário separados, cada um só paper.
- */
-const DIR_MOMENTUM = path.join(ROOT, 'momentum');
-
-function lerEstadoMomentum() {
-  const p = path.join(DIR_MOMENTUM, 'estado.json');
-  return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
-}
-
-/** Cronológico (mais antigo primeiro) — quem exibe reverte, quem traça curva não precisa. */
-function lerDiarioMomentum(limite = 400) {
-  const p = path.join(DIR_MOMENTUM, 'diario.jsonl');
-  if (!fs.existsSync(p)) return [];
-  const linhas = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
-  return linhas.slice(-limite).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 }
 
 function lerDiario(limite = 400) {
@@ -687,27 +668,6 @@ async function montarDados() {
 
     const processos = await saudeProcessos();
 
-    // ── modo agressivo (ts-momentum multi-ativo) — motor independente ──────
-    const estadoMom = lerEstadoMomentum();
-    const diarioMom = lerDiarioMomentum();
-    const curvaMom: { t: number; capital: number }[] = [];
-    for (const e of diarioMom) {
-      if (e.capital != null) curvaMom.push({ t: e.ts, capital: e.capital });
-    }
-    const modoAgressivo = estadoMom ? {
-      estado: estadoMom,
-      posicoes: (estadoMom.posicoes ?? []).map((p: any) => ({
-        ...p,
-        horasAberta: (Date.now() - p.abertaEm) / 3_600_000,
-        distanciaStop: p.side === 'long' ? (p.entryPrice - p.stopPrice) / p.entryPrice : (p.stopPrice - p.entryPrice) / p.entryPrice,
-        distanciaAlvo: p.side === 'long' ? (p.takePrice - p.entryPrice) / p.entryPrice : (p.entryPrice - p.takePrice) / p.entryPrice,
-      })),
-      curva: curvaMom,
-      diario: diarioMom.filter((e: any) => e.evento !== 'init').slice(-60).reverse(),
-      taxaVitoria: estadoMom.fechados > 0 ? estadoMom.vitorias / estadoMom.fechados : null,
-      operacoes: lerOperacoes(path.join(DIR_MOMENTUM, 'diario.jsonl')),
-    } : null;
-
     return {
       // 'leitura' é só o ponto periódico pra curva de capital não ficar com um
       // ponto só — não é uma decisão, então some da tabela "Decisões do motor"
@@ -725,7 +685,6 @@ async function montarDados() {
         cacheCandlesEntradas: cacheCandles.size,
         precosAoVivoEntradas: Object.keys(precosAoVivo).length,
       },
-      modoAgressivo,
       pagamentosPorDia: [...porDia].map(([dia, total]) => ({ dia, total })),
       scan: scan.slice(0, 15),
       atualizadoEm: Date.now(),

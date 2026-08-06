@@ -200,8 +200,6 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
 .progress-readiness{height:8px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:10px}
 .progress-readiness i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--mint))}
 
-.aviso-agressivo{font-size:.76rem;color:var(--dim);background:rgba(255,184,77,.07);border:1px solid rgba(255,184,77,.35);border-radius:14px;padding:12px 16px;margin-bottom:16px;line-height:1.55}
-.aviso-agressivo b{color:var(--amber)}
 
 footer.foot{text-align:center;color:var(--faint);font-size:.7rem;padding:30px 0 0;font-family:var(--mono)}
 code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-size:.9em}
@@ -215,7 +213,6 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
     <div class="tabs" id="tabs">
       <div class="tab active" data-tab="visao">Visão geral</div>
       <div class="tab" data-tab="normal"><span class="dot-mini" style="background:var(--mint)"></span>Modo normal</div>
-      <div class="tab" data-tab="agressivo"><span class="dot-mini" style="background:var(--violet)"></span>Modo agressivo</div>
       <div class="tab" data-tab="mercado">Mercado</div>
       <div class="tab" data-tab="sistema">Sistema</div>
     </div>
@@ -234,17 +231,10 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
     <div class="tabpanel active" id="panel-visao">
       <section class="kpis" id="kpis-geral"></section>
 
-      <section class="grid2">
-        <div class="card">
-          <h2>Curva de capital — modo normal</h2>
-          <p class="caption">Capital total das 6 exchanges financiadas, ao longo do tempo.</p>
-          <div class="chart-wrap"><svg id="svg-curva" viewBox="0 0 1000 190" preserveAspectRatio="none"></svg></div>
-        </div>
-        <div class="card">
-          <h2>Curva de capital — modo agressivo</h2>
-          <p class="caption">ts-momentum multi-ativo, experimental, em papel.</p>
-          <div class="chart-wrap"><svg id="svg-curva-mom-mini" viewBox="0 0 1000 190" preserveAspectRatio="none"></svg></div>
-        </div>
+      <section class="card">
+        <h2>Curva de capital — modo normal</h2>
+        <p class="caption">Capital total das 6 exchanges financiadas, ao longo do tempo.</p>
+        <div class="chart-wrap"><svg id="svg-curva" viewBox="0 0 1000 190" preserveAspectRatio="none"></svg></div>
       </section>
 
       <section class="card">
@@ -349,50 +339,6 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
         <h2>Decisões do motor</h2>
         <p class="caption">Cada avaliação de cada ciclo, inclusive os bloqueios — é o log de raciocínio completo, não só o resultado.</p>
         <div class="timeline" id="timeline"></div>
-      </section>
-    </div>
-
-    <!-- ============ MODO AGRESSIVO ============ -->
-    <div class="tabpanel" id="panel-agressivo">
-      <div class="aviso-agressivo">
-        <b>Experimental — sem garantia de lucro em nenhum prazo.</b> ts-momentum multi-ativo é a única, de 7
-        famílias de estratégia testadas neste projeto, que sobreviveu a holdout cego (p=0,008 — ver Resultado
-        6/10 em <code>docs/RESULTADOS.md</code>). Bootstrap por blocos mede ~9-13% de chance de bater a meta em
-        anos, ~15-45% de chance de perder o capital. Roda em paralelo ao Modo Normal, só em papel.
-      </div>
-
-      <section class="kpis" id="kpis-mom"></section>
-
-      <section class="card">
-        <h2>Curva de capital</h2>
-        <div class="chart-wrap"><svg id="svg-curva-mom" viewBox="0 0 1000 190" preserveAspectRatio="none"></svg></div>
-      </section>
-
-      <section class="card">
-        <h2>Posições abertas <span class="note" id="pos-mom-tag"></span></h2>
-        <p class="caption">Barras diárias — o gráfico mostra o candle diário real com a entrada marcada.</p>
-        <div class="poscards" id="poscards-mom"></div>
-      </section>
-
-      <section class="card">
-        <h2>De onde veio o dinheiro</h2>
-        <p class="caption">Aqui não tem funding nem socorro — só entrada e saída de posição. Verde é trade fechado no lucro, vermelho é trade fechado no prejuízo.</p>
-        <div class="chart-wrap" style="height:260px"><svg id="svg-fluxo-mom" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg></div>
-        <div class="kpis" style="grid-template-columns:repeat(2,1fr);margin-top:14px" id="fluxo-mom-kpis"></div>
-        <div class="timeline" id="fluxo-mom-lista" style="margin-top:14px"></div>
-      </section>
-
-      <section class="card">
-        <h2>Histórico de operações</h2>
-        <div style="overflow-x:auto"><table id="ops-mom-table">
-          <thead><tr><th>Quando</th><th>Tipo</th><th>Ativo</th><th>Detalhes</th></tr></thead>
-          <tbody id="ops-mom-body"></tbody>
-        </table></div>
-      </section>
-
-      <section class="card">
-        <h2>Decisões do modo agressivo</h2>
-        <div class="timeline" id="timeline-mom"></div>
       </section>
     </div>
 
@@ -565,21 +511,6 @@ function montarKpisNormal(d){
     {id:'k-uptime',lbl:'Coletando há',val:null,fmt:null,sub:e.iniciadoEm?timeAgo(e.iniciadoEm).replace(' atrás',''):'—',raw:e.iniciadoEm?diasDesde(e.iniciadoEm):'—'}
   ];
 }
-function montarKpisMom(d){
-  var m=d.modoAgressivo;
-  if(!m)return null;
-  var e=m.estado||{};
-  var cap=e.capital!=null?e.capital:0;
-  var capIni=e.capitalInicial||cap||1;
-  var variacao=(cap-capIni)/capIni;
-  return [
-    {id:'km-capital',lbl:'Capital atual · agressivo',val:cap,fmt:fmtUsd,sub:(variacao>=0?'+':'')+fmtPct(variacao,2)+' desde o início',cls:variacao>=0?'up':'down'},
-    {id:'km-pico',lbl:'Pico',val:e.pico||cap,fmt:fmtUsd,sub:'capital inicial '+fmtUsd(capIni)},
-    {id:'km-trades',lbl:'Trades fechados',val:e.fechados||0,fmt:function(n){return fmtNum(Math.round(n))},sub:m.taxaVitoria!=null?fmtPct(m.taxaVitoria,0)+' de vitórias':'sem trades ainda'},
-    {id:'km-pos',lbl:'Posições abertas',val:(e.posicoes||[]).length,fmt:function(n){return fmtNum(Math.round(n))},sub:'de 57 ativos monitorados'},
-    {id:'km-custos',lbl:'Custos pagos',val:e.custosTotal||0,fmt:fmtUsd,sub:'taxas + slippage acumulados'}
-  ];
-}
 function montarFigura(it){
   return '<div class="kpi"><div class="lbl">'+esc(it.lbl)+'</div><div class="val '+(it.cls||'')+'" id="'+it.id+'">—</div><div class="sub" id="'+it.id+'-sub">—</div></div>';
 }
@@ -593,12 +524,9 @@ function aplicarFiguras(host,itens){
 }
 function renderKpis(d){
   aplicarFiguras(el('kpis'),montarKpisNormal(d));
-  var itensMom=montarKpisMom(d);
-  if(itensMom) aplicarFiguras(el('kpis-mom'),itensMom);
-  // visão geral: junta as duas listas de figuras, prefixando IDs pra não colidir
+  // visão geral: mesmas figuras do modo normal, prefixando IDs pra não colidir
   var geral=el('kpis-geral');
-  var itensGeral=montarKpisNormal(d).slice(0,3).map(function(it){return {id:'g-'+it.id,lbl:it.lbl,val:it.val,fmt:it.fmt,sub:it.sub,cls:it.cls,raw:it.raw}});
-  if(itensMom) itensGeral=itensGeral.concat(itensMom.slice(0,3).map(function(it){return {id:'g-'+it.id,lbl:it.lbl,val:it.val,fmt:it.fmt,sub:it.sub,cls:it.cls,raw:it.raw}}));
+  var itensGeral=montarKpisNormal(d).map(function(it){return {id:'g-'+it.id,lbl:it.lbl,val:it.val,fmt:it.fmt,sub:it.sub,cls:it.cls,raw:it.raw}});
   aplicarFiguras(geral,itensGeral);
 }
 
@@ -639,15 +567,6 @@ function renderCurva(d){
     desenharCurva('svg-curva-2',pts,'#38bdf8');
   });
 }
-function renderCurvaMom(d){
-  var m=d.modoAgressivo;
-  var pts=((m&&m.curva)||[]).filter(function(p){return isFinite(p.capital)});
-  renderIfChanged('curva-mom',pts,function(){
-    desenharCurva('svg-curva-mom',pts,'#8b6cf2');
-    desenharCurva('svg-curva-mom-mini',pts,'#8b6cf2');
-  });
-}
-
 // ---- funding por dia ----
 function renderBarras(d){
   var linhas=(d.pagamentosPorDia||[]).slice(-14);
@@ -843,7 +762,7 @@ function renderPosicoes(d){
   if(!pos.length){
     host.innerHTML='<div class="empty">Nenhuma posição aberta agora — o portão de valor esperado ainda não achou nada que pague o próprio custo. Isso é o resultado correto quando o mercado não oferece spread suficiente.</div>';
     host.dataset.count='0';
-    limparGraficosOrfaos(Object.keys(GRAFICOS).filter(function(k){return k.indexOf('m-')===0}));
+    limparGraficosOrfaos([]);
     return;
   }
   if(host.dataset.count!==String(pos.length)){
@@ -895,49 +814,7 @@ function renderPosicoes(d){
     chaves.push(chave);
     garantirGrafico(el('candle-slot-'+idx), chave, p.exchangeShort, p.symbol, '15m', p.precoEntrada, 'short');
   });
-  limparGraficosOrfaos(chaves.concat(Object.keys(GRAFICOS).filter(function(k){return k.indexOf('m-')===0})));
-}
-
-function renderPosicoesMom(d){
-  var m=d.modoAgressivo;
-  var pos=(m&&m.posicoes)||[];
-  el('pos-mom-tag').textContent=pos.length?(pos.length+' aberta'+(pos.length>1?'s':'')):'nenhuma';
-  var host=el('poscards-mom');
-  if(!pos.length){
-    host.innerHTML='<div class="empty">Nenhuma posição aberta agora no modo agressivo.</div>';
-    host.dataset.count='0';
-    limparGraficosOrfaos(Object.keys(GRAFICOS).filter(function(k){return k.indexOf('n-')===0}));
-    return;
-  }
-  if(host.dataset.count!==String(pos.length)){
-    host.innerHTML=pos.map(function(p,idx){return '<div class="poscard" id="poscard-mom-'+idx+'"></div>'}).join('');
-    host.dataset.count=String(pos.length);
-  }
-  var chavesMom=[];
-  pos.forEach(function(p,idx){
-    var card=el('poscard-mom-'+idx);
-    // mesma regra do modo normal: esqueleto uma vez só, senão o candle-slot
-    // (e o SVG dentro dele) é destruído a cada render e o gráfico pisca.
-    if(!card.dataset.built){
-      card.innerHTML=
-        '<div class="top"><span class="sym"></span><span class="badge"></span></div>'+
-        '<div class="meta"><span class="m-entrada"></span><span class="m-stop"></span><span class="m-alvo"></span></div>'+
-        '<div class="meta"><span class="m-aberta"></span></div>'+
-        '<div class="candle-slot" id="candle-slot-mom-'+idx+'"></div>';
-      card.dataset.built='1';
-    }
-    card.querySelector('.sym').textContent=(p.symbol||'').replace('/USDT:USDT','');
-    var badgeEl=card.querySelector('.badge'); badgeEl.className='badge '+(p.side==='long'?'ok':'bad'); badgeEl.textContent=p.side;
-    card.querySelector('.m-entrada').textContent='entrada '+fmtUsd(p.entryPrice);
-    card.querySelector('.m-stop').textContent='stop '+fmtUsd(p.stopPrice);
-    card.querySelector('.m-alvo').textContent='alvo '+fmtUsd(p.takePrice);
-    card.querySelector('.m-aberta').textContent='aberta há '+fmtHoras(p.horasAberta);
-
-    var chave='m-'+p.symbol;
-    chavesMom.push(chave);
-    garantirGrafico(el('candle-slot-mom-'+idx), chave, 'binanceusdm', p.symbol, '4h', p.entryPrice, p.side);
-  });
-  limparGraficosOrfaos(chavesMom.concat(Object.keys(GRAFICOS).filter(function(k){return k.indexOf('n-')===0})));
+  limparGraficosOrfaos(chaves);
 }
 
 // ---- ranking de exchanges ----
@@ -1219,23 +1096,6 @@ function renderTimeline(d){
     }).join('');
   });
 }
-function renderTimelineMom(d){
-  var m=d.modoAgressivo;
-  var itens=(m&&m.diario)||[];
-  renderIfChanged('timeline-mom',itens,function(){
-    var host=el('timeline-mom');
-    if(!itens.length){host.innerHTML='<div class="empty">sem eventos ainda — o modo agressivo só age em fechamento de barra diária</div>';return}
-    host.innerHTML=itens.map(function(e){
-      var cor=corEvento[e.evento]||'#565e75';
-      var titulo=(e.evento||'evento')+(e.symbol?' · '+e.symbol.replace('/USDT:USDT',''):'');
-      var motivo=e.motivo||(e.pnl!=null?('pnl '+fmtUsd(e.pnl)+(e.reason?' · '+e.reason:'')):'');
-      return '<div class="tl-item"><span class="tl-dot" style="background:'+cor+'"></span>'+
-        '<div class="tl-body"><b>'+esc(titulo)+'</b><div class="motivo">'+esc(motivo)+'</div></div>'+
-        '<div class="tl-time">'+timeAgo(e.ts)+'</div></div>';
-    }).join('');
-  });
-}
-
 // ---- de onde veio o dinheiro (ponte/waterfall) ----
 //
 // Cada evento do histórico de operações vira uma de quatro categorias:
@@ -1428,47 +1288,6 @@ function renderFluxo(d){
   });
 }
 
-function renderFluxoMom(d){
-  var m=d.modoAgressivo;
-  var ops=(m&&m.operacoes)||[];
-  var e=(m&&m.estado)||{};
-  var capIni=e.capitalInicial||0;
-  var capAtual=e.capital!=null?e.capital:capIni;
-  renderIfChanged('fluxo-mom',ops,function(){
-    var ganhou=0,perdeu=0,itens=[];
-    ops.forEach(function(ev){
-      if(ev.evento!=='fecha'||ev.pnl==null)return;
-      if(ev.pnl>=0){ganhou+=ev.pnl}else{perdeu+=Math.abs(ev.pnl)}
-      itens.push(ev);
-    });
-    var passos=[
-      {tipo:'total',label:'Capital inicial',valor:capIni,cor:'#8991a8'},
-      {tipo:'delta',label:'Ganhou',de:capIni,para:capIni+ganhou,cor:CAT_INFO.ganhou.cor},
-      {tipo:'delta',label:'Perdeu',de:capIni+ganhou,para:capIni+ganhou-perdeu,cor:CAT_INFO.perdeu.cor},
-      {tipo:'total',label:'Capital atual',valor:capAtual,cor:'#8991a8'}
-    ];
-    desenharPonte(el('svg-fluxo-mom'),passos);
-
-    var kHost=el('fluxo-mom-kpis');
-    kHost.innerHTML=
-      '<div class="kpi"><div class="lbl">Ganhou · trades no lucro</div><div class="val num" style="color:'+CAT_INFO.ganhou.cor+'">'+fmtUsd(ganhou)+'</div></div>'+
-      '<div class="kpi"><div class="lbl">Perdeu · trades no prejuízo</div><div class="val num" style="color:'+CAT_INFO.perdeu.cor+'">'+fmtUsd(perdeu)+'</div></div>';
-
-    var lHost=el('fluxo-mom-lista');
-    if(!itens.length){lHost.innerHTML='<div class="empty">sem trade fechado ainda</div>';return}
-    // ops já vem do servidor mais recente primeiro — sem reverter de novo aqui
-    lHost.innerHTML=itens.slice(0,40).map(function(ev){
-      var ganhouEste=ev.pnl>=0;
-      var cor=ganhouEste?CAT_INFO.ganhou.cor:CAT_INFO.perdeu.cor;
-      var at=(ev.symbol||'').replace('/USDT:USDT','');
-      return '<div class="tl-item"><span class="tl-dot" style="background:'+cor+'"></span>'+
-        '<div class="tl-body"><b style="color:'+cor+'">'+(ganhouEste?'Ganhou ':'Perdeu ')+(ganhouEste?'+':'−')+fmtUsd(Math.abs(ev.pnl))+'</b>'+
-        '<div class="motivo">'+esc(at)+' · '+esc(ev.side)+' · saiu por '+esc(ev.reason||'—')+' @ '+fmtUsd(ev.exitPrice)+'</div></div>'+
-        '<div class="tl-time">'+timeAgo(ev.ts)+'</div></div>';
-    }).join('');
-  });
-}
-
 // ---- histórico de operações ----
 var TIPO_LABEL={abre:'Abriu',fecha:'Fechou',funding:'Funding',reinveste:'Reinveste',escalona:'Escalonou',socorre:'Socorreu'};
 function detalheOperacaoNormal(e){
@@ -1502,32 +1321,6 @@ function renderOperacoes(d){
     }).join('');
   });
 }
-function detalheOperacaoMom(e){
-  if(e.evento==='abre'){return esc(e.side)+' @ '+fmtUsd(e.entryPrice)+' · notional '+fmtUsd(e.notional)+' · stop '+fmtUsd(e.stopPrice)+' · alvo '+fmtUsd(e.takePrice)}
-  if(e.evento==='fecha'){
-    var cls=e.pnl>=0?'up':'down';
-    return '('+esc(e.reason||'—')+') @ '+fmtUsd(e.exitPrice)+' · pnl <span class="'+cls+'">'+(e.pnl>=0?'+':'')+fmtUsd(e.pnl)+'</span> · capital '+fmtUsd(e.capital);
-  }
-  return '';
-}
-function renderOperacoesMom(d){
-  var m=d.modoAgressivo;
-  var ops=(m&&m.operacoes)||[];
-  renderIfChanged('ops-mom',ops,function(){
-    var body=el('ops-mom-body');
-    if(!ops.length){body.innerHTML='<tr><td colspan="4" style="color:var(--faint);text-align:center;padding:20px">nenhuma operação ainda</td></tr>';return}
-    body.innerHTML=ops.map(function(e){
-      var cor=corEvento[e.evento]||'#565e75';
-      return '<tr>'+
-        '<td class="num" style="font-size:.72rem;white-space:nowrap">'+timeAgo(e.ts)+'</td>'+
-        '<td><span class="op-badge" style="color:'+cor+';border:1px solid '+cor+'">'+esc(TIPO_LABEL[e.evento]||e.evento)+'</span></td>'+
-        '<td style="font-weight:800">'+esc((e.symbol||'').replace('/USDT:USDT',''))+'</td>'+
-        '<td class="op-det">'+detalheOperacaoMom(e)+'</td>'+
-        '</tr>';
-    }).join('');
-  });
-}
-
 // ---- status ----
 function renderStatus(d){
   var v=d.vigilancia||{};
@@ -1541,14 +1334,12 @@ function render(d){
   renderTicker(d);
   renderKpis(d);
   renderCurva(d);
-  renderCurvaMom(d);
   renderBarras(d);
   renderRanking(d);
   renderRankingPares(d);
   renderPreenchimento(d);
   renderProcessos(d);
   renderPosicoes(d);
-  renderPosicoesMom(d);
   renderContas(d);
   renderExposicao(d);
   renderScan(d);
@@ -1559,12 +1350,9 @@ function render(d){
   renderDiag(d);
   renderBasis(d);
   renderTimeline(d);
-  renderTimelineMom(d);
   renderOperacoes(d);
-  renderOperacoesMom(d);
   renderFluxo(d);
   renderFluxoPorExchange(d);
-  renderFluxoMom(d);
   renderStatus(d);
 }
 
