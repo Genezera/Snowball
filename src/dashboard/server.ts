@@ -129,6 +129,25 @@ async function atualizarPrecosAoVivo() {
 }
 
 /**
+ * CANDLES para o gráfico de mercado por trás de cada posição aberta —
+ * pedido explícito: ver o candle do ativo com a entrada da posição marcada
+ * em cima. Cache de 20s por chave (exchange|symbol|timeframe): o gráfico
+ * pede de novo a cada poucos segundos no cliente, e não faz sentido bater na
+ * exchange toda vez só pra devolver os mesmos candles fechados de nnovo.
+ */
+const cacheCandles = new Map<string, { ts: number; candles: number[][] }>();
+async function lerCandles(exchange: string, symbol: string, timeframe: string): Promise<number[][]> {
+  if (!exchange || !symbol) throw new Error('exchange e symbol são obrigatórios');
+  const chave = exchange + '|' + symbol + '|' + timeframe;
+  const cache = cacheCandles.get(chave);
+  if (cache && Date.now() - cache.ts < 20_000) return cache.candles;
+  const ex = await exchangeParaTicker(exchange);
+  const candles: number[][] = await ex.fetchOHLCV(symbol, timeframe, undefined, 120);
+  cacheCandles.set(chave, { ts: Date.now(), candles });
+  return candles;
+}
+
+/**
  * SAÚDE DOS PROCESSOS — antes só existia no watchdog (vigilancia/supervisor-
  * watchdog.log), invisível pra quem só olha o navegador. Consulta o
  * CommandLine de cada node.exe via PowerShell, cacheada 10s pra não
@@ -373,6 +392,21 @@ const servidor = http.createServer(async (req, res) => {
   if (url.pathname === '/api/dados') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(await retrato()));
+    return;
+  }
+
+  if (url.pathname === '/api/candles') {
+    const exchange = url.searchParams.get('exchange') ?? '';
+    const symbol = url.searchParams.get('symbol') ?? '';
+    const timeframe = url.searchParams.get('timeframe') ?? '15m';
+    try {
+      const candles = await lerCandles(exchange, symbol, timeframe);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, candles }));
+    } catch (e) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, erro: (e as Error).message }));
+    }
     return;
   }
 
