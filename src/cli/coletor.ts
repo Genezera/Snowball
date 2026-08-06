@@ -23,6 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from '../data/store.ts';
 import { observacoesNovas, ciclosParaArquivar, custodiaEhNova } from '../funding/coleta.ts';
+import { avaliarProntidao, construirDataset, treinarEavaliar, MINIMO_POSITIVOS_TREINO } from '../ml/prontidao-vigilancia.ts';
 import { parseArgs, num } from './args.ts';
 
 const a = parseArgs();
@@ -35,7 +36,12 @@ const CUSTODIA = path.join(DIR, 'custodia.json');
 const ARQ_OBS = path.join(DIR, 'arquivo-observacoes.jsonl');
 const ARQ_CICLOS = path.join(DIR, 'arquivo-ciclos.jsonl');
 const ARQ_CUSTODIA = path.join(DIR, 'arquivo-custodia.jsonl');
+const ML_TREINO = path.join(DIR, 'ml-treino.jsonl');
 const ESTADO = path.join(DIR, 'coletor-estado.json');
+
+/** só retreina depois que os positivos crescerem por pelo menos isso — 5 min
+ * é frequente demais pra algo que muda pouco entre ciclos de vigilância. */
+const CRESCIMENTO_MINIMO_PARA_RETREINAR = 10;
 
 interface EstadoColetor {
   ultimoTsHistorico: number;
@@ -45,6 +51,7 @@ interface EstadoColetor {
   totalCiclos: number;
   totalCustodia: number;
   iniciadoEm: number;
+  positivosNoUltimoTreinoML?: number;
 }
 
 function carregarEstado(): EstadoColetor {
@@ -105,12 +112,41 @@ function coletar() {
     } catch { /* idem */ }
   }
 
+  // ── treino real de ML, só quando há dado novo o bastante pra valer ──────
+  //
+  // Não treina a cada ciclo (5 min é frequente demais pra algo que muda pouco)
+  // nem antes do mínimo de positivos exigido. Quando treina, o resultado vai
+  // pro diário de treino — nunca fabrica um número quando a amostra não
+  // sustenta (ver treinarEavaliar em prontidao-vigilancia.ts).
+  let treinouML = false;
+  if (novosCiclos > 0 || !estado.positivosNoUltimoTreinoML) {
+    try {
+      const ciclos = fs.existsSync(ARQ_CICLOS)
+        ? fs.readFileSync(ARQ_CICLOS, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
+        : [];
+      const prontidao = avaliarProntidao(ciclos);
+      const crescimento = prontidao.positivos - (estado.positivosNoUltimoTreinoML ?? 0);
+      if (prontidao.pronto && crescimento >= CRESCIMENTO_MINIMO_PARA_RETREINAR) {
+        const observacoes = fs.existsSync(ARQ_OBS)
+          ? fs.readFileSync(ARQ_OBS, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l))
+          : [];
+        const dataset = construirDataset(ciclos, observacoes);
+        const resultado = treinarEavaliar(dataset);
+        fs.appendFileSync(ML_TREINO, JSON.stringify(resultado) + '\n');
+        estado.positivosNoUltimoTreinoML = prontidao.positivos;
+        treinouML = true;
+      }
+    } catch (e) {
+      console.error(`[ml] erro ao tentar treinar: ${(e as Error).message}`);
+    }
+  }
+
   salvarEstado(estado);
   const dias = ((Date.now() - estado.iniciadoEm) / 86_400_000).toFixed(2);
   const hora = new Date().toLocaleTimeString('pt-BR');
   console.log(
     `[${hora}] +${novasObs} observações · +${novosCiclos} ciclos fechados` +
-    `${novaCustodia ? ' · +1 amostra de custódia' : ''} · ` +
+    `${novaCustodia ? ' · +1 amostra de custódia' : ''}${treinouML ? ' · ML retreinado' : ''} · ` +
     `acumulado: ${estado.totalObservacoes} obs · ${estado.totalCiclos} ciclos · ` +
     `${estado.totalCustodia} custódia · coletando há ${dias} dias`,
   );

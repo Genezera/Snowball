@@ -30,6 +30,8 @@ import { avaliarValor } from '../funding/valor.ts';
 import { posicoesSustentaveis, taxaEfetiva } from '../funding/custos-reais.ts';
 import { estatisticasCicloBasis, type EstadoVigilanciaBasis } from '../funding/vigilancia-basis.ts';
 import { agregarEstatisticas } from '../funding/preenchimento.ts';
+import { avaliarCicloArquivado } from '../ml/rotulo-ciclo.ts';
+import { MINIMO_POSITIVOS_TREINO } from '../ml/prontidao-vigilancia.ts';
 import { PAGINA } from './pagina.ts';
 
 const execAsync = promisify(exec);
@@ -427,27 +429,32 @@ function lerColeta() {
  * rodar comando manual. Nunca treina nada aqui; só conta quantos exemplos
  * positivos (sobreviveram ao portão de 1,5x) já existem no arquivado.
  */
-const ML_TAXA = 0.0005, ML_NOTIONAL = 250, ML_PAGAMENTOS_HORA = 3 / 24, ML_MARGEM = 1.5, ML_MINIMO_POSITIVOS = 30;
-
 function lerStatusML() {
   const p = path.join(ROOT, 'vigilancia', 'arquivo-ciclos.jsonl');
-  if (!fs.existsSync(p)) return { confiaveis: 0, positivos: 0, minimoNecessario: ML_MINIMO_POSITIVOS };
+  const base = { confiaveis: 0, positivos: 0, minimoNecessario: MINIMO_POSITIVOS_TREINO, ultimoTreino: null as any };
+  if (!fs.existsSync(p)) return base;
   try {
     const linhas = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
     let confiaveis = 0, positivos = 0;
     for (const l of linhas) {
       let c: any; try { c = JSON.parse(l); } catch { continue; }
-      const duracaoHoras = (c.fechadoEm - c.abertoEm) / 3_600_000;
-      const esperadas = Math.max(1, duracaoHoras * 12);
-      if (c.observacoes / esperadas < 0.15) continue;
-      confiaveis++;
-      const custo = ML_NOTIONAL * ML_TAXA * 4;
-      const paybackHoras = c.spreadMedio > 0 ? custo / (ML_NOTIONAL * c.spreadMedio * ML_PAGAMENTOS_HORA) : Infinity;
-      const vidaEsperada = duracaoHoras * c.consistencia;
-      if (vidaEsperada >= paybackHoras * ML_MARGEM) positivos++;
+      const av = avaliarCicloArquivado(c);
+      if (av.confiavel) confiaveis++;
+      if (av.positivo) positivos++;
     }
-    return { confiaveis, positivos, minimoNecessario: ML_MINIMO_POSITIVOS };
-  } catch { return { confiaveis: 0, positivos: 0, minimoNecessario: ML_MINIMO_POSITIVOS }; }
+    return { ...base, confiaveis, positivos, ultimoTreino: lerUltimoTreinoML() };
+  } catch { return base; }
+}
+
+/** Último resultado real de treino, se o coletor já rodou um — nunca fabricado. */
+function lerUltimoTreinoML() {
+  const p = path.join(ROOT, 'vigilancia', 'ml-treino.jsonl');
+  if (!fs.existsSync(p)) return null;
+  try {
+    const linhas = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean);
+    if (!linhas.length) return null;
+    return JSON.parse(linhas[linhas.length - 1]);
+  } catch { return null; }
 }
 
 /**

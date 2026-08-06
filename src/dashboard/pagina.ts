@@ -1845,14 +1845,28 @@ function renderColeta(d){
 
 // ---- ML ----
 function renderMl(d){
-  var m=d.ml||{confiaveis:0,positivos:0,minimoNecessario:30};
+  var m=d.ml||{confiaveis:0,positivos:0,minimoNecessario:30,ultimoTreino:null};
   renderIfChanged('ml',m,function(){
     var pct=Math.min(100,(m.positivos/Math.max(1,m.minimoNecessario))*100);
-    el('ml-box').innerHTML=
+    var html=
       '<div class="exprow"><span>Ciclos confiáveis</span><span>'+fmtNum(m.confiaveis)+'</span></div>'+
       '<div class="exprow"><span>Exemplos positivos</span><span>'+fmtNum(m.positivos)+' / '+fmtNum(m.minimoNecessario)+'</span></div>'+
       '<div class="progress-readiness"><i style="width:'+pct+'%"></i></div>'+
       '<div style="font-size:.7rem;color:var(--faint);margin-top:6px" class="num">'+(pct>=100?'pronto para treinar':pct.toFixed(0)+'% do mínimo para treinar')+'</div>';
+    var t=m.ultimoTreino;
+    if(!t){
+      html+='<div class="empty" style="margin-top:14px">o coletor treina sozinho assim que houver positivos suficientes — pipeline pronto, só esperando o dado real acumular</div>';
+    } else if(t.motivo){
+      html+='<div class="empty" style="margin-top:14px">último treino real ('+timeAgo(t.treinadoEm)+'): '+esc(t.motivo)+'</div>';
+    } else {
+      html+='<div class="kpis" style="grid-template-columns:repeat(3,1fr);margin-top:14px">'+
+        '<div class="kpi"><div class="lbl">AUC (holdout temporal)</div><div class="val num">'+(t.auc!=null?t.auc.toFixed(3):'—')+'</div></div>'+
+        '<div class="kpi"><div class="lbl">Precisão</div><div class="val num">'+(t.precisao!=null?fmtPct(t.precisao,0):'—')+'</div></div>'+
+        '<div class="kpi"><div class="lbl">Recall</div><div class="val num">'+(t.recall!=null?fmtPct(t.recall,0):'—')+'</div></div>'+
+        '</div>'+
+        '<p class="caption" style="margin-top:10px">Treinado '+timeAgo(t.treinadoEm)+' · '+fmtNum(t.amostraTreino)+' exemplos de treino ('+fmtNum(t.positivosTreino)+' positivos) · '+fmtNum(t.amostraTeste)+' de teste ('+fmtNum(t.positivosTeste)+' positivos). Corte por tempo, não aleatório — treina no passado, valida no futuro. Amostra ainda pequena: não é uma alegação de modelo pronto pra decidir nada sozinho.</p>';
+    }
+    el('ml-box').innerHTML=html;
   });
 }
 
