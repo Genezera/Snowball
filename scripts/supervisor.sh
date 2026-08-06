@@ -78,6 +78,14 @@ notificar_telegram() {
 
 echo "[$(date '+%H:%M:%S')] supervisor iniciado — checando a cada 30s" >> vigilancia/supervisor-watchdog.log
 
+# Primeira volta do laço, logo após `iniciar.cmd`: todo processo começa
+# "ausente" até subir pela primeira vez, e sem essa distinção isso batia na
+# mesma linha "CAIU" de uma queda de verdade -- inclusive disparando alarme
+# falso no Telegram a cada restart deliberado (achado rodando de verdade:
+# testar parar.cmd/iniciar.cmd em sequência gerava 8 alarmes de "caiu" sem
+# nada ter caído). primeira_passada some depois da primeira volta completa.
+primeira_passada=true
+
 while true; do
   for nome in "${!CMD[@]}"; do
     # o padrao de busca e o BASENAME do token que termina em .ts -- nao o
@@ -99,7 +107,9 @@ while true; do
     [ -z "$padrao" ] && padrao="${CMD[$nome]%% *}"
     n=$(vivo "$padrao")
     if [ "${n:-0}" -lt 1 ] 2>/dev/null; then
-      if em_manutencao; then
+      if [ "$primeira_passada" = true ]; then
+        echo "[$(date '+%H:%M:%S')] $nome subindo (primeira passada do watchdog)" >> vigilancia/supervisor-watchdog.log
+      elif em_manutencao; then
         echo "[$(date '+%H:%M:%S')] $nome religado — atualização de código aplicada" >> vigilancia/supervisor-watchdog.log
       else
         # CAUSA, nao so o fato. Ate aqui o watchdog registrava que o processo
@@ -120,5 +130,6 @@ while true; do
       disown
     fi
   done
+  primeira_passada=false
   sleep 30
 done
