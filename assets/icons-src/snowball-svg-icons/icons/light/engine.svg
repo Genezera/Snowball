@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="title-engine">
+<title id="title-engine">Snowball — Motor</title>
+<defs>
+  <linearGradient id="g-engine" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#8AF0FF"/><stop offset="0.5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/>
+  </linearGradient>
+</defs>
+<style>
+.primary{fill:none;stroke:#0B2A55;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.accent{fill:none;stroke:url(#g-engine);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.soft{fill:#E8F8FF;stroke:#0B2A55;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.accent-fill{fill:#18D8FF}
+.primary-fill{fill:#0B2A55}
+.primary-invert{fill:none;stroke:#FFFFFF;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<path class="soft" d="M32 9l17 10v26L32 55 15 45V19z"/>
+<path class="primary" d="M32 9l17 10v26L32 55 15 45V19z"/>
+<circle class="primary" cx="32" cy="32" r="10"/>
+<path class="accent" d="M25 34h5l3-7 4 11 3-4h4"/>
+<path class="accent" d="M32 14v5M18 23l5 3M46 23l-5 3M18 41l5-3M46 41l-5-3M32 45v5"/>
+</svg>

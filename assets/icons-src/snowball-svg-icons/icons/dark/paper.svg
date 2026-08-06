@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="title-paper">
+<title id="title-paper">Snowball — Paper trading</title>
+<defs>
+  <linearGradient id="g-paper" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#8AF0FF"/><stop offset="0.5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/>
+  </linearGradient>
+</defs>
+<style>
+.primary{fill:none;stroke:#EAFBFF;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.accent{fill:none;stroke:url(#g-paper);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.soft{fill:#102E55;stroke:#EAFBFF;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.accent-fill{fill:#18D8FF}
+.primary-fill{fill:#EAFBFF}
+.primary-invert{fill:none;stroke:#061C40;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<path class="soft" d="M17 9h22l10 10v36H17z"/>
+<path class="primary" d="M17 9h22l10 10v36H17zM39 9v10h10"/>
+<path class="accent" d="M24 29h18M24 36h14M24 43h18"/>
+<circle class="accent-fill" cx="46" cy="48" r="6"/>
+<path class="primary-invert" d="M44 48l2 2 4-5"/>
+</svg>

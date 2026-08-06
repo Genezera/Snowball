@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="title-research">
+<title id="title-research">Snowball — Pesquisa</title>
+<defs>
+  <linearGradient id="g-research" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#8AF0FF"/><stop offset="0.5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/>
+  </linearGradient>
+</defs>
+<style>
+.primary{fill:none;stroke:#EAFBFF;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.accent{fill:none;stroke:url(#g-research);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.soft{fill:#102E55;stroke:#EAFBFF;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.accent-fill{fill:#18D8FF}
+.primary-fill{fill:#EAFBFF}
+.primary-invert{fill:none;stroke:#061C40;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<path class="primary" d="M25 10h14M28 10v13L16 45c-2 5 1 9 7 9h18c6 0 9-4 7-9L36 23V10"/>
+<path class="soft" d="M20 42h24l4 8H16z"/>
+<path class="accent" d="M21 41h22M25 36l5-5 4 3 6-8"/>
+<circle class="accent-fill" cx="27" cy="46" r="2"/>
+<circle class="accent-fill" cx="37" cy="49" r="1.5"/>
+</svg>

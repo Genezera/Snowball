@@ -672,10 +672,13 @@ async function montarDados() {
       };
     });
 
-    // série de capital ao longo do tempo, montada a partir do diário
-    const curva: { ts: number; capital: number }[] = [];
+    // série de capital ao longo do tempo, montada a partir do diário.
+    // `evento` vai junto (não só o valor) pra o painel poder desenhar
+    // marcador de abertura/fechamento/funding em cima da curva, sem precisar
+    // cruzar com o diário separado por timestamp aproximado.
+    const curva: { ts: number; capital: number; evento?: string }[] = [];
     for (const e of diario) {
-      if (e.capital != null) curva.push({ ts: e.ts, capital: e.capital });
+      if (e.capital != null) curva.push({ ts: e.ts, capital: e.capital, evento: e.evento });
     }
 
     // agrupa pagamentos por dia, para o gráfico de barras

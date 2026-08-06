@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="title-processes">
+<title id="title-processes">Snowball — Processos</title>
+<defs>
+  <linearGradient id="g-processes" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#8AF0FF"/><stop offset="0.5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/>
+  </linearGradient>
+</defs>
+<style>
+.primary{fill:none;stroke:#EAFBFF;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.accent{fill:none;stroke:url(#g-processes);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.soft{fill:#102E55;stroke:#EAFBFF;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.accent-fill{fill:#18D8FF}
+.primary-fill{fill:#EAFBFF}
+.primary-invert{fill:none;stroke:#061C40;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<rect class="soft" x="8" y="12" width="14" height="12" rx="3"/>
+<rect class="soft" x="25" y="26" width="14" height="12" rx="3"/>
+<rect class="soft" x="42" y="40" width="14" height="12" rx="3"/>
+<path class="primary" d="M22 18h10v8M39 32h10v8"/>
+<path class="accent" d="M29 22l3 4 4-4M46 36l3 4 4-4"/>
+<circle class="accent-fill" cx="15" cy="18" r="2"/>
+<circle class="accent-fill" cx="32" cy="32" r="2"/>
+<circle class="accent-fill" cx="49" cy="46" r="2"/>
+</svg>

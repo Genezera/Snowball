@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="title-alert">
+<title id="title-alert">Snowball — Alerta</title>
+<defs>
+  <linearGradient id="g-alert" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#8AF0FF"/><stop offset="0.5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/>
+  </linearGradient>
+</defs>
+<style>
+.primary{fill:none;stroke:#EAFBFF;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.accent{fill:none;stroke:url(#g-alert);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.soft{fill:#102E55;stroke:#EAFBFF;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.accent-fill{fill:#18D8FF}
+.primary-fill{fill:#EAFBFF}
+.primary-invert{fill:none;stroke:#061C40;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<path class="soft" d="M19 43h26l-3-5V28a10 10 0 00-20 0v10z"/>
+<path class="primary" d="M19 43h26l-3-5V28a10 10 0 00-20 0v10zM27 48a5 5 0 0010 0"/>
+<path class="accent" d="M32 10v5M14 22l5 3M50 22l-5 3"/>
+<circle class="accent-fill" cx="45" cy="17" r="4"/>
+</svg>

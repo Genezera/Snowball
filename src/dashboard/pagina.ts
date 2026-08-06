@@ -324,6 +324,12 @@ th.sortable .arrow{opacity:.5;margin-left:3px}
 .strat-badge.descartada{background:rgba(255,92,122,.14);color:var(--danger)}
 .strat-badge.pesquisa{background:rgba(139,108,242,.14);color:var(--violet)}
 
+/* ---- heatmap ---- */
+.heatmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+.heat-cell{aspect-ratio:1;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.62rem;font-weight:800;color:var(--white);border:1px solid var(--border);cursor:default;transition:transform var(--dur)}
+.heat-cell:hover{transform:scale(1.06);z-index:2;border-color:var(--border-hi)}
+.heat-cell .hv{font-family:var(--mono);font-size:.72rem}
+
 /* ---- visualizador de logs ---- */
 .log-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .log-view{background:#030710;border:1px solid var(--border);border-radius:12px;padding:12px 14px;max-height:520px;overflow-y:auto;font-family:var(--mono);font-size:.72rem;line-height:1.65}
@@ -338,6 +344,23 @@ th.sortable .arrow{opacity:.5;margin-left:3px}
 
 footer.foot{text-align:center;color:var(--faint);font-size:.7rem;padding:30px 0 0;font-family:var(--mono)}
 code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-size:.9em}
+
+/* ---- paleta de comandos (Ctrl+K) ---- */
+.cmdk-overlay{position:fixed;inset:0;z-index:100;background:rgba(5,11,24,.6);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
+.cmdk-overlay.open{display:flex}
+.cmdk-box{width:min(560px,92vw);background:var(--surface-strong);backdrop-filter:blur(20px);border:1px solid var(--border-hi);border-radius:var(--radius);box-shadow:0 24px 60px rgba(0,0,0,.5);overflow:hidden;animation:cmdkIn .18s var(--ease) both}
+@keyframes cmdkIn{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.cmdk-input-row{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);color:var(--dim)}
+.cmdk-input-row input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:.92rem;font-family:var(--sans)}
+.cmdk-esc{font-size:.62rem;color:var(--faint);border:1px solid var(--border);border-radius:5px;padding:2px 6px;font-family:var(--mono)}
+.cmdk-results{max-height:50vh;overflow-y:auto;padding:6px}
+.cmdk-empty{padding:24px;text-align:center;color:var(--faint);font-size:.8rem}
+.cmdk-group{font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);font-weight:800;padding:10px 12px 4px}
+.cmdk-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;font-size:.82rem}
+.cmdk-item:hover,.cmdk-item.sel{background:rgba(23,217,255,.1)}
+.cmdk-item .cmdk-ic{flex:none;width:18px;height:18px;color:var(--faint)}
+.cmdk-item .cmdk-lbl{flex:1}
+.cmdk-item .cmdk-sub{color:var(--faint);font-size:.7rem;font-family:var(--mono)}
 
 @media(max-width:860px){
   .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform var(--dur) var(--ease)}
@@ -490,6 +513,12 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
           </tr></thead>
           <tbody id="scan-body"></tbody>
         </table></div>
+      </section>
+
+      <section class="card">
+        <h2>Heatmap de spread por ativo <span class="note">mesmo dado da tabela acima, em outra visão</span></h2>
+        <p class="caption">Cada célula é um candidato real da varredura — quanto mais intenso o azul, maior o spread. Passe o mouse pra ver os detalhes.</p>
+        <div id="heatmap-spread"></div>
       </section>
     </div>
 
@@ -644,6 +673,17 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
 
     <footer class="foot">SNOWBALL — nenhuma ordem enviada além do paper trading declarado — atualizado <span id="foot-ts">—</span></footer>
     </div>
+  </div>
+</div>
+
+<div class="cmdk-overlay" id="cmdk-overlay">
+  <div class="cmdk-box" role="dialog" aria-modal="true" aria-label="Paleta de comandos">
+    <div class="cmdk-input-row">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+      <input type="text" id="cmdk-input" placeholder="Buscar ativos, exchanges, processos, páginas..." autocomplete="off">
+      <span class="cmdk-esc">esc</span>
+    </div>
+    <div class="cmdk-results" id="cmdk-results"></div>
   </div>
 </div>
 
@@ -1031,6 +1071,87 @@ var PAGE_INFO={
   });
 })();
 
+// ---- paleta de comandos (Ctrl+K) — busca só no dado real já carregado ----
+(function(){
+  var overlay=el('cmdk-overlay'), input=el('cmdk-input'), results=el('cmdk-results');
+  var selecionado=-1, itensAtuais=[];
+
+  function construirIndice(){
+    var out=[];
+    Object.keys(PAGE_INFO).forEach(function(k){
+      out.push({tipo:'página',icone:ICONE_PROCESSO[PAGE_INFO[k].t]||'sb-'+({visao:'dashboard',operacoes:'neutrality',oportunidades:'opportunities',exchanges:'exchanges',risco:'risk',processos:'processes',pesquisa:'research',historico:'history',logs:'logs',sistema:'settings'}[k]||'dashboard'),label:PAGE_INFO[k].t,sub:PAGE_INFO[k].s,acao:function(){irPara(k)}});
+    });
+    var d=ULTIMO_DADO||{};
+    (d.processos||[]).forEach(function(p){
+      out.push({tipo:'processo',icone:ICONE_PROCESSO[p.nome]||'sb-processes',label:p.nome,sub:p.vivo?'vivo':'não detectado',acao:function(){irPara('processos')}});
+    });
+    (d.contas||[]).forEach(function(c){
+      out.push({tipo:'exchange',icone:'sb-exchanges',label:c.exchange,sub:fmtUsd(c.saldo),acao:function(){irPara('exchanges')}});
+    });
+    var vistos={};
+    (d.scan||[]).forEach(function(o){
+      var nome=(o.symbol||'').replace('/USDT:USDT','');
+      if(!nome||vistos[nome])return; vistos[nome]=1;
+      out.push({tipo:'ativo',icone:'sb-opportunities',label:nome,sub:o.exchangeShort+' → '+o.exchangeLong,acao:function(){
+        irPara('oportunidades');
+        setTimeout(function(){var b=el('scan-busca'); if(b){b.value=nome;b.dispatchEvent(new Event('input'))}},60);
+      }});
+    });
+    return out;
+  }
+  function irPara(alvo){
+    var item=document.querySelector('.sb-item[data-tab="'+alvo+'"]');
+    if(item)item.click();
+    fechar();
+  }
+  function pintar(lista){
+    itensAtuais=lista; selecionado=lista.length?0:-1;
+    if(!lista.length){results.innerHTML='<div class="cmdk-empty">nada encontrado</div>';return}
+    var porTipo={};
+    lista.forEach(function(it){(porTipo[it.tipo]=porTipo[it.tipo]||[]).push(it)});
+    var html='';
+    Object.keys(porTipo).forEach(function(tipo){
+      html+='<div class="cmdk-group">'+esc(tipo)+'</div>';
+      porTipo[tipo].forEach(function(it){
+        var idx=lista.indexOf(it);
+        html+='<div class="cmdk-item'+(idx===selecionado?' sel':'')+'" data-idx="'+idx+'">'+
+          '<svg class="cmdk-ic sb-icon sb-icon--sm"><use href="#'+it.icone+'"/></svg>'+
+          '<span class="cmdk-lbl">'+esc(it.label)+'</span><span class="cmdk-sub">'+esc(it.sub||'')+'</span></div>';
+      });
+    });
+    results.innerHTML=html;
+  }
+  function filtrar(){
+    var termo=input.value.toLowerCase();
+    var base=construirIndice();
+    if(!termo){pintar(base.slice(0,12));return}
+    pintar(base.filter(function(it){return (it.label+' '+it.sub).toLowerCase().indexOf(termo)!==-1}).slice(0,30));
+  }
+  function abrir(){
+    overlay.classList.add('open');
+    input.value=''; filtrar();
+    setTimeout(function(){input.focus()},10);
+  }
+  function fechar(){overlay.classList.remove('open')}
+  document.addEventListener('keydown',function(ev){
+    if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='k'){ev.preventDefault();abrir();return}
+    if(ev.key==='Escape'&&overlay.classList.contains('open')){fechar();return}
+    if(!overlay.classList.contains('open'))return;
+    if(ev.key==='ArrowDown'){ev.preventDefault();selecionado=Math.min(itensAtuais.length-1,selecionado+1);pintar(itensAtuais)}
+    else if(ev.key==='ArrowUp'){ev.preventDefault();selecionado=Math.max(0,selecionado-1);pintar(itensAtuais)}
+    else if(ev.key==='Enter'){ev.preventDefault();var it=itensAtuais[selecionado];if(it)it.acao()}
+  });
+  input.addEventListener('input',filtrar);
+  results.addEventListener('click',function(ev){
+    var alvo=ev.target.closest('.cmdk-item');
+    if(!alvo)return;
+    var it=itensAtuais[Number(alvo.getAttribute('data-idx'))];
+    if(it)it.acao();
+  });
+  overlay.addEventListener('click',function(ev){if(ev.target===overlay)fechar()});
+  el('btn-cmdk').addEventListener('click',abrir);
+})();
+
 // ---- pausar atualizações visuais / tela cheia ----
 var PAUSADO=false;
 (function(){
@@ -1150,7 +1271,7 @@ function desenharCurva(svgId, pts, corStroke){
   area.push(line.join(' ').replace('M','L'));
   area.push('L'+X(n-1).toFixed(1)+','+(H-pad)+' Z');
   var grad1='grad-'+svgId, grad2='gradfill-'+svgId;
-  svg.innerHTML=
+  var out=
     '<defs><linearGradient id="'+grad1+'" x1="0" y1="0" x2="1" y2="0">'+
     '<stop offset="0" stop-color="'+corStroke+'" stop-opacity=".55"/><stop offset="1" stop-color="'+corStroke+'"/>'+
     '</linearGradient><linearGradient id="'+grad2+'" x1="0" y1="0" x2="0" y2="1">'+
@@ -1158,6 +1279,19 @@ function desenharCurva(svgId, pts, corStroke){
     '</linearGradient></defs>'+
     '<path d="'+area.join(' ')+'" fill="url(#'+grad2+')"/>'+
     '<path d="'+line.join(' ')+'" fill="none" stroke="url(#'+grad1+')" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
+  // marcadores de evento real (abriu/fechou/funding) — direto do diário, não
+  // decoração: cada bolinha é um evento que realmente aconteceu naquele ponto
+  var corMarcador={abre:'#17d9ff',fecha:'#ff5c7a',funding:'#168cff'};
+  for(var m=0;m<n;m++){
+    var ev=pts[m].evento;
+    var cor=corMarcador[ev];
+    if(!cor)continue;
+    var mx=X(m).toFixed(1), my=Y(pts[m].capital).toFixed(1);
+    out+='<circle cx="'+mx+'" cy="'+my+'" r="3.4" fill="'+cor+'" stroke="'+corStroke+'" stroke-opacity=".25" stroke-width="4"><title>'+
+      esc(ev==='abre'?'Posição aberta':ev==='fecha'?'Posição fechada':'Funding recebido')+' · '+new Date(pts[m].ts).toLocaleString('pt-BR')+
+      ' · '+fmtUsd(pts[m].capital)+'</title></circle>';
+  }
+  svg.innerHTML=out;
 }
 function renderCurva(d){
   var pts=(d.curva||[]).filter(function(p){return isFinite(p.capital)});
@@ -1589,6 +1723,24 @@ function renderScan(d){
   el('scan-tag').textContent=(d.vigilancia?d.vigilancia.fonte:'') + (d.idadeVarreduraMin!=null&&d.idadeVarreduraMin>=0?' · dado de '+d.idadeVarreduraMin+' min':'');
   window._scanBruto=scanBruto;
   aplicarFiltroScan();
+  renderHeatmapSpread(scanBruto);
+}
+// heatmap: mesmo dado do scan, cor de fundo mapeada linearmente ao spread —
+// nenhum número novo, só outra forma de olhar pro mesmo dado real
+function renderHeatmapSpread(scan){
+  var host=el('heatmap-spread');
+  if(!host)return;
+  renderIfChanged('heatmap',scan,function(){
+    if(!scan.length){host.innerHTML='<div class="empty">sem candidatos pra desenhar ainda</div>';return}
+    var maxSpread=Math.max.apply(null,scan.map(function(o){return o.spread||0}).concat([0.0001]));
+    host.innerHTML='<div class="heatmap">'+scan.map(function(o){
+      var frac=Math.max(0.08,(o.spread||0)/maxSpread);
+      var alpha=(0.15+frac*0.75).toFixed(2);
+      var nome=(o.symbol||'').replace('/USDT:USDT','');
+      return '<div class="heat-cell" style="background:rgba(23,217,255,'+alpha+')" title="'+esc(nome)+' · '+esc(o.exchangeShort)+' → '+esc(o.exchangeLong)+' · spread '+fmtPct(o.spread,3)+' · '+(o.passaPortao?'passa o portão':'barrado')+'">'+
+        '<span>'+esc(nome)+'</span><span class="hv">'+fmtPct(o.spread,2)+'</span></div>';
+    }).join('')+'</div>';
+  });
 }
 function aplicarFiltroScan(){
   var scan=(window._scanBruto||[]).slice();
@@ -2024,7 +2176,9 @@ function renderStatus(d){
 }
 
 // ---- render mestre ----
+var ULTIMO_DADO=null;
 function render(d){
+  ULTIMO_DADO=d;
   renderTicker(d);
   renderKpis(d);
   renderCurva(d);

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="title-pnl">
+<title id="title-pnl">Snowball — PnL</title>
+<defs>
+  <linearGradient id="g-pnl" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#8AF0FF"/><stop offset="0.5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/>
+  </linearGradient>
+</defs>
+<style>
+.primary{fill:none;stroke:#EAFBFF;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.accent{fill:none;stroke:url(#g-pnl);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.soft{fill:#102E55;stroke:#EAFBFF;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.accent-fill{fill:#18D8FF}
+.primary-fill{fill:#EAFBFF}
+.primary-invert{fill:none;stroke:#061C40;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<path class="primary" d="M12 50V14M12 50h42"/>
+<path class="soft" d="M17 45l9-10 8 5 13-18 7 5v23H17z"/>
+<path class="accent" d="M17 45l9-10 8 5 13-18 7 5"/>
+<circle class="accent-fill" cx="47" cy="22" r="3"/>
+<path class="primary" d="M47 12v5M47 27v5M37 22h5M52 22h5"/>
+</svg>
