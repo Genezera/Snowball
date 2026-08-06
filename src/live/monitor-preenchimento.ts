@@ -82,8 +82,20 @@ const pool: Record<string, any> = {};
 const marketsCarregados = new Set<string>();
 
 /** Timeout defensivo — a gate, em especial, já travou `loadMarkets` por mais
- * de 60s numa passada. Uma exchange lenta não pode bloquear as outras. */
+ * de 60s numa passada. Uma exchange lenta não pode bloquear as outras.
+ *
+ * `Promise.race` não cancela a promessa perdedora — ela continua rodando em
+ * segundo plano. Se `p` rejeitar DEPOIS que o timeout já resolveu a corrida,
+ * essa rejeição fica sem ninguém escutando (`unhandledRejection`), e por
+ * padrão o Node mata o processo inteiro nisso. Foi exatamente o que derrubou
+ * o monitor: a bybit demorava mais que o timeout e, quando finalmente
+ * respondia com erro, a exceção não tinha mais handler. O `.catch` vazio
+ * aqui existe só pra isso — descartar com segurança um resultado que já não
+ * importa mais, não pra tratar o erro de verdade (isso já acontece em quem
+ * chama, via o valor de `fallback`).
+ */
 async function comTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  p.catch(() => {});
   return Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
 }
 
