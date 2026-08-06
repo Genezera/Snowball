@@ -40,7 +40,7 @@ interface Slot {
   lado: Lado;
   ordem?: OrdemSimulada;
   ticks: TickPreco[];
-  aguardandoReacao?: { precoPreenchimento: number; tsPreenchimento: number; ticksPos: TickPreco[] };
+  aguardandoReacao?: { precoPreenchimento: number; tsPreenchimento: number; msParaEncher: number; ticksPos: TickPreco[] };
 }
 
 export interface RegistroPreenchimento {
@@ -183,6 +183,7 @@ export async function ciclo(estado: Estado): Promise<void> {
         registrar({
           ts: s.aguardandoReacao.tsPreenchimento, chave: s.chave, exchange: s.exchange, symbol: s.symbol,
           lado: s.lado, preco: s.aguardandoReacao.precoPreenchimento, preenchido: true,
+          msParaEncher: s.aguardandoReacao.msParaEncher,
           retornoPosPct: reacao?.retornoPct, favoravel: reacao?.favoravel,
         });
         s.aguardandoReacao = undefined;
@@ -201,7 +202,7 @@ export async function ciclo(estado: Estado): Promise<void> {
     s.ticks.push({ ts: agora, last });
     const r = avaliarPreenchimento(s.ordem, s.ticks, JANELA_MAX_MS);
     if (r.preenchido) {
-      s.aguardandoReacao = { precoPreenchimento: s.ordem.preco, tsPreenchimento: r.ts!, ticksPos: [] };
+      s.aguardandoReacao = { precoPreenchimento: s.ordem.preco, tsPreenchimento: r.ts!, msParaEncher: r.msParaEncher!, ticksPos: [] };
       s.ordem = undefined;
     } else if (agora - s.ordem.abertaEm >= JANELA_MAX_MS) {
       registrar({
