@@ -64,7 +64,39 @@ export const PAGINA = `<!doctype html>
   --radius:16px; --radius-sm:10px;
   --sidebar-w:230px; --sidebar-w-collapsed:64px;
   --dur:.22s; --ease:cubic-bezier(.2,.7,.2,1);
+  /* tokens do kit de ícones Snowball (snowball-svg-icons) — tema escuro */
+  --sb-primary:#EAFBFF; --sb-soft:#102E55; --sb-accent:#18D8FF; --sb-invert:#061C40;
 }
+:root[data-theme="light"]{
+  --bg-main:#eef5fb; --bg-secondary:#e4eff8;
+  --surface:rgba(255,255,255,.78); --surface-strong:rgba(255,255,255,.94);
+  --panel:#ffffff; --panel-hi:#f2f8fc;
+  --border:rgba(11,42,85,.11); --border-hi:rgba(11,42,85,.24);
+  --cyan:#0d8fb8; --cyan-glow:rgba(13,143,184,.22);
+  --ice:#0891b2; --blue:#0b6fd6; --navy:#0b2a55;
+  --violet:#6e4fd6; --violet-glow:rgba(110,79,214,.22);
+  --white:#0b2a55; --text:#0b2a55; --dim:#4f6a8c; --faint:#7c93b0;
+  --positive:#0f9d67; --positive-glow:rgba(15,157,103,.22);
+  --warning:#a8710a; --warning-glow:rgba(168,113,10,.22);
+  --danger:#c81b40; --danger-glow:rgba(200,27,64,.22);
+  /* tokens do kit de ícones — tema claro */
+  --sb-primary:#0B2A55; --sb-soft:#E8F8FF; --sb-accent:#0d8fb8; --sb-invert:#fff;
+}
+:root[data-theme="light"] body{
+  background:
+    radial-gradient(1100px 650px at 12% -8%, rgba(13,143,184,.08), transparent 58%),
+    radial-gradient(950px 760px at 100% 4%, rgba(110,79,214,.07), transparent 55%),
+    radial-gradient(1px 1px at 20% 30%, rgba(11,42,85,.08), transparent),
+    var(--bg-main);
+}
+:root[data-theme="light"] body::before{
+  background-image:linear-gradient(rgba(11,42,85,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(11,42,85,.035) 1px,transparent 1px);
+}
+/* tamanhos do kit de ícones Snowball */
+.sb-icon{width:1.5rem;height:1.5rem;display:inline-block;vertical-align:middle;overflow:visible}
+.sb-icon--sm{width:1rem;height:1rem}.sb-icon--md{width:1.5rem;height:1.5rem}.sb-icon--lg{width:2rem;height:2rem}.sb-icon--xl{width:3rem;height:3rem}
+.sb-icon--live .sb-accent-fill{animation:sb-pulse 1.8s ease-in-out infinite;transform-origin:center}
+@keyframes sb-pulse{0%,100%{opacity:.72;transform:scale(.9)}50%{opacity:1;transform:scale(1.14)}}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
@@ -210,6 +242,7 @@ section{margin-bottom:18px}
 .proc{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;transition:border-color var(--dur)}
 .proc.vivo{border-color:rgba(23,217,255,.26)}
 .proc.morto{border-color:rgba(255,92,122,.4)}
+.proc.morto .proc-ic{--sb-primary:var(--danger);--sb-accent:var(--danger);opacity:.55}
 .proc .row{display:flex;align-items:center;gap:8px}
 .proc .nome{font-weight:700;font-size:.84rem}
 .proc .info{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:6px}
@@ -325,16 +358,16 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       <div class="mark"></div>
     </div>
     <nav class="sb-nav" id="sb-nav">
-      <div class="sb-item active" data-tab="visao" data-tip="Visão geral" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-grid"/></svg><span class="sb-label">Visão geral</span></div>
-      <div class="sb-item" data-tab="operacoes" data-tip="Operações" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-scale"/></svg><span class="sb-label">Operações</span></div>
-      <div class="sb-item" data-tab="oportunidades" data-tip="Oportunidades" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-radar"/></svg><span class="sb-label">Oportunidades</span></div>
-      <div class="sb-item" data-tab="exchanges" data-tip="Exchanges" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-nodes"/></svg><span class="sb-label">Exchanges</span></div>
-      <div class="sb-item" data-tab="risco" data-tip="Risco" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-shield"/></svg><span class="sb-label">Risco</span></div>
-      <div class="sb-item" data-tab="processos" data-tip="Processos" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-cpu"/></svg><span class="sb-label">Processos</span></div>
-      <div class="sb-item" data-tab="pesquisa" data-tip="Pesquisa" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-flask"/></svg><span class="sb-label">Pesquisa</span></div>
-      <div class="sb-item" data-tab="historico" data-tip="Histórico" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-clock"/></svg><span class="sb-label">Histórico</span></div>
-      <div class="sb-item" data-tab="logs" data-tip="Logs" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-terminal"/></svg><span class="sb-label">Logs</span></div>
-      <div class="sb-item" data-tab="sistema" data-tip="Sistema" tabindex="0"><svg class="sb-ic" viewBox="0 0 24 24" fill="none"><use href="#ic-cog"/></svg><span class="sb-label">Sistema</span></div>
+      <div class="sb-item active" data-tab="visao" data-tip="Visão geral" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-dashboard"/></svg><span class="sb-label">Visão geral</span></div>
+      <div class="sb-item" data-tab="operacoes" data-tip="Operações" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-neutrality"/></svg><span class="sb-label">Operações</span></div>
+      <div class="sb-item" data-tab="oportunidades" data-tip="Oportunidades" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-opportunities"/></svg><span class="sb-label">Oportunidades</span></div>
+      <div class="sb-item" data-tab="exchanges" data-tip="Exchanges" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-exchanges"/></svg><span class="sb-label">Exchanges</span></div>
+      <div class="sb-item" data-tab="risco" data-tip="Risco" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-risk"/></svg><span class="sb-label">Risco</span></div>
+      <div class="sb-item" data-tab="processos" data-tip="Processos" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-processes"/></svg><span class="sb-label">Processos</span></div>
+      <div class="sb-item" data-tab="pesquisa" data-tip="Pesquisa" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-research"/></svg><span class="sb-label">Pesquisa</span></div>
+      <div class="sb-item" data-tab="historico" data-tip="Histórico" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-history"/></svg><span class="sb-label">Histórico</span></div>
+      <div class="sb-item" data-tab="logs" data-tip="Logs" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-logs"/></svg><span class="sb-label">Logs</span></div>
+      <div class="sb-item" data-tab="sistema" data-tip="Sistema" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-settings"/></svg><span class="sb-label">Sistema</span></div>
     </nav>
     <div class="sb-foot">
       <button class="sb-toggle" id="sb-toggle-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg><span class="sb-label">Recolher</span></button>
@@ -345,10 +378,15 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
     <div class="topbar"><div class="topbar-in">
       <button class="sb-open-btn" id="sb-open-btn" aria-label="Abrir menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
       <div class="page-title" id="page-title">Visão geral<span class="sub" id="page-sub">centro de operações — dois motores, papel</span></div>
-      <span class="pill paper">PAPER</span>
+      <span class="pill paper"><svg class="sb-icon sb-icon--sm"><use href="#sb-paper"/></svg>PAPER</span>
       <span class="pill"><span class="led" id="led-vig"></span><span id="txt-vig">carregando</span></span>
       <span class="pill"><span class="led" id="led-stream"></span><span id="txt-stream">carregando</span></span>
       <span class="pill" id="clock">--:--:-- <span class="utc">· UTC --:--</span></span>
+      <button class="iconbtn" id="btn-cmdk" title="Paleta de comandos (Ctrl+K)" aria-label="Abrir paleta de comandos"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg></button>
+      <button class="iconbtn" id="btn-theme" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
+        <svg id="ic-theme-dark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg id="ic-theme-light" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg>
+      </button>
       <button class="iconbtn" id="btn-pause" title="Pausar atualizações visuais" aria-label="Pausar atualizações visuais"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
       <button class="iconbtn" id="btn-fullscreen" title="Tela cheia" aria-label="Tela cheia"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3"/></svg></button>
     </div></div>
@@ -610,19 +648,278 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-<defs>
-<symbol id="ic-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8"/></symbol>
-<symbol id="ic-scale" viewBox="0 0 24 24"><path d="M12 3v18M5 7l-3 6a3 3 0 006 0l-3-6zM19 7l-3 6a3 3 0 006 0l-3-6zM5 7h14M8 21h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="ic-radar" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><path d="M12 12L19 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-<symbol id="ic-nodes" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2.4" stroke="currentColor" stroke-width="1.8"/><circle cx="19" cy="6" r="2.4" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="18" r="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M7 7l8-1M6.5 8l5 8M17.5 8l-4.5 8" stroke="currentColor" stroke-width="1.6"/></symbol>
-<symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="ic-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
-<symbol id="ic-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9a2 2 0 001.7 3h11.6a2 2 0 001.7-3L14 9V3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 15h8" stroke="currentColor" stroke-width="1.6"/></symbol>
-<symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l4 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="ic-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 9l3 3-3 3M13 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-<symbol id="ic-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-<symbol id="ic-snow" viewBox="0 0 24 24"><path d="M12 2v20M4.2 6l15.6 12M19.8 6L4.2 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/></symbol>
-</defs>
+<style>
+.sb-primary{fill:none;stroke:var(--sb-primary,#0B2A55);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.sb-accent{fill:none;stroke:var(--sb-accent,#18D8FF);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.sb-soft{fill:var(--sb-soft,#E8F8FF);stroke:var(--sb-primary,#0B2A55);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sb-accent-fill{fill:var(--sb-accent,#18D8FF)}
+.sb-primary-fill{fill:var(--sb-primary,#0B2A55)}
+.sb-invert{fill:none;stroke:var(--sb-invert,#fff);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<symbol id="sb-dashboard" viewBox="0 0 64 64">
+<title>Visão geral</title>
+<linearGradient id="sb-grad-dashboard" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<rect class="sb-soft" x="9" y="10" width="19" height="17" rx="4"/>
+<rect class="sb-soft" x="36" y="10" width="19" height="10" rx="4"/>
+<rect class="sb-soft" x="36" y="28" width="19" height="26" rx="4"/>
+<rect class="sb-soft" x="9" y="35" width="19" height="19" rx="4"/>
+<path class="sb-accent" d="M13 22l4-4 4 2 4-6"/>
+<path class="sb-primary" d="M40 15h11M13 41h11M13 47h7"/>
+<path class="sb-accent" d="M41 47c4-10 7-10 11-14"/>
+</symbol><symbol id="sb-capital" viewBox="0 0 64 64">
+<title>Capital</title>
+<linearGradient id="sb-grad-capital" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="31" cy="34" r="14"/>
+<path class="sb-primary" d="M20 35c3 8 13 12 21 6 7-6 4-18-5-21-7-2-14 1-17 7"/>
+<path class="sb-accent" d="M17 26c2-8 9-14 18-14 6 0 11 2 15 7"/>
+<path class="sb-accent" d="M46 13l5 7-8 2"/>
+<path class="sb-primary" d="M23 47h26"/>
+<path class="sb-accent" d="M39 39v7M45 34v12M51 27v19"/>
+</symbol><symbol id="sb-opportunities" viewBox="0 0 64 64">
+<title>Oportunidades</title>
+<linearGradient id="sb-grad-opportunities" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-primary" cx="30" cy="32" r="20"/>
+<circle class="sb-soft" cx="30" cy="32" r="12"/>
+<circle class="sb-accent-fill" cx="38" cy="24" r="3"/>
+<path class="sb-accent" d="M30 32l14-13"/>
+<path class="sb-primary" d="M30 12v5M30 47v5M10 32h5M45 32h5"/>
+<path class="sb-accent" d="M47 45l5 5M52 45l-5 5"/>
+</symbol><symbol id="sb-positions" viewBox="0 0 64 64">
+<title>Posições</title>
+<linearGradient id="sb-grad-positions" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="32" cy="32" r="8"/>
+<path class="sb-accent" d="M14 24c5-9 17-14 28-9 4 2 7 4 9 8"/>
+<path class="sb-accent" d="M49 16l3 8-8 1"/>
+<path class="sb-primary" d="M50 40c-5 9-17 14-28 9-4-2-7-4-9-8"/>
+<path class="sb-primary" d="M15 48l-3-8 8-1"/>
+<path class="sb-accent" d="M29 32h6M32 29v6"/>
+</symbol><symbol id="sb-funding" viewBox="0 0 64 64">
+<title>Funding</title>
+<linearGradient id="sb-grad-funding" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="32" cy="32" r="13"/>
+<path class="sb-accent" d="M18 20c4-5 9-8 15-8 8 0 15 4 19 11"/>
+<path class="sb-accent" d="M48 14l4 9-9 1"/>
+<path class="sb-primary" d="M46 45c-4 5-9 7-15 7-8 0-15-4-19-11"/>
+<path class="sb-primary" d="M16 50l-4-9 9-1"/>
+<path class="sb-accent" d="M27 29c0-3 2-5 6-5 3 0 5 1 6 3M27 36c1 2 3 4 6 4 4 0 6-2 6-5 0-7-12-2-12-9"/>
+</symbol><symbol id="sb-pnl" viewBox="0 0 64 64">
+<title>PnL</title>
+<linearGradient id="sb-grad-pnl" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-primary" d="M12 50V14M12 50h42"/>
+<path class="sb-soft" d="M17 45l9-10 8 5 13-18 7 5v23H17z"/>
+<path class="sb-accent" d="M17 45l9-10 8 5 13-18 7 5"/>
+<circle class="sb-accent-fill" cx="47" cy="22" r="3"/>
+<path class="sb-primary" d="M47 12v5M47 27v5M37 22h5M52 22h5"/>
+</symbol><symbol id="sb-costs" viewBox="0 0 64 64">
+<title>Custos</title>
+<linearGradient id="sb-grad-costs" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="29" cy="31" r="14"/>
+<path class="sb-primary" d="M17 31a14 14 0 1023-10"/>
+<path class="sb-accent" d="M16 24c2-6 8-10 14-10 5 0 10 2 13 6"/>
+<path class="sb-accent" d="M39 14l5 6-7 3"/>
+<path class="sb-primary" d="M25 27h9M25 34h9"/>
+<path class="sb-accent" d="M45 44h11"/>
+</symbol><symbol id="sb-exchanges" viewBox="0 0 64 64">
+<title>Exchanges</title>
+<linearGradient id="sb-grad-exchanges" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="18" cy="23" r="7"/>
+<circle class="sb-soft" cx="46" cy="23" r="7"/>
+<circle class="sb-soft" cx="32" cy="47" r="7"/>
+<path class="sb-primary" d="M25 23h14M22 29l7 12M42 29l-7 12"/>
+<path class="sb-accent" d="M13 20l5-3 5 3M41 20l5-3 5 3M27 45l5-3 5 3"/>
+<circle class="sb-accent-fill" cx="32" cy="27" r="2"/>
+</symbol><symbol id="sb-exchange-health" viewBox="0 0 64 64">
+<title>Saúde da exchange</title>
+<linearGradient id="sb-grad-exchange-health" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<rect class="sb-soft" x="14" y="12" width="36" height="40" rx="7"/>
+<path class="sb-primary" d="M21 21h22M21 29h22M21 37h7M39 37h4"/>
+<circle class="sb-accent-fill" cx="18" cy="21" r="1.7"/>
+<circle class="sb-accent-fill" cx="18" cy="29" r="1.7"/>
+<path class="sb-accent" d="M20 45h7l3-6 5 12 4-6h7"/>
+</symbol><symbol id="sb-risk" viewBox="0 0 64 64">
+<title>Risco</title>
+<linearGradient id="sb-grad-risk" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-soft" d="M32 9l20 8v13c0 12-8 21-20 25-12-4-20-13-20-25V17z"/>
+<path class="sb-primary" d="M32 9l20 8v13c0 12-8 21-20 25-12-4-20-13-20-25V17z"/>
+<path class="sb-accent" d="M23 35l6 6 13-16"/>
+<path class="sb-primary" d="M32 17v5M32 47v4"/>
+</symbol><symbol id="sb-liquidation" viewBox="0 0 64 64">
+<title>Liquidação</title>
+<linearGradient id="sb-grad-liquidation" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-primary" d="M12 42a22 22 0 1140 0"/>
+<path class="sb-accent" d="M18 39a16 16 0 0128 0"/>
+<path class="sb-primary" d="M32 32l12-10"/>
+<circle class="sb-accent-fill" cx="32" cy="32" r="3"/>
+<path class="sb-primary" d="M17 47h30"/>
+<path class="sb-accent" d="M32 15v5M19 21l4 4M45 21l-4 4"/>
+</symbol><symbol id="sb-neutrality" viewBox="0 0 64 64">
+<title>Neutralidade</title>
+<linearGradient id="sb-grad-neutrality" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-primary" d="M32 12v38M19 50h26M14 24h36"/>
+<path class="sb-accent" d="M17 24l-7 12h14zM47 24l-7 12h14z"/>
+<path class="sb-primary" d="M14 24l4-7M50 24l-4-7"/>
+<circle class="sb-soft" cx="32" cy="19" r="5"/>
+<path class="sb-accent" d="M29 19h6"/>
+</symbol><symbol id="sb-vigilance" viewBox="0 0 64 64">
+<title>Vigilância</title>
+<linearGradient id="sb-grad-vigilance" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-primary" cx="32" cy="32" r="22"/>
+<circle class="sb-soft" cx="32" cy="32" r="14"/>
+<circle class="sb-primary" cx="32" cy="32" r="5"/>
+<path class="sb-accent" d="M32 32l17-12"/>
+<path class="sb-primary" d="M32 10v5M32 49v5M10 32h5M49 32h5"/>
+<circle class="sb-accent-fill" cx="44" cy="24" r="3"/>
+</symbol><symbol id="sb-engine" viewBox="0 0 64 64">
+<title>Motor</title>
+<linearGradient id="sb-grad-engine" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-soft" d="M32 9l17 10v26L32 55 15 45V19z"/>
+<path class="sb-primary" d="M32 9l17 10v26L32 55 15 45V19z"/>
+<circle class="sb-primary" cx="32" cy="32" r="10"/>
+<path class="sb-accent" d="M25 34h5l3-7 4 11 3-4h4"/>
+<path class="sb-accent" d="M32 14v5M18 23l5 3M46 23l-5 3M18 41l5-3M46 41l-5-3M32 45v5"/>
+</symbol><symbol id="sb-custody" viewBox="0 0 64 64">
+<title>Custódia</title>
+<linearGradient id="sb-grad-custody" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<rect class="sb-soft" x="12" y="18" width="40" height="34" rx="7"/>
+<path class="sb-primary" d="M12 27h40M22 18v-4h20v4"/>
+<circle class="sb-primary" cx="32" cy="38" r="7"/>
+<path class="sb-accent" d="M32 34v5l4 2"/>
+<path class="sb-accent" d="M18 23h8M38 23h8"/>
+</symbol><symbol id="sb-collector" viewBox="0 0 64 64">
+<title>Coletor</title>
+<linearGradient id="sb-grad-collector" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<ellipse class="sb-soft" cx="32" cy="16" rx="17" ry="7"/>
+<path class="sb-primary" d="M15 16v30c0 4 8 7 17 7s17-3 17-7V16"/>
+<path class="sb-primary" d="M15 26c0 4 8 7 17 7s17-3 17-7M15 36c0 4 8 7 17 7s17-3 17-7"/>
+<path class="sb-accent" d="M27 17h10M32 12v10"/>
+</symbol><symbol id="sb-watchdog" viewBox="0 0 64 64">
+<title>Watchdog</title>
+<linearGradient id="sb-grad-watchdog" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-soft" d="M8 32s9-15 24-15 24 15 24 15-9 15-24 15S8 32 8 32z"/>
+<path class="sb-primary" d="M8 32s9-15 24-15 24 15 24 15-9 15-24 15S8 32 8 32z"/>
+<circle class="sb-primary" cx="32" cy="32" r="8"/>
+<path class="sb-accent" d="M27 33h4l2-5 3 8 2-3h4"/>
+<path class="sb-accent" d="M45 14l5 2-2 5"/>
+</symbol><symbol id="sb-processes" viewBox="0 0 64 64">
+<title>Processos</title>
+<linearGradient id="sb-grad-processes" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<rect class="sb-soft" x="8" y="12" width="14" height="12" rx="3"/>
+<rect class="sb-soft" x="25" y="26" width="14" height="12" rx="3"/>
+<rect class="sb-soft" x="42" y="40" width="14" height="12" rx="3"/>
+<path class="sb-primary" d="M22 18h10v8M39 32h10v8"/>
+<path class="sb-accent" d="M29 22l3 4 4-4M46 36l3 4 4-4"/>
+<circle class="sb-accent-fill" cx="15" cy="18" r="2"/>
+<circle class="sb-accent-fill" cx="32" cy="32" r="2"/>
+<circle class="sb-accent-fill" cx="49" cy="46" r="2"/>
+</symbol><symbol id="sb-logs" viewBox="0 0 64 64">
+<title>Logs</title>
+<linearGradient id="sb-grad-logs" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<rect class="sb-soft" x="9" y="11" width="46" height="42" rx="6"/>
+<path class="sb-primary" d="M9 21h46"/>
+<circle class="sb-accent-fill" cx="15" cy="16" r="1.5"/>
+<circle class="sb-accent-fill" cx="20" cy="16" r="1.5"/>
+<path class="sb-accent" d="M17 31l5 4-5 4M27 39h10"/>
+<path class="sb-primary" d="M29 29h16M29 34h12M17 46h28"/>
+</symbol><symbol id="sb-history" viewBox="0 0 64 64">
+<title>Histórico</title>
+<linearGradient id="sb-grad-history" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="32" cy="33" r="20"/>
+<path class="sb-primary" d="M16 18a20 20 0 103-3"/>
+<path class="sb-accent" d="M12 14l7 1-1 7"/>
+<path class="sb-primary" d="M32 21v13l9 5"/>
+<circle class="sb-accent-fill" cx="32" cy="34" r="2.5"/>
+</symbol><symbol id="sb-research" viewBox="0 0 64 64">
+<title>Pesquisa</title>
+<linearGradient id="sb-grad-research" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-primary" d="M25 10h14M28 10v13L16 45c-2 5 1 9 7 9h18c6 0 9-4 7-9L36 23V10"/>
+<path class="sb-soft" d="M20 42h24l4 8H16z"/>
+<path class="sb-accent" d="M21 41h22M25 36l5-5 4 3 6-8"/>
+<circle class="sb-accent-fill" cx="27" cy="46" r="2"/>
+<circle class="sb-accent-fill" cx="37" cy="49" r="1.5"/>
+</symbol><symbol id="sb-ml" viewBox="0 0 64 64">
+<title>Machine learning</title>
+<linearGradient id="sb-grad-ml" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="32" cy="32" r="8"/>
+<circle class="sb-primary" cx="14" cy="18" r="5"/>
+<circle class="sb-primary" cx="50" cy="18" r="5"/>
+<circle class="sb-primary" cx="14" cy="46" r="5"/>
+<circle class="sb-primary" cx="50" cy="46" r="5"/>
+<path class="sb-primary" d="M18 21l8 7M46 21l-8 7M18 43l8-7M46 43l-8-7"/>
+<path class="sb-accent" d="M32 26v12M26 32h12M28 28l8 8M36 28l-8 8"/>
+</symbol><symbol id="sb-basis" viewBox="0 0 64 64">
+<title>Basis trade</title>
+<linearGradient id="sb-grad-basis" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-primary" d="M11 49h42M11 14v35"/>
+<path class="sb-accent" d="M16 38l9-9 8 5 14-17"/>
+<path class="sb-primary" d="M16 44l9-6 8 2 14-12"/>
+<path class="sb-accent" d="M49 17v11"/>
+<path class="sb-accent" d="M46 19l3-3 3 3M46 26l3 3 3-3"/>
+<circle class="sb-accent-fill" cx="25" cy="29" r="2"/>
+<circle class="sb-primary-fill" cx="25" cy="38" r="2"/>
+</symbol><symbol id="sb-settings" viewBox="0 0 64 64">
+<title>Configurações</title>
+<linearGradient id="sb-grad-settings" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-primary" d="M13 18h38M13 32h38M13 46h38"/>
+<circle class="sb-soft" cx="24" cy="18" r="5"/>
+<circle class="sb-soft" cx="42" cy="32" r="5"/>
+<circle class="sb-soft" cx="29" cy="46" r="5"/>
+<path class="sb-accent" d="M24 14v8M42 28v8M29 42v8"/>
+</symbol><symbol id="sb-success" viewBox="0 0 64 64">
+<title>Aprovado</title>
+<linearGradient id="sb-grad-success" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="32" cy="32" r="22"/>
+<circle class="sb-primary" cx="32" cy="32" r="22"/>
+<path class="sb-accent" d="M21 32l7 8 16-18"/>
+<path class="sb-accent" d="M32 10v4M32 50v4M10 32h4M50 32h4"/>
+</symbol><symbol id="sb-blocked" viewBox="0 0 64 64">
+<title>Bloqueado</title>
+<linearGradient id="sb-grad-blocked" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-soft" d="M32 9l20 8v13c0 12-8 21-20 25-12-4-20-13-20-25V17z"/>
+<path class="sb-primary" d="M32 9l20 8v13c0 12-8 21-20 25-12-4-20-13-20-25V17z"/>
+<path class="sb-accent" d="M23 23l18 18M41 23L23 41"/>
+</symbol><symbol id="sb-warning" viewBox="0 0 64 64">
+<title>Atenção</title>
+<linearGradient id="sb-grad-warning" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-soft" d="M32 10l24 42H8z"/>
+<path class="sb-primary" d="M32 10l24 42H8z"/>
+<path class="sb-accent" d="M32 24v13"/>
+<circle class="sb-accent-fill" cx="32" cy="44" r="2.3"/>
+</symbol><symbol id="sb-offline" viewBox="0 0 64 64">
+<title>Offline</title>
+<linearGradient id="sb-grad-offline" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-primary" d="M25 39l-5 5a8 8 0 01-11-11l9-9a8 8 0 0111 0M39 25l5-5a8 8 0 0111 11l-9 9a8 8 0 01-11 0"/>
+<path class="sb-accent" d="M23 41l18-18M13 13l38 38"/>
+</symbol><symbol id="sb-stale" viewBox="0 0 64 64">
+<title>Desatualizado</title>
+<linearGradient id="sb-grad-stale" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="32" cy="32" r="20"/>
+<path class="sb-primary" d="M17 17a20 20 0 1028 0"/>
+<path class="sb-accent" d="M44 11l2 8-8-1"/>
+<path class="sb-primary" d="M32 21v12l8 4"/>
+<path class="sb-accent" d="M24 46h16"/>
+</symbol><symbol id="sb-live" viewBox="0 0 64 64">
+<title>Ao vivo</title>
+<linearGradient id="sb-grad-live" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<circle class="sb-soft" cx="32" cy="32" r="7"/>
+<circle class="sb-accent-fill" cx="32" cy="32" r="4"/>
+<path class="sb-primary" d="M20 20a17 17 0 000 24M44 20a17 17 0 010 24"/>
+<path class="sb-accent" d="M14 14a25 25 0 000 36M50 14a25 25 0 010 36"/>
+</symbol><symbol id="sb-paper" viewBox="0 0 64 64">
+<title>Paper trading</title>
+<linearGradient id="sb-grad-paper" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-soft" d="M17 9h22l10 10v36H17z"/>
+<path class="sb-primary" d="M17 9h22l10 10v36H17zM39 9v10h10"/>
+<path class="sb-accent" d="M24 29h18M24 36h14M24 43h18"/>
+<circle class="sb-accent-fill" cx="46" cy="48" r="6"/>
+<path class="sb-invert" d="M44 48l2 2 4-5"/>
+</symbol><symbol id="sb-alert" viewBox="0 0 64 64">
+<title>Alerta</title>
+<linearGradient id="sb-grad-alert" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#8AF0FF"/><stop offset=".5" stop-color="#18D8FF"/><stop offset="1" stop-color="#168CFF"/></linearGradient>
+<path class="sb-soft" d="M19 43h26l-3-5V28a10 10 0 00-20 0v10z"/>
+<path class="sb-primary" d="M19 43h26l-3-5V28a10 10 0 00-20 0v10zM27 48a5 5 0 0010 0"/>
+<path class="sb-accent" d="M32 10v5M14 22l5 3M50 22l-5 3"/>
+<circle class="sb-accent-fill" cx="45" cy="17" r="4"/>
+</symbol>
 </svg>
 
 <script>
@@ -709,6 +1006,29 @@ var PAGE_INFO={
   try{if(localStorage.getItem('snowball-sb-collapsed')==='1')app.classList.add('sb-collapsed')}catch(e){}
 
   el('sb-open-btn').addEventListener('click',function(){app.classList.toggle('mobile-open')});
+})();
+
+// ---- tema claro/escuro ----
+(function(){
+  var root=document.documentElement;
+  var btn=el('btn-theme');
+  var icDark=el('ic-theme-dark'), icLight=el('ic-theme-light');
+  function aplicar(tema){
+    if(tema==='light')root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme');
+    icDark.style.display=tema==='light'?'none':'block';
+    icLight.style.display=tema==='light'?'block':'none';
+    btn.title=tema==='light'?'Mudar para tema escuro':'Mudar para tema claro';
+  }
+  var salvo=null;
+  try{salvo=localStorage.getItem('snowball-tema')}catch(e){}
+  var inicial=salvo||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');
+  aplicar(inicial);
+  btn.addEventListener('click',function(){
+    var atual=root.getAttribute('data-theme')==='light'?'light':'dark';
+    var novo=atual==='light'?'dark':'light';
+    aplicar(novo);
+    try{localStorage.setItem('snowball-tema',novo)}catch(e){}
+  });
 })();
 
 // ---- pausar atualizações visuais / tela cheia ----
@@ -989,16 +1309,17 @@ function limparGraficosOrfaos(chavesVivas){
 
 // ---- processos ----
 var ICONE_PROCESSO={
-  'Vigilância':'ic-radar','Custódia':'ic-shield','Motor':'ic-cog','Dashboard':'ic-terminal',
-  'Coletor':'ic-clock','Modo Agressivo':'ic-flask','Preenchimento':'ic-scale','Pares':'ic-nodes'
+  'Vigilância':'sb-vigilance','Custódia':'sb-custody','Motor':'sb-engine','Dashboard':'sb-dashboard',
+  'Coletor':'sb-collector','Modo Agressivo':'sb-research','Preenchimento':'sb-costs','Pares':'sb-neutrality'
 };
 function renderProcessos(d){
   var procs=d.processos||[];
   renderIfChanged('processos',procs,function(){
     var html=procs.map(function(p){
       var uptime=p.vivo&&p.desde?diasDesde(p.desde):'—';
+      var icone=ICONE_PROCESSO[p.nome]||'sb-processes';
       return '<div class="proc '+(p.vivo?'vivo':'morto')+'">'+
-        '<div class="row"><span class="led '+(p.vivo?'on':'off')+'"></span><span class="nome">'+esc(p.nome)+'</span></div>'+
+        '<div class="row"><svg class="sb-icon sb-icon--sm proc-ic"><use href="#'+icone+'"/></svg><span class="led '+(p.vivo?'on':'off')+'"></span><span class="nome">'+esc(p.nome)+'</span></div>'+
         '<div class="info">'+(p.vivo?('há '+uptime+' · '+(p.memoriaMB||0)+' MB'):'não detectado')+'</div>'+
         '</div>';
     }).join('');
@@ -1044,8 +1365,8 @@ setInterval(function(){
   document.querySelectorAll('.flash-up,.flash-down').forEach(function(n){n.classList.remove('flash-up');n.classList.remove('flash-down')});
 },900);
 
-function iconeVazio(){
-  return '<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><use href="#ic-radar"/></svg>';
+function iconeVazio(nome){
+  return '<svg class="sb-icon sb-icon--xl" style="margin:0 auto 10px;display:block"><use href="#'+(nome||'sb-opportunities')+'"/></svg>';
 }
 function renderPosicoes(d){
   var pos=d.posicoes||[];
