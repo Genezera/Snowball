@@ -306,6 +306,14 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       </section>
 
       <section class="card">
+        <h2>De onde veio o dinheiro</h2>
+        <p class="caption">Ponte do capital inicial até o atual: verde é o que ENTROU (funding), azul e vermelho são o que SAIU (custo de montar e de fechar posição). Laranja não é ganho nem perda — é dinheiro que só mudou de lugar dentro da mesma exchange, pra afastar uma posição da liquidação.</p>
+        <div class="chart-wrap" style="height:260px"><svg id="svg-fluxo" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg></div>
+        <div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-top:14px" id="fluxo-kpis"></div>
+        <div class="timeline" id="fluxo-lista" style="margin-top:14px"></div>
+      </section>
+
+      <section class="card">
         <h2>Histórico de operações <span class="note" id="ops-tag">tudo que foi de fato executado, sem os bloqueios</span></h2>
         <div style="overflow-x:auto"><table id="ops-table">
           <thead><tr><th>Quando</th><th>Tipo</th><th>Ativo</th><th>Detalhes</th></tr></thead>
@@ -340,6 +348,14 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
         <h2>Posições abertas <span class="note" id="pos-mom-tag"></span></h2>
         <p class="caption">Barras diárias — o gráfico mostra o candle diário real com a entrada marcada.</p>
         <div class="poscards" id="poscards-mom"></div>
+      </section>
+
+      <section class="card">
+        <h2>De onde veio o dinheiro</h2>
+        <p class="caption">Aqui não tem funding nem socorro — só entrada e saída de posição. Verde é trade fechado no lucro, vermelho é trade fechado no prejuízo.</p>
+        <div class="chart-wrap" style="height:260px"><svg id="svg-fluxo-mom" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg></div>
+        <div class="kpis" style="grid-template-columns:repeat(2,1fr);margin-top:14px" id="fluxo-mom-kpis"></div>
+        <div class="timeline" id="fluxo-mom-lista" style="margin-top:14px"></div>
       </section>
 
       <section class="card">
@@ -1059,6 +1075,175 @@ function renderTimelineMom(d){
   });
 }
 
+// ---- de onde veio o dinheiro (ponte/waterfall) ----
+//
+// Cada evento do histórico de operações vira uma de quatro categorias:
+//   GANHOU (verde)    — dinheiro que ENTROU (funding recebido)
+//   INVESTIU (azul)   — dinheiro que SAIU pra montar/escalonar posição
+//   PERDEU (vermelho) — dinheiro que SAIU pra fechar posição
+//   SOCORREU (laranja)— não entra nem sai do total: só muda de saldo livre
+//                       pra margem, dentro da MESMA exchange
+//
+// A soma ganhou-investiu-perdeu bate exatamente com a variação real do
+// capital (é a mesma conta que o motor faz internamente) — por isso dá pra
+// desenhar como ponte: capital inicial + ganhou - investiu - perdeu =
+// capital atual, sem sobra nem falta.
+function categoriaOperacao(e){
+  if(e.evento==='funding')return {cat:'ganhou',valor:e.ganho||0};
+  if(e.evento==='abre')return {cat:'investiu',valor:e.custo||0};
+  if(e.evento==='escalona')return {cat:'investiu',valor:e.custo||0};
+  if(e.evento==='reinveste')return {cat:'investiu',valor:e.custo||0};
+  if(e.evento==='fecha')return {cat:'perdeu',valor:e.custo||0};
+  if(e.evento==='socorre')return {cat:'socorreu',valor:e.valor||0};
+  return null;
+}
+function narrativaFluxo(e){
+  var at=(e.symbol||'').replace('/USDT:USDT','');
+  if(e.evento==='funding')return 'Veio do funding pago pela exchange entre comprados e vendidos em '+at+' — pagamento contratual a cada ~8h, não uma aposta de preço.';
+  if(e.evento==='abre')return 'Foi pra taxa de abrir as duas pernas em '+at+' (2 exchanges × entrada) — o pedágio pra montar a posição.';
+  if(e.evento==='escalona')return 'Foi pra taxa de escalonar '+at+' pro tamanho cheio, depois de provar 1,5x o payback exigido.';
+  if(e.evento==='reinveste')return 'Funding já recebido foi reinvestido como notional extra na posição, em vez de ficar parado como caixa ocioso.';
+  if(e.evento==='fecha')return 'Foi pra taxa de fechar '+at+' · motivo: '+(e.motivo||'—');
+  if(e.evento==='socorre')return 'Reforço interno em '+(e.exchange||'—')+': saldo livre virou margem na MESMA conta, pra afastar a posição da liquidação. Sem custo, sem transferência entre exchanges.';
+  return '';
+}
+var CAT_INFO={
+  ganhou:{cor:'#1fe3a8',label:'Ganhou'},
+  investiu:{cor:'#4d9fff',label:'Investiu'},
+  perdeu:{cor:'#ff5470',label:'Perdeu'},
+  socorreu:{cor:'#ffb84d',label:'Socorreu'}
+};
+function computeFluxo(operacoes){
+  var tot={ganhou:0,investiu:0,perdeu:0,socorreu:0};
+  var itens=[];
+  (operacoes||[]).forEach(function(e){
+    var c=categoriaOperacao(e);
+    if(!c)return;
+    tot[c.cat]+=c.valor;
+    itens.push({e:e,cat:c.cat,valor:c.valor});
+  });
+  return {tot:tot,itens:itens};
+}
+
+// gráfico de ponte genérico: passos absolutos (tipo 'total', desenha do
+// fundo do gráfico até o valor) ou relativos (tipo 'delta', desenha entre
+// dois valores, com linha pontilhada ligando ao próximo)
+function desenharPonte(svgEl, passos){
+  if(!svgEl)return;
+  if(!passos.length){svgEl.innerHTML='';return}
+  var W=1000,H=260,padT=40,padB=46,padX=18;
+  var vals=[0];
+  passos.forEach(function(p){vals.push(p.tipo==='total'?p.valor:p.de,p.tipo==='total'?p.valor:p.para)});
+  var lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+  var folga=(hi-lo)*0.18||Math.abs(hi)*0.1||1; lo-=folga; hi+=folga;
+  var n=passos.length;
+  var colW=(W-2*padX)/n;
+  function Y(v){return padT+(H-padT-padB)*(1-(v-lo)/(hi-lo))}
+  var baseY=Y(0);
+  var out=[];
+  out.push('<line x1="'+padX+'" y1="'+baseY.toFixed(1)+'" x2="'+(W-padX)+'" y2="'+baseY.toFixed(1)+'" stroke="rgba(255,255,255,.08)"/>');
+  passos.forEach(function(p,idx){
+    var x=padX+idx*colW+colW*0.16;
+    var bw=colW*0.68;
+    var y1,y2;
+    if(p.tipo==='total'){y1=baseY;y2=Y(p.valor)}
+    else {y1=Y(p.de);y2=Y(p.para)}
+    var top=Math.min(y1,y2), h=Math.max(2,Math.abs(y2-y1));
+    out.push('<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="6" fill="'+p.cor+'" style="animation:candleIn .5s ease both;animation-delay:'+(idx*70)+'ms"/>');
+    var valorMostrado=p.tipo==='total'?p.valor:(p.para-p.de);
+    var labelTop=Math.min(y1,y2)-10;
+    out.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+labelTop.toFixed(1)+'" text-anchor="middle" font-size="13" font-weight="700" fill="'+p.cor+'" font-family="ui-monospace,monospace">'+(p.tipo==='delta'&&valorMostrado>=0?'+':'')+fmtUsd(Math.abs(valorMostrado)).replace('US$ ','')+'</text>');
+    out.push('<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-padB+18)+'" text-anchor="middle" font-size="12" fill="#8991a8">'+esc(p.label)+'</text>');
+    if(idx<n-1){
+      var nx=padX+(idx+1)*colW+colW*0.16;
+      out.push('<line x1="'+(x+bw).toFixed(1)+'" y1="'+y2.toFixed(1)+'" x2="'+nx.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="rgba(255,255,255,.22)" stroke-dasharray="4,4"/>');
+    }
+  });
+  svgEl.innerHTML=out.join('');
+}
+
+function renderFluxo(d){
+  var ops=d.operacoes||[];
+  var e=d.estado||{};
+  var capIni=e.capitalInicial||0;
+  var capAtual=e.capital!=null?e.capital:capIni;
+  renderIfChanged('fluxo',ops,function(){
+    var f=computeFluxo(ops);
+    var passos=[
+      {tipo:'total',label:'Capital inicial',valor:capIni,cor:'#8991a8'},
+      {tipo:'delta',label:'Ganhou',de:capIni,para:capIni+f.tot.ganhou,cor:CAT_INFO.ganhou.cor},
+      {tipo:'delta',label:'Investiu',de:capIni+f.tot.ganhou,para:capIni+f.tot.ganhou-f.tot.investiu,cor:CAT_INFO.investiu.cor},
+      {tipo:'delta',label:'Perdeu',de:capIni+f.tot.ganhou-f.tot.investiu,para:capIni+f.tot.ganhou-f.tot.investiu-f.tot.perdeu,cor:CAT_INFO.perdeu.cor},
+      {tipo:'total',label:'Capital atual',valor:capAtual,cor:'#8991a8'}
+    ];
+    desenharPonte(el('svg-fluxo'),passos);
+
+    var kHost=el('fluxo-kpis');
+    var itensK=[
+      {lbl:'Ganhou · funding',val:f.tot.ganhou,cor:CAT_INFO.ganhou.cor},
+      {lbl:'Investiu · abrir/escalonar',val:f.tot.investiu,cor:CAT_INFO.investiu.cor},
+      {lbl:'Perdeu · custo de fechar',val:f.tot.perdeu,cor:CAT_INFO.perdeu.cor},
+      {lbl:'Socorreu · realocação interna',val:f.tot.socorreu,cor:CAT_INFO.socorreu.cor}
+    ];
+    kHost.innerHTML=itensK.map(function(it){
+      return '<div class="kpi"><div class="lbl">'+esc(it.lbl)+'</div><div class="val num" style="color:'+it.cor+'">'+fmtUsd(it.val)+'</div></div>';
+    }).join('');
+
+    var lHost=el('fluxo-lista');
+    if(!f.itens.length){lHost.innerHTML='<div class="empty">sem movimentação de dinheiro ainda</div>';return}
+    // ops já vem do servidor mais recente primeiro — sem reverter de novo aqui
+    lHost.innerHTML=f.itens.slice(0,40).map(function(it){
+      var info=CAT_INFO[it.cat];
+      var sinal=it.cat==='ganhou'?'+':(it.cat==='socorreu'?'↔':'−');
+      return '<div class="tl-item"><span class="tl-dot" style="background:'+info.cor+'"></span>'+
+        '<div class="tl-body"><b style="color:'+info.cor+'">'+info.label+' '+sinal+fmtUsd(it.valor)+'</b>'+
+        '<div class="motivo">'+narrativaFluxo(it.e)+'</div></div>'+
+        '<div class="tl-time">'+timeAgo(it.e.ts)+'</div></div>';
+    }).join('');
+  });
+}
+
+function renderFluxoMom(d){
+  var m=d.modoAgressivo;
+  var ops=(m&&m.operacoes)||[];
+  var e=(m&&m.estado)||{};
+  var capIni=e.capitalInicial||0;
+  var capAtual=e.capital!=null?e.capital:capIni;
+  renderIfChanged('fluxo-mom',ops,function(){
+    var ganhou=0,perdeu=0,itens=[];
+    ops.forEach(function(ev){
+      if(ev.evento!=='fecha'||ev.pnl==null)return;
+      if(ev.pnl>=0){ganhou+=ev.pnl}else{perdeu+=Math.abs(ev.pnl)}
+      itens.push(ev);
+    });
+    var passos=[
+      {tipo:'total',label:'Capital inicial',valor:capIni,cor:'#8991a8'},
+      {tipo:'delta',label:'Ganhou',de:capIni,para:capIni+ganhou,cor:CAT_INFO.ganhou.cor},
+      {tipo:'delta',label:'Perdeu',de:capIni+ganhou,para:capIni+ganhou-perdeu,cor:CAT_INFO.perdeu.cor},
+      {tipo:'total',label:'Capital atual',valor:capAtual,cor:'#8991a8'}
+    ];
+    desenharPonte(el('svg-fluxo-mom'),passos);
+
+    var kHost=el('fluxo-mom-kpis');
+    kHost.innerHTML=
+      '<div class="kpi"><div class="lbl">Ganhou · trades no lucro</div><div class="val num" style="color:'+CAT_INFO.ganhou.cor+'">'+fmtUsd(ganhou)+'</div></div>'+
+      '<div class="kpi"><div class="lbl">Perdeu · trades no prejuízo</div><div class="val num" style="color:'+CAT_INFO.perdeu.cor+'">'+fmtUsd(perdeu)+'</div></div>';
+
+    var lHost=el('fluxo-mom-lista');
+    if(!itens.length){lHost.innerHTML='<div class="empty">sem trade fechado ainda</div>';return}
+    // ops já vem do servidor mais recente primeiro — sem reverter de novo aqui
+    lHost.innerHTML=itens.slice(0,40).map(function(ev){
+      var ganhouEste=ev.pnl>=0;
+      var cor=ganhouEste?CAT_INFO.ganhou.cor:CAT_INFO.perdeu.cor;
+      var at=(ev.symbol||'').replace('/USDT:USDT','');
+      return '<div class="tl-item"><span class="tl-dot" style="background:'+cor+'"></span>'+
+        '<div class="tl-body"><b style="color:'+cor+'">'+(ganhouEste?'Ganhou ':'Perdeu ')+(ganhouEste?'+':'−')+fmtUsd(Math.abs(ev.pnl))+'</b>'+
+        '<div class="motivo">'+esc(at)+' · '+esc(ev.side)+' · saiu por '+esc(ev.reason||'—')+' @ '+fmtUsd(ev.exitPrice)+'</div></div>'+
+        '<div class="tl-time">'+timeAgo(ev.ts)+'</div></div>';
+    }).join('');
+  });
+}
+
 // ---- histórico de operações ----
 var TIPO_LABEL={abre:'Abriu',fecha:'Fechou',funding:'Funding',reinveste:'Reinveste',escalona:'Escalonou',socorre:'Socorreu'};
 function detalheOperacaoNormal(e){
@@ -1149,6 +1334,8 @@ function render(d){
   renderTimelineMom(d);
   renderOperacoes(d);
   renderOperacoesMom(d);
+  renderFluxo(d);
+  renderFluxoMom(d);
   renderStatus(d);
 }
 
