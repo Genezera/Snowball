@@ -53,7 +53,32 @@ if (-not $bashExe) {
   exit 1
 }
 
-Start-Process -FilePath $bashExe -ArgumentList 'scripts/supervisor.sh' -WindowStyle Minimized -WorkingDirectory $raiz
+# CUIDADO 2: `Start-Process` sozinho NAO desanexa de verdade quando quem
+# chama e um terminal como Windows Terminal ou VS Code -- esses terminais
+# colocam todo processo filho (mesmo com janela propria/minimizada) no MESMO
+# "job object" da janela, com a flag "matar tudo ao fechar o job". Fechar a
+# janela do terminal (o X, nao so o .cmd) mata o watchdog e os 8 processos
+# junto, mesmo eles tendo sobrevivido normalmente a um `exit`. Achado ao
+# vivo: fechar a janela do cmd derrubou o sistema inteiro sem nenhum erro.
+#
+# Tentativa 1 (descartada): Agendador de Tarefas (`schtasks`) -- roda fora
+# de qualquer job object de terminal, mas `/create` deu "Acesso negado"
+# nesta maquina sem elevacao, mesmo sem `/rl highest`. Nao dava pra exigir
+# admin so pra ligar o sistema.
+#
+# Tentativa 2 (esta): criar o processo via WMI (`Win32_Process.Create`).
+# Quem de fato chama `CreateProcess` e o servico WMI (`WmiPrvSE.exe`), nao
+# o processo atual -- entao o filho nunca entra no job object do terminal
+# que chamou este script, e sobrevive a janela ser fechada. Nao exige
+# admin pra criar processo na propria sessao do usuario. Validado ao vivo:
+# matei a forca o cmd.exe pai (simulando fechar a janela) e o watchdog +
+# os 8 processos continuaram rodando.
+$comando = "`"$bashExe`" `"$raiz\scripts\supervisor.sh`""
+$resultado = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = $comando; CurrentDirectory = $raiz }
+if ($resultado.ReturnValue -ne 0) {
+  Write-Host "Falha ao criar o processo via WMI (codigo $($resultado.ReturnValue))."
+  exit 1
+}
 
 Write-Host "Watchdog iniciado. Ele sobe os 8 processos na ordem certa e religa"
 Write-Host "sozinho qualquer um que cair."
