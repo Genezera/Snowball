@@ -19,6 +19,9 @@ interface Props {
   eventos: EventoTimeline[] | null;
   state: ChartDataState;
   congelado?: boolean;
+  onSelecionar?: (ev: EventoTimeline) => void;
+  selecionado?: string;
+  maxAltura?: number;
 }
 
 const COR_EVENTO: Record<string, string> = {
@@ -51,7 +54,7 @@ async function copiarId(id: string) {
  * separa visível vs buffer) — este componente só renderiza o que recebe,
  * virtualizado.
  */
-export function EventTimeline({ eventos, state, congelado }: Props) {
+export function EventTimeline({ eventos, state, congelado, onSelecionar, selecionado, maxAltura = 520 }: Props) {
   const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +75,7 @@ export function EventTimeline({ eventos, state, congelado }: Props) {
       ref={containerRef}
       role="log" aria-live={congelado ? 'off' : 'polite'}
       data-testid="event-timeline-scroll" data-total-eventos={eventos.length}
-      style={{ maxHeight: 520, overflowY: 'auto', position: 'relative' }}
+      style={{ maxHeight: maxAltura, overflowY: 'auto', position: 'relative' }}
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
         {itensVirtuais.map((item) => {
@@ -81,12 +84,16 @@ export function EventTimeline({ eventos, state, congelado }: Props) {
             <motion.div
               key={ev.eventId}
               data-index={item.index}
+              onClick={onSelecionar ? () => onSelecionar(ev) : undefined}
               variants={reduceMotion ? undefined : eventEnter} initial="hidden" animate="visible"
               style={{
                 position: 'absolute', top: 0, left: 0, right: 0, transform: `translateY(${item.start}px)`,
                 height: ALTURA_LINHA - 4, marginBottom: 4,
                 display: 'grid', gridTemplateColumns: '84px 10px 1fr auto', alignItems: 'center', gap: 10,
-                padding: '7px 10px', borderRadius: 8, background: 'var(--surface-1)', border: '1px solid var(--border-hairline)',
+                padding: '7px 10px', borderRadius: 8,
+                background: selecionado === ev.eventId ? 'rgba(23,217,255,0.10)' : 'var(--surface-1)',
+                border: `1px solid ${selecionado === ev.eventId ? 'var(--border-strong)' : 'var(--border-hairline)'}`,
+                cursor: onSelecionar ? 'pointer' : 'default',
                 fontSize: 'var(--text-xs)',
               }}
             >
@@ -98,7 +105,7 @@ export function EventTimeline({ eventos, state, congelado }: Props) {
                 {ev.motivo && <span style={{ color: 'var(--ink-3)' }}> · {ev.motivo}</span>}
               </span>
               <button
-                onClick={() => copiarId(ev.eventId)} aria-label={`Copiar eventId ${ev.eventId}`}
+                onClick={(e) => { e.stopPropagation(); copiarId(ev.eventId); }} aria-label={`Copiar eventId ${ev.eventId}`}
                 style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--ink-3)', fontSize: 10, padding: '3px 7px', cursor: 'pointer' }}
               >
                 copiar id

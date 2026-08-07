@@ -14,6 +14,7 @@ export function LiveOperations() {
   const [filtroTipo, setFiltroTipo] = useState('');
   const [busca, setBusca] = useState('');
   const [mostrarCobertura, setMostrarCobertura] = useState(false);
+  const [selecionado, setSelecionado] = useState<string | null>(null);
 
   const filtrados = useMemo(() => {
     return eventos.filter((e) => {
@@ -99,13 +100,64 @@ export function LiveOperations() {
         </div>
       )}
 
-      <EventTimeline
-        eventos={filtrados.map((e) => ({ eventId: e.eventId, sequenceNumber: e.sequenceNumber ?? 0, cycleId: e.cycleId ?? '—', timestamp: e.timestamp, challengerId: e.challengerId, evento: e.evento, motivo: e.motivo ?? undefined }))}
-        state={state}
-        congelado={congelado}
-      />
+      {/* master-detail: timeline (65%) + painel de detalhe do evento (35%) */}
+      <div style={{ display: 'grid', gridTemplateColumns: selecionado ? 'minmax(0, 65fr) minmax(300px, 35fr)' : '1fr', gap: 'var(--space-4)', alignItems: 'start' }}>
+        <EventTimeline
+          eventos={filtrados.map((e) => ({ eventId: e.eventId, sequenceNumber: e.sequenceNumber ?? 0, cycleId: e.cycleId ?? '—', timestamp: e.timestamp, challengerId: e.challengerId, evento: e.evento, motivo: e.motivo ?? undefined }))}
+          state={state}
+          congelado={congelado}
+          onSelecionar={(ev) => setSelecionado(ev.eventId)}
+          selecionado={selecionado ?? undefined}
+          maxAltura={640}
+        />
+        {selecionado && (() => {
+          const idx = filtrados.findIndex((e) => e.eventId === selecionado);
+          const ev = filtrados[idx];
+          if (!ev) return null;
+          const anterior = filtrados[idx - 1];
+          const proximo = filtrados[idx + 1];
+          const linhas: [string, string][] = [
+            ['Evento', ev.evento],
+            ['Origem', ev.challengerId],
+            ['Timestamp', new Date(ev.timestamp).toLocaleString('pt-BR')],
+            ['Motivo', ev.motivo ?? '—'],
+            ['eventId', ev.eventId],
+            ['eventIdOriginal', (ev as { eventIdOriginal?: string | null }).eventIdOriginal ?? '—'],
+            ['sequenceNumber', ev.sequenceNumber != null ? String(ev.sequenceNumber) : '—'],
+            ['cycleId (correlationId)', ev.cycleId ?? '—'],
+            ['idLegado', ev.idLegado ? 'sim' : 'não'],
+          ];
+          return (
+            <div style={{ position: 'sticky', top: 0, background: 'linear-gradient(180deg, var(--surface-glass), rgba(12,21,38,0.45))', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 'var(--text-sm)', fontWeight: 800, color: 'var(--ink-0)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Detalhe do evento</span>
+                <button onClick={() => setSelecionado(null)} aria-label="Fechar detalhe" style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: 'var(--ink-2)', cursor: 'pointer', padding: '2px 8px' }}>✕</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {linhas.map(([k, v]) => (
+                  <div key={k} style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--border-hairline)', fontSize: 'var(--text-2xs)' }}>
+                    <span style={{ color: 'var(--ink-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{k}</span>
+                    <span className="tabular" style={{ color: 'var(--ink-1)', overflowWrap: 'anywhere' }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, fontSize: 'var(--text-2xs)' }}>
+                <button disabled={!anterior} onClick={() => anterior && setSelecionado(anterior.eventId)} style={navBtn(!anterior)}>← anterior</button>
+                <button disabled={!proximo} onClick={() => proximo && setSelecionado(proximo.eventId)} style={navBtn(!proximo)}>próximo →</button>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
     </div>
   );
+}
+
+function navBtn(desabilitado: boolean): React.CSSProperties {
+  return {
+    flex: 1, background: 'var(--surface-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)',
+    color: desabilitado ? 'var(--ink-3)' : 'var(--ink-1)', fontWeight: 700, padding: '7px', cursor: desabilitado ? 'default' : 'pointer', opacity: desabilitado ? 0.5 : 1,
+  };
 }
 
 const selectStyle: React.CSSProperties = {
