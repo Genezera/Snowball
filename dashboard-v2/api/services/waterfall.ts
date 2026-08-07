@@ -75,6 +75,19 @@ export function lerTotaisAutoritativos(root: string): TotaisVitalicios | null {
 
 export type EscopoDecomposicao = 'complete' | 'partial';
 
+/**
+ * Bucket NÃO instrumentado pelo motor atual — achado explícito, não
+ * suposição: nem `slippageEntrada`/`slippageSaida` (o motor nunca separou
+ * slippage do custo de entrada/saída como valor monetário próprio) nem
+ * `emergencial` (não existe evento "emergencial" no motor atual) têm de
+ * onde vir um número de verdade. `valor: 0` seria uma MENTIRA — diria "essa
+ * categoria existe e totalizou zero", quando na verdade a categoria nunca
+ * foi medida. `valor: null` + `tracked: false` é o único jeito honesto de
+ * representar "não sei", distinto de "sei e é zero".
+ */
+export interface BucketNaoRastreado { valor: null; tracked: false; motivo: string }
+export interface BucketRastreado { valor: number; tracked: true }
+
 export interface DecomposicaoBuckets {
   escopo: EscopoDecomposicao;
   linhasLidas: number;
@@ -82,14 +95,12 @@ export interface DecomposicaoBuckets {
   buckets: {
     entrada: number;
     saida: number;
-    /** null = motor não rastreia esta categoria como custo monetário separado (ver docstring do módulo) */
-    slippageEntrada: number | null;
-    slippageSaida: number | null;
+    slippageEntrada: BucketNaoRastreado;
+    slippageSaida: BucketNaoRastreado;
     escalonamento: number;
     apara: number;
     reinvestimento: number;
-    /** sempre 0 hoje — não existe evento "emergencial" no motor atual; nunca confundir com dado ausente */
-    emergencial: number;
+    emergencial: BucketNaoRastreado;
     /** ESTIMATIVA de custo de fechar as posições abertas agora (spread/marcacao.json) — nunca somado ao custosTotalLifetime, que é só realizado */
     fechamentoEstimado: number | null;
     outros: number;
@@ -141,9 +152,10 @@ export function construirDecomposicao(root: string, autoritativo: TotaisVitalici
     linhasLidas: linhasUsadas.length, linhasTotaisNoArquivo: todasAsLinhas.length,
     buckets: {
       entrada, saida,
-      slippageEntrada: null, slippageSaida: null,
+      slippageEntrada: { valor: null, tracked: false, motivo: 'categoria não instrumentada — motor não separa slippage do custo de entrada como valor monetário próprio' },
+      slippageSaida: { valor: null, tracked: false, motivo: 'categoria não instrumentada — motor não separa slippage do custo de saída como valor monetário próprio' },
       escalonamento, apara, reinvestimento,
-      emergencial: 0,
+      emergencial: { valor: null, tracked: false, motivo: 'categoria não instrumentada — não existe evento "emergencial" no motor atual' },
       fechamentoEstimado,
       outros: custosNaoClassificados ?? 0,
     },

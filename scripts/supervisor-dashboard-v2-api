@@ -46,9 +46,16 @@ pid_vivo() {
   powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid\").Count" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'
 }
 ler_campo_json() {
+  # ACHADO REAL (causava restart desnecessário do supervisor a cada
+  # checagem): a regex antiga exigia dígito IMEDIATAMENTE depois dos dois-
+  # pontos ("pid":123), mas o heartbeat.json é gravado com
+  # `JSON.stringify(..., null, 2)`, que sempre inclui um espaço depois dos
+  # dois-pontos ("pid": 123) -- a regex não capturava nada, o supervisor
+  # sempre lia PID vazio e concluía "processo morto", reiniciando a API a
+  # cada ciclo mesmo com ela saudável.
   local arquivo="$1" campo="$2"
   [ -f "$arquivo" ] || { echo ""; return; }
-  grep -o "\"$campo\":[0-9]*" "$arquivo" 2>/dev/null | head -1 | grep -o '[0-9]*$'
+  grep -o "\"$campo\"[[:space:]]*:[[:space:]]*[0-9]*" "$arquivo" 2>/dev/null | head -1 | grep -o '[0-9]*$'
 }
 
 registrar_evento() {

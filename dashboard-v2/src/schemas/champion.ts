@@ -43,6 +43,9 @@ export const PosicaoChampionSchema = z.object({
   variacaoShort: z.number().optional(), variacaoLong: z.number().optional(),
 }).passthrough();
 
+/** Bucket não instrumentado pelo motor atual — nunca `0`, sempre explícito sobre o motivo (Parte 10). */
+export const BucketNaoRastreadoSchema = z.object({ valor: z.null(), tracked: z.literal(false), motivo: z.string() });
+
 export const CustosChampionV2Schema = z.object({
   autoritativo: z.object({
     fundingTotalLifetime: z.number(), custosTotalLifetime: z.number(), pnlRealizadoLifetime: z.number(),
@@ -54,9 +57,10 @@ export const CustosChampionV2Schema = z.object({
     linhasLidas: z.number(), linhasTotaisNoArquivo: z.number(),
     buckets: z.object({
       entrada: z.number(), saida: z.number(),
-      slippageEntrada: z.number().nullable(), slippageSaida: z.number().nullable(),
+      slippageEntrada: BucketNaoRastreadoSchema, slippageSaida: BucketNaoRastreadoSchema,
       escalonamento: z.number(), apara: z.number(), reinvestimento: z.number(),
-      emergencial: z.number(), fechamentoEstimado: z.number().nullable(), outros: z.number(),
+      emergencial: BucketNaoRastreadoSchema,
+      fechamentoEstimado: z.number().nullable(), outros: z.number(),
     }).passthrough(),
     notas: z.object({ slippage: z.string(), emergencial: z.string(), fechamentoEstimado: z.string() }).passthrough(),
     fundingBrutoNoEscopo: z.number(), custoTotalNoEscopo: z.number(),

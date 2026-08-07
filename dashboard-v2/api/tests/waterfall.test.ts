@@ -60,21 +60,27 @@ test('escopo partial: diário maior que o teto de leitura nunca é chamado de vi
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('slippageEntrada/slippageSaida nunca são fabricados — sempre null, com nota explícita', () => {
+test('slippageEntrada/slippageSaida: nunca zero, sempre {valor:null, tracked:false, motivo} — categoria não instrumentada, não é dado ausente', () => {
   const root = tmpRoot();
   fs.writeFileSync(path.join(root, 'spread', 'diario.jsonl'), JSON.stringify({ ts: 1, evento: 'abre', custo: 1 }) + '\n');
   const d = construirDecomposicao(root, null);
-  assert.equal(d?.buckets.slippageEntrada, null);
-  assert.equal(d?.buckets.slippageSaida, null);
+  assert.deepEqual(d?.buckets.slippageEntrada, { valor: null, tracked: false, motivo: d!.buckets.slippageEntrada.motivo });
+  assert.equal(d?.buckets.slippageEntrada.tracked, false);
+  assert.equal(d?.buckets.slippageEntrada.valor, null);
+  assert.equal(d?.buckets.slippageSaida.tracked, false);
+  assert.equal(d?.buckets.slippageSaida.valor, null);
+  assert.ok(d?.buckets.slippageEntrada.motivo.length, 'motivo nunca pode ser vazio quando tracked=false');
   assert.ok(d?.notas.slippage.length);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('emergencial sempre 0 — não existe evento correspondente no motor atual, mas isso é documentado, não escondido', () => {
+test('emergencial: nunca zero como número solto — {valor:null, tracked:false, motivo}, categoria não instrumentada', () => {
   const root = tmpRoot();
   fs.writeFileSync(path.join(root, 'spread', 'diario.jsonl'), JSON.stringify({ ts: 1, evento: 'abre', custo: 1 }) + '\n');
   const d = construirDecomposicao(root, null);
-  assert.equal(d?.buckets.emergencial, 0);
+  assert.equal(d?.buckets.emergencial.tracked, false);
+  assert.equal(d?.buckets.emergencial.valor, null);
+  assert.ok(d?.buckets.emergencial.motivo.includes('não existe evento'));
   assert.ok(d?.notas.emergencial.includes('não existe evento'));
   fs.rmSync(root, { recursive: true, force: true });
 });
