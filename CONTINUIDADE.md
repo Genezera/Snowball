@@ -2,13 +2,14 @@
 
 > **Para a próxima IA que pegar este projeto.** Este documento existe para que
 > nada se perca entre sessões. Leia isto antes de qualquer outro arquivo — a
-> versão anterior deste documento (03/08/2026) está desatualizada em quase
-> tudo: passou a existir MCP do trader.dev, motor operando em 6 exchanges,
-> modo agressivo, motor de pares cointegrados, medição de preenchimento maker,
-> um dashboard inteiramente novo, e dois scripts de start/stop. Esta versão
-> reflete o estado real em **06/08/2026**.
+> versão anterior (06/08/2026, manhã) estava desatualizada sobre a
+> confiabilidade real de `iniciar.cmd`/`parar.cmd`: dizia "não testei rodando
+> de verdade ainda". Testei. Achei DOIS bugs reais de start/stop que a versão
+> anterior não sabia que existiam (seção 2), e um bug de dado (não de lógica)
+> nas posições do modo agressivo (seção 3.2). Esta versão reflete o estado
+> real em **07/08/2026**.
 
-Última atualização: **06/08/2026**.
+Última atualização: **07/08/2026**.
 
 ---
 
@@ -36,8 +37,11 @@
   precisa de 1,5). **Isso é o portão funcionando, não uma falha.**
 - **Como subir/derrubar tudo:** `iniciar.cmd` / `parar.cmd` na raiz — sobem
   ou derrubam o watchdog (`scripts/supervisor.sh`), que por sua vez
-  supervisiona os 8 processos. Não use os `run-*.cmd` antigos junto com o
-  watchdog — foi essa dupla supervisão que já causou um bug real (seção 4).
+  supervisiona os 8 processos. **Testado de verdade, várias vezes, nesta
+  sessão** (não só lido/inspecionado) — ver seção 2 pros dois bugs reais que
+  isso encontrou e corrigiu. Não use os `run-*.cmd` antigos (foram deletados)
+  junto com o watchdog — foi essa dupla supervisão que já causou um bug real
+  (seção 6).
 
 ---
 
@@ -58,34 +62,80 @@
 5. **Nada de dado inventado no dashboard.** Estado vazio com mensagem clara é
    melhor que fingir dado que não existe.
 6. **Português, sem emoji a menos que pedido, direto ao ponto.**
+7. **Quando um script/mecanismo crítico (start/stop, backup) parece pronto
+   "no papel", teste rodando de verdade antes de declarar terminado.** Regra
+   aprendida NESTA sessão: a versão anterior deste documento dizia que
+   `iniciar.cmd` estava "verificado, só não testado ao vivo" — testar ao vivo
+   achou dois bugs que a leitura do código não revelou (seção 2).
 
 ---
 
-## 2. Arquitetura — 8 processos, todos supervisionados
+## 2. Start/stop — dois bugs reais encontrados testando de verdade, e o fix
 
-```
-  VIGILÂNCIA      (5 min)   varre 3.492 pares em 6 exchanges, ciclo de vida
-  CUSTÓDIA        (15 min)  saúde de cada exchange → motor evacua sozinho
-  MOTOR           (5 min)   delta-neutro, lê a vigilância, decide, NUNCA ENVIA ORDEM
-  DASHBOARD        live      localhost:8787, SSE em tempo real
-  COLETOR         (5 min)   arquiva histórico de longo prazo
-  MODO AGRESSIVO  (20 min)  ts-momentum multi-ativo, capital próprio, só backend
-  PARES           (20 min)  cointegrados, mercado-neutro, capital próprio
-  PREENCHIMENTO   (10 s)    mede se ordem limite preenche rápido o bastante
-```
+`iniciar.cmd`/`parar.cmd` chamam wrappers finos `scripts/iniciar.ps1` /
+`scripts/parar.ps1` (a lógica embutida em PowerShell dentro de um `.cmd` é
+frágil demais pra quoting diferente por contexto de chamada). `parar.ps1`
+mata o watchdog primeiro (senão ele religa por cima no meio da parada) e
+depois os 8 processos por basename. Nunca apaga estado — cada motor grava o
+próprio `estado.json` a cada ciclo, então religar retoma sozinho de onde
+parou (confirmado várias vezes nesta sessão, byte-a-byte).
 
-Todos se falam por **arquivo em disco** (JSON/JSONL), nunca chamada direta —
-se um cai, os outros percebem pela idade do dado. `scripts/supervisor.sh`
-checa os 8 a cada 30s por `CommandLine` (casando pelo **basename** do arquivo
-`.ts`, nunca o caminho inteiro — ver pegadinha na seção 5) e religa
-automaticamente, com log de causa em `vigilancia/supervisor-watchdog.log`.
+### 2.1 Bug 1 — `bash.exe` do WSL mascarando o Git Bash
 
-**Para subir/derrubar:** `iniciar.cmd` (sobe só o watchdog, que sobe o resto;
-recusa duplicar se já tiver um rodando) e `parar.cmd` (mata o watchdog
-primeiro, depois os 8 processos; não apaga nenhum estado — cada motor grava
-o próprio `estado.json` a cada ciclo, então religar retoma sozinho de onde
-parou). Não testei rodando de verdade ainda (pararia o sistema ao vivo);
-verifiquei só que os padrões de busca batem 1-para-1 com os processos reais.
+Windows tem DOIS `bash.exe`: o do Git for Windows e um shim do WSL em
+`C:\WINDOWS\system32`. `Get-Command bash` (e `where bash`) resolvem pro shim
+do WSL primeiro (System32 vem cedo no PATH) — e `supervisor.sh` não roda no
+ambiente do WSL do mesmo jeito. Sintoma: `iniciar.cmd` reportava "Watchdog
+iniciado" sem nenhum erro, e nada subia. **Fix:** `iniciar.ps1` procura o
+Git Bash em caminhos conhecidos (`C:\Program Files\Git\bin\bash.exe`)
+ANTES de tentar `Get-Command`, com guarda explícita rejeitando qualquer
+resolução via PATH que contenha `system32`.
+
+### 2.2 Bug 2 — fechar a janela do terminal matava tudo (mais sério que o 1)
+
+Achado ao vivo quando o usuário fechou sem querer a janela do cmd que tinha
+rodado `iniciar.cmd`. `Start-Process -WindowStyle Minimized` **não desanexa
+de verdade** quando quem chama é um terminal como Windows Terminal ou VS
+Code: esses terminais colocam todo processo filho — mesmo com janela própria
+minimizada — no MESMO **job object** da janela, com a flag "matar tudo ao
+fechar o job". Fechar a janela (o X, não só sair do `.cmd`) matava o
+watchdog e os 8 processos juntos, sem nenhum erro no log.
+
+**Tentativa descartada:** Agendador de Tarefas do Windows (`schtasks`) roda
+fora de qualquer job object de terminal, mas `/create` deu "Acesso negado"
+nesta máquina sem elevação — mesmo sem `/rl highest`. Não dava pra exigir
+admin só pra ligar o sistema.
+
+**Fix real:** criar o processo via **WMI** (`Invoke-CimMethod -ClassName
+Win32_Process -MethodName Create`). Quem de fato chama `CreateProcess` é o
+serviço WMI (`WmiPrvSE.exe`), não o processo atual — então o filho nunca
+entra no job object do terminal que chamou o script, e sobrevive a fechar a
+janela. Não exige admin pra criar processo na própria sessão do usuário.
+Código em `scripts/iniciar.ps1`.
+
+**Validado ao vivo, de propósito:** subi o sistema, lancei `iniciar.cmd`
+como processo filho de um `cmd.exe` descartável, e matei esse `cmd.exe` à
+força (`Stop-Process -Force`, simulando fechar a janela). Os 8 processos +
+watchdog continuaram rodando, dashboard respondeu 200 depois. Repeti o teste
+completo (parar→iniciar, inclusive via os `.cmd`, não só os `.ps1`) mais de
+uma vez, sempre com integridade de estado conferida byte-a-byte antes e
+depois.
+
+### 2.3 Bug 3 (menor, cosmético mas real) — watchdog logava restart deliberado como queda
+
+`scripts/supervisor.sh`: a primeira passada do laço via todo processo como
+"ausente" (óbvio — acabou de subir) e registrava a MESMA linha "CAIU —
+religando" de uma queda real, **disparando alarme falso no Telegram a cada
+restart deliberado**. Fix: `primeira_passada=true` antes do laço; na
+primeira volta, o log usa um rótulo neutro ("subindo") e não notifica. Só
+quedas de verdade (depois da primeira passada) continuam gerando alarme.
+Validado: log mostrou "subindo (primeira passada do watchdog)" num restart
+de teste, e "CAIU"/Telegram não dispararam.
+
+**Nenhuma perda de estado em nenhum dos testes acima**, em nenhum dos ~6
+ciclos completos de parar/iniciar feitos nesta sessão (incluindo os dois que
+descobriram os bugs 1 e 2) — capital e contagem de posições dos 3 motores
+conferidos byte-a-byte toda vez.
 
 ---
 
@@ -116,9 +166,11 @@ que o mercado favorecer a cada ciclo. Ranking de lucro individual por
 exchange e ranking de melhor PAR de 2 exchanges (para quando for dinheiro
 real) ambos no dashboard, com dado real da vigilância.
 
-**Estado real agora (06/08/2026, ~18h):** capital US$ 603, 3 posições
-abertas, folga do melhor par (bitget+bybit) ~0,06 contra 1,5 exigido — o
-mercado não está oferecendo spread que dure tempo suficiente. Não é bug.
+**Estado real agora (07/08/2026):** capital ~US$ 603, 3 posições abertas
+(DEXE bitget/bybit, BICO gate/okx, ZBT bybit/okx) — nenhuma perto de
+qualquer limiar de fechamento (distâncias de liquidação de 14-24%, bem
+acima do gatilho de alerta em 12%). Diário confere byte-a-byte com o
+estado, sem posição órfã.
 
 ### 3.2 Modo agressivo — ts-momentum multi-ativo
 
@@ -135,15 +187,37 @@ render individual, a aba ficava lenta. A UI agora mostra só um resumo leve
 (processo vivo/morto + 2 parágrafos de contexto) na aba Pesquisa. Estado
 completo continua em `momentum/diario.jsonl`, `momentum/estado.json`.
 
+**Bug de DADO encontrado e corrigido nesta sessão (07/08/2026) — não é bug
+de lógica, o código já estava certo.** `calcularAlvos()` (`src/live/
+motor-momentum.ts`) já tinha o teto de 0,95 pro lado SHORT desde o commit
+`35726f1` (05-06/08), evitando `takePrice` negativo. Mas as 40 posições
+abertas ANTES desse commit (num lote só, minutos antes da correção) tinham
+o `takePrice` calculado com a fórmula velha, gravado em `momentum/
+estado.json`, e o código corrigido nunca migra estado já em disco — **34 das
+40 posições (todas as SHORT) continuaram com alvo de take-profit negativo,
+matematicamente inatingível**, até serem corrigidas manualmente:
+
+```js
+// para cada posição side==='short' em momentum/estado.json:
+p.takePrice = p.entryPrice * 0.05   // = entryPrice * (1 - Math.min(5.0, 0.95))
+```
+
+Aplicado com o motor parado (`manutencao.marker` tocado antes, pra não virar
+alarme falso — ver 2.3), estado editado, watchdog religou sozinho em ~20s.
+Validado: 0 posições com `takePrice` negativo depois, 40 posições intactas,
+capital idêntico. **Lição para a próxima IA: sempre que uma correção de
+fórmula for commitada, cheque se `*/estado.json` já tem dado gerado pela
+fórmula velha — corrigir só o código não corrige posições já abertas.**
+
 Código: `src/live/motor-momentum.ts`, `src/cli/momentum-live.ts`.
 
-### 3.3 Pares cointegrados — mercado-neutro (NOVO, 06/08/2026)
+### 3.3 Pares cointegrados — mercado-neutro
 
-Construído nesta sessão a partir do Resultado 14 (`docs/RESULTADOS.md`):
-misturar momentum + pares corta a chance de ruína do portfólio de ~46% para
-~15% mantendo a chance de sucesso quase igual (correlação entre trades dos
-dois mecanismos: +0,065, bem menor que a correlação do momentum consigo
-mesmo, +0,130). Só a parte de momentum estava ao vivo até esta sessão.
+Construído a partir do Resultado 14 (`docs/RESULTADOS.md`): misturar
+momentum + pares corta a chance de ruína do portfólio de ~46% para ~15%
+mantendo a chance de sucesso quase igual (correlação entre trades dos dois
+mecanismos: +0,065, bem menor que a correlação do momentum consigo mesmo,
++0,130).
 
 Recalibra os pares semanalmente (`varrerPares`/`avaliarPar` sobre 250 barras
 diárias via ccxt ao vivo — não usa dado local baixado, que ficaria velho),
@@ -159,18 +233,32 @@ Código: `src/live/motor-pares.ts`, `src/cli/pares-live.ts`. Estado em
 Pesquisa) — capital, pares calibrados, posições abertas, taxa de vitória,
 SEM candle chart por posição (mesma lição do modo agressivo).
 
-**Estado real agora:** US$ 200, 20 pares calibrados, 0 posições abertas
-(nenhum cruzou o z-score de entrada ainda desde o lançamento).
+**Estado real agora:** US$ 200, 20 pares calibrados, 0 posições abertas —
+**confirmado nesta sessão que isso é esperado, não bug**: motor rodando há
+poucas horas, limiar de entrada exigente (z-score ≥ 2,5 desvios-padrão),
+estatisticamente normal nenhum dos 20 pares ter cruzado ainda. Log mostra
+ciclos rodando normalmente ("sem barra nova" é o resultado correto na
+maioria dos ciclos de 20 min, com barra diária).
 
-### 3.4 Medição de preenchimento maker (item B6, NOVO, 06/08/2026)
+**Bug real corrigido nesta sessão (não de lógica de negócio):**
+`fetchOHLCV` em `barrasDe()` (`src/live/motor-pares.ts`) não tinha timeout —
+o motor ficou 1h+ travado sem nenhum erro logado até ser encontrado numa
+auditoria de rotina. Corrigido com o mesmo padrão `comTimeout` já usado em
+`monitor-preenchimento.ts` (`Promise.race` + `.catch(()=>{})` na promessa
+original, pra não deixar um `unhandledRejection` matar o processo quando a
+promessa perdedora rejeita depois do timeout já ter "vencido" a corrida).
+A mesma correção foi aplicada preventivamente em `motor-momentum.ts` (
+mesmo padrão de código, mesmo risco, ainda não tinha travado).
 
-A única alavanca real identificada nesta sessão para reduzir custo sem
-inventar risco novo — mas o resultado real (abaixo) é mais sóbrio do que a
-expectativa inicial. Simula ordem limite "no toque" (posta no bid pra
-comprar, no ask pra vender) em ambas as pernas dos 5 melhores candidatos da
-vigilância, usando o preço real (`last`) como proxy de preenchimento — sem
-enviar ordem nenhuma. Mede taxa de preenchimento, tempo até encher, e o que o
-preço faz depois (seleção adversa).
+### 3.4 Medição de preenchimento maker (item B6)
+
+A única alavanca real identificada para reduzir custo sem inventar risco
+novo — mas o resultado real é mais sóbrio do que a expectativa inicial.
+Simula ordem limite "no toque" (posta no bid pra comprar, no ask pra vender)
+em ambas as pernas dos 5 melhores candidatos da vigilância, usando o preço
+real (`last`) como proxy de preenchimento — sem enviar ordem nenhuma. Mede
+taxa de preenchimento, tempo até encher, e o que o preço faz depois (seleção
+adversa).
 
 **Achado real, com >1000 amostras:** taxa de preenchimento é ótima (~89%),
 tempo mediano até encher ~12 minutos — mas a seleção adversa medida
@@ -178,40 +266,43 @@ tempo mediano até encher ~12 minutos — mas a seleção adversa medida
 constante de escorregamento que ela substituiria** (0,07%, `ESCORREGAMENTO_
 PERNA` em `custos-reais.ts`). Ou seja: trocar taker por maker, pelos dados
 reais até agora, não parece reduzir custo — pode até aumentar. Ainda cedo
-(a fraçãoFavoravel está em ~48%, perto de moeda justa; mais amostra pode
+(a fração favorável está em ~48%, perto de moeda justa; mais amostra pode
 mudar isso), mas é o oposto do que se esperava — registrado sem suavizar.
 
 Código: `src/funding/preenchimento.ts` (funções puras, testadas),
-`src/live/monitor-preenchimento.ts` (motor ao vivo). Estado em
-`preenchimento/estado.json`, `preenchimento/diario.jsonl`. Card no dashboard
-(aba Pesquisa) com taxa de preenchimento, tempo mediano, reação pós-fill.
+`src/live/monitor-preenchimento.ts` (motor ao vivo, também com o fix de
+timeout `comTimeout` já aplicado antes desta sessão). Estado em
+`preenchimento/estado.json`, `preenchimento/diario.jsonl`. É o processo que
+mais reinicia dos 8 (timeouts intermitentes de rede em gate/bingx/bybit) —
+não é falha, o estado persiste e recarrega sem perda, mas é o elo mais
+frágil da cadeia. Card no dashboard (aba Pesquisa).
 
 ---
 
-## 4. O dashboard — oitava geração (reestruturado em 06/08/2026)
+## 4. O dashboard — oitava geração
 
 `src/dashboard/server.ts` + `src/dashboard/pagina.ts` (um único template
 literal gigante — ver pegadinha crítica na seção 5). Sidebar colapsável com
 10 seções: **Visão geral, Operações, Oportunidades, Exchanges, Risco,
 Processos, Pesquisa, Histórico, Logs, Sistema.** Identidade visual glacial
-(cyan/gelo/azul-marinho) baseada na logo do projeto (`assets/logo.png`,
-`assets/logo-fundo-branco.png`, `assets/favicon.png`).
+(cyan/gelo/azul-marinho) baseada na logo do projeto, com **tema claro
+completo** (`--sb-*`/`--bg-main`/`--surface` etc. redefinidos em
+`:root[data-theme="light"]`, toggle persistido em `localStorage`) e ícones
+SVG reais (`assets/icons-sprite.svg`, 32 símbolos nomeados) substituindo os
+placeholders desenhados à mão.
 
-Novidades reais desta reestruturação: busca/filtro/ordenação na tabela de
-Oportunidades; visualizador de Logs real (`/api/logs`, lista fixa de
-arquivos, sem path arbitrário do cliente); página Risco consolidando
-exposição + distância-até-liquidação por posição; diagrama de arquitetura
-SVG estático; tabela das 8 famílias de estratégia (dado de
-`docs/RESULTADOS.md`, hardcoded no client — não há endpoint que gere isso
-dinamicamente).
+**Fase 2 entregue (06/08/2026):** paleta de comandos (Ctrl+K, busca em
+páginas/processos/exchanges/ativos), marcadores de evento coloridos na curva
+de capital (abre/fecha/funding, com tooltip), heatmap de spread na aba
+Oportunidades.
 
-**Pedido original do usuário era uma spec de 49 seções** (paleta de
-comandos, replay histórico, heatmaps, ferramentas de desenho em candle,
-monitor de drift de ML, ilustrações SVG temáticas — ver a mensagem completa
-dele se precisar do texto exato). Só a Fase 1 (fundação: estrutura, dados
-reais, visual) foi entregue. As demais foram deliberadamente **não**
-inventadas por falta de dado real pra sustentar — próxima fase, se o usuário
-pedir.
+**Pipeline real de ML** (`src/ml/prontidao-vigilancia.ts`,
+`src/ml/rotulo-ciclo.ts`): treina um GBDT de verdade (split temporal, não
+k-fold aleatório — dataset pequeno e desbalanceado) quando há dado real
+suficiente (`MINIMO_POSITIVOS_TREINO=30`), refusing to fabricate quando não
+há; dormente hoje (12-30 positivos), ativa sozinho quando o coletor
+acumular o suficiente. Card no dashboard mostra métricas reais quando
+existem, ou o motivo explícito de por que ainda não treinou.
 
 **Lição que já custou uma remoção:** nunca coloque uma lista de N posições
 com gráfico de candle individual sem lazy-load. O modo agressivo (até 40
@@ -223,10 +314,10 @@ segurança de 4s).
 **Limitação de teste conhecida:** o Browser pane desta ferramenta de
 automação não composita frames quando não está em foco — `screenshot`,
 `IntersectionObserver` e `requestAnimationFrame` não funcionam de forma
-confiável nele. Isso já gerou falsos alarmes nesta sessão (candles pareciam
-não carregar, números pareciam não animar) que eram só limitação da
-ferramenta, não bug real — confirmado inspecionando o DOM/estado
-diretamente em vez de confiar no screenshot.
+confiável nele. Isso já gerou falsos alarmes (candles pareciam não carregar,
+números pareciam não animar) que eram só limitação da ferramenta, não bug
+real — confirmado inspecionando o DOM/estado diretamente em vez de confiar
+no screenshot.
 
 ---
 
@@ -246,18 +337,45 @@ do template literal**; o JS do cliente nunca usa template literal, só
 concatenação com `+`. Verificação obrigatória depois de QUALQUER edição:
 `grep -c '`' src/dashboard/pagina.ts` deve devolver exatamente **2**.
 
-**`Promise.race` não cancela a promessa perdedora.** Bug real encontrado e
-corrigido em `monitor-preenchimento.ts`: se a promessa mais lenta rejeitar
-DEPOIS que o timeout já resolveu a corrida, essa rejeição fica sem handler —
-Node mata o processo inteiro num `unhandledRejection` não tratado. Correção:
-anexar um `.catch(()=>{})` vazio na promessa original dentro de qualquer
-helper `comTimeout`. Vale para qualquer novo código que use esse padrão.
+**`Promise.race` não cancela a promessa perdedora.** Se a promessa mais lenta
+rejeitar DEPOIS que o timeout já resolveu a corrida, essa rejeição fica sem
+handler — Node mata o processo inteiro num `unhandledRejection` não tratado.
+Correção: anexar um `.catch(()=>{})` vazio na promessa original dentro de
+qualquer helper `comTimeout`. Já corrigido em `monitor-preenchimento.ts`,
+`motor-pares.ts` (achado depois de 1h+ travado, seção 3.3) e
+`motor-momentum.ts` (preventivo). Vale para qualquer novo código que use
+esse padrão.
 
 **Watchdog casa por basename, não caminho completo.** Git Bash reescreve
 `/` para `\` ao invocar `node.exe` (binário nativo) — casar pelo caminho
 inteiro nunca dá match e o watchdog religa por cima de processos já vivos,
 em cascata. `scripts/supervisor.sh` já extrai só o basename do `.ts`; se
 adicionar um processo novo, siga o mesmo padrão.
+
+**`Start-Process` não desanexa de verdade de um terminal com job object
+(Windows Terminal, VS Code).** Fechar a janela mata os filhos mesmo com
+`-WindowStyle Minimized`/`Hidden`. Use `Invoke-CimMethod -ClassName
+Win32_Process -MethodName Create` (WMI) para lançar algo que precisa
+sobreviver ao terminal que o iniciou — o processo real é criado pelo serviço
+WMI, fora do job. Não precisa de admin. `schtasks` também escaparia do job,
+mas exige elevação que nem sempre está disponível. Ver seção 2.2 —
+achado ao vivo depois que o usuário fechou a janela do cmd sem querer.
+
+**`bash.exe` do WSL em `C:\WINDOWS\system32` mascara o Git Bash no PATH.**
+`Get-Command bash`/`where bash` acham o shim do WSL primeiro. Sempre
+verifique caminhos conhecidos do Git Bash ANTES de resolver via PATH, e
+rejeite qualquer resolução que contenha `system32`. Ver seção 2.1.
+
+**Watchdog não distingue "acabei de subir" de "caiu de verdade" sem ajuda.**
+Toda primeira passada do laço de checagem vê processo nenhum rodando —
+sem uma flag `primeira_passada`, isso vira alarme de "CAIU" (e notificação
+falsa no Telegram) toda vez que o sistema é ligado de propósito. Ver 2.3.
+
+**Corrigir uma fórmula no código NÃO corrige posições já persistidas em
+disco com a fórmula velha.** `*/estado.json` não é recalculado ao carregar —
+é lido como está. Depois de qualquer correção de fórmula de preço/alvo,
+verifique se há dado gerado pela versão antiga que precisa de migração
+manual (mesmo padrão do bug do `takePrice` negativo, seção 3.2).
 
 **bybit carrega mercado de opções por padrão no `loadMarkets()`** — endpoint
 que trava ~10s por request neste ambiente e nunca é usado no projeto (só
@@ -276,13 +394,19 @@ antes de ser achado e corrigido.
 
 **Fórmula de take-profit para SHORT com `takePct >= 1` dá preço negativo.**
 `entryPrice*(1-takePct)` — corrigido com teto de 0,95 no multiplicador, em 7
-arquivos. Qualquer fórmula nova de alvo de posição precisa desse teto.
+arquivos. Qualquer fórmula nova de alvo de posição precisa desse teto. Ver
+seção 3.2 pro rastro de posições já abertas com a fórmula velha.
 
 **Reservar diretório antes de redirecionar log.** `nohup cmd >> pasta/log 2>&1`
 falha SILENCIOSAMENTE se `pasta/` não existir — o processo nem chega a
 iniciar, e o watchdog loga "morte sem erro registrado" (confundível com
 crash real). Sempre `mkdir -p` a pasta de estado antes do primeiro start de
 um processo novo.
+
+**`.gitignore` com padrão de diretório sem `/` inicial casa em qualquer
+profundidade.** `research/` (sem barra na frente) excluía silenciosamente
+`src/research/scout.ts` também, não só o `research/` da raiz. Todo padrão de
+diretório de estado (`spread/`, `vigilancia/`, etc.) deve começar com `/`.
 
 ---
 
@@ -291,15 +415,20 @@ um processo novo.
 Padrão usado ao longo de toda esta sessão, sempre que uma mudança precisa de
 restart de um processo específico:
 
-1. `powershell -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { $_.CommandLine -match 'PADRÃO' } | Select ProcessId, CreationDate"` — snapshot ANTES.
+1. `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'PADRÃO' } | Select ProcessId, CreationDate` — snapshot ANTES.
 2. Editar, verificar sintaxe (`node --experimental-strip-types -e "await import('./arquivo.ts')"`), rodar `npm test`.
-3. Matar só o processo pretendido (`Stop-Process -Id X -Force`).
-4. Esperar o watchdog religar (`until curl ... | grep -q 200; do sleep 2; done` para o dashboard, ou `until` no count de processos para os outros).
-5. Repetir o snapshot dos OUTROS processos e confirmar PIDs idênticos aos do passo 1.
+3. Se a mudança é código (não dado): `touch vigilancia/manutencao.marker` antes de matar o processo — assim o watchdog loga "religado — atualização de código aplicada" em vez de "CAIU", e não dispara Telegram. Se a mudança é só dado em `estado.json` (como a correção do `takePrice`, seção 3.2), o mesmo truque serve igual: marca manutenção, mata o processo, edita o JSON à mão, deixa religar.
+4. Matar só o processo pretendido (`Stop-Process -Id X -Force`).
+5. Esperar o watchdog religar (`until curl ... | grep -q 200; do sleep 2; done` para o dashboard, ou checar contagem de processos para os outros — normalmente ≤30s).
+6. Repetir o snapshot dos OUTROS processos e confirmar PIDs idênticos aos do passo 1. Apagar `vigilancia/manutencao.marker` depois (ele expira sozinho em 90s, mas não custa limpar).
 
-Isso já pegou, ao vivo, uma instância duplicada acidental (dois processos de
-pares escrevendo no mesmo `estado.json` ao mesmo tempo) e foi corrigido antes
-de virar problema real.
+Isso já pegou, ao vivo, uma instância duplicada acidental — mais de uma vez
+nesta sessão, inclusive durante os próprios testes do fix de start/stop
+(seção 2): sempre que testar um novo mecanismo de subida, cheque
+`Get-CimInstance Win32_Process -Filter "Name='bash.exe'" | Where-Object {
+$_.CommandLine -like '*supervisor.sh*'}` antes E depois, e mate qualquer
+duplicata na hora — dois watchdogs escrevendo no mesmo `estado.json` ao
+mesmo tempo é o cenário de corrupção mais provável deste projeto.
 
 ---
 
@@ -307,12 +436,14 @@ de virar problema real.
 
 | # | O quê | Estado |
 |---|---|---|
-| 1 | Fase 2 do dashboard (paleta de comandos, marcadores de evento na curva, heatmap de spread) | feita — tema claro e ícones SVG reais também entraram |
-| 2 | Testar `iniciar.cmd`/`parar.cmd` rodando de verdade | feito — 3 ciclos reais de parar/iniciar (achou e corrigiu um bug real: `bash.exe` do WSL em `system32` mascarando o Git Bash). Estado conferido byte-a-byte antes/depois em todos os ciclos |
-| 3 | Decidir se maker vale a pena (item B6) | precisa de mais amostra — sinal atual é NEGATIVO pra troca, ao contrário do esperado |
-| 4 | Rotacionar a chave do trader.dev | pendente, depende do usuário (exige login que a IA não faz) |
-| 5 | Memória do dashboard/preenchimento subindo aos poucos (~450MB) | monitorado (`diagnostico` no payload), não é crítico ainda, sem causa raiz confirmada |
-| 6 | Push do trabalho desta sessão pro GitHub | commits locais feitos incrementalmente; confirme com o usuário antes de cada push (ele pede explicitamente às vezes) |
+| 1 | Fase 2 do dashboard (paleta de comandos, marcadores de evento, heatmap) | feita |
+| 2 | Testar `iniciar.cmd`/`parar.cmd` rodando de verdade | feito — achou e corrigiu 3 bugs reais (seção 2). Testado com mais de 6 ciclos completos, incluindo o cenário de fechar a janela do terminal |
+| 3 | Auditoria completa de operações (posições órfãs, coleta de dado, motores travados) | feita — resultado limpo em 6 pontos verificados (vigilância cobrindo as 6 exchanges, sem posição órfã, custódia/preenchimento com dado real mudando ciclo a ciclo). Único achado: bug do `takePrice`, já corrigido |
+| 4 | Corrigir `takePrice` negativo nas 34 posições short do momentum | feito — dado corrigido em `momentum/estado.json`, sem fechar/reabrir nenhuma posição |
+| 5 | Decidir se maker vale a pena (item B6) | precisa de mais amostra — sinal atual é NEGATIVO pra troca, ao contrário do esperado |
+| 6 | Rotacionar a chave do trader.dev | pendente, depende do usuário (exige login que a IA não faz) |
+| 7 | Memória do dashboard/preenchimento subindo aos poucos (~450MB) | monitorado (`diagnostico` no payload), não é crítico ainda, sem causa raiz confirmada |
+| 8 | Push do trabalho desta sessão pro GitHub | commits locais feitos incrementalmente; confirme com o usuário antes de cada push (ele pede explicitamente às vezes, e às vezes já pediu no meio da sessão — não assuma, mas também não trave por excesso de cautela se ele já confirmou) |
 
 ### Ideias já avaliadas e descartadas — não refaça sem dado novo
 
@@ -322,6 +453,7 @@ de virar problema real.
 | Mais alavancagem no motor normal | não muda o payback; a 8x a ruína salta de 0,17% pra 13,85% |
 | `body-breakout` e as outras 4 estratégias direcionais originais | não sobrevivem a custo taker real — confirmado por 2 motores independentes (Resultado 16) |
 | Aplicar `options.fetchMarkets` da bybit a todas as exchanges | quebra okx/bitget — já corrigido uma vez |
+| Agendador de Tarefas do Windows pra desanexar o watchdog do terminal | exige elevação (`Acesso negado` sem admin nesta máquina) — use WMI (seção 2.2) |
 
 ---
 
@@ -329,11 +461,12 @@ de virar problema real.
 
 ```bash
 bash scripts/supervisor.sh    # produção — sobe e supervisiona os 8 processos
-# ou, no Windows, clique duplo em iniciar.cmd
+# ou, no Windows, clique duplo em iniciar.cmd (recomendado — usa WMI, sobrevive
+# a fechar a janela do terminal, ver seção 2)
 ```
 
 ```bash
-npm test                      # 287 testes das travas de risco, seleção, motores
+npm test                      # 302 testes das travas de risco, seleção, motores
 npm run ruina                 # simulações contra choques de preço
 npm run desafio                # bootstrap por bloco de calendário (portfólio misto)
 npm run momentum · npm run pares   # as duas frentes de pesquisa em backtest
@@ -351,8 +484,10 @@ valor esperado barrou N candidatas · mais perto: X · vida Ah de Bh exigidas
 Normal e correto — significa que nada compensa o custo agora.
 
 **Sinais de problema real:** `vigilancia/supervisor-watchdog.log` mostrando
-"CAIU" sem você ter mexido em nada; memória subindo sem parar por horas;
-`fonte: varredura própria` persistente.
+"CAIU" sem você ter mexido em nada (**não** confundir com "subindo (primeira
+passada do watchdog)", que é normal logo depois de um `iniciar.cmd` — seção
+2.3); memória subindo sem parar por horas; `fonte: varredura própria`
+persistente.
 
 ---
 
@@ -374,10 +509,26 @@ Normal e correto — significa que nada compensa o custo agora.
 
 | Arquivo | Papel |
 |---|---|
-| `src/live/motor-momentum.ts` | ts-momentum multi-ativo |
-| `src/live/motor-pares.ts` | pares cointegrados, mercado-neutro |
+| `src/live/motor-momentum.ts` | ts-momentum multi-ativo (`calcularAlvos` — cuidado com o teto 0,95 no take de short) |
+| `src/live/motor-pares.ts` | pares cointegrados, mercado-neutro (com `comTimeout` no `fetchOHLCV`) |
 | `src/live/monitor-preenchimento.ts` | medição de fill maker vs taker |
 | `src/pairs/backtest.ts` | `passoZScore`/`calcularZ` — a regra que o motor de pares usa ao vivo |
+
+### Scripts de start/stop
+
+| Arquivo | Papel |
+|---|---|
+| `scripts/supervisor.sh` | watchdog — sobe/religa os 8 processos, checa a cada 30s |
+| `scripts/iniciar.ps1` | lógica real do `iniciar.cmd` — resolve o Git Bash certo, lança via WMI (seção 2) |
+| `scripts/parar.ps1` | lógica real do `parar.cmd` — mata watchdog primeiro, depois os 8 processos |
+| `iniciar.cmd`, `parar.cmd` | wrappers finos de 3 linhas, só chamam os `.ps1` acima |
+
+### ML (dormente, ativa sozinho com dado suficiente)
+
+| Arquivo | Papel |
+|---|---|
+| `src/ml/rotulo-ciclo.ts` | regra compartilhada de "ciclo positivo" (dashboard + treino usam a mesma) |
+| `src/ml/prontidao-vigilancia.ts` | pipeline real de treino (GBDT, split temporal, recusa fabricar métrica sem dado) |
 
 ### Dashboard
 
@@ -390,13 +541,15 @@ Normal e correto — significa que nada compensa o custo agora.
 
 | Documento | Para quê |
 |---|---|
-| `README.md` | visão geral atualizada (7→8 processos já refletido) |
+| `README.md` | visão geral, 8 processos, badges |
+| `COMECE-AQUI.md` | onboarding rápido pra quem chega no projeto agora |
 | `docs/RESULTADOS.md` | todos os números medidos, 16 resultados |
 | `docs/O-QUE-FALHOU.md` | testado e descartado, e por quê |
-| `docs/BACKLOG.md` | prioridades — B6 (preenchimento) já resolvido nesta sessão, backlog um pouco desatualizado sobre isso |
+| `docs/BACKLOG.md` | prioridades — B6 (preenchimento) já resolvido |
 | `docs/PEDIDOS.md` | rastreio dos pedidos do usuário |
+| `docs/VIGILANCIA.md` | como a vigilância varre e decide ciclo de vida |
 
-### Estado em disco — fora do git (`.gitignore`)
+### Estado em disco — fora do git (`.gitignore`, todos com padrão `/nome/` ancorado)
 
 ```
 spread/estado.json, spread/diario.jsonl        motor normal
@@ -405,6 +558,7 @@ pares/estado.json, pares/diario.jsonl          pares cointegrados
 preenchimento/estado.json, preenchimento/diario.jsonl   medição de fill
 vigilancia/ciclos.json, vigilancia/historico.jsonl      vigilância
 vigilancia/supervisor-watchdog.log             log do watchdog
+vigilancia/manutencao.marker                   toque antes de matar um processo de propósito
 ```
 
 ---
@@ -419,10 +573,18 @@ Se o usuário perguntar "isso vai dar lucro?", a resposta verdadeira hoje é:
 > falha, é o resultado certo dado o custo real medido. O modo agressivo tem
 > vantagem estatística real (p=0,008) mas ~9-13% de chance de bater a meta
 > em anos e ~15-45% de chance de perder capital, dependendo do risco
-> escolhido — a mistura com pares (Resultado 14) melhora isso, e agora está
-> ao vivo pela primeira vez. A ideia de reduzir custo com ordem maker
-> (item B6), que parecia a alavanca mais promissora, não está se confirmando
-> nos dados reais até agora — seleção adversa maior que o ganho de taxa.
+> escolhido — a mistura com pares (Resultado 14) melhora isso, e está ao
+> vivo. A ideia de reduzir custo com ordem maker (item B6), que parecia a
+> alavanca mais promissora, não está se confirmando nos dados reais até
+> agora — seleção adversa maior que o ganho de taxa.
 
-Nada aqui foi inventado para soar melhor. Isso é o que os dados medidos até
-06/08/2026 realmente dizem.
+Se o usuário perguntar "posso confiar que o sistema fica de pé sozinho?", a
+resposta agora é mais forte que na versão anterior deste documento: **sim,
+testado de verdade**, incluindo o cenário de fechar a janela do terminal por
+acidente — que era exatamente o tipo de coisa que "verifiquei o código, não
+testei ao vivo" não pega. A lição geral desta sessão, se só uma for levada
+adiante: **ler o código de um mecanismo de infraestrutura crítico não
+substitui rodá-lo de verdade e tentar quebrá-lo de propósito.**
+
+Nada aqui foi inventado para soar melhor. Isso é o que os dados medidos e os
+testes reais até 07/08/2026 realmente dizem.

@@ -91,17 +91,23 @@ A varredura sistemática de GitHub não foi feita.
 **Pronto quando:** houver uma nota comparando meus resultados com pelo menos 3
 fontes independentes.
 
-### B6. Modelar seleção adversa em ordem limite
+### B6. Modelar seleção adversa em ordem limite — RESOLVIDO (06/08/2026)
 
-**Por que:** é a maior fonte de otimismo não medido do projeto. Todo o resultado
-com custo maker depende disso.
+**Por que:** era a maior fonte de otimismo não medido do projeto. Todo o
+resultado com custo maker dependia disso.
 
-**O que fazer:** simular preenchimento condicional — a ordem limite só executa
-se o preço tocar o nível **e** a barra seguinte não tiver ido embora. Comparar
-com o preenchimento otimista atual. A diferença é o tamanho do autoengano.
+Em vez de simular seleção adversa em backtest, foi construído um motor ao
+vivo (`src/live/monitor-preenchimento.ts`) que mede de verdade: posta ordem
+limite "no toque" nas duas pernas dos 5 melhores candidatos da vigilância,
+usando preço real (`last`) como proxy — sem enviar ordem nenhuma — e mede
+taxa de preenchimento, tempo até encher, e o que o preço faz depois.
 
-**Pronto quando:** o preset maker tiver uma versão pessimista e a distância
-entre as duas estiver medida.
+**Resultado real, >1000 amostras:** taxa de preenchimento ótima (~89%),
+tempo mediano ~12 min, mas a seleção adversa medida (~0,125% de movimento
+médio contra quem forneceu liquidez) é **maior** que o escorregamento que
+ela substituiria (0,07%). Trocar taker por maker não parece reduzir custo
+com o dado real até agora — o oposto do esperado. Ver `CONTINUIDADE.md`
+seção 3.4 e `docs/RESULTADOS.md`.
 
 ### B7. Portfólio em vez de posição única
 

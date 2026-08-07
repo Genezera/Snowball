@@ -6,6 +6,14 @@ explicitamente marcado como pendente.
 
 Última atualização: 2026-07-31
 
+> **Este documento cobre só a fase fundacional do projeto (Pedidos 1-7,
+> até 31/07/2026).** Depois disso o projeto pivotou pra arbitragem de
+> funding delta-neutra e cresceu muito rápido (dashboard, 3 motores ao
+> vivo, ML, start/stop robusto) sem manter este rastreamento item a item
+> em dia. **Para o estado atual e tudo que foi pedido/feito desde então,
+> `CONTINUIDADE.md` (raiz do projeto) é o documento autoritativo** — é
+> reescrito a cada sessão para refletir a realidade, não só acumulado.
+
 ---
 
 ## Pedido 1 — Mensagem inicial
