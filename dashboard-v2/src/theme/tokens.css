@@ -1,77 +1,101 @@
 /**
- * SNOWBALL DASHBOARD 2.0 — DESIGN SYSTEM
- * ---------------------------------------------------------------------
- * Identidade nova, deliberadamente diferente do dashboard antigo (que
- * usava ciano neon #17d9ff sobre navy). Aqui: terminal quantitativo /
- * plataforma institucional — base quase-preta com um leve undertone
- * violeta-frio, um único acento "premium" em latão escurecido (não ouro
- * berrante, não neon), e cor semântica reservada só pra ganho/perda/risco
- * — nunca usada como decoração.
+ * SNOWBALL DASHBOARD — DESIGN SYSTEM
+ * =====================================================================
+ * Etapa A da unificação: a identidade GLACIAL do Snowball, portada do
+ * dashboard antigo (src/dashboard/pagina.ts) para dentro da arquitetura
+ * do dashboard novo. O que estava aqui antes era uma identidade "latão
+ * institucional" deliberadamente diferente — e foi exatamente isso que
+ * fez o Snowball "perder a cara". Aqui ela volta:
  *
- * Camadas de superfície (elevação por luminosidade + blur, não por sombra
- * dura) — glassmorphism CONTROLADO: opacidade baixa, blur curto, borda de
- * 1px quase invisível. Nada pisca. Nada é neon. Números financeiros usam
- * tabular-nums sempre.
+ *   - ciano glacial (#17d9ff) sobre navy profundíssimo (#050b18)
+ *   - vidro (glassmorphism) com borda ciano-translúcida
+ *   - fundo com brilhos radiais (ciano + violeta) e grade sutil
+ *   - acentos com brilho (glow), LED pulsante pra "ao vivo"
+ *   - números sempre em mono tabular
+ *
+ * Camada semântica canônica: os tokens `--snow-*` (item 5 da spec). Os
+ * nomes legados (`--surface-*`, `--ink-*`, `--brass-*`, `--gain-*`, ...)
+ * continuam existindo como ALIAS apontando pra paleta Snowball, pra que
+ * todas as 6 páginas já testadas re-skinem de uma vez sem reescrever cada
+ * componente. Contraste WCAG AA verificado (ver comentários por token).
  */
 :root {
   color-scheme: dark;
 
-  /* ── base ─────────────────────────────────────────────────────── */
-  --void: #06070a;
-  --surface-0: #0a0c11;
-  --surface-1: #10131a;
-  --surface-2: #161a23;
-  --surface-3: #1d222e;
-  --surface-glass: rgba(22, 26, 35, 0.62);
+  /* ═══ CAMADA SEMÂNTICA CANÔNICA — Snowball (item 5) ═══════════════ */
+  --snow-background: #050b18;        /* navy profundíssimo — fundo principal */
+  --snow-surface: #0c1526;           /* painel */
+  --snow-surface-elevated: #101d34;  /* painel elevado */
+  --snow-border: rgba(91, 211, 255, 0.16);
+  --snow-primary: #17d9ff;           /* CIANO — a cor-assinatura do Snowball (≥9.9:1) */
+  --snow-secondary: #168cff;         /* azul — motor/ação secundária */
+  --snow-accent: #75e8ff;            /* gelo — realce claro (≥11.8:1) */
+  --snow-profit: #36e3a0;            /* menta — ganho (≥10:1) */
+  --snow-loss: #ff5c7a;              /* rosa-vermelho — perda (≥5.6:1) */
+  --snow-warning: #ffc857;           /* âmbar — atenção (≥10.9:1) */
+  --snow-info: #75e8ff;              /* gelo — informativo */
+  --snow-text-primary: #f7fbff;      /* branco-gelo (≥15:1) */
+  --snow-text-secondary: #8ea3c2;    /* azul-acinzentado (≥6.5:1) */
+  --snow-text-muted: #7d90b0;        /* apagado — ainda WCAG AA normal (≥4.8:1) */
+  --snow-glow: rgba(23, 217, 255, 0.42);
+  --snow-violet: #8b6cf2;            /* violeta — Paper Profit Lab / secundário */
+  --snow-violet-glow: rgba(139, 108, 242, 0.40);
 
-  --border-hairline: rgba(255, 255, 255, 0.06);
-  --border-subtle: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  /* ═══ ALIAS LEGADOS → Snowball (re-skin de todos os componentes) ══ */
+  /* base / superfícies */
+  --void: #030812;
+  --surface-0: var(--snow-background);
+  --surface-1: var(--snow-surface);
+  --surface-2: var(--snow-surface-elevated);
+  --surface-3: #16233f;
+  --surface-glass: rgba(12, 29, 51, 0.72);
 
-  /* ── texto ────────────────────────────────────────────────────── */
-  --ink-0: #f2f3f5;
-  --ink-1: #c7cbd4;
-  --ink-2: #8b93a3;
-  /* achado real (Quality Gate de Interface, axe): #5b6272 dava 3.03:1
-     contra --surface-1 (#10131a) — abaixo do 4.5:1 exigido pra texto
-     normal (WCAG 2 AA). #7a8294 dá ~4.6:1, mantendo a hierarquia
-     "mais apagado que --ink-2" sem violar contraste. */
-  --ink-3: #7a8294;
+  --border-hairline: rgba(91, 211, 255, 0.10);
+  --border-subtle: var(--snow-border);
+  --border-strong: rgba(91, 211, 255, 0.30);
 
-  /* ── acento premium (latão escurecido — usado com moderação) ────── */
-  --brass-100: #f0dfb0;
-  --brass-300: #d9b877;
-  --brass-500: #b8935a;
-  --brass-700: #7a5f3c;
-  --brass-glow: rgba(184, 147, 90, 0.28);
+  /* texto */
+  --ink-0: var(--snow-text-primary);
+  --ink-1: #cdd9ec;
+  --ink-2: var(--snow-text-secondary);
+  --ink-3: var(--snow-text-muted);
 
-  /* ── acento informativo (slate-azul frio, pra dado/link neutro) ──── */
-  --slate-300: #a9b7cf;
-  --slate-500: #7186a8;
-  --slate-glow: rgba(113, 134, 168, 0.24);
+  /* acento primário: era "latão", agora é o CIANO Snowball. O nome
+     legado fica como alias pra não reescrever cada componente nesta etapa;
+     a migração de nome (brass→snow-primary) é polimento posterior. */
+  --brass-100: #a9edff;
+  --brass-300: var(--snow-primary);
+  --brass-500: #14b3d6;
+  --brass-700: #0e6f8a;
+  --brass-glow: var(--snow-glow);
 
-  /* ── semântica — SÓ pra ganho/perda/risco, nunca decorativa ──────── */
-  --gain-500: #4fbf8b;
-  --gain-glow: rgba(79, 191, 139, 0.25);
-  --loss-500: #e0667a;
-  --loss-glow: rgba(224, 102, 122, 0.25);
-  --warn-500: #d9a24f;
-  --warn-glow: rgba(217, 162, 79, 0.25);
-  --risk-500: #c65a6e;
-  --oracle-500: #9c85d4;
-  --oracle-glow: rgba(156, 133, 212, 0.25);
+  /* acento informativo frio (dado/link neutro) */
+  --slate-300: #a9c2e0;
+  --slate-500: #6f8fb8;
+  --slate-glow: rgba(111, 143, 184, 0.26);
 
-  /* ── identidade por motor (símbolo + cor, ver theme/engines.ts) ──── */
-  --engine-funding: #d9b877;
-  --engine-capture: #7186a8;
-  --engine-momentum: #4fbf8b;
-  --engine-pairs: #9c85d4;
-  --engine-baseline: #5b6272;
-  --engine-portfolio: #e0667a;
+  /* semântica — SÓ ganho/perda/risco, nunca decoração */
+  --gain-500: var(--snow-profit);
+  --gain-glow: rgba(54, 227, 160, 0.28);
+  --loss-500: var(--snow-loss);
+  --loss-glow: rgba(255, 92, 122, 0.28);
+  --warn-500: var(--snow-warning);
+  --warn-glow: rgba(255, 200, 87, 0.28);
+  --risk-500: #ff6b84;
+  --oracle-500: var(--snow-violet);
+  --oracle-glow: var(--snow-violet-glow);
 
-  /* ── tipografia ───────────────────────────────────────────────── */
+  /* identidade por motor (símbolo + cor) */
+  --engine-funding: #17d9ff;    /* champion funding arb — ciano */
+  --engine-capture: #75e8ff;    /* settlement capture — gelo */
+  --engine-momentum: #36e3a0;   /* momentum — menta */
+  --engine-pairs: #8b6cf2;      /* pares estatísticos — violeta */
+  --engine-baseline: #6f8fb8;   /* baselines — slate */
+  --engine-portfolio: #168cff;  /* portfolio — azul */
+
+  /* ═══ tipografia ═════════════════════════════════════════════════ */
   --font-ui: -apple-system, "Segoe UI", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Söhne", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter", -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Consolas, monospace;
 
   --text-2xs: 0.6875rem;
@@ -83,19 +107,22 @@
   --text-2xl: 2rem;
   --text-3xl: 2.75rem;
 
-  /* ── espaçamento (escala 4px) ─────────────────────────────────── */
+  /* ═══ espaçamento (escala 4px) ═══════════════════════════════════ */
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
   --space-12: 48px; --space-16: 64px;
 
-  /* ── raio e elevação ──────────────────────────────────────────── */
-  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 18px; --radius-full: 999px;
-  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --elevation-2: 0 8px 24px -8px rgba(0, 0, 0, 0.55);
-  --elevation-3: 0 24px 64px -16px rgba(0, 0, 0, 0.65);
+  /* ═══ raio e elevação ════════════════════════════════════════════ */
+  --radius-sm: 10px; --radius-md: 13px; --radius-lg: 16px; --radius-full: 999px;
+  --elevation-1: 0 1px 2px rgba(2, 6, 16, 0.5);
+  --elevation-2: 0 10px 30px -10px rgba(2, 6, 16, 0.7);
+  --elevation-3: 0 26px 64px -18px rgba(2, 6, 16, 0.8);
+  /* brilho Snowball — usado com moderação em elementos-chave */
+  --glow-primary: 0 0 18px -2px var(--snow-glow);
+  --glow-soft: 0 0 24px -6px rgba(23, 217, 255, 0.30);
 
-  /* ── motion ───────────────────────────────────────────────────── */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* ═══ motion ═════════════════════════════════════════════════════ */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-fast: 120ms;
   --dur-base: 220ms;
@@ -108,16 +135,60 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
+
+/* Atmosfera Snowball: navy + brilhos radiais (ciano em cima à esquerda,
+   violeta à direita) + pontinhos de "gelo". Isto é o que dá personalidade
+   — o fundo nunca é chapado. */
 body {
   margin: 0;
-  background: var(--void);
   color: var(--ink-0);
   font-family: var(--font-ui);
   font-size: var(--text-base);
   -webkit-font-smoothing: antialiased;
+  background-color: var(--snow-background);
+  background-image:
+    radial-gradient(1100px 650px at 12% -8%, rgba(23, 217, 255, 0.10), transparent 58%),
+    radial-gradient(950px 760px at 100% 4%, rgba(139, 108, 242, 0.10), transparent 55%),
+    radial-gradient(1px 1px at 20% 30%, rgba(117, 232, 255, 0.5), transparent);
+  background-attachment: fixed;
 }
+/* grade técnica sutil sobreposta, esmaecida no topo */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(91, 211, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91, 211, 255, 0.035) 1px, transparent 1px);
+  background-size: 38px 38px;
+  -webkit-mask-image: radial-gradient(1200px 800px at 30% 0%, #000, transparent 75%);
+  mask-image: radial-gradient(1200px 800px at 30% 0%, #000, transparent 75%);
+}
+
 .tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
-:focus-visible { outline: 2px solid var(--brass-300); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--snow-primary); outline-offset: 2px; }
+
+/* scrollbar glacial */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* LED pulsante — sinal "ao vivo" (herdado da identidade antiga) */
+@keyframes snow-pulse {
+  0% { box-shadow: 0 0 0 0 var(--snow-glow); }
+  70% { box-shadow: 0 0 0 6px rgba(23, 217, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(23, 217, 255, 0); }
+}
+
+/* ticker — marquee contínuo e suave (herdado do dashboard antigo) */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-track { animation: ticker-scroll 44s linear infinite; }
+.ticker-track:hover { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+}
 
 @keyframes skeleton-sweep {
   0% { background-position: 200% 0; }

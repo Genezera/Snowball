@@ -12,6 +12,7 @@ const RESOLUCOES = [
   { nome: '1440x900 (desktop)', width: 1440, height: 900 },
   { nome: '1920x1080 (full hd)', width: 1920, height: 1080 },
   { nome: '2560x1080 (ultrawide)', width: 2560, height: 1080 },
+  { nome: '2560x1440 (ultrawide qhd)', width: 2560, height: 1440 },
 ];
 
 const PAGINAS = [
@@ -21,6 +22,19 @@ const PAGINAS = [
   { rota: '/capture', nome: 'Settlement Capture' },
   { rota: '/costs', nome: 'Cost Intelligence' },
   { rota: '/risk', nome: 'Risk Center' },
+  { rota: '/strategies', nome: 'Strategy Universe' },
+  { rota: '/arena', nome: 'Challenger Arena' },
+  { rota: '/champion-vs-control', nome: 'Champion vs. Control' },
+  { rota: '/experiments', nome: 'Experiment Lab' },
+  { rota: '/portfolio', nome: 'Portfolio' },
+  { rota: '/opportunities', nome: 'Opportunity Map' },
+  { rota: '/exchanges', nome: 'Exchanges' },
+  { rota: '/processes', nome: 'Processos' },
+  { rota: '/system', nome: 'System Health' },
+  { rota: '/pesquisa', nome: 'Pesquisa' },
+  { rota: '/historico', nome: 'Histórico' },
+  { rota: '/logs', nome: 'Logs' },
+  { rota: '/audit', nome: 'Audit' },
 ];
 
 for (const res of RESOLUCOES) {

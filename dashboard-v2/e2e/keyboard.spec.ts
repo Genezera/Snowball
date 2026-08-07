@@ -16,6 +16,22 @@ test.describe('Navegação por teclado', () => {
     test.skip(browserName === 'webkit', 'WebKit não dá Tab em links por padrão (ajuste de SO "Full Keyboard Access"); links são <a href> semânticos, alcançáveis por Tab no Chromium/Firefox');
 
     await page.goto('/');
+
+    // MOBILE: a navegação é um drawer próprio atrás do hambúrguer (item 7 —
+    // "não apenas comprimir a sidebar desktop"). O fluxo de teclado é:
+    // Tab até o hambúrguer, Enter abre o drawer, link focável, Enter navega.
+    const hamburger = page.getByRole('button', { name: 'Abrir menu' });
+    if (await hamburger.isVisible().catch(() => false)) {
+      await hamburger.focus();
+      await page.keyboard.press('Enter');
+      const linkLive = page.getByRole('link', { name: 'Live Operations' });
+      await expect(linkLive).toBeVisible();
+      await linkLive.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('heading', { name: 'Live Operations' })).toBeVisible({ timeout: 5000 });
+      return;
+    }
+
     await page.keyboard.press('Tab'); // primeiro foco: pular pro conteúdo (skip-link) ou o primeiro link
     const primeiroFoco = await page.evaluate(() => document.activeElement?.tagName);
     expect(primeiroFoco).toBeTruthy();
@@ -50,8 +66,22 @@ test.describe('Navegação por teclado', () => {
     await expect(page.getByRole('button', { name: '⏸ congelar' })).toBeVisible();
   });
 
-  test('sidebar recolhível é operável via teclado (Enter/Espaço), foco preservado', async ({ page }) => {
+  test('nav recolhível/drawer é operável via teclado (Enter/Escape), foco preservado', async ({ page }) => {
     await page.goto('/');
+
+    // MOBILE: o equivalente ao "recolher" é o drawer — hambúrguer abre via
+    // Enter, Escape fecha.
+    const hamburger = page.getByRole('button', { name: 'Abrir menu' });
+    if (await hamburger.isVisible().catch(() => false)) {
+      await hamburger.focus();
+      await page.keyboard.press('Enter');
+      await expect(page.getByRole('link', { name: 'Command Center' })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('link', { name: 'Command Center' })).toBeHidden();
+      return;
+    }
+
+    // DESKTOP: botão « Recolher.
     const botaoRecolher = page.getByRole('button', { name: /recolher menu/i });
     await botaoRecolher.focus();
     await page.keyboard.press('Enter');

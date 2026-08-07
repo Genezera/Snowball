@@ -8,6 +8,19 @@ const PAGINAS = [
   { rota: '/capture', nome: 'Settlement Capture' },
   { rota: '/costs', nome: 'Cost Intelligence' },
   { rota: '/risk', nome: 'Risk Center' },
+  { rota: '/strategies', nome: 'Strategy Universe' },
+  { rota: '/arena', nome: 'Challenger Arena' },
+  { rota: '/champion-vs-control', nome: 'Champion vs. Control' },
+  { rota: '/experiments', nome: 'Experiment Lab' },
+  { rota: '/portfolio', nome: 'Portfolio' },
+  { rota: '/opportunities', nome: 'Opportunity Map' },
+  { rota: '/exchanges', nome: 'Exchanges' },
+  { rota: '/processes', nome: 'Processos' },
+  { rota: '/system', nome: 'System Health' },
+  { rota: '/pesquisa', nome: 'Pesquisa' },
+  { rota: '/historico', nome: 'Histórico' },
+  { rota: '/logs', nome: 'Logs' },
+  { rota: '/audit', nome: 'Audit' },
 ];
 
 /**

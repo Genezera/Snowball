@@ -88,8 +88,12 @@ test.describe('Champion View', () => {
     await mockarChampionEProfitLab(page, { champion: championComPosicoes(2) });
     await page.goto('/champion');
     await expect(page.getByRole('heading', { name: 'Posições abertas (2)' })).toBeVisible();
-    await expect(page.getByText('BTCUSDT')).toBeVisible();
-    await expect(page.getByText('ETHUSDT')).toBeVisible();
+    // escopo na seção de posições — o Ticker (barra do topo) também mostra os
+    // símbolos das posições (BTCUSDT/ETHUSDT), então uma busca global casaria
+    // várias vezes. A seção tem aria-label próprio.
+    const secao = page.getByLabel('Posições abertas — as duas pernas');
+    await expect(secao.getByText('BTCUSDT')).toBeVisible();
+    await expect(secao.getByText('ETHUSDT')).toBeVisible();
   });
 
   test('determinístico: posição com risco elevado (distância mínima de liquidação muito baixa) continua identificável na perna em risco', async ({ page }) => {
