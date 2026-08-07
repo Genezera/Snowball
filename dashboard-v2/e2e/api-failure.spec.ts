@@ -36,14 +36,14 @@ test.describe('Falhas simuladas da API V2', () => {
     const corpo = await page.textContent('body');
     expect(corpo).not.toMatch(/localhost:8787/);
     // a página continua de pé (heading visível), mesmo com dado corrompido
-    await expect(page.getByRole('heading', { name: 'Champion View' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Champion', exact: true })).toBeVisible();
   });
 
   test('schema incompatível: campo obrigatório faltando vira corrompido, nunca sucesso parcial fabricado', async ({ page }) => {
     await page.route('**/api/v2/champion', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ estado: null }) }));
     await page.goto('/champion');
     await page.waitForTimeout(2000);
-    await expect(page.getByRole('heading', { name: 'Champion View' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Champion', exact: true })).toBeVisible();
   });
 
   test('resposta parcial: campos opcionais ausentes não quebram a página', async ({ page }) => {
@@ -55,7 +55,7 @@ test.describe('Falhas simuladas da API V2', () => {
       }),
     }));
     await page.goto('/champion');
-    await expect(page.getByRole('heading', { name: 'Champion View' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Champion', exact: true })).toBeVisible();
   });
 
   test('conexão recusada: estado de erro honesto, recupera quando a rota é liberada', async ({ page }) => {
@@ -66,7 +66,7 @@ test.describe('Falhas simuladas da API V2', () => {
 
     await page.unroute('**/api/v2/champion');
     await page.waitForTimeout(6000);
-    await expect(page.getByText('CAPITAL REALIZADO')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Capital · PAPER').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('resposta lenta: não trava a navegação nem gera loop de requests', async ({ page }) => {

@@ -17,7 +17,7 @@ test.describe('prefers-reduced-motion: reduce', () => {
 
   test('Command Center: números corretos, nada com opacity zero permanente', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('CAPITAL REALIZADO')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Capital · PAPER').first()).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(1500);
 
     // nenhum elemento de métrica visível deveria ficar com opacity computada 0
@@ -34,24 +34,23 @@ test.describe('prefers-reduced-motion: reduce', () => {
   });
 
   test('regressão: AnimatedNumber nunca fica preso em 0/valor inicial com reduced motion', async ({ page }) => {
-    await page.goto('/champion');
-    await expect(page.getByRole('heading', { name: 'Champion View' })).toBeVisible();
+    // o AnimatedNumber vive no MetricCard; o Portfolio usa MetricCard para o
+    // "Capital realizado". Verifica que o número exibido bate com a API, nunca
+    // preso em 0 (o bug histórico) sob reduced motion.
+    await page.goto('/portfolio');
+    await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
     await page.waitForTimeout(2000);
 
-    const metricas = page.getByLabel('Métricas do champion');
-    // sobe 2 níveis a partir do label: span -> div (linha do cabeçalho) ->
-    // div (o MetricCard inteiro, onde o número (irmão da linha de
-    // cabeçalho) também está)
-    const cardPosicoes = metricas.getByText('Posições abertas', { exact: true }).locator('xpath=../..');
-    const posicoesTexto = await cardPosicoes.textContent();
+    const card = page.getByText('Capital realizado', { exact: true }).locator('xpath=../..');
+    const texto = await card.textContent();
 
-    // valor real vindo da API, comparado ao que a tela mostra -- nunca preso em 0 se a API diz outra coisa
     const resposta = await page.request.get('http://localhost:5184/api/v2/champion');
     const json = await resposta.json();
-    const posicoesReais = (json.posicoes ?? []).length;
-
-    if (posicoesReais > 0) {
-      expect(posicoesTexto).toContain(String(posicoesReais));
+    const capital = json.estado?.capital;
+    if (capital != null && capital > 0) {
+      // parte inteira do capital (ex.: "608") deve aparecer — nunca só "0"
+      expect(texto).toContain(String(Math.floor(capital)).slice(0, 3));
+      expect(texto).not.toMatch(/US\$\s*0,00\s*$/);
     }
   });
 

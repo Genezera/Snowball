@@ -61,9 +61,10 @@ test.describe('Mobile: prioriza saúde/PnL/posições/alertas/settlements/evento
 
   test('Command Center mobile mostra métricas essenciais acima da dobra', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('CAPITAL REALIZADO')).toBeVisible({ timeout: 10_000 });
-    const box = await page.getByText('CAPITAL REALIZADO').boundingBox();
-    expect(box, 'capital realizado deveria estar visível/posicionado, não fora da tela').not.toBeNull();
+    const capital = page.getByText('Capital · PAPER').first();
+    await expect(capital).toBeVisible({ timeout: 10_000 });
+    const box = await capital.boundingBox();
+    expect(box, 'capital deveria estar visível/posicionado, não fora da tela').not.toBeNull();
     if (box) expect(box.y).toBeLessThan(844 * 2); // dentro de um scroll razoável, não escondido no fim da página
   });
 
