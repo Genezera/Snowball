@@ -76,6 +76,22 @@ export function useEventosRecentes() {
     setEventosNoBuffer(fronteira === null ? 0 : todosRef.current.length - fronteira);
   }
 
+  // AUTO-CURA da fronteira: a fronteira só pode ser não-nula quando
+  // `congelado` é true. Se, por qualquer motivo (ex.: Fast Refresh resetando
+  // o state mas preservando o ref), a fronteira ficar presa com
+  // `congelado=false`, a lista visível travaria num índice antigo enquanto
+  // os eventos se acumulam — sintoma: "recebidos" sobe mas só N eventos
+  // aparecem, e o botão diz "congelar". Este efeito força a consistência:
+  // toda vez que `congelado` é false, a fronteira volta a null e o backlog
+  // inteiro reaparece. Roda no mount também (destrava qualquer estado preso).
+  useEffect(() => {
+    if (!congelado && fronteiraRef.current !== null) {
+      fronteiraRef.current = null;
+      republicarVisiveis();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [congelado]);
+
   useEffect(() => {
     let ativo = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
