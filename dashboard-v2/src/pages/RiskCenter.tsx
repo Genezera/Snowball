@@ -24,8 +24,12 @@ export function RiskCenter() {
       {!profitLab && <DataStateBanner kind="loading" />}
       {profitLab?.estado === 'erro' && <DataStateBanner kind="offline" motivo={profitLab.motivo} />}
 
+      {/* achado real (axe): --loss-glow (25% opacidade) contra --loss-500 dava
+          4.46:1, abaixo do 4.5:1 exigido — fundo local mais escuro (15%) só
+          nesta seção crítica, sem alterar o token global usado em outros
+          lugares (ex.: DrawdownChart) */}
       {altoRisco.length > 0 && (
-        <section style={{ background: 'var(--loss-glow)', border: '1px solid var(--loss-500)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}>
+        <section style={{ background: 'rgba(224, 102, 122, 0.15)', border: '1px solid var(--loss-500)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}>
           <h2 style={{ margin: '0 0 10px', fontSize: 'var(--text-xs)', fontWeight: 800, letterSpacing: '0.05em', color: 'var(--loss-500)' }}>
             ⚠ PAPER EXPERIMENT — HIGH RISK ({altoRisco.length} challenger{altoRisco.length > 1 ? 's' : ''} acima de 5× alavancagem)
           </h2>
@@ -46,7 +50,7 @@ export function RiskCenter() {
         {!riscos.length ? (
           <div style={{ background: 'var(--surface-1)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}><EmptyIllustration label="Sem dados suficientes" /></div>
         ) : (
-          <div style={{ overflowX: 'auto', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-lg)' }}>
+          <div tabIndex={0} role="region" aria-label="Tabela de drawdown e concentração, role horizontal" style={{ overflowX: 'auto', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-lg)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-xs)' }}>
               <thead>
                 <tr style={{ background: 'var(--surface-2)' }}>
@@ -80,7 +84,7 @@ export function RiskCenter() {
         <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: '0 0 var(--space-3)', color: 'var(--ink-1)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Cenários — ideal · base · conservador · stress
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--space-3)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 'var(--space-3)' }}>
           {leaderboard.slice(0, 12).map((l) => {
             const c = cenariosPorId.get(l.challengerId);
             if (!c) return null;

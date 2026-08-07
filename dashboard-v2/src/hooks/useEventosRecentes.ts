@@ -14,14 +14,33 @@ export type EstadoConexao = 'conectando' | 'ativo' | 'erro';
  * imediatamente (sem esperar o intervalo) até esvaziar o backlog — só
  * depois volta a esperar `INTERVALO_POLL_MS`.
  *
- * FREEZE/RESUME (Parte 5/6): congelar NUNCA pausa a rede — o poll continua
- * avançando o cursor e recebendo eventos normalmente, só que em vez de ir
- * pra lista visível eles vão pro BUFFER. Isso significa: nenhum evento é
- * perdido enquanto congelado, e retomar nunca precisa rebuscar a janela
- * inteira (o cursor já está atualizado). Ao retomar, o buffer inteiro entra
- * de uma vez, em ordem, no fim da lista visível (que só cresce por append —
- * nunca reordena o que já estava lá, então a posição de rolagem de quem
- * está olhando eventos antigos não pula).
+ * FREEZE/RESUME (Parte 5/6, redesenhado no Fechamento do Quality Gate):
+ * congelar NUNCA pausa a rede — o poll continua avançando o cursor e
+ * recebendo eventos normalmente. Nenhum evento é perdido enquanto
+ * congelado, e retomar nunca precisa rebuscar a janela inteira (o cursor já
+ * está atualizado).
+ *
+ * ACHADO REAL: a versão anterior decidia, EM TEMPO REAL, se cada lote novo
+ * ia pra lista visível ou pro buffer, checando uma ref de "está congelado
+ * agora?" dentro do poll assíncrono. Mesmo escrevendo essa ref de forma
+ * síncrona no clique (tentativa de correção), o teste de freeze/resume
+ * contra dados ao vivo continuava falhando de forma intermitente — a causa
+ * raiz não era SÓ a leitura da ref chegar atrasada, era o desenho em si:
+ * duas listas mutáveis (`visiveisRef`/`bufferRef`) sendo escritas por um
+ * loop assíncrono independente do clique do usuário é uma corrida por
+ * construção, não importa quão cedo a ref seja atualizada.
+ *
+ * Desenho novo, sem essa classe de corrida: existe UMA única lista
+ * (`todosRef`, ordenada, deduplicada, sempre crescente) que o poll
+ * preenche, sempre, congelado ou não — o poll nunca decide nada sobre
+ * freeze. `congelar()` só grava, de forma síncrona e atômica,
+ * `fronteiraRef.current = todosRef.current.length` (quantos eventos existem
+ * NESTE INSTANTE). Enquanto congelado, o que é exibido é sempre
+ * `todosRef.current.slice(0, fronteiraRef.current)` — uma fronteira fixa
+ * sobre uma lista que continua crescendo por trás. `retomar()` só apaga a
+ * fronteira. Não existe mais uma escolha "pra onde vai o lote novo" — só
+ * existe "até onde a tela está autorizada a mostrar agora", decidido uma
+ * vez, no clique, nunca dentro do poll.
  *
  * DEDUPLICAÇÃO: por `eventId` (nunca por índice/timestamp) — um Set
  * acumulado entre todas as páginas já vistas. `duplicadosDescartados` só
@@ -43,12 +62,19 @@ export function useEventosRecentes() {
   const [tentativas, setTentativas] = useState(0);
   const [cobertura, setCobertura] = useState<ManifestoCobertura | undefined>(undefined);
 
-  const congeladoRef = useRef(false);
-  congeladoRef.current = congelado;
   const cursorRef = useRef<string | null>(null);
   const idsVistosRef = useRef<Set<string>>(new Set());
-  const bufferRef = useRef<EventoRecente[]>([]);
-  const visiveisRef = useRef<EventoRecente[]>([]);
+  /** Única fonte de verdade — sempre crescente, sempre ordenada por timestamp, congelado ou não. */
+  const todosRef = useRef<EventoRecente[]>([]);
+  /** null = não congelado (mostra tudo). Número = índice congelado em `todosRef` no instante do clique. */
+  const fronteiraRef = useRef<number | null>(null);
+
+  /** Deriva a lista visível a partir da fronteira atual — chamado sempre que `todosRef` ou a fronteira mudam. */
+  function republicarVisiveis() {
+    const fronteira = fronteiraRef.current;
+    setEventosVisiveis(fronteira === null ? todosRef.current : todosRef.current.slice(0, fronteira));
+    setEventosNoBuffer(fronteira === null ? 0 : todosRef.current.length - fronteira);
+  }
 
   useEffect(() => {
     let ativo = true;
@@ -83,13 +109,9 @@ export function useEventosRecentes() {
       if (novos.length) {
         setEventosRecebidos((n) => n + novos.length);
         setUltimoEventId(novos[novos.length - 1].eventId);
-        if (congeladoRef.current) {
-          bufferRef.current = [...bufferRef.current, ...novos].sort((a, b) => a.timestamp - b.timestamp);
-          setEventosNoBuffer(bufferRef.current.length);
-        } else {
-          visiveisRef.current = [...visiveisRef.current, ...novos].sort((a, b) => a.timestamp - b.timestamp);
-          setEventosVisiveis(visiveisRef.current);
-        }
+        // sempre acumula em `todosRef` — o poll nunca decide freeze, só a fronteira (setada fora deste loop) decide o que fica visível.
+        todosRef.current = [...todosRef.current, ...novos].sort((a, b) => a.timestamp - b.timestamp);
+        republicarVisiveis();
       }
 
       // backlog grande (ex.: primeira carga, ou depois de uma rotação com
@@ -100,15 +122,15 @@ export function useEventosRecentes() {
     return () => { ativo = false; if (timer) clearTimeout(timer); };
   }, []);
 
-  function congelar() { setCongeladoState(true); }
+  function congelar() {
+    fronteiraRef.current = todosRef.current.length; // fronteira gravada de forma atômica e síncrona no clique — nenhum poll em voo pode mudar isso depois
+    setCongeladoState(true);
+    republicarVisiveis();
+  }
   function retomar() {
-    if (bufferRef.current.length) {
-      visiveisRef.current = [...visiveisRef.current, ...bufferRef.current].sort((a, b) => a.timestamp - b.timestamp);
-      setEventosVisiveis(visiveisRef.current);
-      bufferRef.current = [];
-      setEventosNoBuffer(0);
-    }
+    fronteiraRef.current = null;
     setCongeladoState(false);
+    republicarVisiveis();
   }
 
   const ultimoEventoTs = eventosVisiveis.length ? eventosVisiveis[eventosVisiveis.length - 1].timestamp : null;

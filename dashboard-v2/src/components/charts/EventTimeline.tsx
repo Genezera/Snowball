@@ -1,4 +1,6 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { motion, useReducedMotion } from 'framer-motion';
 import { eventEnter } from '../../theme/motion';
 import { EmptyIllustration, Skeleton } from '../feedback/DataState';
 import type { ChartDataState } from './ChartFrame';
@@ -25,6 +27,8 @@ const COR_EVENTO: Record<string, string> = {
   bloqueado: 'var(--ink-3)', leitura: 'var(--ink-3)',
 };
 
+const ALTURA_LINHA = 44; // altura fixa por linha, em px — usada pela virtualização calcular offsets sem medir o DOM
+
 function fmtHora(ts: number): string {
   return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
@@ -34,45 +38,75 @@ async function copiarId(id: string) {
 }
 
 /**
- * Timeline ao vivo — cada evento entra com `eventEnter` (desliza+clareia),
- * nunca reordena o que já está na tela (`AnimatePresence mode="popLayout"`
- * evita o salto). `congelado` pausa a entrada de novos itens sem perder o
- * que já chegou — é a mesma lista, só para de crescer.
+ * Timeline ao vivo — VIRTUALIZADA (Quality Gate de Interface, item 15):
+ * antes desta versão, cada evento acumulado virava um nó DOM permanente —
+ * com o Live Operations rodando por horas/dias e nenhum teto na lista
+ * acumulada, isso significava milhares de nós DOM reais, degradando scroll
+ * e memória. Agora só as linhas VISÍVEIS (+ uma margem de overscan) existem
+ * no DOM, mesmo com 10.000+ eventos na lista lógica — `useVirtualizer`
+ * (@tanstack/react-virtual) recalcula a janela visível a cada scroll.
+ *
+ * `congelado` continua funcionando igual: quem passa a lista pra este
+ * componente já decidiu o que está "visível" (o hook de dados é quem
+ * separa visível vs buffer) — este componente só renderiza o que recebe,
+ * virtualizado.
  */
 export function EventTimeline({ eventos, state, congelado }: Props) {
   const reduceMotion = useReducedMotion();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: eventos?.length ?? 0,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => ALTURA_LINHA,
+    overscan: 12,
+  });
+
   if (state === 'loading') return <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{[...Array(6)].map((_, i) => <Skeleton key={i} height={36} />)}</div>;
   if (!eventos?.length) return <EmptyIllustration label="Nenhum evento ainda nesta janela" />;
 
+  const itensVirtuais = virtualizer.getVirtualItems();
+
   return (
-    <div role="log" aria-live={congelado ? 'off' : 'polite'} style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 520, overflowY: 'auto' }}>
-      <AnimatePresence initial={false} mode="popLayout">
-        {eventos.map((ev) => (
-          <motion.div
-            key={ev.eventId} layout
-            variants={reduceMotion ? undefined : eventEnter} initial="hidden" animate="visible" exit={{ opacity: 0 }}
-            style={{
-              display: 'grid', gridTemplateColumns: '84px 10px 1fr auto', alignItems: 'center', gap: 10,
-              padding: '7px 10px', borderRadius: 8, background: 'var(--surface-1)', border: '1px solid var(--border-hairline)',
-              fontSize: 'var(--text-xs)',
-            }}
-          >
-            <span className="tabular" style={{ color: 'var(--ink-3)' }}>{fmtHora(ev.timestamp)}</span>
-            <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: COR_EVENTO[ev.evento] ?? 'var(--ink-3)', justifySelf: 'center' }} />
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <strong style={{ color: 'var(--ink-0)' }}>{ev.challengerId}</strong>
-              <span style={{ color: 'var(--ink-2)' }}> · {ev.evento}</span>
-              {ev.motivo && <span style={{ color: 'var(--ink-3)' }}> · {ev.motivo}</span>}
-            </span>
-            <button
-              onClick={() => copiarId(ev.eventId)} aria-label={`Copiar eventId ${ev.eventId}`}
-              style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--ink-3)', fontSize: 10, padding: '3px 7px', cursor: 'pointer' }}
+    <div
+      ref={containerRef}
+      role="log" aria-live={congelado ? 'off' : 'polite'}
+      data-testid="event-timeline-scroll" data-total-eventos={eventos.length}
+      style={{ maxHeight: 520, overflowY: 'auto', position: 'relative' }}
+    >
+      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+        {itensVirtuais.map((item) => {
+          const ev = eventos[item.index];
+          return (
+            <motion.div
+              key={ev.eventId}
+              data-index={item.index}
+              variants={reduceMotion ? undefined : eventEnter} initial="hidden" animate="visible"
+              style={{
+                position: 'absolute', top: 0, left: 0, right: 0, transform: `translateY(${item.start}px)`,
+                height: ALTURA_LINHA - 4, marginBottom: 4,
+                display: 'grid', gridTemplateColumns: '84px 10px 1fr auto', alignItems: 'center', gap: 10,
+                padding: '7px 10px', borderRadius: 8, background: 'var(--surface-1)', border: '1px solid var(--border-hairline)',
+                fontSize: 'var(--text-xs)',
+              }}
             >
-              copiar id
-            </button>
-          </motion.div>
-        ))}
-      </AnimatePresence>
+              <span className="tabular" style={{ color: 'var(--ink-3)' }}>{fmtHora(ev.timestamp)}</span>
+              <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: COR_EVENTO[ev.evento] ?? 'var(--ink-3)', justifySelf: 'center' }} />
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <strong style={{ color: 'var(--ink-0)' }}>{ev.challengerId}</strong>
+                <span style={{ color: 'var(--ink-2)' }}> · {ev.evento}</span>
+                {ev.motivo && <span style={{ color: 'var(--ink-3)' }}> · {ev.motivo}</span>}
+              </span>
+              <button
+                onClick={() => copiarId(ev.eventId)} aria-label={`Copiar eventId ${ev.eventId}`}
+                style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: 6, color: 'var(--ink-3)', fontSize: 10, padding: '3px 7px', cursor: 'pointer' }}
+              >
+                copiar id
+              </button>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }

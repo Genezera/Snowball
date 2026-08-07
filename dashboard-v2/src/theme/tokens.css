@@ -32,7 +32,11 @@
   --ink-0: #f2f3f5;
   --ink-1: #c7cbd4;
   --ink-2: #8b93a3;
-  --ink-3: #5b6272;
+  /* achado real (Quality Gate de Interface, axe): #5b6272 dava 3.03:1
+     contra --surface-1 (#10131a) — abaixo do 4.5:1 exigido pra texto
+     normal (WCAG 2 AA). #7a8294 dá ~4.6:1, mantendo a hierarquia
+     "mais apagado que --ink-2" sem violar contraste. */
+  --ink-3: #7a8294;
 
   /* ── acento premium (latão escurecido — usado com moderação) ────── */
   --brass-100: #f0dfb0;

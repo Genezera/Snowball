@@ -27,6 +27,30 @@ function escreverDiarioChampion(root: string, linhas: any[]) {
   fs.writeFileSync(path.join(root, 'spread', 'diario.jsonl'), linhas.map((l) => JSON.stringify(l)).join('\n') + '\n');
 }
 
+test('achado real (Quality Gate de Interface): sequenceNumber+eventId duplicado upstream (reinício do orquestrador) nunca gera eventId repetido NEM apaga o evento economicamente diferente', () => {
+  const root = tmpRoot();
+  // reproduz exatamente o caso real: mesmo eventId/sequenceNumber:1, dois
+  // cycleId diferentes (contador do Lab não sobreviveu a um restart) — os
+  // dois são economicamente DISTINTOS (cycleId diferente), então os dois
+  // precisam sobreviver, só não podem ter o mesmo eventId.
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'challenger-teste-1', sequenceNumber: 1, cycleId: 'orch-A', ts: 1000, evento: 'bloqueado' },
+    { eventId: 'challenger-teste-1', sequenceNumber: 1, cycleId: 'orch-B', ts: 2000, evento: 'bloqueado' },
+    { eventId: 'challenger-teste-2', sequenceNumber: 2, cycleId: 'orch-B', ts: 3000, evento: 'bloqueado' },
+  ]);
+  const r = buscarEventosIncremental(root, [{ fonte: 'challenger-teste', ehChampion: false }], null, 100);
+  const ids = r.eventos.map((e) => e.eventId);
+  assert.equal(new Set(ids).size, ids.length, 'nenhum eventId deveria se repetir mesmo com duplicata upstream');
+  assert.equal(r.eventos.length, 3, 'os TRÊS eventos sobrevivem — nenhum é apagado, mesmo o que colidiu de eventId');
+  const colidido = r.eventos.find((e) => e.cycleId === 'orch-B' && e.sequenceNumber === 1);
+  assert.ok(colidido, 'o evento colidido (orch-B, seq 1) precisa continuar presente na resposta');
+  assert.equal(colidido.eventIdOriginal, 'challenger-teste-1', 'o eventId original da fonte fica preservado pra auditoria');
+  assert.notEqual(colidido.eventId, 'challenger-teste-1', 'o eventId público precisa ter sido reescrito pra algo único');
+  const naoColidido = r.eventos.find((e) => e.cycleId === 'orch-A');
+  assert.equal(naoColidido.eventIdOriginal, null, 'evento sem colisão não deveria ter eventIdOriginal preenchido');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('evento único: aparece uma vez, com eventId estável', () => {
   const root = tmpRoot();
   escreverDiarioChallenger(root, 'challenger-teste', [{ eventId: 'challenger-teste-1', sequenceNumber: 1, ts: 1000, evento: 'abre' }]);
@@ -270,6 +294,135 @@ test('linha parcial no FINAL do arquivo (escrita truncada a meio de um append): 
   fs.writeFileSync(p, JSON.stringify({ ts: 1000, evento: 'abre' }) + '\n' + '{"ts": 2000, "evento": "fu');
   const r = buscarEventosIncremental(root, [{ fonte: 'champion', ehChampion: true }], null, 100);
   assert.equal(r.eventos.length, 1, 'só a linha completa aparece — a linha final truncada (motor gravando no meio do append) nunca quebra a leitura');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// ── Fechamento do Quality Gate — cursor sobrevive a reset de sequenceNumber ──
+
+test('CRÍTICO: reset de sequenceNumber após "reinício do orquestrador" nunca perde os eventos novos nem repete os antigos', () => {
+  const root = tmpRoot();
+  const fontes = [{ fonte: 'challenger-teste', ehChampion: false }];
+
+  // 1. escreve eventos com sequenceNumber 898, 899, 900
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-898', sequenceNumber: 898, cycleId: 'orch-A', ts: 1000, evento: 'funding' },
+    { eventId: 'c-899', sequenceNumber: 899, cycleId: 'orch-A', ts: 1001, evento: 'funding' },
+    { eventId: 'c-900', sequenceNumber: 900, cycleId: 'orch-A', ts: 1002, evento: 'funding' },
+  ]);
+  // 2. lê e persiste o cursor
+  const r1 = buscarEventosIncremental(root, fontes, null, 100);
+  assert.equal(r1.eventos.length, 3, 'os 3 eventos iniciais deveriam ser entregues');
+  const cursorPersistido = r1.nextCursor;
+
+  // 3. simula reinício do orquestrador (sequenceNumber reinicia do 1) — o
+  // MESMO arquivo continua sendo usado (append real, sem truncar/recriar),
+  // como acontece de verdade: o processo reinicia, o arquivo não.
+  // 4. acrescenta novos eventos com sequenceNumber 1, 2, 3
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-898', sequenceNumber: 898, cycleId: 'orch-A', ts: 1000, evento: 'funding' },
+    { eventId: 'c-899', sequenceNumber: 899, cycleId: 'orch-A', ts: 1001, evento: 'funding' },
+    { eventId: 'c-900', sequenceNumber: 900, cycleId: 'orch-A', ts: 1002, evento: 'funding' },
+    { eventId: 'c-r1', sequenceNumber: 1, cycleId: 'orch-B', ts: 2000, evento: 'funding' },
+    { eventId: 'c-r2', sequenceNumber: 2, cycleId: 'orch-B', ts: 2001, evento: 'funding' },
+    { eventId: 'c-r3', sequenceNumber: 3, cycleId: 'orch-B', ts: 2002, evento: 'funding' },
+  ]);
+  // 6. lê novamente usando o cursor anterior
+  const r2 = buscarEventosIncremental(root, fontes, cursorPersistido, 100);
+
+  // 7. confirma que os 3 eventos novos são entregues
+  const idsNovos = r2.eventos.map((e) => e.eventId);
+  assert.deepEqual(idsNovos, ['c-r1', 'c-r2', 'c-r3'], 'os 3 eventos pós-restart (sequenceNumber 1,2,3) precisam ser entregues — a causa raiz do bug era exatamente esses serem descartados por 1<=900');
+  // 8. confirma que nenhum antigo é repetido
+  assert.ok(!idsNovos.includes('c-898') && !idsNovos.includes('c-899') && !idsNovos.includes('c-900'), 'os eventos antigos (898-900) não podem reaparecer');
+  // 9. confirma IDs únicos
+  assert.equal(new Set(idsNovos).size, idsNovos.length);
+
+  // 10. reinicia a API (nova chamada, mesmo cursor persistido — equivalente
+  // a reprocessar a mesma leitura após reiniciar o processo da API) e repete
+  const r3 = buscarEventosIncremental(root, fontes, cursorPersistido, 100);
+  assert.deepEqual(r3.eventos.map((e) => e.eventId), ['c-r1', 'c-r2', 'c-r3'], 'reler com o mesmo cursor após "reiniciar a API" é determinístico — mesmo resultado');
+
+  // critério final: cursor continua válido pra próxima leitura incremental
+  const r4 = buscarEventosIncremental(root, fontes, r2.nextCursor, 100);
+  assert.equal(r4.eventos.length, 0, 'cursor avançado corretamente — nada novo, nada repetido');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('duplicata: mesmo eventId + mesmo cycleId (retransmissão idêntica) é tratada como colisão e mantida com ID sintético, nunca some', () => {
+  const root = tmpRoot();
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-1', sequenceNumber: 1, cycleId: 'orch-A', ts: 1000, evento: 'abre' },
+    { eventId: 'c-1', sequenceNumber: 1, cycleId: 'orch-A', ts: 1000, evento: 'abre' },
+  ]);
+  const r = buscarEventosIncremental(root, [{ fonte: 'challenger-teste', ehChampion: false }], null, 100);
+  assert.equal(r.eventos.length, 2, 'mesmo sendo uma retransmissão idêntica, a linha existe no diário e é preservada — a API só lê, não decide o que é ruído econômico');
+  assert.notEqual(r.eventos[0].eventId, r.eventos[1].eventId);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('duplicata: mesmo eventId + cycleId diferente (evento economicamente distinto) preserva os dois, com eventIdOriginal auditável', () => {
+  const root = tmpRoot();
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-1', sequenceNumber: 1, cycleId: 'orch-A', ts: 1000, evento: 'abre' },
+    { eventId: 'c-1', sequenceNumber: 1, cycleId: 'orch-B', ts: 2000, evento: 'fecha' },
+  ]);
+  const r = buscarEventosIncremental(root, [{ fonte: 'challenger-teste', ehChampion: false }], null, 100);
+  assert.equal(r.eventos.length, 2);
+  assert.equal(r.eventos[1].eventIdOriginal, 'c-1');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('duplicata: mesmo sequenceNumber + cycleId diferente, eventId distinto — não é tratado como colisão de eventId, os dois passam direto', () => {
+  const root = tmpRoot();
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-1', sequenceNumber: 1, cycleId: 'orch-A', ts: 1000, evento: 'abre' },
+    { eventId: 'c-2', sequenceNumber: 1, cycleId: 'orch-B', ts: 2000, evento: 'abre' },
+  ]);
+  const r = buscarEventosIncremental(root, [{ fonte: 'challenger-teste', ehChampion: false }], null, 100);
+  assert.equal(r.eventos.length, 2);
+  assert.equal(r.eventos[0].eventIdOriginal, null);
+  assert.equal(r.eventos[1].eventIdOriginal, null);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('duplicata: mesmo timestamp, eventos diferentes — nunca colapsam (cobertura já existente, reafirmada aqui)', () => {
+  const root = tmpRoot();
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-1', sequenceNumber: 1, cycleId: 'orch-A', ts: 5000, evento: 'abre' },
+    { eventId: 'c-2', sequenceNumber: 2, cycleId: 'orch-A', ts: 5000, evento: 'funding' },
+  ]);
+  const r = buscarEventosIncremental(root, [{ fonte: 'challenger-teste', ehChampion: false }], null, 100);
+  assert.equal(r.eventos.length, 2);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('duplicata: restart da API (mesmo cursor relido do zero, processo novo) é determinístico e não duplica nem perde', () => {
+  const root = tmpRoot();
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-1', sequenceNumber: 1, cycleId: 'orch-A', ts: 1000, evento: 'abre' },
+    { eventId: 'c-2', sequenceNumber: 2, cycleId: 'orch-A', ts: 2000, evento: 'funding' },
+  ]);
+  const r1 = buscarEventosIncremental(root, [{ fonte: 'challenger-teste', ehChampion: false }], null, 100);
+  // "restart da API" == nenhum estado em memória sobrevive; só o cursor
+  // (opaco, serializado no cliente) e o arquivo no disco persistem — a
+  // próxima chamada é uma invocação de função nova, sem estado compartilhado.
+  const r2 = buscarEventosIncremental(root, [{ fonte: 'challenger-teste', ehChampion: false }], r1.nextCursor, 100);
+  assert.equal(r2.eventos.length, 0, 'nada novo, cursor sobrevive ao restart do processo da API porque é 100% derivado do cursor recebido + disco');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('duplicata: restart do orquestrador — sequenceNumber reseta, mas byteOffset nunca coincide entre a linha antiga e a nova, cursor não perde nem repete', () => {
+  const root = tmpRoot();
+  const fontes = [{ fonte: 'challenger-teste', ehChampion: false }];
+  escreverDiarioChallenger(root, 'challenger-teste', [{ eventId: 'c-500', sequenceNumber: 500, cycleId: 'orch-A', ts: 1000, evento: 'funding' }]);
+  const r1 = buscarEventosIncremental(root, fontes, null, 100);
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-500', sequenceNumber: 500, cycleId: 'orch-A', ts: 1000, evento: 'funding' },
+    { eventId: 'c-1-novo', sequenceNumber: 1, cycleId: 'orch-B', ts: 2000, evento: 'funding' },
+  ]);
+  const r2 = buscarEventosIncremental(root, fontes, r1.nextCursor, 100);
+  assert.equal(r2.eventos.length, 1);
+  assert.equal(r2.eventos[0].eventId, 'c-1-novo');
   fs.rmSync(root, { recursive: true, force: true });
 });
 

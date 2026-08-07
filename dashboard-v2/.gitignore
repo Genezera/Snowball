@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Playwright — artefatos transitórios de execução (traces, screenshots de
+# falha, relatório HTML). NUNCA versionados. As baselines de regressão visual
+# (e2e/*-snapshots/) NÃO entram aqui de propósito — essas SIM são versionadas.
+test-results/
+e2e-report/
+playwright/.cache/
+.last-run.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

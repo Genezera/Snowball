@@ -50,7 +50,7 @@ export function CostIntelligence() {
           <h2 style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, margin: '0 0 10px', color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Delta da janela comum ({janela.duracaoJanelaMinutos.toFixed(0)}min) — nunca confundir com o total acumulado acima
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, fontSize: 'var(--text-xs)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12, fontSize: 'var(--text-xs)' }}>
             <div><div style={{ color: 'var(--ink-3)' }}>Funding (delta)</div><div className="tabular" style={{ fontWeight: 700 }}>{fmtUsd(janela.champion.fundingTotal.deltaNaJanela)}</div></div>
             <div><div style={{ color: 'var(--ink-3)' }}>Custos (delta)</div><div className="tabular" style={{ fontWeight: 700 }}>{fmtUsd(janela.champion.custosTotal.deltaNaJanela)}</div></div>
             <div><div style={{ color: 'var(--ink-3)' }}>PnL econômico (delta)</div><div className="tabular" style={{ fontWeight: 700 }}>{janela.champion.pnlEconomicoNaJanela != null ? fmtUsd(janela.champion.pnlEconomicoNaJanela) : 'não disponível'}</div></div>
@@ -80,7 +80,7 @@ export function CostIntelligence() {
             <EmptyIllustration label="Sem dados suficientes" />
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-lg)' }}>
+          <div tabIndex={0} role="region" aria-label="Tabela de custo por challenger, role horizontal" style={{ overflowX: 'auto', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-lg)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-xs)' }}>
               <thead>
                 <tr style={{ background: 'var(--surface-2)' }}>

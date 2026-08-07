@@ -41,7 +41,7 @@ export function CommandCenter() {
       {champion?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={champion.motivo} />}
       {championStale && <DataStateBanner kind="stale" idadeMs={championIdade} origem="/api/stream" />}
 
-      <section aria-label="Métricas principais do champion" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
+      <section aria-label="Métricas principais do champion" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 'var(--space-3)' }}>
         {/* CORREÇÃO: este card mostrava est.capital (capital REALIZADO) rotulado
             como "Equity (mark)" — são coisas diferentes. Equity mark = capital
             realizado + PnL não realizado marcado a mercado, só disponível via
@@ -58,7 +58,7 @@ export function CommandCenter() {
       {profitLab?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={profitLab.motivo} />}
       {labStale && <DataStateBanner kind="stale" idadeMs={labIdade} origem="/api/profit-lab/stream" />}
 
-      <section aria-label="Métricas principais do Paper Profit Lab" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
+      <section aria-label="Métricas principais do Paper Profit Lab" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 'var(--space-3)' }}>
         <div style={{ gridColumn: 'span 1' }}>
           <MetricCard label="Capital virtual agregado dos experimentos" value={resumo ? resumo.capitalVirtualTotal : null} formatar={fmtUsd} />
           {/* aviso PERMANENTE, nunca removido — não é dica dispensável */}
@@ -93,15 +93,21 @@ export function CommandCenter() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-              <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)' }}>
+            {/* achado real (responsividade mobile): "1fr 1fr" rígido + nome de
+                challenger longo (ex.: baseline-equal-weight-btc-eth) sem quebra
+                de linha forçava overflow horizontal na página inteira em telas
+                estreitas. minWidth:0 nas colunas (destrava o grid item de sua
+                largura mínima de conteúdo) + overflowWrap na string do id
+                resolvem sem mudar o layout em telas largas. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 'var(--space-3)' }}>
+              <div style={{ minWidth: 0, background: 'var(--surface-1)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)' }}>
                 <span style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, color: 'var(--gain-500)', textTransform: 'uppercase' }}>Melhor motor (janela comum)</span>
-                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginTop: 4 }}>{ranking.melhor?.strategyId}</div>
+                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginTop: 4, overflowWrap: 'anywhere' }}>{ranking.melhor?.strategyId}</div>
                 <div className="tabular" style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)' }}>{ranking.melhor && fmtUsd(ranking.melhor.pnlDesdeOInicio)}</div>
               </div>
-              <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)' }}>
+              <div style={{ minWidth: 0, background: 'var(--surface-1)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)' }}>
                 <span style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, color: 'var(--loss-500)', textTransform: 'uppercase' }}>Pior motor (janela comum)</span>
-                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginTop: 4 }}>{ranking.pior?.strategyId}</div>
+                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginTop: 4, overflowWrap: 'anywhere' }}>{ranking.pior?.strategyId}</div>
                 <div className="tabular" style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)' }}>{ranking.pior && fmtPct(ranking.pior.pnlPct)}</div>
               </div>
             </div>

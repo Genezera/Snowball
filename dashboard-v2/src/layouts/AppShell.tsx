@@ -28,8 +28,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div style={{ display: 'flex', height: '100vh', width: '100%' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* achado real (responsividade mobile): header rígido sem flex-wrap +
+            padding fixo forçava overflow horizontal na PÁGINA INTEIRA em
+            telas estreitas (o badge + 2 pills nunca cabiam lado a lado
+            abaixo de ~430px). flexWrap + padding/altura responsivos corrigem
+            sem mudar nada visualmente em telas largas. */}
         <header style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: '0 var(--space-6)', height: 56, flex: 'none',
+          display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)',
+          padding: 'var(--space-2) clamp(12px, 4vw, var(--space-6))', minHeight: 56, flex: 'none',
           borderBottom: '1px solid var(--border-hairline)', background: 'var(--surface-0)',
         }}>
           <span style={{

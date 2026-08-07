@@ -6,6 +6,10 @@ import { z } from 'zod';
 
 export const EventoRecenteSchema = z.object({
   eventId: z.string(),
+  // Preenchido só quando `eventId` foi reescrito por colisão upstream
+  // comprovada (mesmo eventId, cycleId diferente = evento economicamente
+  // distinto) — o valor original da fonte, preservado pra auditoria.
+  eventIdOriginal: z.string().nullable().optional(),
   sequenceNumber: z.number().nullable(),
   cycleId: z.string().nullable(),
   challengerId: z.string(),

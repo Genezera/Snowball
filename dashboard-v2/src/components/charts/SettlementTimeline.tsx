@@ -97,9 +97,20 @@ export function SettlementTimelineRow({ j }: { j: JanelaCaptura }) {
 
 export function SettlementTimeline({ janelas }: { janelas: JanelaCaptura[] | null }) {
   if (!janelas?.length) return <EmptyIllustration label="Nenhuma janela de captura configurada" />;
+  // ACHADO REAL (axe em viewport mobile, chromium-mobile): as linhas usam um
+  // grid de colunas fixas (90/110/1fr/140/140) que não cabe em ~410px de
+  // largura. Sem um container próprio de scroll, o overflow vazava pro
+  // `<main>` do AppShell (que ganha overflowX:auto por causa do overflowY:
+  // auto), e o axe marcava `scrollable-region-focusable` (serious) num
+  // elemento sem foco de teclado. Correção: a linha do tempo tem seu PRÓPRIO
+  // container rolável, focável por teclado (tabIndex+role+aria-label) — mesmo
+  // padrão já usado nas tabelas de Live Operations/Cost/Risk. `minWidth`
+  // mantém as colunas alinhadas e contém o scroll aqui dentro, sem vazar.
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {janelas.map((j) => <SettlementTimelineRow key={j.challengerId} j={j} />)}
+    <div role="region" aria-label="Linha do tempo de settlements — rolável horizontalmente" tabIndex={0} style={{ overflowX: 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 560 }}>
+        {janelas.map((j) => <SettlementTimelineRow key={j.challengerId} j={j} />)}
+      </div>
     </div>
   );
 }

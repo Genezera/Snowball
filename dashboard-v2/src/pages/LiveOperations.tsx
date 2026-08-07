@@ -51,11 +51,11 @@ export function LiveOperations() {
       {resultado?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={resultado.motivo} />}
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <select value={filtroMotor} onChange={(e) => setFiltroMotor(e.target.value)} style={selectStyle}>
+        <select aria-label="Filtrar por motor" value={filtroMotor} onChange={(e) => setFiltroMotor(e.target.value)} style={selectStyle}>
           <option value="">Todos os motores</option>
           {motores.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
-        <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} style={selectStyle}>
+        <select aria-label="Filtrar por tipo de evento" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} style={selectStyle}>
           <option value="">Todos os tipos</option>
           {tipos.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
@@ -69,7 +69,7 @@ export function LiveOperations() {
       </div>
 
       {mostrarCobertura && cobertura && (
-        <div style={{ overflowX: 'auto', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-lg)' }}>
+        <div tabIndex={0} role="region" aria-label="Tabela de cobertura dos challengers, role horizontal" style={{ overflowX: 'auto', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-lg)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-2xs)' }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>

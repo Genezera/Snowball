@@ -53,7 +53,7 @@ export function ChampionView() {
       {champion?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={champion.motivo} />}
       {stale && <DataStateBanner kind="stale" idadeMs={idade} origem="/api/stream" />}
 
-      <section aria-label="Métricas do champion" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 'var(--space-3)' }}>
+      <section aria-label="Métricas do champion" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(170px, 100%), 1fr))', gap: 'var(--space-3)' }}>
         <MetricCard label="Capital inicial" value={est?.capitalInicial ?? null} formatar={fmtUsd} />
         <MetricCard label="Capital realizado" value={est ? est.capital : null} formatar={fmtUsd} />
         <MetricCard label="PnL realizado" value={est ? est.capital - est.capitalInicial : null} formatar={fmtUsd} tone={est && est.capital - est.capitalInicial >= 0 ? 'gain' : 'loss'} />
@@ -67,7 +67,7 @@ export function ChampionView() {
         <MetricCard label="Settlements (pagamentos)" value={est?.pagamentos ?? null} formatar={fmtInt} />
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--space-4)' }}>
         <EquityCurve titulo="Curva de equity (realizado)" pontos={pontosEquity} state={chartState} cor="var(--brass-300)" />
         <DrawdownChart pontos={pontosEquity} state={chartState} />
       </section>
@@ -98,7 +98,7 @@ export function ChampionView() {
           Posições abertas ({posicoes.length})
         </h2>
         {posicoes.length ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 'var(--space-3)' }}>
             {posicoes.map((p) => <PositionLegCard key={p.symbol + p.abertaEm} p={p} />)}
           </div>
         ) : (

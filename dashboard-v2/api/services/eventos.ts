@@ -25,6 +25,16 @@ export interface EventoV2 {
   motivo: string | null;
   /** true = veio de um registro sem sequenceNumber (diário legado do champion) — ID estável por generation+byteOffset, não por timestamp */
   idLegado: boolean;
+  /**
+   * Preenchido SOMENTE quando o `eventId` público foi reescrito porque a
+   * fonte upstream reutilizou um eventId (colisão comprovada: mesmo
+   * eventId, cycleId diferente — evento economicamente distinto). Nesse
+   * caso `eventId` vira um identificador visual sintético e estável
+   * (sourceId+generation+byteOffset) e o valor ORIGINAL produzido pela
+   * fonte fica aqui, preservado pra auditoria. `null` no caso comum (sem
+   * colisão) — nunca reescrever o eventId sem motivo.
+   */
+  eventIdOriginal: string | null;
 }
 
 /** Campo interno, nunca serializado pra fora. */
@@ -103,6 +113,22 @@ function lerNovosDeUmaFonte(
   const linhas = lerJsonlComNumeroDeLinha(caminho);
   const eventos: EventoV2Interno[] = [];
   let novaPosicao = posicaoDeParte;
+  // ACHADO REAL (Quality Gate de Interface): o diário de alguns challengers
+  // tem duas linhas com o MESMO `sequenceNumber`/eventId — sinal de que o
+  // contador não sobreviveu a um reinício do orquestrador (dois `cycleId`
+  // diferentes, mesmo sequenceNumber:1). Causa raiz é upstream, fora do
+  // escopo desta etapa (nunca se mexe em motor/estratégia aqui) — ver
+  // relatório do bug em docs/bugs-upstream/sequence-number-reset.md.
+  // Como esta API só LÊ o que já está gravado, a mitigação aqui NÃO pode
+  // ser apagar o evento colidido: se o cycleId difere, é um evento
+  // ECONOMICAMENTE DIFERENTE que a fonte só identificou com o eventId
+  // errado — apagá-lo seria perda de dado real disfarçada de deduplicação.
+  // Em vez disso: quando o eventId colide dentro desta mesma leitura, o
+  // evento é MANTIDO com um eventId sintético estável
+  // (`fonte:g<generation>:b<byteOffset>`, único por construção — byteOffset
+  // nunca se repete dentro de uma geração) e o eventId original da fonte
+  // fica preservado em `eventIdOriginal` pra auditoria.
+  const idsJaAdicionados = new Set<string>();
 
   // achado ao vivo: sem este corte, uma fonte com histórico MUITO mais
   // longo que as outras dominava a página inteira — ver "seleção justa" abaixo.
@@ -111,14 +137,33 @@ function lerNovosDeUmaFonte(
     const ev = linha as any;
     if (f.ehChampion && ev.evento === 'leitura') continue; // heartbeat do champion, não é decisão
     const temSequence = typeof ev.sequenceNumber === 'number';
-    // challengers modernos continuam usando sequenceNumber (posição lógica,
-    // sobrevive a qualquer rotação de arquivo); só o legado usa byteOffset.
-    const posicaoDoRegistro = temSequence ? ev.sequenceNumber : byteOffset;
+    // CORREÇÃO (Quality Gate de Interface, fechamento): a posição do cursor
+    // usava sequenceNumber pra challengers "modernos". Achado real, provado
+    // pelo teste de reset de sequência: o orquestrador reinicia
+    // sequenceNumber em 1 após um restart, então um cursor já avançado até
+    // 900 via sequenceNumber descartava SILENCIOSAMENTE os eventos novos
+    // 1, 2, 3 (1 <= 900) — não era duplicata, era PERDA DE EVENTO. byteOffset
+    // é monotônico dentro de uma geração de arquivo independente de
+    // qualquer reinício do orquestrador, e rotação de arquivo (truncamento/
+    // recriação) já é tratada à parte via fileIdentity+generation acima —
+    // então byteOffset é seguro como posição persistente pra QUALQUER fonte,
+    // moderna ou legada. sequenceNumber e cycleId continuam existindo, mas
+    // agora só como METADADOS do evento (auditoria, dedup de eventId),
+    // nunca como posição do cursor.
+    const posicaoDoRegistro = byteOffset;
     if (posicaoDoRegistro <= posicaoDeParte) continue;
 
-    const eventId = ev.eventId ?? `${f.fonte}:g${generation}:b${byteOffset}`;
+    const eventIdProduzido = ev.eventId ?? `${f.fonte}:g${generation}:b${byteOffset}`;
+    // eventId sintético por byteOffset — único por construção dentro desta
+    // geração, nunca colide entre si (byteOffset de cada linha é distinto).
+    const eventIdSintetico = `${f.fonte}:g${generation}:b${byteOffset}`;
+    const colidiu = idsJaAdicionados.has(eventIdProduzido);
+    const eventId = colidiu ? eventIdSintetico : eventIdProduzido;
+    idsJaAdicionados.add(eventIdProduzido);
+    idsJaAdicionados.add(eventId);
     eventos.push({
       eventId,
+      eventIdOriginal: colidiu ? eventIdProduzido : null,
       sequenceNumber: temSequence ? ev.sequenceNumber : null,
       cycleId: ev.cycleId ?? null,
       challengerId: f.ehChampion ? 'funding-arbitrage-champion' : f.fonte,
