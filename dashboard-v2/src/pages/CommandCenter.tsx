@@ -1,137 +1,149 @@
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useLiveStore, idadeDoDado, LIMITE_STALE_MS } from '../stores/liveStore';
-import { MetricCard } from '../components/cards/MetricCard';
-import { DataStateBanner, EmptyIllustration } from '../components/feedback/DataState';
+import { useOportunidades } from '../hooks/useOportunidades';
+import { Section, StatusBadge, fmt } from '../components/ui/kit';
 import { SnowballCore } from '../components/portfolio/SnowballCore';
 import { calcularRankingComparavel } from '../components/portfolio/ComparableRanking';
+import { EquityCurve } from '../components/charts/EquityCurve';
+import type { ChartDataState } from '../components/charts/ChartFrame';
+import { DataStateBanner } from '../components/feedback/DataState';
 
-function fmtUsd(n: number): string {
-  const s = n < 0 ? '-' : '';
-  return s + 'US$ ' + Math.abs(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function fmtPct(n: number): string {
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
-}
-function fmtInt(n: number): string { return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 }); }
+/**
+ * COMMAND CENTER — visão EXECUTIVA (item 10). Layout próprio, não uma grade
+ * uniforme de cards: uma faixa executiva no topo que responde "saúde /
+ * capital / PnL / uso / exposição / risco" em segundos, um centro com a
+ * curva de capital, e uma coluna lateral com posições, settlements,
+ * oportunidades e o coletor. Nada de dinheiro real: tudo PAPER.
+ */
+interface PosMarc { symbol: string; notionalShort: number; notionalLong: number; pnlNaoRealizadoTotal: number }
 
 export function CommandCenter() {
   const champion = useLiveStore((s) => s.champion);
   const profitLab = useLiveStore((s) => s.profitLab);
-
-  const championIdade = idadeDoDado(champion);
-  const labIdade = idadeDoDado(profitLab);
-  const championStale = championIdade != null && championIdade > LIMITE_STALE_MS;
-  const labStale = labIdade != null && labIdade > LIMITE_STALE_MS;
+  const oport = useOportunidades();
 
   const est = champion?.estado === 'sucesso' ? champion.dado.estado : null;
+  const marc = champion?.estado === 'sucesso' ? (champion.dado.marcacao as { equityMark?: number; equityLiquidacao?: number; pnlNaoRealizadoMark?: number; posicoes?: PosMarc[] } | null) : null;
+  const posicoes = champion?.estado === 'sucesso' ? champion.dado.posicoes ?? [] : [];
+  const curva = champion?.estado === 'sucesso' ? champion.dado.curva ?? [] : [];
   const resumo = profitLab?.estado === 'sucesso' ? profitLab.dado.resumo : null;
   const multi = profitLab?.estado === 'sucesso' ? profitLab.dado.leaderboardMulti : null;
-
+  const capturas = profitLab?.estado === 'sucesso' ? profitLab.dado.capturaStatus ?? [] : [];
   const ranking = multi ? calcularRankingComparavel(multi.linhas) : null;
 
+  const championIdade = idadeDoDado(champion);
+  const stale = championIdade != null && championIdade > LIMITE_STALE_MS;
+  const chartState: ChartDataState = champion?.estado === 'sucesso' ? (stale ? 'stale' : 'success') : champion?.estado === 'corrompido' ? 'corrupted' : champion?.estado === 'erro' ? 'error' : 'loading';
+
+  const pnlReal = est ? est.capital - est.capitalInicial : null;
+  const notionalBruto = (marc?.posicoes ?? []).reduce((s, p) => s + p.notionalShort + p.notionalLong, 0);
+  const margem = posicoes.reduce((s, p) => s + (p.margemShort ?? 0) + (p.margemLong ?? 0), 0);
+  const emRisco = posicoes.filter((p) => p.distanciaMinima < 0.15).length;
+  const cs = oport?.estado === 'sucesso' ? oport.dado.collectorStatus : null;
+  const saude = champion?.estado === 'sucesso' && !stale && profitLab?.estado === 'sucesso';
+
+  const proximosSettlements = useMemo(() => capturas
+    .filter((c) => c.proximaLiquidacaoEm != null && c.status === 'posicao_aberta')
+    .sort((a, b) => (a.proximaLiquidacaoEm ?? 0) - (b.proximaLiquidacaoEm ?? 0)).slice(0, 4), [capturas]);
+
+  const pontos = curva.map((p) => ({ ts: p.ts, valor: p.capital }));
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      <div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', margin: 0, fontWeight: 600 }}>Command Center</h1>
-        <p style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)', margin: '4px 0 0' }}>
-          Champion (dinheiro simulado real) e Paper Profit Lab (capital 100% virtual) — nunca misturados.
-        </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', margin: 0, fontWeight: 700 }}>Command Center</h1>
+          <p style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)', margin: '4px 0 0' }}>Visão executiva do Champion (paper) e do Paper Profit Lab (virtual) — nunca misturados.</p>
+        </div>
+        <StatusBadge label={saude ? 'sistema saudável' : stale ? 'dado stale' : 'atenção'} tom={saude ? 'ok' : 'warn'} />
       </div>
 
       {champion?.estado === 'erro' && <DataStateBanner kind="offline" motivo={champion.motivo} />}
-      {champion?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={champion.motivo} />}
-      {championStale && <DataStateBanner kind="stale" idadeMs={championIdade} origem="/api/stream" />}
+      {stale && <DataStateBanner kind="stale" idadeMs={championIdade} origem="/api/v2/champion" />}
 
-      <section aria-label="Métricas principais do champion" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 'var(--space-3)' }}>
-        {/* CORREÇÃO: este card mostrava est.capital (capital REALIZADO) rotulado
-            como "Equity (mark)" — são coisas diferentes. Equity mark = capital
-            realizado + PnL não realizado marcado a mercado, só disponível via
-            profitLab.resumo.champion.equityMark (spread/marcacao.json). */}
-        <MetricCard label="Capital realizado" value={est ? est.capital : null} formatar={fmtUsd} sub="champion — sistema principal" />
-        <MetricCard label="Equity mark" value={resumo?.champion.equityMark ?? null} formatar={fmtUsd} sub={resumo && !resumo.champion.marcacaoDisponivel ? 'marcação indisponível' : 'realizado + não-realizado marcado'} />
-        <MetricCard label="PnL realizado" value={est ? est.capital - est.capitalInicial : null} formatar={fmtUsd} tone={est && est.capital - est.capitalInicial >= 0 ? 'gain' : 'loss'} />
-        <MetricCard label="Funding bruto" value={est ? est.fundingTotal : null} formatar={fmtUsd} />
-        <MetricCard label="Custos totais" value={est ? est.custosTotal : null} formatar={fmtUsd} />
-        <MetricCard label="Pagamentos recebidos" value={est ? est.pagamentos : null} formatar={fmtInt} />
-      </section>
-
-      {profitLab?.estado === 'erro' && <DataStateBanner kind="offline" motivo={profitLab.motivo} />}
-      {profitLab?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={profitLab.motivo} />}
-      {labStale && <DataStateBanner kind="stale" idadeMs={labIdade} origem="/api/profit-lab/stream" />}
-
-      <section aria-label="Métricas principais do Paper Profit Lab" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 'var(--space-3)' }}>
-        <div style={{ gridColumn: 'span 1' }}>
-          <MetricCard label="Capital virtual agregado dos experimentos" value={resumo ? resumo.capitalVirtualTotal : null} formatar={fmtUsd} />
-          {/* aviso PERMANENTE, nunca removido — não é dica dispensável */}
-          <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--warn-500)', margin: '6px 2px 0', lineHeight: 1.4 }}>
-            Soma de carteiras paper independentes. Não representa capital real ou disponível.
-          </p>
-        </div>
-        <MetricCard label="Trades paper" value={resumo ? resumo.tradesTotaisPaper : null} formatar={fmtInt} />
-        <MetricCard label="Settlements capturados" value={resumo ? resumo.settlementsTotaisPaper : null} formatar={fmtInt} />
-        <MetricCard label="Challengers ativos" value={resumo ? resumo.numeroAtivos : null} formatar={fmtInt} sub={resumo ? `${resumo.numeroPausados} pausados · ${resumo.numeroEliminados} eliminados` : undefined} />
-      </section>
-
-      <section aria-label="Snowball Core" style={{
-        background: 'var(--surface-glass)', backdropFilter: 'blur(14px)', border: '1px solid var(--border-hairline)',
-        borderRadius: 'var(--radius-lg)', padding: 'var(--space-5)',
-      }}>
-        <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: '0 0 var(--space-3)', color: 'var(--ink-1)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Snowball Core</h2>
-        <SnowballCore
-          championCapital={est?.capital ?? 0}
-          challengersCapital={resumo?.capitalVirtualTotal ?? 0}
-          numeroChallengers={resumo?.numeroAtivos ?? 0}
-        />
-      </section>
-
-      <section aria-label="Melhor e pior motor (somente comparáveis na mesma janela)">
-        <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, margin: '0 0 var(--space-3)', color: 'var(--ink-1)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Comparação entre motores
-        </h2>
-        {!ranking || !ranking.comparaveis.length ? (
-          <div style={{ background: 'var(--surface-1)', border: '1px dashed var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
-            <EmptyIllustration label="Comparação indisponível — os motores ainda não possuem uma janela comum suficiente." />
+      {/* FAIXA EXECUTIVA — banda contínua, não grade de cards */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', background: 'linear-gradient(180deg, var(--surface-glass), rgba(12,21,38,0.5))', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+        {[
+          ['Capital · PAPER', fmt.usd(est?.capital ?? null), 'var(--snow-primary)', true],
+          ['PnL realizado', fmt.usd(pnlReal), fmt.corPnl(pnlReal)],
+          ['Equity mark', fmt.usd(marc?.equityMark ?? null), 'var(--ink-0)'],
+          ['Equity liquidação', fmt.usd(marc?.equityLiquidacao ?? null), 'var(--ink-0)'],
+          ['Margem em uso', fmt.usd(margem), 'var(--warn-500)'],
+          ['Exposição (notional)', fmt.usd(notionalBruto), 'var(--ink-0)'],
+          ['Posições', `${posicoes.length}${emRisco ? ` · ${emRisco} em risco` : ''}`, emRisco ? 'var(--loss-500)' : 'var(--ink-0)'],
+        ].map(([lbl, val, cor, hero], i) => (
+          <div key={lbl as string} style={{ flex: '1 1 160px', minWidth: 150, padding: 'var(--space-4) var(--space-5)', borderLeft: i > 0 ? '1px solid var(--border-hairline)' : 'none' }}>
+            <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-3)' }}>{lbl}</div>
+            <div className="tabular" style={{ fontSize: hero ? 'var(--text-2xl)' : 'var(--text-xl)', fontWeight: 800, marginTop: 4, color: cor as string }}>{val}</div>
           </div>
-        ) : (
-          <>
-            {/* achado real (responsividade mobile): "1fr 1fr" rígido + nome de
-                challenger longo (ex.: baseline-equal-weight-btc-eth) sem quebra
-                de linha forçava overflow horizontal na página inteira em telas
-                estreitas. minWidth:0 nas colunas (destrava o grid item de sua
-                largura mínima de conteúdo) + overflowWrap na string do id
-                resolvem sem mudar o layout em telas largas. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 'var(--space-3)' }}>
-              <div style={{ minWidth: 0, background: 'var(--surface-1)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)' }}>
-                <span style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, color: 'var(--gain-500)', textTransform: 'uppercase' }}>Melhor motor (janela comum)</span>
-                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginTop: 4, overflowWrap: 'anywhere' }}>{ranking.melhor?.strategyId}</div>
-                <div className="tabular" style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)' }}>{ranking.melhor && fmtUsd(ranking.melhor.pnlDesdeOInicio)}</div>
-              </div>
-              <div style={{ minWidth: 0, background: 'var(--surface-1)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)' }}>
-                <span style={{ fontSize: 'var(--text-2xs)', fontWeight: 700, color: 'var(--loss-500)', textTransform: 'uppercase' }}>Pior motor (janela comum)</span>
-                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginTop: 4, overflowWrap: 'anywhere' }}>{ranking.pior?.strategyId}</div>
-                <div className="tabular" style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)' }}>{ranking.pior && fmtPct(ranking.pior.pnlPct)}</div>
-              </div>
-            </div>
-            <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', margin: '8px 2px 0' }}>
-              {ranking.comparaveis.length} motor(es) compartilham a mesma janela comum e participam do ranking.
-            </p>
-          </>
-        )}
+        ))}
+      </div>
 
-        {ranking && ranking.naoComparaveis.length > 0 && (
-          <details style={{ marginTop: 'var(--space-3)' }}>
-            <summary style={{ cursor: 'pointer', fontSize: 'var(--text-xs)', color: 'var(--ink-2)', fontWeight: 600 }}>
-              {ranking.naoComparaveis.length} motor(es) fora da comparação — ver motivo
-            </summary>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-              {ranking.naoComparaveis.map((l) => (
-                <div key={l.strategyId} style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-3)', padding: '6px 10px', background: 'var(--surface-1)', borderRadius: 'var(--radius-sm)' }}>
-                  <strong style={{ color: 'var(--ink-1)' }}>{l.strategyId}</strong> — {l.nota}
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
-      </section>
+      {/* CENTRO + LATERAL */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(300px, 1fr)', gap: 'var(--space-4)', alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <Section titulo="Curva de capital (paper)" sub={`Capital inicial ${fmt.usd(est?.capitalInicial ?? null)} → atual ${fmt.usd(est?.capital ?? null)} · funding ${fmt.usd(est?.fundingTotal ?? null)} − custos ${fmt.usd(est?.custosTotal ?? null)}`}>
+            <div style={{ height: 300 }}><EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" /></div>
+          </Section>
+          <Section titulo="Motores" sub="Champion (paper), challengers (paper lab) e experimentos — nunca somados.">
+            <SnowballCore championCapital={est?.capital ?? 0} challengersCapital={resumo?.capitalVirtualTotal ?? 0} numeroChallengers={resumo?.numeroAtivos ?? 0} />
+          </Section>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <Section titulo={`Posições abertas · ${posicoes.length}`} acao={<Link to="/champion" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>ver cockpit →</Link>}>
+            {posicoes.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {posicoes.slice(0, 5).map((p) => {
+                  const mp = (marc?.posicoes ?? []).find((x) => x.symbol === p.symbol);
+                  return (
+                    <div key={p.symbol + p.abertaEm} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '7px 10px', background: 'var(--surface-1)', borderRadius: 'var(--radius-sm)', borderLeft: `2px solid ${p.distanciaMinima < 0.15 ? 'var(--loss-500)' : 'var(--gain-500)'}` }}>
+                      <div><div style={{ fontWeight: 700, fontSize: 'var(--text-xs)' }}>{p.symbol.replace('/USDT:USDT', '')}</div><div style={{ fontSize: '0.6rem', color: 'var(--ink-3)' }}>{p.exchangeShort} → {p.exchangeLong}</div></div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div className="tabular" style={{ fontSize: 'var(--text-xs)', color: mp ? fmt.corPnl(mp.pnlNaoRealizadoTotal) : 'var(--ink-2)' }}>{mp ? fmt.usd(mp.pnlNaoRealizadoTotal) : '—'}</div>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--ink-3)' }}>liq {fmt.pct(p.distanciaMinima * 100)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>Nenhuma posição aberta.</p>}
+          </Section>
+
+          <Section titulo="Próximos settlements">
+            {proximosSettlements.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {proximosSettlements.map((c) => (
+                  <div key={c.challengerId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '5px 0', borderBottom: '1px solid var(--border-hairline)' }}>
+                    <span>{c.symbol?.replace('/USDT:USDT', '') ?? c.challengerId} · {c.janelaMin}m</span>
+                    <span className="tabular" style={{ color: 'var(--ink-3)' }}>{c.proximaLiquidacaoEm ? new Date(c.proximaLiquidacaoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>Nenhum settlement iminente.</p>}
+          </Section>
+
+          <Section titulo="Oportunidades" acao={<Link to="/opportunities" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>ver mapa →</Link>}>
+            {oport?.estado === 'sucesso' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>Observadas</span><span className="tabular" style={{ fontWeight: 700 }}>{fmt.int(oport.dado.summary.total)}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>Elegíveis</span><span className="tabular" style={{ color: 'var(--gain-500)', fontWeight: 700 }}>{fmt.int(oport.dado.summary.eligible)}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ color: 'var(--ink-2)' }}>Coletor</span><StatusBadge label={cs?.estado ?? '—'} tom={cs?.estado === 'live' ? 'ok' : cs?.estado === 'stale' ? 'warn' : 'loss'} /></div>
+              </div>
+            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>Carregando coletor…</p>}
+          </Section>
+
+          {ranking && ranking.comparaveis.length > 0 && (
+            <Section titulo="Melhor / pior motor (janela comum)">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--gain-500)' }}>▲ {ranking.melhor?.strategyId}</span><span className="tabular">{ranking.melhor && fmt.usd(ranking.melhor.pnlDesdeOInicio)}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--loss-500)' }}>▼ {ranking.pior?.strategyId}</span><span className="tabular">{ranking.pior && fmt.pct(ranking.pior.pnlPct)}</span></div>
+              </div>
+            </Section>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

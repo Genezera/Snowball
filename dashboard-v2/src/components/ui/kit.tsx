@@ -22,11 +22,12 @@ export function PageHeader({ titulo, sub, acao }: { titulo: string; sub?: string
 }
 
 /** Painel titulado — o "card" grande com personalidade Snowball. */
-export function Section({ titulo, sub, acao, children, style, span }: {
-  titulo?: string; sub?: string; acao?: ReactNode; children: ReactNode; style?: CSSProperties; span?: number;
+export function Section({ titulo, sub, acao, children, style, span, aria }: {
+  titulo?: string; sub?: string; acao?: ReactNode; children: ReactNode; style?: CSSProperties; span?: number; aria?: string;
 }) {
   return (
     <motion.section
+      aria-label={aria}
       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}
       style={{
         gridColumn: span ? `span ${span}` : undefined,
