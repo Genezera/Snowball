@@ -13,6 +13,7 @@
 import { ChampionDadosSchema, type ChampionDados } from '../schemas/champion';
 import { ProfitLabDadosSchema, type ProfitLabDados } from '../schemas/profitLab';
 import { EventosRecentesRespostaSchema, type EventosRecentesResposta } from '../schemas/events';
+import { OportunidadesRespostaSchema, type OportunidadesResposta } from '../schemas/opportunities';
 
 export type Resultado<T> =
   | { estado: 'sucesso'; dado: T; recebidoEm: number }
@@ -65,7 +66,11 @@ export function buscarEventosIncremental(cursor: string | null, limit: number): 
   return buscarValidado(`/api/v2/events?${qs.toString()}`, EventosRecentesRespostaSchema);
 }
 
+export function buscarOportunidades(): Promise<Resultado<OportunidadesResposta>> {
+  return buscarValidado('/api/v2/opportunities', OportunidadesRespostaSchema);
+}
+
 /** Lista de chamadas de rede que este arquivo pode fazer — auditável (Parte 13, item 5). */
 export const CHAMADAS_DE_REDE_PERMITIDAS = [
-  '/api/v2/champion', '/api/v2/profit-lab', '/api/v2/events', '/api/v2/waterfall', '/api/v2/health',
+  '/api/v2/champion', '/api/v2/profit-lab', '/api/v2/events', '/api/v2/waterfall', '/api/v2/opportunities', '/api/v2/health',
 ] as const;

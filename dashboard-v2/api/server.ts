@@ -27,6 +27,7 @@ import { montarManifestoCobertura } from './services/cobertura.ts';
 import { lerTotaisAutoritativos, construirDecomposicao } from './services/waterfall.ts';
 import { montarChampionCompleto } from './services/champion.ts';
 import { montarCapturaStatus } from './services/captura.ts';
+import { montarOportunidades } from './services/oportunidades.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..'); // raiz do repositório Snowball
@@ -160,6 +161,22 @@ const servidor = http.createServer((req, res) => {
       const cobertura = montarManifestoCobertura(ROOT, CHALLENGERS_APROVADOS, resultado.disponivelPorFonte, resultado.entreguePorFonte, JANELA_COBERTURA_MS);
 
       return enviarJson(res, 200, { ok: true, ...resultado, cobertura });
+    }
+
+    // ── oportunidades: AGREGA a fonte persistente do motor
+    // (inteligencia/oportunidades/YYYY-MM-DD.jsonl), read-only. A coleta é
+    // do processo do motor, não do dashboard — sobrevive a fechar navegador,
+    // trocar página, reiniciar frontend/API. Filtros opcionais por query. ──
+    if (url.pathname === '/api/v2/opportunities') {
+      const resultado = montarOportunidades(ROOT);
+      const status = url.searchParams.get('status'); // 'eligible' | 'blocked'
+      const symbol = url.searchParams.get('symbol');
+      const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit') ?? 1000)));
+      let items = resultado.items;
+      if (status === 'eligible') items = items.filter((i) => i.eligible);
+      else if (status === 'blocked') items = items.filter((i) => i.blocked);
+      if (symbol) items = items.filter((i) => i.symbol.toLowerCase().includes(symbol.toLowerCase()));
+      return enviarJson(res, 200, { ...resultado, items: items.slice(0, limit), hasMore: items.length > limit });
     }
 
     // ── waterfall reconciliado (Parte 8) ─────────────────────────────────

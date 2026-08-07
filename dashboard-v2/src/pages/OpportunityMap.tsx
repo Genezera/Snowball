@@ -1,73 +1,150 @@
-import { useMemo } from 'react';
-import { useLiveStore } from '../stores/liveStore';
-import { useEventosRecentes } from '../hooks/useEventosRecentes';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useOportunidades } from '../hooks/useOportunidades';
 import { PageHeader, Section, DataTable, StatusBadge, RankBar, fmt, type Coluna } from '../components/ui/kit';
+import { DataStateBanner } from '../components/feedback/DataState';
+import type { Oportunidade } from '../schemas/opportunities';
 
 /**
- * OPPORTUNITY MAP — oportunidades OBSERVADAS, nunca ordens. OBSERVATION
- * ONLY: esta superfície nunca executa nada. Os dados vêm do que a API V2
- * read-only expõe hoje: o resumo de vigilância (quantas oportunidades o
- * mercado tem sob observação) e a distribuição REAL dos motivos de bloqueio,
- * derivada dos eventos "bloqueado" do transporte. A tabela por-candidato
- * detalhada (spread/APR/liquidez individuais) depende de um endpoint
- * read-only de candidatas ainda não exposto — marcado honestamente, nunca
- * preenchido com dado fabricado.
+ * OPPORTUNITY MAP — OBSERVATION ONLY. Lê o endpoint read-only
+ * `/api/v2/opportunities`, que agrega a fonte PERSISTENTE do motor
+ * (inteligencia/oportunidades). A coleta é do motor, não do dashboard:
+ * fechar a página, navegar, reiniciar o frontend/API não zera nada —
+ * firstSeenAt é preservado, lastSeenAt avança, observationCount cresce.
+ * Nenhuma execução de ordem. Campos não medidos vêm marcados, nunca zero.
  */
+function idadeTxt(ms: number | null): string {
+  if (ms == null) return '—';
+  const m = ms / 60_000;
+  if (m < 1) return 'agora';
+  if (m < 60) return `${Math.round(m)} min atrás`;
+  return `${(m / 60).toFixed(1)} h atrás`;
+}
+function hora(ts: number): string { return new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+
+const COLLECTOR_TOM = { live: 'ok', stale: 'warn', offline: 'loss', empty: 'neutral' } as const;
+
 export function OpportunityMap() {
-  const champion = useLiveStore((s) => s.champion);
-  const { eventos } = useEventosRecentes();
-  const vig = champion?.estado === 'sucesso' ? (champion.dado as { vigilancia?: { candidatos?: number; varreduras?: number; vivas?: number; fonte?: string; motivo?: string } }).vigilancia : null;
+  const resultado = useOportunidades();
+  const [sel, setSel] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState<'todas' | 'eligible' | 'blocked'>('todas');
 
-  const motivosBloqueio = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of eventos) {
-      if (e.evento !== 'bloqueado' || !e.motivo) continue;
-      const chave = e.motivo.replace(/[0-9]+([.,][0-9]+)?/g, 'N').split('·')[0].trim().slice(0, 48);
-      m.set(chave, (m.get(chave) ?? 0) + 1);
-    }
-    return [...m.entries()].map(([motivo, n]) => ({ motivo, n })).sort((a, b) => b.n - a.n).slice(0, 12);
-  }, [eventos]);
+  const dado = resultado?.estado === 'sucesso' ? resultado.dado : null;
+  const items = dado?.items ?? [];
 
-  const maxN = Math.max(1, ...motivosBloqueio.map((m) => m.n));
-  const totalBloqueios = motivosBloqueio.reduce((s, m) => s + m.n, 0);
+  const filtradas = useMemo(() => items
+    .filter((o) => filtro === 'todas' || (filtro === 'eligible' ? o.eligible : o.blocked))
+    .filter((o) => !busca || o.symbol.toLowerCase().includes(busca.toLowerCase()) || o.exchangeLong.includes(busca) || o.exchangeShort.includes(busca)),
+    [items, filtro, busca]);
 
-  const colunas: Coluna<{ motivo: string; n: number }>[] = [
-    { chave: 'motivo', titulo: 'Motivo de bloqueio', render: (m) => <span style={{ color: 'var(--ink-1)', whiteSpace: 'normal' }}>{m.motivo}</span> },
-    { chave: 'n', titulo: 'Ocorrências', alinhar: 'right', render: (m) => <span className="tabular" style={{ fontWeight: 700 }}>{fmt.int(m.n)}</span> },
-    { chave: 'bar', titulo: '', largura: '160px', render: (m) => <RankBar valor={m.n} max={maxN} tom="warn" /> },
+  const detalhe = filtradas.find((o) => o.observationId === sel) ?? filtradas[0] ?? null;
+
+  const maxScore = Math.max(0.01, ...items.map((o) => Math.abs(o.qualityScore)));
+  const maxPersist = Math.max(1, ...items.map((o) => o.persistenceCycles));
+
+  const nomeCurto = (s: string) => s.replace('/USDT:USDT', '');
+
+  const colunas: Coluna<Oportunidade>[] = [
+    { chave: 'sym', titulo: 'Symbol', render: (o) => <span style={{ fontWeight: 700, color: 'var(--ink-0)' }}>{nomeCurto(o.symbol)}</span> },
+    { chave: 'rota', titulo: 'Long → Short', render: (o) => <span style={{ color: 'var(--ink-2)' }}>{o.exchangeLong} → {o.exchangeShort}</span> },
+    { chave: 'spread', titulo: 'Spread', alinhar: 'right', render: (o) => fmt.pct(o.spread * 100) },
+    { chave: 'folga', titulo: 'Folga', alinhar: 'right', render: (o) => <span style={{ color: o.paybackSlack >= 0 ? 'var(--gain-500)' : 'var(--loss-500)' }}>{o.paybackSlack.toFixed(3)}</span> },
+    { chave: 'persist', titulo: 'Persist.', alinhar: 'right', render: (o) => <span className="tabular">{o.persistenceCycles}c</span> },
+    { chave: 'bar', titulo: 'Qualidade', largura: '110px', render: (o) => <RankBar valor={Math.max(0, o.qualityScore)} max={maxScore} tom={o.eligible ? 'gain' : 'neutral'} /> },
+    { chave: 'st', titulo: 'Status', alinhar: 'center', render: (o) => o.eligible ? <StatusBadge label="elegível" tom="ok" /> : <StatusBadge label="bloqueada" tom="neutral" /> },
   ];
+
+  const cs = dado?.collectorStatus;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-        <PageHeader titulo="Opportunity Map" sub="Oportunidades observadas pelo motor — nunca ordens. Vigilância do mercado inteiro e por que as candidatas são barradas." />
+        <PageHeader titulo="Opportunity Map" sub="Oportunidades observadas pelo motor — a coleta é persistente (roda no motor, não no dashboard). Fechar a página não zera nada." />
         <StatusBadge label="OBSERVATION ONLY" tom="info" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 'var(--space-3)' }}>
-        <MiniOp label="Candidatas sob observação" valor={fmt.int(vig?.candidatos)} tom="info" />
-        <MiniOp label="Varreduras" valor={fmt.int(vig?.varreduras)} />
-        <MiniOp label="Oportunidades vivas" valor={fmt.int(vig?.vivas)} tom="ok" />
-        <MiniOp label="Bloqueios na janela" valor={fmt.int(totalBloqueios)} tom="warn" />
-      </div>
+      {resultado?.estado === 'erro' && <DataStateBanner kind="offline" motivo={resultado.motivo} />}
+      {resultado?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={resultado.motivo} />}
 
-      {vig?.motivo && (
-        <Section titulo="Vigilância de mercado">
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-2)', margin: 0 }}>{vig.fonte} — {vig.motivo}</p>
-        </Section>
+      {/* saúde do coletor — honesto, nunca "0 oportunidades" quando offline */}
+      {cs && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap', padding: '10px 14px', background: 'var(--surface-glass)', border: `1px solid ${cs.estado === 'live' ? 'var(--gain-500)' : cs.estado === 'stale' ? 'var(--warn-500)' : 'var(--loss-500)'}`, borderRadius: 'var(--radius-md)' }}>
+          <StatusBadge label={`coletor ${cs.estado}`} tom={COLLECTOR_TOM[cs.estado]} />
+          <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-2)' }}>
+            último ciclo {cs.ultimoCicloTs ? hora(cs.ultimoCicloTs) : '—'} · {idadeTxt(cs.idadeMs)} · {dado?.coverage.ciclosLidos} ciclos lidos (janela {dado?.coverage.janelaHoras}h)
+          </span>
+          {cs.estado !== 'live' && <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--warn-500)' }}>mostrando último snapshot conhecido</span>}
+        </div>
       )}
 
-      <Section titulo="Por que as oportunidades são barradas" sub="Distribuição real dos motivos de bloqueio, agregada dos eventos do transporte. A conta de EV/payback é a mesma que o portão real usa.">
-        {motivosBloqueio.length
-          ? <DataTable aria="Motivos de bloqueio" colunas={colunas} linhas={motivosBloqueio} chaveLinha={(m) => m.motivo} />
-          : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-sm)' }}>Sem eventos de bloqueio na janela atual.</p>}
-      </Section>
+      {/* faixa superior de stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 'var(--space-3)' }}>
+        <MiniOp label="Observadas" valor={fmt.int(dado?.summary.total)} tom="info" />
+        <MiniOp label="Elegíveis" valor={fmt.int(dado?.summary.eligible)} tom="ok" />
+        <MiniOp label="Bloqueadas" valor={fmt.int(dado?.summary.blocked)} tom="warn" />
+        <MiniOp label="Novas (1h)" valor={fmt.int(dado?.summary.novasUltimaHora)} />
+        <MiniOp label="Persist. média" valor={dado ? `${dado.summary.persistenciaMediaCiclos}c` : '—'} />
+        <MiniOp label="Melhor qualidade" valor={dado?.summary.melhorQualidade != null ? dado.summary.melhorQualidade.toFixed(2) : '—'} tom="ok" />
+      </div>
 
-      <Section titulo="Tabela por-candidato detalhada" style={{ borderColor: 'var(--border-hairline)' }}>
-        <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', margin: 0, lineHeight: 1.6 }}>
-          A tabela por-candidato (symbol · long/short · funding · spread · APR · persistência · payback · folga · liquidez · qualidade) depende de um endpoint read-only de candidatas que ainda não está exposto pela API V2 — a fonte existe nos diários, mas exporá-la é um item documentado da próxima sub-etapa. Nada é fabricado aqui: mostramos apenas o que a API já entrega.
-        </p>
-      </Section>
+      <div style={{ display: 'grid', gridTemplateColumns: detalhe ? 'minmax(0, 1.7fr) minmax(320px, 1fr)' : '1fr', gap: 'var(--space-4)', alignItems: 'start' }}>
+        <Section
+          titulo={`Oportunidades · ${filtradas.length}`}
+          acao={
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar…" aria-label="Buscar oportunidade"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: 'var(--ink-0)', fontSize: 'var(--text-xs)', padding: '6px 10px', width: 140 }} />
+              <select value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)} aria-label="Filtrar por status"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: 'var(--ink-0)', fontSize: 'var(--text-xs)', padding: '6px 10px' }}>
+                <option value="todas">todas</option><option value="eligible">elegíveis</option><option value="blocked">bloqueadas</option>
+              </select>
+            </div>
+          }
+        >
+          {filtradas.length
+            ? <DataTable aria="Oportunidades" colunas={colunas} linhas={filtradas.slice(0, 300)} chaveLinha={(o) => o.observationId} onSelecionar={(o) => setSel(o.observationId)} selecionada={detalhe?.observationId} />
+            : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-sm)' }}>{cs?.estado === 'empty' ? 'Nenhuma observação na janela.' : 'Nada no filtro atual.'}</p>}
+        </Section>
+
+        <AnimatePresence>
+          {detalhe && (
+            <motion.div key={detalhe.observationId} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ duration: 0.24, ease: [0.2, 0.7, 0.2, 1] }}
+              style={{ position: 'sticky', top: 0, background: 'linear-gradient(180deg, var(--surface-glass), rgba(12,21,38,0.45))', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <div>
+                <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--ink-0)' }}>{nomeCurto(detalhe.symbol)}</div>
+                <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>long {detalhe.exchangeLong} · short {detalhe.exchangeShort}</div>
+              </div>
+              {detalhe.eligible ? <StatusBadge label="ELEGÍVEL" tom="ok" /> : <StatusBadge label={`BLOQUEADA · ${detalhe.blockReasons.join(', ') || 'sem motivo'}`} tom="warn" />}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+                {([
+                  ['Spread', fmt.pct(detalhe.spread * 100)],
+                  ['Folga (payback)', detalhe.paybackSlack.toFixed(3)],
+                  ['Qualidade (score)', detalhe.qualityScore.toFixed(2)],
+                  ['Valor esperado', fmt.usd(detalhe.valorEsperado)],
+                  ['Valor/hora', fmt.usd(detalhe.valorPorHora)],
+                  ['Custo', fmt.usd(detalhe.custo)],
+                  ['Capital necessário', fmt.usd(detalhe.capitalNecessario)],
+                  ['APR', detalhe.apr.tracked ? String(detalhe.apr.valor) : 'não instrumentado'],
+                  ['Liquidez', detalhe.liquidity.tracked ? String(detalhe.liquidity.valor) : 'não instrumentado'],
+                  ['Settlement', detalhe.settlementAt.tracked ? hora(detalhe.settlementAt.valor!) : 'não instrumentado'],
+                ] as [string, string][]).map(([lbl, val]) => (
+                  <div key={lbl} style={{ background: 'var(--surface-1)', borderRadius: 'var(--radius-sm)', padding: '7px 9px' }}>
+                    <div style={{ fontSize: '0.58rem', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 700 }}>{lbl}</div>
+                    <div className="tabular" style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: val === 'não instrumentado' ? 'var(--ink-3)' : 'var(--ink-1)', marginTop: 2 }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ borderTop: '1px solid var(--border-hairline)', paddingTop: 'var(--space-3)', fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', lineHeight: 1.7 }}>
+                <div><strong style={{ color: 'var(--ink-2)' }}>Primeira observação:</strong> {hora(detalhe.firstSeenAt)}</div>
+                <div><strong style={{ color: 'var(--ink-2)' }}>Última:</strong> {hora(detalhe.lastSeenAt)}</div>
+                <div><strong style={{ color: 'var(--ink-2)' }}>Observações:</strong> {detalhe.observationCount} · <strong style={{ color: 'var(--ink-2)' }}>persistência:</strong> {detalhe.persistenceCycles} ciclos</div>
+                <div style={{ marginTop: 6 }}>Persistência <RankBar valor={detalhe.persistenceCycles} max={maxPersist} tom="info" /></div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
