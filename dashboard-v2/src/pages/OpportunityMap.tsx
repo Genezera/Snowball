@@ -72,7 +72,7 @@ export function OpportunityMap() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap', padding: '10px 14px', background: 'var(--surface-glass)', border: `1px solid ${cs.estado === 'live' ? 'var(--gain-500)' : cs.estado === 'stale' ? 'var(--warn-500)' : 'var(--loss-500)'}`, borderRadius: 'var(--radius-md)' }}>
           <StatusBadge label={`coletor ${cs.estado}`} tom={COLLECTOR_TOM[cs.estado]} />
           <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-2)' }}>
-            último ciclo {cs.ultimoCicloTs ? hora(cs.ultimoCicloTs) : '—'} · {idadeTxt(cs.idadeMs)} · {dado?.coverage.ciclosLidos} ciclos lidos (janela {dado?.coverage.janelaHoras}h)
+            último ciclo {cs.ultimoCicloTs ? hora(cs.ultimoCicloTs) : '—'} · {idadeTxt(cs.idadeMs)} · {dado?.coverage.ciclosLidos} ciclos · {dado?.coverage.registrosLidos ?? '?'} registros de {dado?.coverage.arquivosProcessados?.length ?? 0} arquivo(s) · janela {dado?.coverage.janelaHoras}h {dado?.coverage.primeiroTs ? `(${hora(dado.coverage.primeiroTs)} → ${dado.coverage.ultimoTs ? hora(dado.coverage.ultimoTs) : '—'})` : ''}
           </span>
           {cs.estado !== 'live' && <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--warn-500)' }}>mostrando último snapshot conhecido</span>}
         </div>
@@ -115,7 +115,10 @@ export function OpportunityMap() {
                 <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--ink-0)' }}>{nomeCurto(detalhe.symbol)}</div>
                 <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>long {detalhe.exchangeLong} · short {detalhe.exchangeShort}</div>
               </div>
-              {detalhe.eligible ? <StatusBadge label="ELEGÍVEL" tom="ok" /> : <StatusBadge label={`BLOQUEADA · ${detalhe.blockReasons.join(', ') || 'sem motivo'}`} tom="warn" />}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {detalhe.eligible ? <StatusBadge label="ELEGÍVEL" tom="ok" /> : <StatusBadge label={`BLOQUEADA · ${detalhe.blockReasons.join(', ') || 'sem motivo'}`} tom="warn" />}
+                <StatusBadge label={detalhe.active ? 'episódio ativo' : 'episódio encerrado'} tom={detalhe.active ? 'ok' : 'neutral'} />
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
                 {([
                   ['Spread', fmt.pct(detalhe.spread * 100)],
@@ -136,9 +139,10 @@ export function OpportunityMap() {
                 ))}
               </div>
               <div style={{ borderTop: '1px solid var(--border-hairline)', paddingTop: 'var(--space-3)', fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', lineHeight: 1.7 }}>
-                <div><strong style={{ color: 'var(--ink-2)' }}>Primeira observação:</strong> {hora(detalhe.firstSeenAt)}</div>
-                <div><strong style={{ color: 'var(--ink-2)' }}>Última:</strong> {hora(detalhe.lastSeenAt)}</div>
-                <div><strong style={{ color: 'var(--ink-2)' }}>Observações:</strong> {detalhe.observationCount} · <strong style={{ color: 'var(--ink-2)' }}>persistência:</strong> {detalhe.persistenceCycles} ciclos</div>
+                <div><strong style={{ color: 'var(--ink-2)' }}>Primeira observação (chave):</strong> {hora(detalhe.firstSeenAt)}</div>
+                <div><strong style={{ color: 'var(--ink-2)' }}>Episódio atual desde:</strong> {hora(detalhe.episodeStartedAt)}{detalhe.episodeEndedAt ? ` · encerrado ${hora(detalhe.episodeEndedAt)}` : ' · em curso'}</div>
+                <div><strong style={{ color: 'var(--ink-2)' }}>Última observação:</strong> {hora(detalhe.lastSeenAt)}</div>
+                <div><strong style={{ color: 'var(--ink-2)' }}>Observações (chave):</strong> {detalhe.observationCount} · <strong style={{ color: 'var(--ink-2)' }}>persistência (episódio):</strong> {detalhe.persistenceCycles} ciclos</div>
                 <div style={{ marginTop: 6 }}>Persistência <RankBar valor={detalhe.persistenceCycles} max={maxPersist} tom="info" /></div>
               </div>
             </motion.div>

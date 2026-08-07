@@ -116,16 +116,29 @@ export function LiveOperations() {
           if (!ev) return null;
           const anterior = filtrados[idx - 1];
           const proximo = filtrados[idx + 1];
+          // sourceId/generation/byteOffset são derivados do eventId sintético
+          // `fonte:g<geração>:b<byteOffset>` (legado/colisão). Para eventos
+          // modernos, o eventId é o id do produtor — esses campos não são
+          // instrumentados nele, então mostramos "não instrumentado" em vez
+          // de inventar. NADA é declarado sem estar realmente presente.
+          const m = /^(.+):g(\d+):b(\d+)$/.exec(ev.eventId);
+          const NI = 'não instrumentado';
           const linhas: [string, string][] = [
             ['Evento', ev.evento],
-            ['Origem', ev.challengerId],
+            ['Origem (challenger)', ev.challengerId],
             ['Timestamp', new Date(ev.timestamp).toLocaleString('pt-BR')],
             ['Motivo', ev.motivo ?? '—'],
             ['eventId', ev.eventId],
             ['eventIdOriginal', (ev as { eventIdOriginal?: string | null }).eventIdOriginal ?? '—'],
-            ['sequenceNumber', ev.sequenceNumber != null ? String(ev.sequenceNumber) : '—'],
-            ['cycleId (correlationId)', ev.cycleId ?? '—'],
+            ['sourceId', m ? m[1] : NI],
+            ['generation', m ? m[2] : NI],
+            ['byteOffset', m ? m[3] : NI],
+            ['sequenceNumber', ev.sequenceNumber != null ? String(ev.sequenceNumber) : NI],
+            ['cycleId (correlationId)', ev.cycleId ?? NI],
             ['idLegado', ev.idLegado ? 'sim' : 'não'],
+            ['schemaVersion', NI],
+            ['payload validado', 'validado por Zod no transporte (EventoRecenteSchema)'],
+            ['posição relacionada', NI],
           ];
           return (
             <div style={{ position: 'sticky', top: 0, background: 'linear-gradient(180deg, var(--surface-glass), rgba(12,21,38,0.45))', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>

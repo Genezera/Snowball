@@ -30,7 +30,9 @@ interface CicloOportunidades {
 
 export interface OportunidadeObservada {
   observationId: string;
-  identity: string;
+  opportunityKey: string;    // combinação de mercado (symbol|long|short) — eterna
+  episodeId: string;         // uma aparição CONTÍNUA (quebra após gap) — vida
+  identity: string;          // = opportunityKey (compat)
   symbol: string;
   exchangeLong: string;
   exchangeShort: string;
@@ -47,109 +49,139 @@ export interface OportunidadeObservada {
   eligible: boolean;         // "aprovada"
   blocked: boolean;
   blockReasons: string[];
-  persistenceCycles: number;
-  observationCount: number;
-  firstSeenAt: number;
-  lastSeenAt: number;
+  persistenceCycles: number; // observações NO episódio atual
+  observationCount: number;  // observações totais da chave na janela
+  firstSeenAt: number;       // primeira observação da CHAVE na janela
+  lastSeenAt: number;        // última observação (do episódio atual)
+  episodeStartedAt: number;  // início do episódio atual
+  episodeEndedAt: number | null; // fim do episódio (null = ainda ativo)
+  active: boolean;           // episódio ainda vivo (última obs recente)
   observedAt: number;
   settlementAt: { valor: number | null; tracked: boolean };
   source: string;
   schemaVersion: number;
 }
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+/** Gap que encerra um episódio: sem observação por este tempo → nova aparição. */
+const GAP_EPISODIO_MS = 30 * 60_000;
 
 function arquivoDoDia(root: string, data: Date): string {
   const dia = data.toISOString().slice(0, 10);
   return path.join(root, 'inteligencia', 'oportunidades', `${dia}.jsonl`);
 }
 
-function lerCiclosRecentes(root: string, maxCiclos: number): CicloOportunidades[] {
+interface MetaLeitura {
+  arquivosProcessados: string[]; registrosLidos: number; registrosDescartados: number;
+  errosLeitura: number; primeiroTs: number | null; ultimoTs: number | null;
+}
+function lerCiclosRecentes(root: string, maxCiclos: number): { ciclos: CicloOportunidades[]; meta: MetaLeitura } {
   const agora = new Date();
   const ontem = new Date(agora.getTime() - 24 * 3600_000);
+  const meta: MetaLeitura = { arquivosProcessados: [], registrosLidos: 0, registrosDescartados: 0, errosLeitura: 0, primeiroTs: null, ultimoTs: null };
   const linhas: string[] = [];
   for (const arq of [arquivoDoDia(root, ontem), arquivoDoDia(root, agora)]) {
     try {
-      if (fs.existsSync(arq)) linhas.push(...fs.readFileSync(arq, 'utf8').split('\n').filter(Boolean));
-    } catch { /* ignora arquivo ilegível — nunca lança */ }
+      if (fs.existsSync(arq)) {
+        linhas.push(...fs.readFileSync(arq, 'utf8').split('\n').filter(Boolean));
+        meta.arquivosProcessados.push(`inteligencia/oportunidades/${arq.split(/[\\/]/).pop()}`);
+      }
+    } catch { meta.errosLeitura++; }
   }
   const ciclos: CicloOportunidades[] = [];
   for (const l of linhas.slice(-maxCiclos)) {
-    try { const c = JSON.parse(l); if (Array.isArray(c.candidatas)) ciclos.push(c); } catch { /* linha corrompida — pulada */ }
+    try {
+      const c = JSON.parse(l);
+      if (Array.isArray(c.candidatas)) {
+        ciclos.push(c); meta.registrosLidos++;
+        meta.primeiroTs = meta.primeiroTs == null ? c.ts : Math.min(meta.primeiroTs, c.ts);
+        meta.ultimoTs = meta.ultimoTs == null ? c.ts : Math.max(meta.ultimoTs, c.ts);
+      } else meta.registrosDescartados++;
+    } catch { meta.registrosDescartados++; }
   }
-  return ciclos;
+  return { ciclos, meta };
 }
 
 export interface ResultadoOportunidades {
   ok: boolean;
   items: OportunidadeObservada[];
   summary: {
-    total: number; eligible: number; blocked: number;
+    total: number; eligible: number; blocked: number; ativas: number;
     novasUltimaHora: number; persistenciaMediaCiclos: number;
     melhorQualidade: number | null; capturaAtiva: number;
   };
-  coverage: { ciclosLidos: number; janelaHoras: number };
+  coverage: {
+    ciclosLidos: number; janelaHoras: number;
+    arquivosProcessados: string[]; registrosLidos: number; registrosDescartados: number;
+    errosLeitura: number; primeiroTs: number | null; ultimoTs: number | null;
+  };
   collectorStatus: { estado: 'live' | 'stale' | 'offline' | 'empty'; ultimoCicloTs: number | null; idadeMs: number | null };
   sourceUpdatedAt: number | null;
   serverTime: number;
 }
 
 export function montarOportunidades(root: string, opts: { maxCiclos?: number } = {}): ResultadoOportunidades {
-  const ciclos = lerCiclosRecentes(root, opts.maxCiclos ?? 400);
+  const { ciclos, meta } = lerCiclosRecentes(root, opts.maxCiclos ?? 400);
   const agora = Date.now();
 
-  const porIdentidade = new Map<string, { obs: OportunidadeObservada; }>();
+  // 1) coleta TODAS as observações por chave de mercado (opportunityKey)
+  const porChave = new Map<string, { ts: number; c: CandidataRegistrada }[]>();
   let ultimoCicloTs: number | null = null;
   let capturaAtiva = 0;
-
   for (const ciclo of ciclos) {
     ultimoCicloTs = ultimoCicloTs == null ? ciclo.ts : Math.max(ultimoCicloTs, ciclo.ts);
     if (ciclo.modo === 'captura') capturaAtiva++;
     for (const c of ciclo.candidatas) {
-      const identity = `${c.symbol}|${c.exchangeLong}|${c.exchangeShort}`;
-      const existente = porIdentidade.get(identity);
-      if (!existente) {
-        porIdentidade.set(identity, {
-          obs: {
-            observationId: `${identity}@${ciclo.ts}`, identity,
-            symbol: c.symbol, exchangeLong: c.exchangeLong, exchangeShort: c.exchangeShort,
-            spread: c.spread,
-            apr: { valor: null, tracked: false },
-            fundingCombined: { valor: null, tracked: false },
-            liquidity: { valor: null, tracked: false },
-            valorEsperado: c.valorEsperado, valorPorHora: c.valorPorHora, custo: c.custo,
-            paybackSlack: c.folga, qualityScore: c.score, capitalNecessario: c.capitalNecessario,
-            eligible: c.aprovada, blocked: !c.aprovada,
-            blockReasons: c.motivoRejeicao ? [c.motivoRejeicao] : [],
-            persistenceCycles: 1, observationCount: 1,
-            firstSeenAt: ciclo.ts, lastSeenAt: ciclo.ts, observedAt: ciclo.ts,
-            settlementAt: { valor: null, tracked: false },
-            source: 'inteligencia/oportunidades', schemaVersion: SCHEMA_VERSION,
-          },
-        });
-      } else {
-        // atualiza a observação existente (dedup por identidade) e acrescenta histórico
-        const o = existente.obs;
-        o.observationCount++;
-        o.persistenceCycles++;
-        o.firstSeenAt = Math.min(o.firstSeenAt, ciclo.ts);
-        if (ciclo.ts >= o.lastSeenAt) {
-          // o snapshot mais recente ganha — reflete o estado atual da oportunidade
-          o.lastSeenAt = ciclo.ts; o.observedAt = ciclo.ts;
-          o.spread = c.spread; o.valorEsperado = c.valorEsperado; o.valorPorHora = c.valorPorHora;
-          o.custo = c.custo; o.paybackSlack = c.folga; o.qualityScore = c.score;
-          o.capitalNecessario = c.capitalNecessario; o.eligible = c.aprovada; o.blocked = !c.aprovada;
-          if (c.motivoRejeicao && !o.blockReasons.includes(c.motivoRejeicao)) o.blockReasons.push(c.motivoRejeicao);
-        }
-      }
+      const key = `${c.symbol}|${c.exchangeLong}|${c.exchangeShort}`;
+      if (!porChave.has(key)) porChave.set(key, []);
+      porChave.get(key)!.push({ ts: ciclo.ts, c });
     }
   }
 
-  const items = [...porIdentidade.values()].map((v) => v.obs)
-    .sort((a, b) => b.qualityScore - a.qualityScore);
+  // 2) para cada chave, separa as observações em EPISÓDIOS (quebra após um
+  // gap sem observação) e reporta o episódio ATUAL (o mais recente). Isso
+  // distingue "mesma combinação de mercado" (opportunityKey) de "uma
+  // aparição contínua" (episodeId).
+  const items: OportunidadeObservada[] = [];
+  for (const [key, obs] of porChave) {
+    obs.sort((a, b) => a.ts - b.ts);
+    const firstSeenAt = obs[0].ts;
+    // encontra o início do último episódio (primeira obs após o último gap)
+    let inicioEpisodio = 0;
+    for (let i = 1; i < obs.length; i++) {
+      if (obs[i].ts - obs[i - 1].ts > GAP_EPISODIO_MS) inicioEpisodio = i;
+    }
+    const episodio = obs.slice(inicioEpisodio);
+    const ult = episodio[episodio.length - 1];
+    const c = ult.c;
+    const lastSeenAt = ult.ts;
+    const episodeStartedAt = episodio[0].ts;
+    const active = (agora - lastSeenAt) <= GAP_EPISODIO_MS;
+    const [symbol, exchangeLong, exchangeShort] = key.split('|');
+    const blockReasons = [...new Set(episodio.map((o) => o.c.motivoRejeicao).filter((r): r is string => !!r))];
+    items.push({
+      observationId: `${key}#${episodeStartedAt}`,
+      opportunityKey: key, episodeId: `${key}#${episodeStartedAt}`, identity: key,
+      symbol, exchangeLong, exchangeShort,
+      spread: c.spread,
+      apr: { valor: null, tracked: false },
+      fundingCombined: { valor: null, tracked: false },
+      liquidity: { valor: null, tracked: false },
+      valorEsperado: c.valorEsperado, valorPorHora: c.valorPorHora, custo: c.custo,
+      paybackSlack: c.folga, qualityScore: c.score, capitalNecessario: c.capitalNecessario,
+      eligible: c.aprovada, blocked: !c.aprovada, blockReasons,
+      persistenceCycles: episodio.length, observationCount: obs.length,
+      firstSeenAt, lastSeenAt, episodeStartedAt, episodeEndedAt: active ? null : lastSeenAt, active,
+      observedAt: lastSeenAt,
+      settlementAt: { valor: null, tracked: false },
+      source: 'inteligencia/oportunidades', schemaVersion: SCHEMA_VERSION,
+    });
+  }
+  items.sort((a, b) => b.qualityScore - a.qualityScore);
 
   const umaHora = agora - 3600_000;
   const eligible = items.filter((i) => i.eligible).length;
+  const ativas = items.filter((i) => i.active).length;
   const persistencias = items.map((i) => i.persistenceCycles);
   const melhorQualidade = items.length ? Math.max(...items.map((i) => i.qualityScore)) : null;
 
@@ -165,12 +197,17 @@ export function montarOportunidades(root: string, opts: { maxCiclos?: number } =
     ok: true,
     items,
     summary: {
-      total: items.length, eligible, blocked: items.length - eligible,
-      novasUltimaHora: items.filter((i) => i.firstSeenAt >= umaHora).length,
+      total: items.length, eligible, blocked: items.length - eligible, ativas,
+      novasUltimaHora: items.filter((i) => i.episodeStartedAt >= umaHora).length,
       persistenciaMediaCiclos: persistencias.length ? +(persistencias.reduce((s, n) => s + n, 0) / persistencias.length).toFixed(1) : 0,
       melhorQualidade, capturaAtiva,
     },
-    coverage: { ciclosLidos: ciclos.length, janelaHoras: 24 },
+    coverage: {
+      ciclosLidos: ciclos.length, janelaHoras: 24,
+      arquivosProcessados: meta.arquivosProcessados, registrosLidos: meta.registrosLidos,
+      registrosDescartados: meta.registrosDescartados, errosLeitura: meta.errosLeitura,
+      primeiroTs: meta.primeiroTs, ultimoTs: meta.ultimoTs,
+    },
     collectorStatus: { estado, ultimoCicloTs, idadeMs },
     sourceUpdatedAt: ultimoCicloTs,
     serverTime: agora,

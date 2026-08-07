@@ -89,6 +89,55 @@ test('CONTINUIDADE: reler o mesmo arquivo (simula restart da API) dá o mesmo re
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test('EPISÓDIOS: mesma combinação que some e reaparece após gap vira NOVO episódio', () => {
+  const root = tmpRoot();
+  const base = Date.now() - 3 * 3600_000; // começa 3h atrás
+  // episódio 1: 3 obs próximas
+  escreverCiclo(root, base, [candidata()]);
+  escreverCiclo(root, base + 60_000, [candidata()]);
+  escreverCiclo(root, base + 120_000, [candidata()]);
+  // gap de 40 min (> 30 min) → encerra episódio 1
+  // episódio 2 (atual): 2 obs recentes
+  escreverCiclo(root, Date.now() - 60_000, [candidata({ score: 9.9 })]);
+  escreverCiclo(root, Date.now() - 10_000, [candidata({ score: 9.9 })]);
+  const r = montarOportunidades(root);
+  assert.equal(r.items.length, 1, 'ainda é UMA opportunityKey (mesma combinação de mercado)');
+  const o = r.items[0];
+  assert.equal(o.observationCount, 5, 'observationCount = todas as observações da chave na janela');
+  assert.equal(o.persistenceCycles, 2, 'persistenceCycles = só as do episódio ATUAL (2 recentes)');
+  assert.equal(o.firstSeenAt, base, 'firstSeenAt = primeira observação de todas');
+  assert.ok(o.episodeStartedAt > base + 120_000, 'episodeStartedAt = início do episódio novo, depois do gap');
+  assert.equal(o.active, true, 'episódio atual está ativo (última obs recente)');
+  assert.equal(o.episodeEndedAt, null, 'ativo → sem fim');
+  assert.equal(o.opportunityKey, o.identity);
+  assert.ok(o.episodeId.includes('#'), 'episodeId identifica a aparição');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('EPISÓDIOS: sem observação recente → episódio inativo com episodeEndedAt', () => {
+  const root = tmpRoot();
+  const base = Date.now() - 5 * 3600_000; // tudo velho (5h atrás)
+  escreverCiclo(root, base, [candidata()]);
+  escreverCiclo(root, base + 60_000, [candidata()]);
+  const r = montarOportunidades(root);
+  const o = r.items[0];
+  assert.equal(o.active, false, 'última obs velha → episódio encerrado');
+  assert.equal(o.episodeEndedAt, o.lastSeenAt, 'episodeEndedAt = última observação');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('coverage/retenção: expõe arquivos, registros lidos e primeiro/último timestamp', () => {
+  const root = tmpRoot();
+  const base = Date.now();
+  escreverCiclo(root, base, [candidata()]);
+  const r = montarOportunidades(root);
+  assert.ok(r.coverage.arquivosProcessados.length >= 1, 'lista os arquivos lidos');
+  assert.equal(r.coverage.registrosLidos, 1);
+  assert.equal(r.coverage.primeiroTs, base);
+  assert.equal(r.coverage.ultimoTs, base);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('arquivo inexistente / ciclo corrompido nunca lança — estado empty honesto', () => {
   const root = tmpRoot();
   assert.doesNotThrow(() => {
