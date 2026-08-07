@@ -145,6 +145,9 @@ export interface ResultadoEventosIncremental {
   serverTime: number;
   oldestAvailableCursor: string;
   rotacoesDetectadas: RotacaoDetectada[];
+  /** Parte 3 (manifesto formal) — por fonte: quantos eventos existiam NOVOS desde o cursor (antes da seleção justa cortar) e quantos de fato couberam nesta página. Reusado pelo manifesto de cobertura pra nunca reler o diário só pra contar. */
+  disponivelPorFonte: Record<string, number>;
+  entreguePorFonte: Record<string, number>;
 }
 
 /**
@@ -218,6 +221,11 @@ export function buscarEventosIncremental(
 
   const entreguesPublicos: EventoV2[] = entregues.map(({ _fonte, _posicao, ...ev }) => ev);
 
+  const disponivelPorFonte: Record<string, number> = {};
+  const entreguePorFonte: Record<string, number> = {};
+  for (const [fonte, eventos] of porFonte) disponivelPorFonte[fonte] = eventos.length;
+  for (const ev of entregues) entreguePorFonte[ev._fonte] = (entreguePorFonte[ev._fonte] ?? 0) + 1;
+
   return {
     eventos: entreguesPublicos,
     nextCursor: codificarCursor(novoCursor),
@@ -225,5 +233,6 @@ export function buscarEventosIncremental(
     serverTime: Date.now(),
     oldestAvailableCursor: codificarCursor({}),
     rotacoesDetectadas,
+    disponivelPorFonte, entreguePorFonte,
   };
 }

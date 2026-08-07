@@ -1,101 +1,159 @@
 /**
- * WATERFALL RECONCILIADO (Parte 8) — a fonte AUTORITATIVA dos três totais
- * vitais é sempre `spread/estado.json` (fundingTotal, custosTotal, capital,
- * capitalInicial) — o MESMO arquivo que o motor real usa pra decidir, nunca
- * uma reconstrução. A identidade `fundingTotal − custosTotal = pnlRealizado`
- * é garantida por CONSTRUÇÃO aqui (os três vêm da mesma leitura), com
+ * WATERFALL RECONCILIADO (Parte 8, formalizado) — a fonte AUTORITATIVA dos
+ * totais vitalícios é sempre `spread/estado.json` (fundingTotal, custosTotal,
+ * capital, capitalInicial) — o MESMO arquivo que o motor real usa pra
+ * decidir, nunca uma reconstrução. A identidade
+ * `fundingTotalLifetime − custosTotalLifetime = pnlRealizadoLifetime` é
+ * garantida por CONSTRUÇÃO (os três vêm da mesma leitura atômica), com
  * tolerância de arredondamento explícita.
  *
- * A decomposição POR BUCKET (taxa entrada/saída, escalonamento, apara...)
- * só existe reconstruída a partir do diário — e o diário é lido com um teto
- * de linhas. Por isso a decomposição é classificada honestamente:
- *   - 'decomposicao_completa'  → o diário inteiro coube na leitura
- *   - 'decomposicao_da_janela' → só as últimas N linhas foram lidas —
- *     PODE não bater exatamente com os totais autoritativos
+ * A decomposição POR BUCKET (entrada/saída/escalonamento/apara/...) só
+ * existe reconstruída a partir do diário, e o diário é lido com um teto de
+ * linhas — por isso tem `escopo` honesto ('complete' | 'partial'; este
+ * módulo nunca produz 'common-window'/'rolling-window' — essas classificações
+ * são de comparação entre motores, não de leitura de um único diário).
+ *
+ * Achado auditando os eventos reais do diário (não suposição): o motor NÃO
+ * separa "slippage" como custo monetário próprio — `escorregamento`/
+ * `escorregamentoMedido` nos eventos `abre`/`bloqueado`/`abre-captura` são
+ * a métrica de spread medido usada na decisão, não uma fatia de `custo`.
+ * `slippageEntrada`/`slippageSaida` portanto voltam `null` com nota
+ * explícita — nunca um número fabricado. Da mesma forma, não existe evento
+ * "emergencial" no motor atual (o mais próximo, `socorre`, já é
+ * corretamente excluído do custo — é transferência de capital entre
+ * exchanges, não perda) — `emergencial` fica em 0 com nota, nunca
+ * apresentado como se fosse uma categoria populada.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { lerJsonlComNumeroDeLinha } from '../readers/arquivos.ts';
+import { lerJsonlComNumeroDeLinha, lerJsonSeguro } from '../readers/arquivos.ts';
 
-const TOLERANCIA_ARREDONDAMENTO = 0.01; // US$0,01 — só ponto flutuante, nunca mais que isso
+const TOLERANCIA = 0.01; // US$0,01 — só ponto flutuante, nunca mais que isso
 const TETO_LINHAS_DECOMPOSICAO = 4000;
 
-export interface TotaisAutoritativos {
-  origem: 'spread/estado.json';
-  fundingTotal: number;
-  custosTotal: number;
-  capital: number;
-  capitalInicial: number;
-  pnlRealizado: number;
-  identidadeReconciliada: boolean;
-  diferencaDeArredondamento: number;
+export interface TotaisVitalicios {
+  fundingTotalLifetime: number;
+  custosTotalLifetime: number;
+  pnlRealizadoLifetime: number;
+  reconciliado: boolean;
+  diferenca: number;
+  tolerancia: number;
+  origemFunding: string;
+  origemCustos: string;
+  origemPnL: string;
+  atualizadoEm: number;
 }
 
-export function lerTotaisAutoritativos(root: string): TotaisAutoritativos | null {
+export function lerTotaisAutoritativos(root: string): TotaisVitalicios | null {
   try {
     const p = path.join(root, 'spread', 'estado.json');
     if (!fs.existsSync(p)) return null;
+    const st = fs.statSync(p);
     const e = JSON.parse(fs.readFileSync(p, 'utf8'));
-    const pnlRealizado = e.capital - e.capitalInicial;
-    // a identidade real do motor não é fundingTotal-custosTotal=pnlRealizado
-    // sozinha — existem outros eventos de capital (socorro entre exchanges,
-    // que não é ganho nem custo, só move dinheiro de lugar). Por isso a
-    // "reconciliação" aqui é sobre os TRÊS autoritativos lidos juntos da
-    // MESMA fonte, não uma fórmula fechada — reconciliado = os três vieram
-    // do mesmo snapshot atômico do arquivo, nunca combinados de leituras
-    // diferentes em momentos diferentes.
+    const fundingTotalLifetime = e.fundingTotal ?? 0;
+    const custosTotalLifetime = e.custosTotal ?? 0;
+    const pnlRealizadoLifetime = (e.capital ?? 0) - (e.capitalInicial ?? 0);
+    // A identidade fechada funding-custos=pnl NÃO é garantida por fórmula —
+    // existem eventos de capital que não são nem ganho nem custo (`socorre`,
+    // transferência entre exchanges). A "reconciliação" real aqui é: os três
+    // valores vieram do MESMO snapshot atômico do arquivo (nunca combinados
+    // de leituras em momentos diferentes) — a diferença abaixo é só
+    // ponto-flutuante/eventos de capital não classificados, documentada, não
+    // escondida.
+    const diferenca = pnlRealizadoLifetime - (fundingTotalLifetime - custosTotalLifetime);
     return {
-      origem: 'spread/estado.json',
-      fundingTotal: e.fundingTotal ?? 0, custosTotal: e.custosTotal ?? 0,
-      capital: e.capital ?? 0, capitalInicial: e.capitalInicial ?? 0,
-      pnlRealizado,
-      identidadeReconciliada: true,
-      diferencaDeArredondamento: 0,
+      fundingTotalLifetime, custosTotalLifetime, pnlRealizadoLifetime,
+      reconciliado: Math.abs(diferenca) <= TOLERANCIA,
+      diferenca, tolerancia: TOLERANCIA,
+      origemFunding: 'spread/estado.json#fundingTotal',
+      origemCustos: 'spread/estado.json#custosTotal',
+      origemPnL: 'spread/estado.json#capital-capitalInicial',
+      atualizadoEm: st.mtimeMs,
     };
   } catch { return null; }
 }
 
+export type EscopoDecomposicao = 'complete' | 'partial';
+
 export interface DecomposicaoBuckets {
-  classificacao: 'decomposicao_completa' | 'decomposicao_da_janela';
+  escopo: EscopoDecomposicao;
   linhasLidas: number;
-  linhasTotaisNoArquivo: number | null;
-  taxaEntrada: number; taxaSaida: number;
-  custoEscalonamento: number; custoApara: number; custoReinvestimento: number; custoEmergencial: number;
-  fundingBrutoNaJanela: number;
-  custoTotalNaJanela: number;
-  /** o quanto a decomposição da janela diverge dos totais autoritativos — sempre mostrado, nunca escondido */
-  diferencaParaAutoritativo: { funding: number; custos: number } | null;
+  linhasTotaisNoArquivo: number;
+  buckets: {
+    entrada: number;
+    saida: number;
+    /** null = motor não rastreia esta categoria como custo monetário separado (ver docstring do módulo) */
+    slippageEntrada: number | null;
+    slippageSaida: number | null;
+    escalonamento: number;
+    apara: number;
+    reinvestimento: number;
+    /** sempre 0 hoje — não existe evento "emergencial" no motor atual; nunca confundir com dado ausente */
+    emergencial: number;
+    /** ESTIMATIVA de custo de fechar as posições abertas agora (spread/marcacao.json) — nunca somado ao custosTotalLifetime, que é só realizado */
+    fechamentoEstimado: number | null;
+    outros: number;
+  };
+  notas: { slippage: string; emergencial: string; fechamentoEstimado: string };
+  fundingBrutoNoEscopo: number;
+  custoTotalNoEscopo: number;
+  decomposicaoCompleta: boolean;
+  /** quando escopo='partial', o quanto do custosTotalLifetime os buckets acima NÃO conseguem explicar — nunca escondido */
+  custosNaoClassificados: number | null;
 }
 
-export function construirDecomposicao(root: string, autoritativo: TotaisAutoritativos | null): DecomposicaoBuckets | null {
+export function construirDecomposicao(root: string, autoritativo: TotaisVitalicios | null): DecomposicaoBuckets | null {
   const p = path.join(root, 'spread', 'diario.jsonl');
   if (!fs.existsSync(p)) return null;
   const todasAsLinhas = lerJsonlComNumeroDeLinha(p);
   const linhasUsadas = todasAsLinhas.slice(-TETO_LINHAS_DECOMPOSICAO);
   const completa = todasAsLinhas.length <= TETO_LINHAS_DECOMPOSICAO;
 
-  let taxaEntrada = 0, taxaSaida = 0, custoEscalonamento = 0, custoApara = 0, custoReinvestimento = 0, custoEmergencial = 0, fundingBrutoNaJanela = 0;
+  let entrada = 0, saida = 0, escalonamento = 0, apara = 0, reinvestimento = 0, fundingBrutoNoEscopo = 0;
   for (const { linha } of linhasUsadas) {
     const ev = linha as any;
     const custo = ev.custo ?? 0;
-    if (ev.evento === 'abre' || ev.evento === 'abre-captura') taxaEntrada += custo;
-    else if (ev.evento === 'fecha') taxaSaida += custo;
-    else if (ev.evento === 'escalona') custoEscalonamento += custo;
-    else if (ev.evento === 'apara') custoApara += custo;
-    else if (ev.evento === 'reinveste') custoReinvestimento += custo;
-    else if (ev.evento === 'socorre') { /* nunca é custo — move dinheiro entre exchanges, não gera nem consome */ }
-    if (ev.evento === 'funding') fundingBrutoNaJanela += ev.ganho ?? 0;
+    if (ev.evento === 'abre' || ev.evento === 'abre-captura') entrada += custo;
+    else if (ev.evento === 'fecha') saida += custo;
+    else if (ev.evento === 'escalona') escalonamento += custo;
+    else if (ev.evento === 'apara') apara += custo;
+    else if (ev.evento === 'reinveste') reinvestimento += custo;
+    // 'socorre' nunca é custo — move dinheiro entre exchanges, não gera nem consome
+    if (ev.evento === 'funding') fundingBrutoNoEscopo += ev.ganho ?? 0;
   }
-  const custoTotalNaJanela = taxaEntrada + taxaSaida + custoEscalonamento + custoApara + custoReinvestimento + custoEmergencial;
+  const custoTotalNoEscopo = entrada + saida + escalonamento + apara + reinvestimento;
+
+  const marcacao = lerJsonSeguro<any>(path.join(root, 'spread', 'marcacao.json'), null);
+  const fechamentoEstimado = marcacao?.custoEstimadoFechamentoTotal ?? null;
+
+  // custosNaoClassificados: só faz sentido quando o escopo é a leitura
+  // INTEIRA do diário mas os buckets ainda assim não batem com o autoritativo
+  // (partial nunca teria como bater — a diferença ali já é esperada, não é
+  // "não classificado", é "fora da janela lida")
+  let custosNaoClassificados: number | null = null;
+  if (completa && autoritativo) {
+    const diff = autoritativo.custosTotalLifetime - custoTotalNoEscopo;
+    if (Math.abs(diff) > TOLERANCIA) custosNaoClassificados = diff;
+  }
 
   return {
-    classificacao: completa ? 'decomposicao_completa' : 'decomposicao_da_janela',
+    escopo: completa ? 'complete' : 'partial',
     linhasLidas: linhasUsadas.length, linhasTotaisNoArquivo: todasAsLinhas.length,
-    taxaEntrada, taxaSaida, custoEscalonamento, custoApara, custoReinvestimento, custoEmergencial,
-    fundingBrutoNaJanela, custoTotalNaJanela,
-    diferencaParaAutoritativo: autoritativo ? {
-      funding: autoritativo.fundingTotal - fundingBrutoNaJanela,
-      custos: autoritativo.custosTotal - custoTotalNaJanela,
-    } : null,
+    buckets: {
+      entrada, saida,
+      slippageEntrada: null, slippageSaida: null,
+      escalonamento, apara, reinvestimento,
+      emergencial: 0,
+      fechamentoEstimado,
+      outros: custosNaoClassificados ?? 0,
+    },
+    notas: {
+      slippage: 'motor não separa slippage do custo de entrada/saída como bucket monetário próprio — escorregamentoMedido no diário é a métrica de spread usada na decisão, não um valor em US$ isolado',
+      emergencial: 'não existe evento "emergencial" no motor atual — socorre (transferência de capital entre exchanges) já é excluído do custo corretamente, não é substituto desta categoria',
+      fechamentoEstimado: fechamentoEstimado == null ? 'spread/marcacao.json indisponível' : 'ESTIMATIVA de custo se as posições abertas fechassem agora — nunca incluído em custosTotalLifetime, que é só o realizado',
+    },
+    fundingBrutoNoEscopo, custoTotalNoEscopo,
+    decomposicaoCompleta: completa && custosNaoClassificados == null,
+    custosNaoClassificados,
   };
 }

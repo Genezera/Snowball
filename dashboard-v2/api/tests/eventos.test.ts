@@ -216,3 +216,80 @@ test('cursor maior que o arquivo atual (sem termos lido antes) nunca lança', ()
   });
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+// ── Parte 10 — testes adicionais de transporte ─────────────────────────────
+
+test('dois clientes simultâneos: cursores independentes, cada um avança no seu próprio ritmo sem interferir no outro', () => {
+  const root = tmpRoot();
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-1', sequenceNumber: 1, ts: 1000, evento: 'abre' },
+    { eventId: 'c-2', sequenceNumber: 2, ts: 2000, evento: 'funding' },
+  ]);
+  const fontes = [{ fonte: 'challenger-teste', ehChampion: false }];
+  // cliente A lê tudo de uma vez
+  const clienteA1 = buscarEventosIncremental(root, fontes, null, 100);
+  assert.equal(clienteA1.eventos.length, 2);
+  // cliente B lê com limite 1 (paginado)
+  const clienteB1 = buscarEventosIncremental(root, fontes, null, 1);
+  assert.equal(clienteB1.eventos.length, 1);
+
+  // novo evento chega
+  escreverDiarioChallenger(root, 'challenger-teste', [
+    { eventId: 'c-1', sequenceNumber: 1, ts: 1000, evento: 'abre' },
+    { eventId: 'c-2', sequenceNumber: 2, ts: 2000, evento: 'funding' },
+    { eventId: 'c-3', sequenceNumber: 3, ts: 3000, evento: 'fecha' },
+  ]);
+  const clienteA2 = buscarEventosIncremental(root, fontes, clienteA1.nextCursor, 100);
+  assert.equal(clienteA2.eventos.length, 1, 'cliente A só vê o evento novo, seu cursor já tinha os 2 primeiros');
+  assert.equal(clienteA2.eventos[0].eventId, 'c-3');
+
+  const clienteB2 = buscarEventosIncremental(root, fontes, clienteB1.nextCursor, 100);
+  assert.equal(clienteB2.eventos.length, 2, 'cliente B, que só tinha visto 1, agora vê os 2 que faltavam — independente do progresso do cliente A');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('linha parcial/corrompida no meio do arquivo: pulada, nunca derruba a leitura das linhas boas ao redor', () => {
+  const root = tmpRoot();
+  const p = path.join(root, 'spread', 'diario.jsonl');
+  const linhas = [
+    JSON.stringify({ ts: 1000, evento: 'abre' }),
+    '{"ts": 2000, "evento": "bloqueado", corrompido sem fechar chaves',
+    JSON.stringify({ ts: 3000, evento: 'fecha' }),
+  ];
+  fs.writeFileSync(p, linhas.join('\n') + '\n');
+  const r = buscarEventosIncremental(root, [{ fonte: 'champion', ehChampion: true }], null, 100);
+  assert.equal(r.eventos.length, 2, 'as 2 linhas válidas aparecem, a corrompida no meio é pulada sem quebrar as outras');
+  assert.equal(r.eventos[0].evento, 'abre');
+  assert.equal(r.eventos[1].evento, 'fecha');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('linha parcial no FINAL do arquivo (escrita truncada a meio de um append): pulada, não derruba as anteriores', () => {
+  const root = tmpRoot();
+  const p = path.join(root, 'spread', 'diario.jsonl');
+  fs.writeFileSync(p, JSON.stringify({ ts: 1000, evento: 'abre' }) + '\n' + '{"ts": 2000, "evento": "fu');
+  const r = buscarEventosIncremental(root, [{ fonte: 'champion', ehChampion: true }], null, 100);
+  assert.equal(r.eventos.length, 1, 'só a linha completa aparece — a linha final truncada (motor gravando no meio do append) nunca quebra a leitura');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('freeze longo simulado: cursor acumula muitas páginas sem perder nada quando o cliente finalmente "retoma" (busca em lote depois de ficar muito tempo sem pedir)', () => {
+  const root = tmpRoot();
+  const linhas = Array.from({ length: 2000 }, (_, i) => ({ eventId: `c-${i + 1}`, sequenceNumber: i + 1, ts: 1000 + i, evento: 'leitura' }));
+  escreverDiarioChallenger(root, 'challenger-teste', linhas);
+  const fontes = [{ fonte: 'challenger-teste', ehChampion: false }];
+  // cliente nunca chamou (equivalente a ficar congelado por muito tempo) —
+  // ao "retomar", busca tudo em páginas sucessivas até esvaziar, sem perder nada
+  let cursor: string | null = null;
+  let total = 0;
+  const vistos = new Set<string>();
+  for (let pagina = 0; pagina < 20; pagina++) {
+    const r = buscarEventosIncremental(root, fontes, cursor, 200);
+    for (const ev of r.eventos) { assert.ok(!vistos.has(ev.eventId)); vistos.add(ev.eventId); }
+    total += r.eventos.length;
+    cursor = r.nextCursor;
+    if (!r.hasMore) break;
+  }
+  assert.equal(total, 2000, 'freeze longo nunca perde eventos — o backlog inteiro é recuperável em páginas sucessivas');
+  fs.rmSync(root, { recursive: true, force: true });
+});

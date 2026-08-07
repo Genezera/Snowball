@@ -45,15 +45,22 @@ export const PosicaoChampionSchema = z.object({
 
 export const CustosChampionV2Schema = z.object({
   autoritativo: z.object({
-    fundingTotal: z.number(), custosTotal: z.number(), capital: z.number(), capitalInicial: z.number(),
-    pnlRealizado: z.number(), identidadeReconciliada: z.boolean(), diferencaDeArredondamento: z.number(),
+    fundingTotalLifetime: z.number(), custosTotalLifetime: z.number(), pnlRealizadoLifetime: z.number(),
+    reconciliado: z.boolean(), diferenca: z.number(), tolerancia: z.number(),
+    origemFunding: z.string(), origemCustos: z.string(), origemPnL: z.string(), atualizadoEm: z.number(),
   }).passthrough().nullable(),
   decomposicao: z.object({
-    classificacao: z.enum(['decomposicao_completa', 'decomposicao_da_janela']),
-    taxaEntrada: z.number(), taxaSaida: z.number(), custoEscalonamento: z.number(),
-    custoApara: z.number(), custoReinvestimento: z.number(), custoEmergencial: z.number(),
-    fundingBrutoNaJanela: z.number(), custoTotalNaJanela: z.number(),
-    diferencaParaAutoritativo: z.object({ funding: z.number(), custos: z.number() }).nullable(),
+    escopo: z.enum(['complete', 'partial']),
+    linhasLidas: z.number(), linhasTotaisNoArquivo: z.number(),
+    buckets: z.object({
+      entrada: z.number(), saida: z.number(),
+      slippageEntrada: z.number().nullable(), slippageSaida: z.number().nullable(),
+      escalonamento: z.number(), apara: z.number(), reinvestimento: z.number(),
+      emergencial: z.number(), fechamentoEstimado: z.number().nullable(), outros: z.number(),
+    }).passthrough(),
+    notas: z.object({ slippage: z.string(), emergencial: z.string(), fechamentoEstimado: z.string() }).passthrough(),
+    fundingBrutoNoEscopo: z.number(), custoTotalNoEscopo: z.number(),
+    decomposicaoCompleta: z.boolean(), custosNaoClassificados: z.number().nullable(),
   }).passthrough().nullable(),
 }).passthrough().nullable();
 

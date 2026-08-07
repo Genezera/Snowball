@@ -13,7 +13,7 @@ import { promisify } from 'node:util';
 import { exec } from 'node:child_process';
 import { lerVigilancia, saudeVigilancia } from '../../../src/funding/ponte.ts';
 import { lerJsonlComNumeroDeLinha, lerJsonSeguro } from '../readers/arquivos.ts';
-import { lerTotaisAutoritativos, construirDecomposicao, type TotaisAutoritativos, type DecomposicaoBuckets } from './waterfall.ts';
+import { lerTotaisAutoritativos, construirDecomposicao, type TotaisVitalicios, type DecomposicaoBuckets } from './waterfall.ts';
 
 const execAsync = promisify(exec);
 
@@ -171,7 +171,7 @@ export interface ChampionCompleto {
   pagamentosPorDia: PagamentoDia[];
   processos: any[];
   vigilancia: any;
-  custos: { autoritativo: TotaisAutoritativos | null; decomposicao: DecomposicaoBuckets | null };
+  custos: { autoritativo: TotaisVitalicios | null; decomposicao: DecomposicaoBuckets | null };
   equityMark: number | null;
   equityLiquidacao: number | null;
   fundingTotal: number | null;
@@ -203,9 +203,9 @@ export async function montarChampionCompleto(root: string): Promise<ChampionComp
     custos: { autoritativo, decomposicao },
     equityMark: marcacao?.equityMark ?? null,
     equityLiquidacao: marcacao?.equityLiquidacao ?? null,
-    fundingTotal: autoritativo?.fundingTotal ?? null,
-    custosTotal: autoritativo?.custosTotal ?? null,
-    pnlRealizado: autoritativo?.pnlRealizado ?? null,
+    fundingTotal: autoritativo?.fundingTotalLifetime ?? null,
+    custosTotal: autoritativo?.custosTotalLifetime ?? null,
+    pnlRealizado: autoritativo?.pnlRealizadoLifetime ?? null,
     atualizadoEm: Date.now(),
   };
 }

@@ -658,13 +658,6 @@ function montarProfitLab() {
   const riscos = lerAgregadoLab('riscos.json');
   const telemetria = lerAgregadoLab('telemetria.json');
   const championVsControl = lerAgregadoLab('champion-vs-control.json');
-  // leaderboard multi-strategy (auditoria — Parte 1/9): champion + Lab +
-  // baselines + adaptadores de momentum/pares, com janela comum explícita.
-  // Mesmo padrão de leitura pura dos outros agregados — nunca recalculado aqui.
-  const leaderboardMulti = lerAgregadoLab('leaderboard-multi.json');
-  // janela comum (deltas + commonWindowStart/End) — Dashboard 2.0 precisa
-  // disso pro Command Center nunca comparar motores de janelas diferentes.
-  const janelaComum = lerAgregadoLab('janela-comum.json');
   const st = statusProfitLab(hb);
   return {
     status: st.status, statusMotivo: st.motivo,
@@ -673,7 +666,7 @@ function montarProfitLab() {
       leaderboard: Math.round(idadeArquivoLab('leaderboard.json') / 1000),
     },
     heartbeat: hb,
-    resumo, leaderboard, frequencia, custos, riscos, telemetria, championVsControl, leaderboardMulti, janelaComum,
+    resumo, leaderboard, frequencia, custos, riscos, telemetria, championVsControl,
     relatorios: lerRelatoriosIA(),
     auditoria: lerAuditoria(ROOT, 100),
     aprovados: CHALLENGERS_APROVADOS.map((c) => ({
@@ -715,8 +708,31 @@ function corpoJson(req: http.IncomingMessage): Promise<any> {
   });
 }
 
+// ── diagnóstico persistente de quedas (achado na investigação da queda de
+// 08:28:40 — ver docs/DIAGNOSTICO-QUEDA-08-28-40.md: sem isto, uma queda
+// futura fica com "causa histórica indeterminada" igual àquela, porque não
+// havia NADA registrado além do fato "caiu"). Append-only, nunca sobrescreve
+// entrada anterior, nunca depende do processo seguir vivo pra ser lido.
+type MotivoQuedaDashboard = 'startup' | 'shutdown_limpo' | 'maintenance' | 'crash' | 'watchdog_restart' | 'porta_ocupada' | 'erro_de_build' | 'erro_nao_tratado';
+let ultimaRota: string | null = null;
+function registrarDiagnosticoQueda(motivo: MotivoQuedaDashboard, extra: Record<string, unknown> = {}) {
+  const entrada = {
+    timestamp: Date.now(), timestampLegivel: new Date().toISOString(),
+    processo: 'dashboard-antigo', pid: process.pid,
+    exitCode: extra.exitCode ?? null, signal: extra.signal ?? null,
+    stderrFinal: extra.stderrFinal ?? null, stdoutFinal: extra.stdoutFinal ?? null,
+    stack: extra.stack ?? null,
+    memoriaRssMB: Math.round(process.memoryUsage().rss / 1e6),
+    porta: PORTA, ultimoRequest: ultimaRota,
+    motivoClassificado: motivo,
+  };
+  try { fs.appendFileSync(path.join(ROOT, 'vigilancia', 'dashboard-crash-diagnostics.jsonl'), JSON.stringify(entrada) + '\n'); } catch { /* best-effort — nunca impede shutdown/registro de seguir */ }
+}
+registrarDiagnosticoQueda('startup');
+
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORTA}`);
+  ultimaRota = url.pathname;
 
   if (url.pathname === '/api/stream') {
     res.writeHead(200, {
@@ -764,76 +780,13 @@ const servidor = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Live Operations (Dashboard 2.0): feed global de eventos, merge de
-  // todos os diários (challengers aprovados + champion), só LEITURA e cap
-  // de linhas — nunca recalcula nada, só junta e ordena o que já existe.
-  if (url.pathname === '/api/profit-lab/eventos-recentes') {
-    try {
-      // `ts+evento` NÃO é único — achado ao vivo: o champion pode gravar dois
-      // "bloqueado" no MESMO milissegundo (duas rejeições distintas no
-      // mesmo ciclo síncrono), e diários legados (antes do sequenceNumber
-      // desta sessão) não têm nenhum campo próprio de identidade. O índice
-      // do map() garante unicidade mesmo nesse caso — sem ele, o React
-      // duplicava/reconciliava linhas erradas na timeline (achado testando
-      // no navegador, não hipotético).
-      // Achado auditando cobertura: um cap GLOBAL de 150 depois do merge
-      // deixava challengers de baixo volume (ex.: captura, que só loga
-      // algumas vezes por hora) sendo engolidos pelos de alto volume (ex.:
-      // champion, que loga "bloqueado" a cada ~5min). A garantia agora é
-      // por challenger — cada um contribui até `POR_CHALLENGER` eventos
-      // mais recentes ANTES do merge, então ninguém é 100% starved só por
-      // outro challenger ser mais barulhento.
-      const POR_CHALLENGER = 8;
-      const porChallenger = CHALLENGERS_APROVADOS.flatMap((c) =>
-        lerDiarioChallenger(c.challengerId, POR_CHALLENGER).map((ev: any, idx: number) => ({
-          eventId: ev.eventId ?? `${c.challengerId}-legado-${ev.ts}-${idx}`,
-          sequenceNumber: ev.sequenceNumber ?? null,
-          cycleId: ev.cycleId ?? null,
-          challengerId: c.challengerId,
-          timestamp: ev.ts,
-          evento: ev.evento,
-          motivo: ev.motivo ?? null,
-        })),
-      );
-      const championEventos = lerDiario(POR_CHALLENGER)
-        .filter((ev: any) => ev.evento !== 'leitura')
-        .map((ev: any, idx: number) => ({
-          eventId: `champion-${ev.ts}-${ev.evento}-${idx}`,
-          sequenceNumber: null, cycleId: null,
-          challengerId: 'funding-arbitrage-champion',
-          timestamp: ev.ts, evento: ev.evento, motivo: ev.motivo ?? null,
-        }));
-      const todos = [...porChallenger, ...championEventos]
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 300);
-
-      // Manifesto de cobertura (Parte 2 da auditoria) — os 47 challengers
-      // aprovados SEMPRE aparecem aqui, mesmo os que não têm nenhum evento
-      // ainda. "Desaparecer silenciosamente" deixa de ser possível: quem
-      // olha a lista sabe exatamente por quê cada um está ou não no feed.
-      const cobertura = CHALLENGERS_APROVADOS.map((c) => {
-        const p = path.join(ROOT, 'inteligencia', 'challengers', c.challengerId);
-        const possuiEstado = fs.existsSync(path.join(p, 'estado.json'));
-        const possuiDiario = fs.existsSync(path.join(p, 'diario.jsonl'));
-        const numEventos = todos.filter((e) => e.challengerId === c.challengerId).length;
-        return {
-          challengerId: c.challengerId, ativo: true, tipo: c.tipo ?? 'persistencia',
-          possuiEstado, possuiDiario, possuiEventos: numEventos > 0,
-          incluidoNoEndpoint: numEventos > 0,
-          motivoDaExclusao: numEventos > 0 ? null
-            : !possuiDiario ? 'nenhuma decisão registrada ainda — sem diario.jsonl'
-            : 'diario existe mas não teve evento nos últimos ' + POR_CHALLENGER + ' registros dentro da janela mesclada',
-        };
-      });
-
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ ok: true, eventos: todos, cobertura, totalChallengersAprovados: CHALLENGERS_APROVADOS.length, geradoEm: Date.now() }));
-    } catch (e) {
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ ok: false, erro: (e as Error).message, eventos: [], geradoEm: Date.now() }));
-    }
-    return;
-  }
+  // NOTA (Parte 12 — reversão seletiva da migração "Isolamento Real"): a
+  // rota `/api/profit-lab/eventos-recentes` que existia aqui foi removida.
+  // Confirmado por grep em pagina.ts que o dashboard antigo nunca a
+  // consumiu — era exclusiva do Dashboard 2.0, que agora tem transporte
+  // próprio e superior em `dashboard-v2/api/server.ts` (`GET /api/v2/events`,
+  // incremental por cursor com IDs estáveis e cursor resistente a rotação,
+  // em vez do polling da janela inteira que esta rota fazia).
 
   // ── Profit Lab: controle — única superfície de escrita, sempre auditada ──
   if (url.pathname === '/api/profit-lab/controle' && req.method === 'POST') {
@@ -1148,4 +1101,25 @@ servidor.listen(PORTA, () => {
       `clientesSSE=${clientes.size} cacheCandles=${cacheCandles.size} precosAoVivo=${Object.keys(precosAoVivo).length}`,
     );
   }, 10 * 60_000);
+});
+
+servidor.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`ERRO FATAL: porta ${PORTA} já está em uso.`);
+    registrarDiagnosticoQueda('porta_ocupada', { stderrFinal: err.message });
+    process.exit(1);
+  }
+  console.error(`ERRO FATAL no servidor: ${err.stack}`);
+  registrarDiagnosticoQueda('erro_nao_tratado', { stderrFinal: err.message, stack: err.stack ?? null });
+  process.exit(1);
+});
+process.on('SIGINT', () => { registrarDiagnosticoQueda('shutdown_limpo', { signal: 'SIGINT' }); process.exit(0); });
+process.on('SIGTERM', () => { registrarDiagnosticoQueda('shutdown_limpo', { signal: 'SIGTERM' }); process.exit(0); });
+process.on('uncaughtException', (err) => {
+  console.error(`uncaughtException: ${err.stack}`);
+  registrarDiagnosticoQueda('erro_nao_tratado', { stderrFinal: err.message, stack: err.stack ?? null });
+  // não segue rodando num estado potencialmente corrompido — o watchdog
+  // (scripts/supervisor.sh) detecta o PID morto e religa sozinho, e agora,
+  // diferente de 08:28:40, o diagnóstico persiste ANTES de sair.
+  process.exit(1);
 });

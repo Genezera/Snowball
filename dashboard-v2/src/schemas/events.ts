@@ -15,15 +15,16 @@ export const EventoRecenteSchema = z.object({
   idLegado: z.boolean(),
 }).passthrough();
 
-export const MotivoAusenciaSchema = z.enum([
+export const MotivoSemEventosSchema = z.enum([
   'nao_possui_diario', 'diario_vazio', 'eventos_fora_da_janela',
-  'possui_eventos_mas_nenhum_no_resultado_atual', 'erro_de_leitura',
+  'possui_eventos_mas_nenhum_no_resultado_atual',
 ]).nullable();
 
 export const LinhaCoberturaSchema = z.object({
-  challengerId: z.string(), ativo: z.boolean(), tipo: z.string(),
-  possuiEstado: z.boolean(), possuiDiario: z.boolean(), possuiEventosNaJanela: z.boolean(),
-  motivoAusencia: MotivoAusenciaSchema,
+  challengerId: z.string(), declarado: z.literal(true), ativo: z.boolean(),
+  possuiEstado: z.boolean(), possuiDiario: z.boolean(), diarioVazio: z.boolean(), possuiEventos: z.boolean(),
+  eventosDepoisDoCursor: z.number(), eventosEntregues: z.number(),
+  ultimoEvento: z.number().nullable(), motivoSemEventos: MotivoSemEventosSchema, erro: z.string().nullable(),
 }).passthrough();
 
 export const ManifestoCoberturaSchema = z.object({
@@ -32,6 +33,7 @@ export const ManifestoCoberturaSchema = z.object({
   challengersComDiario: z.number(),
   challengersComEventosNaJanela: z.number(),
   challengersSemEventosNaJanela: z.number(),
+  challengersComErroDeLeitura: z.number(),
   linhas: z.array(LinhaCoberturaSchema),
 }).passthrough();
 

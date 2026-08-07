@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CHALLENGERS_APROVADOS } from '../../src/inteligencia/challengers.ts';
 import { lerJsonSeguro, caminhoAgregadoLab } from './readers/arquivos.ts';
-import { buscarEventosIncremental, type EventoV2 } from './services/eventos.ts';
+import { buscarEventosIncremental } from './services/eventos.ts';
 import { montarManifestoCobertura } from './services/cobertura.ts';
 import { lerTotaisAutoritativos, construirDecomposicao } from './services/waterfall.ts';
 import { montarChampionCompleto } from './services/champion.ts';
@@ -41,12 +41,34 @@ function log(msg: string) {
   try { fs.appendFileSync(path.join(DIR_LOGS, 'api.log'), linha + '\n'); } catch { /* log é best-effort, nunca derruba a API por causa disso */ }
 }
 
-// ── heartbeat/PID próprios (Parte 13 — supervisão independente) ─────────
+// ── heartbeat/PID próprios (Parte 4/13 — supervisão independente) ───────
 interface HeartbeatV2 { pid: number; startedAt: number; ultimaRequisicao: number | null; totalRequisicoes: number; version: string }
 const heartbeat: HeartbeatV2 = { pid: process.pid, startedAt: Date.now(), ultimaRequisicao: null, totalRequisicoes: 0, version: '2.0.0-api' };
+let ultimaRota: string | null = null;
 function salvarHeartbeat() {
   try { fs.writeFileSync(path.join(DIR_LOGS, 'heartbeat.json'), JSON.stringify(heartbeat, null, 2)); } catch { /* best-effort */ }
 }
+
+// ── diagnóstico persistente de quedas (Parte 11) ─────────────────────────
+// Registra CADA saída do processo (limpa ou não) num jsonl append-only —
+// nunca sobrescreve entradas antigas, nunca depende de o processo ainda
+// estar vivo pra ser lido depois. Classificação sempre explícita — nunca
+// deixa "motivoClassificado" vazio/adivinhado.
+type MotivoQueda = 'startup' | 'shutdown_limpo' | 'maintenance' | 'crash' | 'watchdog_restart' | 'porta_ocupada' | 'erro_de_build' | 'erro_nao_tratado';
+function registrarDiagnosticoQueda(motivo: MotivoQueda, extra: Record<string, unknown> = {}) {
+  const entrada = {
+    timestamp: Date.now(), timestampLegivel: new Date().toISOString(),
+    processo: 'dashboard-v2-api', pid: process.pid,
+    exitCode: extra.exitCode ?? null, signal: extra.signal ?? null,
+    stderrFinal: extra.stderrFinal ?? null, stdoutFinal: extra.stdoutFinal ?? null,
+    stack: extra.stack ?? null,
+    memoriaRssMB: Math.round(process.memoryUsage().rss / 1e6),
+    porta: PORTA, ultimoRequest: ultimaRota,
+    motivoClassificado: motivo,
+  };
+  try { fs.appendFileSync(path.join(DIR_LOGS, 'crash-diagnostics.jsonl'), JSON.stringify(entrada) + '\n'); } catch { /* best-effort — nunca impede o shutdown/registro de seguir */ }
+}
+registrarDiagnosticoQueda('startup');
 
 function enviarJson(res: http.ServerResponse, status: number, corpo: unknown) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -87,6 +109,7 @@ const servidor = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   const url = new URL(req.url ?? '/', `http://localhost:${PORTA}`);
+  ultimaRota = url.pathname;
 
   try {
     // ── saúde da própria API ────────────────────────────────────────────
@@ -132,10 +155,9 @@ const servidor = http.createServer((req, res) => {
       const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit') ?? 200)));
       const resultado = buscarEventosIncremental(ROOT, FONTES_EVENTOS, cursor, limit);
 
-      // cobertura (Parte 7) reusa o que este request já leu — nunca lê o
-      // diário duas vezes só pra montar o manifesto
-      const idsComEvento = new Set<string>(resultado.eventos.map((e: EventoV2) => e.challengerId));
-      const cobertura = montarManifestoCobertura(ROOT, CHALLENGERS_APROVADOS, idsComEvento, JANELA_COBERTURA_MS);
+      // cobertura (Parte 3/7) reusa as contagens por fonte que este request
+      // já computou — nunca lê o diário duas vezes só pra montar o manifesto
+      const cobertura = montarManifestoCobertura(ROOT, CHALLENGERS_APROVADOS, resultado.disponivelPorFonte, resultado.entreguePorFonte, JANELA_COBERTURA_MS);
 
       return enviarJson(res, 200, { ok: true, ...resultado, cobertura });
     }
@@ -161,6 +183,24 @@ servidor.listen(PORTA, () => {
   setInterval(salvarHeartbeat, 10_000);
 });
 
-process.on('SIGINT', () => { log('shutdown limpo (SIGINT)'); process.exit(0); });
-process.on('SIGTERM', () => { log('shutdown limpo (SIGTERM)'); process.exit(0); });
-process.on('uncaughtException', (err) => { log(`uncaughtException: ${err.stack}`); });
+servidor.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    log(`ERRO FATAL: porta ${PORTA} já está em uso — outra instância viva? Não sobe uma segunda.`);
+    registrarDiagnosticoQueda('porta_ocupada', { stderrFinal: err.message });
+    process.exit(1);
+  }
+  log(`ERRO FATAL no servidor: ${err.stack}`);
+  registrarDiagnosticoQueda('erro_nao_tratado', { stderrFinal: err.message, stack: err.stack ?? null });
+  process.exit(1);
+});
+
+process.on('SIGINT', () => { log('shutdown limpo (SIGINT)'); registrarDiagnosticoQueda('shutdown_limpo', { signal: 'SIGINT' }); process.exit(0); });
+process.on('SIGTERM', () => { log('shutdown limpo (SIGTERM)'); registrarDiagnosticoQueda('shutdown_limpo', { signal: 'SIGTERM' }); process.exit(0); });
+process.on('uncaughtException', (err) => {
+  log(`uncaughtException: ${err.stack}`);
+  registrarDiagnosticoQueda('erro_nao_tratado', { stderrFinal: err.message, stack: err.stack ?? null });
+  // nunca segue rodando depois de um estado potencialmente corrompido — o
+  // supervisor detecta o PID morto e decide se reinicia (com limite de
+  // tentativas), igual ao padrão já usado em scripts/supervisor-profit-lab
+  process.exit(1);
+});

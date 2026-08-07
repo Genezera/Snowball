@@ -25,18 +25,31 @@ const SEM_BASE_CONFIGURADA = 'VITE_DASHBOARD_V2_API_URL não configurada — nen
 async function buscarValidado<T>(url: string, schema: { parse: (v: unknown) => T }): Promise<Resultado<T>> {
   const recebidoEm = Date.now();
   if (!BASE) return { estado: 'erro', motivo: SEM_BASE_CONFIGURADA, recebidoEm };
+  let r: Response;
   try {
-    const r = await fetch(BASE + url, { headers: { Accept: 'application/json' } });
-    if (!r.ok) return { estado: 'erro', motivo: `HTTP ${r.status}`, recebidoEm };
-    const bruto = await r.json();
-    try {
-      const dado = schema.parse(bruto);
-      return { estado: 'sucesso', dado, recebidoEm };
-    } catch (e) {
-      return { estado: 'corrompido', motivo: e instanceof Error ? e.message : 'schema inválido', recebidoEm };
-    }
+    r = await fetch(BASE + url, { headers: { Accept: 'application/json' } });
   } catch (e) {
+    // falha de REDE (timeout, conexão recusada, DNS) — o servidor nunca respondeu
     return { estado: 'erro', motivo: e instanceof Error ? e.message : 'falha de rede', recebidoEm };
+  }
+  if (!r.ok) return { estado: 'erro', motivo: `HTTP ${r.status}`, recebidoEm };
+
+  // achado ao vivo (Teste D — resiliência): JSON malformado é dado
+  // CORROMPIDO (o servidor respondeu, só que com algo ilegível), não uma
+  // falha de rede — separado do try acima de propósito, senão caía no
+  // branch 'erro' junto com timeout/DNS, que é uma categoria diferente.
+  let bruto: unknown;
+  try {
+    bruto = await r.json();
+  } catch (e) {
+    return { estado: 'corrompido', motivo: e instanceof Error ? `JSON inválido: ${e.message}` : 'JSON inválido', recebidoEm };
+  }
+
+  try {
+    const dado = schema.parse(bruto);
+    return { estado: 'sucesso', dado, recebidoEm };
+  } catch (e) {
+    return { estado: 'corrompido', motivo: e instanceof Error ? e.message : 'schema inválido', recebidoEm };
   }
 }
 

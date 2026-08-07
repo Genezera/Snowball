@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# SUPERVISOR INDEPENDENTE DO FRONTEND DO DASHBOARD 2.0 (Parte 4).
+#
+# Controla EXCLUSIVAMENTE o servidor de dev do Vite pra `dashboard-v2/`
+# (porta 5183). Nunca toca a API V2, nunca toca o champion, nunca toca o
+# dashboard antigo. Sem heartbeat próprio (Vite é third-party) — a
+# checagem de vida é HTTP no root + presença de processo pelo padrão de
+# linha de comando.
+set -u
+cd "$(dirname "$0")/.."
+
+PORTA=5183
+CMD_LANCAMENTO="npx vite --port $PORTA --strictPort"
+LOG_FRONTEND="dashboard-v2/api/logs/frontend.log"
+LOG_SUPERVISOR="dashboard-v2/api/logs/supervisor-frontend-log.jsonl"
+LOG_SUPERVISOR_HUMANO="dashboard-v2/api/logs/supervisor-frontend-watchdog.log"
+STATUS_FILE="dashboard-v2/api/logs/supervisor-frontend-status.json"
+
+INTERVALO_CHECAGEM_S=20
+MAX_REINICIOS_15MIN=5
+MAX_REINICIOS_24H=10
+
+mkdir -p dashboard-v2/api/logs
+
+falhas_consecutivas=0
+ts_ms() { date +%s%3N; }
+ts_legivel() { date '+%Y-%m-%dT%H:%M:%S%z'; }
+log_humano() { echo "[$(date '+%H:%M:%S')] $1" >> "$LOG_SUPERVISOR_HUMANO"; }
+
+reinicios_em_janela() {
+  local janela_s="$1"
+  [ -f "$LOG_SUPERVISOR" ] || { echo 0; return; }
+  local agora_ms limite_ms
+  agora_ms=$(ts_ms); limite_ms=$((agora_ms - janela_s * 1000))
+  grep -o '"timestamp":[0-9]*' "$LOG_SUPERVISOR" 2>/dev/null | grep -o '[0-9]*' | awk -v lim="$limite_ms" '$1+0 >= lim' | wc -l | tr -d ' '
+}
+processo_vivo() {
+  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*vite*' -and \$_.CommandLine -like '*$PORTA*' }).Count" 2>/dev/null | tr -d '\r\n '
+}
+http_vivo() {
+  curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://localhost:$PORTA/" 2>/dev/null | grep -qE '^(200|30[0-9])$'
+}
+
+registrar_evento() {
+  local motivo="$1" tentativa="$2" resultado="$3"
+  printf '{"timestamp":%s,"timestampLegivel":"%s","motivo":"%s","tentativa":%s,"resultado":"%s"}\n' \
+    "$(ts_ms)" "$(ts_legivel)" "$motivo" "$tentativa" "$resultado" >> "$LOG_SUPERVISOR"
+}
+escrever_status() {
+  local status="$1" ultimo_reinicio="$2" motivo="$3" reinicios_24h="$4" falhas="$5" degradado="$6"
+  local tmp="$STATUS_FILE.tmp"
+  printf '{\n  "processo": "dashboard-v2-frontend",\n  "porta": %s,\n  "statusSupervisor": "%s",\n  "ultimoReinicio": %s,\n  "motivoUltimoReinicio": "%s",\n  "reinicios24h": %s,\n  "falhasConsecutivas": %s,\n  "degradado": %s,\n  "atualizadoEm": %s\n}\n' \
+    "$PORTA" "$status" "${ultimo_reinicio:-null}" "$motivo" "$reinicios_24h" "$falhas" "$degradado" "$(ts_ms)" > "$tmp"
+  mv "$tmp" "$STATUS_FILE"
+}
+
+shutdown_limpo() {
+  log_humano "supervisor-dashboard-v2-frontend: shutdown limpo — NÃO derruba o frontend, só para de supervisioná-lo"
+  escrever_status "parado" "" "supervisor encerrado manualmente" "$(reinicios_em_janela 86400)" "$falhas_consecutivas" "false"
+  exit 0
+}
+trap shutdown_limpo INT TERM
+
+log_humano "supervisor-dashboard-v2-frontend iniciado — checando a cada ${INTERVALO_CHECAGEM_S}s, exclusivo do Vite dev (porta $PORTA)"
+escrever_status "iniciando" "" "" "$(reinicios_em_janela 86400)" 0 "false"
+
+cd dashboard-v2
+
+while true; do
+  precisa_reiniciar=false
+  motivo=""
+  n_vivos=$(processo_vivo)
+  if [ "${n_vivos:-0}" -lt 1 ] 2>/dev/null; then
+    precisa_reiniciar=true; motivo="nenhum processo vite na porta $PORTA"
+  elif ! http_vivo; then
+    precisa_reiniciar=true; motivo="processo presente mas HTTP não responde na porta $PORTA"
+  fi
+
+  if [ "$precisa_reiniciar" = true ]; then
+    reinicios_15min=$(reinicios_em_janela 900)
+    reinicios_24h=$(reinicios_em_janela 86400)
+    if [ "$reinicios_15min" -ge "$MAX_REINICIOS_15MIN" ] || [ "$reinicios_24h" -ge "$MAX_REINICIOS_24H" ]; then
+      falhas_consecutivas=$((falhas_consecutivas + 1))
+      log_humano "Frontend V2 degradado — $reinicios_15min reinícios em 15min / $reinicios_24h em 24h — parando de tentar reiniciar sozinho"
+      registrar_evento "$motivo (limite de reinícios atingido)" "$falhas_consecutivas" "degradado_sem_reiniciar"
+      escrever_status "degradado" "" "$motivo" "$reinicios_24h" "$falhas_consecutivas" "true"
+    else
+      if [ "${n_vivos:-0}" -ge 1 ] 2>/dev/null; then
+        powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*vite*' -and \$_.CommandLine -like '*$PORTA*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
+      fi
+      nohup $CMD_LANCAMENTO >> "../$LOG_FRONTEND" 2>&1 &
+      disown
+      falhas_consecutivas=$((falhas_consecutivas + 1))
+      reinicios_24h=$((reinicios_24h + 1))
+      log_humano "Frontend V2 reiniciado — motivo: $motivo"
+      registrar_evento "$motivo" "$falhas_consecutivas" "reiniciado"
+      escrever_status "reiniciando" "$(ts_ms)" "$motivo" "$reinicios_24h" "$falhas_consecutivas" "false"
+    fi
+  else
+    falhas_consecutivas=0
+    escrever_status "saudavel" "" "" "$(reinicios_em_janela 86400)" 0 "false"
+  fi
+
+  sleep "$INTERVALO_CHECAGEM_S"
+done

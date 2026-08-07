@@ -73,7 +73,7 @@ export function LiveOperations() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-2xs)' }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {['Challenger', 'Estado', 'Diário', 'No feed', 'Motivo'].map((h) => (
+                {['Challenger', 'Estado', 'Diário', 'Na janela', 'Depois do cursor', 'Entregues', 'Último evento', 'Motivo', 'Erro'].map((h) => (
                   <th key={h} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--ink-2)', fontWeight: 700, textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -83,11 +83,15 @@ export function LiveOperations() {
                 <tr key={c.challengerId} style={{ borderTop: '1px solid var(--border-hairline)' }}>
                   <td style={{ padding: '5px 10px', fontWeight: 600 }}>{c.challengerId}</td>
                   <td style={{ padding: '5px 10px' }}>{c.possuiEstado ? '✓' : '—'}</td>
-                  <td style={{ padding: '5px 10px' }}>{c.possuiDiario ? '✓' : '—'}</td>
-                  <td style={{ padding: '5px 10px', color: c.possuiEventosNaJanela ? 'var(--gain-500)' : 'var(--warn-500)', fontWeight: 700 }}>
-                    {c.possuiEventosNaJanela ? 'sim' : 'ativo · sem eventos na janela'}
+                  <td style={{ padding: '5px 10px' }}>{c.diarioVazio ? 'vazio' : c.possuiDiario ? '✓' : '—'}</td>
+                  <td style={{ padding: '5px 10px', color: c.possuiEventos ? 'var(--gain-500)' : 'var(--warn-500)', fontWeight: 700 }}>
+                    {c.possuiEventos ? 'sim' : 'não'}
                   </td>
-                  <td style={{ padding: '5px 10px', color: 'var(--ink-3)' }}>{c.motivoAusencia ?? '—'}</td>
+                  <td style={{ padding: '5px 10px' }}>{c.eventosDepoisDoCursor}</td>
+                  <td style={{ padding: '5px 10px' }}>{c.eventosEntregues}</td>
+                  <td style={{ padding: '5px 10px', color: 'var(--ink-3)' }}>{c.ultimoEvento ? new Date(c.ultimoEvento).toLocaleTimeString('pt-BR') : '—'}</td>
+                  <td style={{ padding: '5px 10px', color: 'var(--ink-3)' }}>{c.motivoSemEventos ?? '—'}</td>
+                  <td style={{ padding: '5px 10px', color: c.erro ? 'var(--loss-500)' : 'var(--ink-3)' }}>{c.erro ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
