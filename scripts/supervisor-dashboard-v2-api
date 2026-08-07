@@ -9,6 +9,12 @@
 # uma linha a mais em nenhum supervisor existente.
 set -u
 cd "$(dirname "$0")/.."
+source scripts/lib/json-field.sh
+# lock/mutex PRÓPRIOS deste supervisor -- nunca compartilhados com os
+# outros 3.
+export LOCK_FILE="dashboard-v2/api/logs/supervisor-api.lock"
+export MUTEX_DIR="dashboard-v2/api/logs/supervisor-api.lockdir"
+source scripts/lib/supervisor-lock.sh
 
 PADRAO="dashboard-v2/api/server.ts"
 CMD_LANCAMENTO="node --experimental-strip-types dashboard-v2/api/server.ts"
@@ -39,24 +45,17 @@ reinicios_em_janela() {
 }
 
 processo_vivo_com_padrao() {
-  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*server.ts*' -and \$_.CommandLine -like '*dashboard-v2*api*' }).Count" 2>/dev/null | tr -d '\r\n '
+  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*server.ts*' -and \$_.CommandLine -like '*dashboard-v2*api*' }).Count" 2>/dev/null | tr -d '\r\n '
 }
 pid_vivo() {
   local pid="$1"; [ -z "$pid" ] && return 1
-  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid\").Count" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'
+  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid\").Count" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'
 }
-ler_campo_json() {
-  # ACHADO REAL (causava restart desnecessário do supervisor a cada
-  # checagem): a regex antiga exigia dígito IMEDIATAMENTE depois dos dois-
-  # pontos ("pid":123), mas o heartbeat.json é gravado com
-  # `JSON.stringify(..., null, 2)`, que sempre inclui um espaço depois dos
-  # dois-pontos ("pid": 123) -- a regex não capturava nada, o supervisor
-  # sempre lia PID vazio e concluía "processo morto", reiniciando a API a
-  # cada ciclo mesmo com ela saudável.
-  local arquivo="$1" campo="$2"
-  [ -f "$arquivo" ] || { echo ""; return; }
-  grep -o "\"$campo\"[[:space:]]*:[[:space:]]*[0-9]*" "$arquivo" 2>/dev/null | head -1 | grep -o '[0-9]*$'
-}
+# ACHADO REAL (causava restart desnecessário a cada checagem, mesmo com a
+# API saudável): a regex antiga aqui exigia dígito IMEDIATAMENTE depois dos
+# dois-pontos, mas `JSON.stringify(..., null, 2)` sempre inclui um espaço
+# ("pid": 123). Substituído por `scripts/lib/json-field.sh`, que usa
+# `node -e` com `JSON.parse` de verdade -- nunca mais regex pra campo JSON.
 
 registrar_evento() {
   local pid_anterior="$1" pid_novo="$2" motivo="$3" tentativa="$4" resultado="$5"
@@ -71,8 +70,11 @@ escrever_status() {
   mv "$tmp" "$STATUS_FILE"
 }
 
+lock_iniciar_ou_sair "$(pwd)/scripts/supervisor-dashboard-v2-api" "$LOG_SUPERVISOR_HUMANO" || exit 1
+
 shutdown_limpo() {
-  log_humano "supervisor-dashboard-v2-api: shutdown limpo — NÃO derruba a API V2, só para de supervisioná-la"
+  lock_liberar
+  log_humano "supervisor-dashboard-v2-api: shutdown limpo — NÃO derruba a API V2, só para de supervisioná-la — lock liberado"
   escrever_status "parado" "" "supervisor encerrado manualmente" "$(reinicios_em_janela 86400)" "$falhas_consecutivas" "false"
   exit 0
 }
@@ -82,6 +84,7 @@ log_humano "supervisor-dashboard-v2-api iniciado — checando a cada ${INTERVALO
 escrever_status "iniciando" "" "" "$(reinicios_em_janela 86400)" 0 "false"
 
 while true; do
+  lock_atualizar_heartbeat
   ultimo_hb_ms=$(ler_campo_json "$HEARTBEAT_FILE" "startedAt")
   ultima_req_ms=$(ler_campo_json "$HEARTBEAT_FILE" "ultimaRequisicao")
   pid_hb=$(ler_campo_json "$HEARTBEAT_FILE" "pid")
@@ -116,7 +119,7 @@ while true; do
     else
       n_vivos=$(processo_vivo_com_padrao)
       if [ "${n_vivos:-0}" -ge 1 ] 2>/dev/null; then
-        powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*server.ts*' -and \$_.CommandLine -like '*dashboard-v2*api*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
+        timeout 8 powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*server.ts*' -and \$_.CommandLine -like '*dashboard-v2*api*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
       fi
       nohup $CMD_LANCAMENTO >> "$LOG_API" 2>&1 &
       disown

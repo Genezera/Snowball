@@ -26,6 +26,13 @@
 # arquivo do champion, nunca edita configuração nem challenger.
 set -u
 cd "$(dirname "$0")/.."
+source scripts/lib/json-field.sh
+# lock/mutex PRÓPRIOS deste supervisor -- nunca compartilhados com os
+# outros 3, e distintos do LAB_PROCESS_LOCK_FILE abaixo (que é o lock do
+# processo do Lab em si, um conceito pré-existente e diferente).
+export LOCK_FILE="vigilancia/locks/supervisor-profit-lab.lock"
+export MUTEX_DIR="vigilancia/locks/supervisor-profit-lab.lockdir"
+source scripts/lib/supervisor-lock.sh
 
 PADRAO="paper-profit-lab.ts"
 CMD_LANCAMENTO="node --experimental-strip-types --env-file-if-exists=.env src/cli/paper-profit-lab.ts --intervalo 5"
@@ -34,7 +41,7 @@ LOG_SUPERVISOR="inteligencia/supervisor-log.jsonl"
 LOG_SUPERVISOR_HUMANO="inteligencia/supervisor-watchdog.log"
 STATUS_FILE="inteligencia/supervisor-status.json"
 HEARTBEAT_FILE="inteligencia/heartbeat.json"
-LOCK_FILE="inteligencia/lab.lock"
+LAB_PROCESS_LOCK_FILE="inteligencia/lab.lock" # lock do PROCESSO do Lab (pré-existente) — distinto do lock deste SUPERVISOR abaixo
 
 INTERVALO_CHECAGEM_S=30
 IDADE_MAXIMA_CICLO_S=900          # 3x o intervalo default de 5min — mesmo limiar de labProvavelmenteParado()
@@ -73,7 +80,7 @@ reinicios_em_janela() {
 # via PowerShell), mas SÓ compara contra $PADRAO ('paper-profit-lab.ts'),
 # nunca contra nenhum padrão do champion.
 processo_vivo_com_padrao() {
-  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*$PADRAO*' }).Count" 2>/dev/null | tr -d '\r\n '
+  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*$PADRAO*' }).Count" 2>/dev/null | tr -d '\r\n '
 }
 
 # PID específico ainda de pé (não só "algum processo casa o padrão" — o PID
@@ -81,17 +88,17 @@ processo_vivo_com_padrao() {
 pid_vivo() {
   local pid="$1"
   [ -z "$pid" ] && return 1
-  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid\").Count" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'
+  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid\").Count" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'
 }
 
-ler_campo_json() {
-  # extrai um campo numérico/simples de um JSON de uma linha só — sem
-  # depender de jq (nem sempre disponível no ambiente). Só serve pra campos
-  # de topo, é o suficiente pro heartbeat/lock daqui.
-  local arquivo="$1" campo="$2"
-  [ -f "$arquivo" ] || { echo ""; return; }
-  grep -o "\"$campo\":[0-9]*" "$arquivo" 2>/dev/null | head -1 | grep -o '[0-9]*$'
-}
+# ACHADO REAL (causou 9 falsos positivos aqui, confirmados: todos
+# "adiado_lock_ocupado", nunca duplicaram instância só porque o lock
+# corretamente bloqueou): `ler_campo_json` usava regex que exigia dígito
+# IMEDIATAMENTE depois de ':' — mas `JSON.stringify(obj, null, 2)`, usado
+# em TODO heartbeat/lock deste projeto, sempre inclui um espaço
+# ("pid": 20908), e a regex nunca capturava nada. Substituído por
+# `scripts/lib/json-field.sh`, que usa `node -e` com `JSON.parse` de
+# verdade — nunca mais regex frágil pra campo JSON.
 
 registrar_evento() {
   local pid_anterior="$1" pid_novo="$2" motivo="$3" heartbeat_anterior="$4" tentativa="$5" resultado="$6"
@@ -109,8 +116,12 @@ escrever_status() {
   mv "$tmp" "$STATUS_FILE"
 }
 
+mkdir -p vigilancia/locks
+lock_iniciar_ou_sair "$(pwd)/scripts/supervisor-profit-lab" "$LOG_SUPERVISOR_HUMANO" || exit 1
+
 shutdown_limpo() {
-  log_humano "supervisor-profit-lab: shutdown limpo (SIGINT/SIGTERM) — NÃO derruba o Lab, só para de supervisioná-lo"
+  lock_liberar
+  log_humano "supervisor-profit-lab: shutdown limpo (SIGINT/SIGTERM) — NÃO derruba o Lab, só para de supervisioná-lo — lock liberado"
   escrever_status "parado" "" "supervisor encerrado manualmente" "$(reinicios_em_janela 86400)" "$falhas_consecutivas" "false"
   exit 0
 }
@@ -120,6 +131,7 @@ log_humano "supervisor-profit-lab iniciado — checando a cada ${INTERVALO_CHECA
 escrever_status "iniciando" "" "" "$(reinicios_em_janela 86400)" 0 "false"
 
 while true; do
+  lock_atualizar_heartbeat
   ultimo_ciclo_ms=$(ler_campo_json "$HEARTBEAT_FILE" "ultimoCiclo")
   pid_heartbeat=$(ler_campo_json "$HEARTBEAT_FILE" "pid")
   agora_ms=$(ts_ms)
@@ -147,7 +159,7 @@ while true; do
     # ── respeita o lock: se outra instância JÁ está viva (mesmo PID
     # diferente do heartbeat, ex.: subida manual concorrente), não duplica —
     # só loga e espera o próximo ciclo de checagem ──
-    pid_lock=$(ler_campo_json "$LOCK_FILE" "pid")
+    pid_lock=$(ler_campo_json "$LAB_PROCESS_LOCK_FILE" "pid")
     if [ -n "$pid_lock" ] && pid_vivo "$pid_lock"; then
       log_humano "Lab parece parado (motivo: $motivo), mas lock mostra PID $pid_lock vivo — não duplica instância, aguardando"
       registrar_evento "$pid_heartbeat" "" "$motivo (lock ocupado por PID $pid_lock, instância não duplicada)" "$ultimo_ciclo_ms" $((falhas_consecutivas + 1)) "adiado_lock_ocupado"
@@ -166,7 +178,7 @@ while true; do
         # linha de comando
         n_vivos=$(processo_vivo_com_padrao)
         if [ "${n_vivos:-0}" -ge 1 ] 2>/dev/null; then
-          powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*$PADRAO*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
+          timeout 8 powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*$PADRAO*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
         fi
 
         nohup $CMD_LANCAMENTO >> "$LOG_LAB" 2>&1 &

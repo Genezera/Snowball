@@ -12,18 +12,17 @@
 # o que causaria duas instâncias escrevendo/religando os mesmos processos
 # ao mesmo tempo. Este lock fecha essa lacuna.
 set -u
+# shellcheck source=./json-field.sh
+source "$(dirname "${BASH_SOURCE[0]}")/json-field.sh"
 
 LOCK_FILE="${LOCK_FILE:-vigilancia/supervisor.lock}"
 LOCK_STALE_S="${LOCK_STALE_S:-90}" # heartbeat mais velho que isso = instância morta/travada
 
 lock_agora_ms() { date +%s%3N; }
 
-lock_ler_campo() {
-  local arquivo="$1" campo="$2"
-  [ -f "$arquivo" ] || return 1
-  grep -o "\"$campo\"[[:space:]]*:[[:space:]]*[^,}]*" "$arquivo" 2>/dev/null \
-    | head -1 | sed -E "s/\"$campo\"[[:space:]]*:[[:space:]]*//; s/^\"//; s/\"\$//"
-}
+# Nunca mais regex pra campo JSON (mesma lição do item 1) — usa o parser
+# real de scripts/lib/json-field.sh.
+lock_ler_campo() { ler_campo_json "$1" "$2"; }
 
 # PID existe de verdade no SO — sobrescrevível em teste.
 #
@@ -86,70 +85,108 @@ script_hash() {
   sha256sum "$1" 2>/dev/null | awk '{print $1}'
 }
 
-# ACHADO REAL (ao rodar de verdade, não hipotético): `$$` dentro do script
-# NÃO bate confiavelmente com o PID que o Windows/WMI enxerga pra este
-# mesmo processo lógico — o bash.exe do Git for Windows pode reexecutar a
-# si mesmo internamente (Git\bin\bash.exe → Git\usr\bin\bash.exe), e
-# dependendo de COMO o script foi lançado, o `$$` capturado no início do
-# script às vezes reflete um PID que já não existe mais pro WMI (a
-# instância registrou o lock com PID 60126 via `$$`, mas o processo de
-# verdade, confirmado pelo StartTime batendo com o log, era o PID 17724 —
-# nunca reconciliados sozinhos). Guardar `$$` no lock e confiar nele quebra
-# a garantia inteira de single-instance (uma segunda instância consultaria
-# um PID morto e concluiria "recuperar", mesmo com a primeira ainda viva).
-# Correção: sempre AUTO-LOCALIZAR o PID real via WMI logo depois de
-# iniciar, usando um padrão que só bate com uma invocação de verdade do
-# script (termina exatamente em "supervisor.sh", nunca embutido no meio de
-# um comando de diagnóstico maior).
-pid_real_do_processo_atual() {
-  local script_path="$1"
-  local nome_script
-  nome_script=$(basename "$script_path")
-  local candidatos
-  candidatos=$(timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\") | Where-Object { \$_.CommandLine -match '$nome_script\$' } | Select-Object -ExpandProperty ProcessId" 2>/dev/null | tr -d '\r')
-  # se houver mais de um candidato (par pai/filho do reexec), fica com o
-  # que NÃO é pai de nenhum outro candidato -- esse é o interpretador real
-  # rodando o corpo do script, não o wrapper fino que só reexecutou.
-  local pid
-  for pid in $candidatos; do
-    local eh_pai_de_outro=false
-    local outro
-    for outro in $candidatos; do
-      [ "$outro" = "$pid" ] && continue
-      local ppid_outro
-      ppid_outro=$(timeout 8 powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter \"ProcessId=$outro\").ParentProcessId" 2>/dev/null | tr -d '\r\n ')
-      [ "$ppid_outro" = "$pid" ] && eh_pai_de_outro=true
-    done
-    [ "$eh_pai_de_outro" = false ] && { echo "$pid"; return; }
-  done
-  # fallback: nenhum candidato encontrado (WMI lento/vazio) -- usa $$ mesmo,
-  # é melhor que um lock sem PID nenhum
-  echo "$$"
+# ── PIDs EM DOIS NAMESPACES (Parte 3) ────────────────────────────────────
+# ACHADO REAL, confirmado empiricamente nesta investigação:
+#   - `$$` do bash (namespace MSYS) NUNCA aparece pro WMI — testado direto:
+#     `Get-CimInstance -Filter "ProcessId=$$"` sempre devolve zero
+#     resultados pro próprio bash rodando o comando. São dois espaços de
+#     numeração TOTALMENTE separados, não uma questão de tradução 1:1.
+#   - `kill -0` (nativo do bash) funciona pra existência de um PID MSYS.
+#   - WMI/CIM funciona pra existência e linha de comando de um PID Windows
+#     nativo (ex.: node.exe lançado diretamente, não via job control do
+#     bash).
+# Este lock NUNCA mistura os dois silenciosamente: grava os dois campos
+# separados, e quando o PID nativo não pode ser resolvido com segurança
+# (não é possível provar que um PID MSYS corresponde a um PID Windows
+# específico sem uma correlação por evidência, e tentar adivinhar via
+# múltiplas consultas WMI provou ser uma corrida frágil nesta mesma
+# investigação), `pidWindows` fica explicitamente `null` — nunca um
+# palpite apresentado como se fosse confiável.
+pid_windows_resolver_best_effort() {
+  # Tentativa ÚNICA, com timeout curto, nunca bloqueia o startup. Só serve
+  # pra registro informativo — NADA na lógica de lock depende do
+  # resultado disto (lock_pid_existe usa kill -0, sempre, pra PID MSYS).
+  local pid_msys="$1"
+  timeout 3 powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid_msys\").ProcessId" 2>/dev/null | tr -d '\r\n '
 }
 
 lock_escrever() {
-  local pid="$1" started_at="$2" heartbeat="$3" script_path="$4"
+  local pid_msys="$1" started_at="$2" heartbeat="$3" script_path="$4"
+  local pid_windows
+  pid_windows=$(pid_windows_resolver_best_effort "$pid_msys")
+  local pid_namespace="msys"
   local tmp="$LOCK_FILE.tmp"
-  printf '{\n  "pid": %s,\n  "startedAt": %s,\n  "hostname": "%s",\n  "workingDirectory": "%s",\n  "scriptHash": "%s",\n  "heartbeat": %s\n}\n' \
-    "$pid" "$started_at" "$(hostname 2>/dev/null || echo desconhecido)" "$(pwd)" "$(script_hash "$script_path")" "$heartbeat" > "$tmp"
+  printf '{\n  "pid": %s,\n  "pidMsys": %s,\n  "pidWindows": %s,\n  "pidNamespace": "%s",\n  "startedAt": %s,\n  "hostname": "%s",\n  "workingDirectory": "%s",\n  "scriptHash": "%s",\n  "heartbeat": %s\n}\n' \
+    "$pid_msys" "$pid_msys" "${pid_windows:-null}" "$pid_namespace" \
+    "$started_at" "$(hostname 2>/dev/null || echo desconhecido)" "$(pwd)" "$(script_hash "$script_path")" "$heartbeat" > "$tmp"
   mv "$tmp" "$LOCK_FILE"
 }
 
 lock_atualizar_heartbeat() {
   [ -f "$LOCK_FILE" ] || return 1
-  local pid started hn wd hash tmp
-  pid=$(lock_ler_campo "$LOCK_FILE" pid)
+  local pid_msys pid_windows pid_namespace started hn wd hash tmp
+  pid_msys=$(lock_ler_campo "$LOCK_FILE" pidMsys)
+  pid_windows=$(lock_ler_campo "$LOCK_FILE" pidWindows)
+  pid_namespace=$(lock_ler_campo "$LOCK_FILE" pidNamespace)
   started=$(lock_ler_campo "$LOCK_FILE" startedAt)
   hn=$(lock_ler_campo "$LOCK_FILE" hostname)
   wd=$(lock_ler_campo "$LOCK_FILE" workingDirectory)
   hash=$(lock_ler_campo "$LOCK_FILE" scriptHash)
   tmp="$LOCK_FILE.tmp"
-  printf '{\n  "pid": %s,\n  "startedAt": %s,\n  "hostname": "%s",\n  "workingDirectory": "%s",\n  "scriptHash": "%s",\n  "heartbeat": %s\n}\n' \
-    "$pid" "$started" "$hn" "$wd" "$hash" "$(lock_agora_ms)" > "$tmp"
+  printf '{\n  "pid": %s,\n  "pidMsys": %s,\n  "pidWindows": %s,\n  "pidNamespace": "%s",\n  "startedAt": %s,\n  "hostname": "%s",\n  "workingDirectory": "%s",\n  "scriptHash": "%s",\n  "heartbeat": %s\n}\n' \
+    "$pid_msys" "$pid_msys" "${pid_windows:-null}" "${pid_namespace:-msys}" "$started" "$hn" "$wd" "$hash" "$(lock_agora_ms)" > "$tmp"
   mv "$tmp" "$LOCK_FILE"
 }
 
 lock_liberar() { rm -f "$LOCK_FILE"; }
+
+# ── MUTEX ATÔMICO (Parte 2) — fecha a corrida do check-then-write do lock
+# JSON. `mkdir` é atômico neste filesystem (falha se já existir); usado
+# como portão de entrada ANTES de avaliar/escrever o lock. Achado ao vivo:
+# sem isto, duas instâncias lançadas em rápida sucessão passaram pela
+# avaliação do lock ao mesmo tempo e concluíram "pode iniciar" — chegaram a
+# rodar 5 processos reais simultâneos numa das investigações desta etapa.
+MUTEX_DIR="${MUTEX_DIR:-$LOCK_FILE.mutex}"
+mutex_adquirir() {
+  local tentativas=0
+  while ! mkdir "$MUTEX_DIR" 2>/dev/null; do
+    tentativas=$((tentativas + 1))
+    if [ "$tentativas" -ge 10 ]; then return 1; fi
+    sleep 0.3
+  done
+  return 0
+}
+mutex_liberar() { rmdir "$MUTEX_DIR" 2>/dev/null; }
+
+# ── INICIALIZAÇÃO PADRÃO — usada por todos os 4 supervisores, cada um com
+# seu próprio LOCK_FILE/MUTEX_DIR (nunca compartilhados entre si). Devolve
+# 0 e deixa o lock escrito se pode prosseguir; devolve 1 e não escreve nada
+# se outra instância saudável já existe ou o mutex está ocupado.
+# Uso: `lock_iniciar_ou_sair "$0" "$LOG_HUMANO" || exit 1`
+lock_iniciar_ou_sair() {
+  local script_path="$1" log_humano_arquivo="$2"
+  mkdir -p "$(dirname "$LOCK_FILE")" "$(dirname "$MUTEX_DIR")" 2>/dev/null
+  if ! mutex_adquirir; then
+    echo "[$(date '+%H:%M:%S')] supervisor NÃO iniciado — mutex ocupado após 10 tentativas (outra instância no meio da própria inicialização)" >> "$log_humano_arquivo"
+    return 1
+  fi
+  local avaliacao
+  avaliacao=$(lock_avaliar)
+  case "$avaliacao" in
+    recusar:*)
+      echo "[$(date '+%H:%M:%S')] supervisor NÃO iniciado — outra instância saudável já rodando (${avaliacao#recusar:})" >> "$log_humano_arquivo"
+      mutex_liberar
+      return 1
+      ;;
+    recuperar:*)
+      echo "[$(date '+%H:%M:%S')] lock anterior recuperado — motivo: ${avaliacao#recuperar:}" >> "$log_humano_arquivo"
+      ;;
+  esac
+  LOCK_STARTED_AT=$(lock_agora_ms)
+  lock_escrever "$$" "$LOCK_STARTED_AT" "$LOCK_STARTED_AT" "$script_path"
+  mutex_liberar
+  return 0
+}
 
 # Devolve (via echo, em stdout) uma destas formas:
 #   ok:sem_lock                          -- nenhum lock existe, pode iniciar

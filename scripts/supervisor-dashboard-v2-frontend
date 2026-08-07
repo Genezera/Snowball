@@ -8,6 +8,16 @@
 # linha de comando.
 set -u
 cd "$(dirname "$0")/.."
+REPO_ROOT="$(pwd)"
+source scripts/lib/json-field.sh
+# lock/mutex PRÓPRIOS deste supervisor -- nunca compartilhados com os
+# outros 3. Caminho ABSOLUTO de propósito: este script faz `cd dashboard-v2`
+# mais abaixo (pro Vite rodar com o cwd certo), e um LOCK_FILE relativo
+# quebraria depois desse cd (procuraria dashboard-v2/dashboard-v2/...).
+export LOCK_FILE="$REPO_ROOT/dashboard-v2/logs/supervisor-frontend.lock"
+export MUTEX_DIR="$REPO_ROOT/dashboard-v2/logs/supervisor-frontend.lockdir"
+source scripts/lib/supervisor-lock.sh
+mkdir -p "$REPO_ROOT/dashboard-v2/logs"
 
 PORTA=5183
 CMD_LANCAMENTO="npx vite --port $PORTA --strictPort"
@@ -35,7 +45,7 @@ reinicios_em_janela() {
   grep -o '"timestamp":[0-9]*' "$LOG_SUPERVISOR" 2>/dev/null | grep -o '[0-9]*' | awk -v lim="$limite_ms" '$1+0 >= lim' | wc -l | tr -d ' '
 }
 processo_vivo() {
-  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*vite*' -and \$_.CommandLine -like '*$PORTA*' }).Count" 2>/dev/null | tr -d '\r\n '
+  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*vite*' -and \$_.CommandLine -like '*$PORTA*' }).Count" 2>/dev/null | tr -d '\r\n '
 }
 http_vivo() {
   curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://localhost:$PORTA/" 2>/dev/null | grep -qE '^(200|30[0-9])$'
@@ -54,8 +64,11 @@ escrever_status() {
   mv "$tmp" "$STATUS_FILE"
 }
 
+lock_iniciar_ou_sair "$REPO_ROOT/scripts/supervisor-dashboard-v2-frontend" "$LOG_SUPERVISOR_HUMANO" || exit 1
+
 shutdown_limpo() {
-  log_humano "supervisor-dashboard-v2-frontend: shutdown limpo — NÃO derruba o frontend, só para de supervisioná-lo"
+  lock_liberar
+  log_humano "supervisor-dashboard-v2-frontend: shutdown limpo — NÃO derruba o frontend, só para de supervisioná-lo — lock liberado"
   escrever_status "parado" "" "supervisor encerrado manualmente" "$(reinicios_em_janela 86400)" "$falhas_consecutivas" "false"
   exit 0
 }
@@ -67,6 +80,7 @@ escrever_status "iniciando" "" "" "$(reinicios_em_janela 86400)" 0 "false"
 cd dashboard-v2
 
 while true; do
+  lock_atualizar_heartbeat
   precisa_reiniciar=false
   motivo=""
   n_vivos=$(processo_vivo)
@@ -86,7 +100,7 @@ while true; do
       escrever_status "degradado" "" "$motivo" "$reinicios_24h" "$falhas_consecutivas" "true"
     else
       if [ "${n_vivos:-0}" -ge 1 ] 2>/dev/null; then
-        powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*vite*' -and \$_.CommandLine -like '*$PORTA*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
+        timeout 8 powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*vite*' -and \$_.CommandLine -like '*$PORTA*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
       fi
       nohup $CMD_LANCAMENTO >> "../$LOG_FRONTEND" 2>&1 &
       disown

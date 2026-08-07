@@ -8,7 +8,13 @@
 set -u
 cd "$(dirname "$0")/.."
 SCRIPT_PATH="$(pwd)/scripts/supervisor.sh"
+# lock/mutex PRÓPRIOS deste supervisor -- nunca compartilhados com os
+# outros 3 (cada supervisor tem seu diretório de mutex e arquivo de lock
+# separados, Parte 2 do "Fechamento do Gate Operacional").
+export LOCK_FILE="vigilancia/locks/supervisor-principal.lock"
+export MUTEX_DIR="vigilancia/locks/supervisor-principal.lockdir"
 source scripts/lib/supervisor-lock.sh
+source scripts/lib/process-manifest.sh
 
 declare -A CMD=(
   [vigilancia]="node src/cli/vigilancia.ts --equity 100 --intervalo 5"
@@ -165,50 +171,11 @@ escrever_heartbeat_supervisor() {
   mv "$tmp" "$HEARTBEAT_FILE"
 }
 
-mkdir -p vigilancia
+mkdir -p vigilancia vigilancia/locks
 
-# ── MUTEX ATÔMICO pra fechar a corrida do lock (achado ao vivo: o
-# check-then-write de lock_avaliar()+lock_escrever() não é atômico -- duas
-# instâncias lançadas em rápida sucessão durante os testes desta etapa
-# passaram pela avaliação AO MESMO TEMPO, antes de qualquer uma escrever o
-# lock, e as duas concluíram "pode iniciar" -- 5 processos reais chegaram a
-# rodar simultaneamente. `mkdir` é atômico neste filesystem (falha se já
-# existir, sem essa janela de corrida), então vira o portão de entrada
-# ANTES de sequer avaliar o lock JSON.
-MUTEX_DIR="vigilancia/supervisor.lock.mutex"
-tentativas_mutex=0
-while ! mkdir "$MUTEX_DIR" 2>/dev/null; do
-  tentativas_mutex=$((tentativas_mutex + 1))
-  if [ "$tentativas_mutex" -ge 10 ]; then
-    echo "[$(date '+%H:%M:%S')] supervisor NÃO iniciado — outra instância está no meio da própria inicialização (mutex ocupado após 10 tentativas)" >> vigilancia/supervisor-watchdog.log
-    exit 1
-  fi
-  sleep 0.3
-done
-# a partir daqui, e só até liberar o mutex logo abaixo, esta é a ÚNICA
-# instância podendo avaliar/escrever o lock -- fecha a corrida.
-
-# ── LOCK DE INSTÂNCIA ÚNICA ────────────────────────────────────────────────
-avaliacao=$(lock_avaliar)
-case "$avaliacao" in
-  recusar:*)
-    echo "[$(date '+%H:%M:%S')] supervisor NÃO iniciado — outra instância saudável já rodando (${avaliacao#recusar:})" >> vigilancia/supervisor-watchdog.log
-    rmdir "$MUTEX_DIR" 2>/dev/null
-    exit 1
-    ;;
-  recuperar:*)
-    echo "[$(date '+%H:%M:%S')] lock anterior recuperado — motivo: ${avaliacao#recuperar:}" >> vigilancia/supervisor-watchdog.log
-    ;;
-esac
-SUPERVISOR_STARTED_AT=$(date +%s%3N)
-# Usa `$$` diretamente -- ver comentários em lock_pid_existe()/
-# lock_pid_pertence_ao_supervisor() na lib de lock: PIDs MSYS nunca
-# aparecem pro WMI, então tentar "auto-localizar o PID real via WMI" é uma
-# corrida frágil que só piora a situação. `kill -0`, não o WMI, é quem
-# verifica existência daqui pra frente -- e isso SIM funciona com `$$`.
+lock_iniciar_ou_sair "$SCRIPT_PATH" "vigilancia/supervisor-watchdog.log" || exit 1
 SUPERVISOR_PID_REAL="$$"
-lock_escrever "$SUPERVISOR_PID_REAL" "$SUPERVISOR_STARTED_AT" "$SUPERVISOR_STARTED_AT" "$SCRIPT_PATH"
-rmdir "$MUTEX_DIR" 2>/dev/null
+SUPERVISOR_STARTED_AT="$LOCK_STARTED_AT"
 
 shutdown_limpo() {
   lock_liberar
@@ -238,25 +205,29 @@ while true; do
 
   for nome in "${!CMD[@]}"; do
     HB_PROCESSES_CHECKED=$((HB_PROCESSES_CHECKED + 1))
-    # o padrao de busca e o BASENAME do token que termina em .ts -- nao o
-    # caminho inteiro. Motivo (achado ao vivo, causava falso positivo em
-    # cascata nos 5 processos a cada ciclo): o Git Bash reescreve caminhos
-    # estilo POSIX (src/cli/vigilancia.ts) para estilo Windows
-    # (src\cli\vigilancia.ts) ao invocar node.exe, um binario nativo -- e a
-    # CommandLine que o Windows registra fica com contrabarra. Casar pelo
-    # caminho completo com barra normal nunca dava match, entao TODO ciclo
-    # achava que os 5 processos tinham morrido e tentava religar por cima
-    # dos que ja estavam vivos (risco real: duas instancias escrevendo no
-    # mesmo ciclos.json/estado.json ao mesmo tempo). O nome do arquivo
-    # sozinho (sem separador) e imune a qual barra o SO usa, e continua
-    # unico o bastante entre os 8 processos (com a exclusão de
-    # 'dashboard-v2' em vivo(), ver comentário lá).
-    padrao=""
-    for palavra in ${CMD[$nome]}; do
-      case "$palavra" in *.ts) padrao="${palavra##*/}"; break;; esac
-    done
-    [ -z "$padrao" ] && padrao="${CMD[$nome]%% *}"
-    n=$(vivo "$padrao")
+    # DETECÇÃO POR CAMINHO NORMALIZADO (Parte 4) — substitui o antigo
+    # reconhecimento por basename puro ("server.ts" + exceção manual "não
+    # contém dashboard-v2"), que colidia sempre que dois processos
+    # supervisionados por scripts diferentes rodassem arquivos de mesmo
+    # nome (foi exatamente isso que causou o dashboard antigo nunca ser
+    # detectado como caído enquanto a API V2 também existia). O entrypoint
+    # vem do manifesto (scripts/process-manifest.json), comparado por
+    # COMPONENTE de caminho inteiro, tolerando barra invertida/normal,
+    # aspas, maiúsculas do Windows, caminho absoluto ou relativo, e
+    # argumentos adicionais depois do entrypoint.
+    padrao=$(entrypoint_do_manifesto "$nome")
+    if [ -z "$padrao" ]; then
+      # chave sem entrada no manifesto -- nunca devia acontecer (todo nome
+      # em $CMD tem uma linha correspondente), mas se acontecer, cai pro
+      # basename como rede de segurança, nunca trava o ciclo.
+      for palavra in ${CMD[$nome]}; do
+        case "$palavra" in *.ts) padrao="${palavra##*/}"; break;; esac
+      done
+      [ -z "$padrao" ] && padrao="${CMD[$nome]%% *}"
+      n=$(vivo "$padrao")
+    else
+      n=$(processo_vivo_por_entrypoint "$padrao")
+    fi
     if [ "$n" = "?" ]; then
       # timeout na checagem — não sabemos se está vivo ou morto. NUNCA
       # religa num caso ambíguo (evitaria duplicar instância se só a
