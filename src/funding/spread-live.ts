@@ -31,6 +31,8 @@ import { lerSaude, podeOperar, pontuacaoAjustada } from './custodia.ts';
 import { avaliarValor, chaveOrdenacao } from './valor.ts';
 import { bonusEquilibrio, piorDreno } from './equilibrio.ts';
 import { enviarTelegram } from './telegram.ts';
+import { marcarPosicao, resumirMarcacao, type TickerPerna } from './marcacao.ts';
+import { registrarCiclo, novoCycleId, type CandidataRegistrada } from '../inteligencia/registro-oportunidades.ts';
 
 /**
  * Fração do tamanho normal na fatia inicial de uma posição escalonada.
@@ -43,7 +45,7 @@ import { enviarTelegram } from './telegram.ts';
  * o payback (só cobre o próprio custo, sem margem de segurança); o
  * tamanho cheio continua exigindo 1,5x, como sempre exigiu.
  */
-const FRACAO_ESTAGIO_INICIAL = 0.25;
+export const FRACAO_ESTAGIO_INICIAL = 0.25;
 
 /**
  * Quanto tempo uma medição de livro vale antes de ser refeita.
@@ -263,6 +265,9 @@ export class MotorSpread {
   private estado: EstadoSpread;
   private stateFile: string;
   private journalFile: string;
+  /** marcação a mercado — read-only, nunca lida de volta para decidir nada (ver marcacao.ts) */
+  private marcacaoFile: string;
+  private root: string;
   private exs = new Map<string, any>();
   /** escorregamento medido por par, com TTL — ver `escorregamentoReal` */
   private cacheEscorregamento = new Map<string, { valor: number; ts: number }>();
@@ -273,6 +278,8 @@ export class MotorSpread {
     fs.mkdirSync(dir, { recursive: true });
     this.stateFile = path.join(dir, 'estado.json');
     this.journalFile = path.join(dir, 'diario.jsonl');
+    this.marcacaoFile = path.join(dir, 'marcacao.json');
+    this.root = ROOT;
     this.estado = this.carregar();
   }
 
@@ -431,7 +438,30 @@ export class MotorSpread {
       symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
       motivo, custo: custoSaida,
       fundingAcumulado: pos.fundingAcumulado, capital: this.estado.capital,
+      ...this.metaEstrategia('persistencia', {
+        signalId: `${pos.symbol}-${pos.abertaEm}`, categoria: 'trade', exitReason: motivo,
+      }),
     });
+  }
+
+  /**
+   * ATRIBUIÇÃO POR ESTRATÉGIA (Etapa 2) — campos read-only comuns a todo
+   * evento gravado, pra separar `funding_standard` de `settlement_capture`
+   * sem inferir pelo nome do evento toda vez que alguém for ler o diário.
+   * `strategyVersion`/`configVersion` são constantes fixas por ora — sobem
+   * quando a lógica ou os parâmetros do motor mudarem de verdade, não a
+   * cada release; ninguém além de leitores read-only consome isto.
+   */
+  private static readonly STRATEGY_VERSION = 'v1';
+  private static readonly CONFIG_VERSION = 'v1';
+  private metaEstrategia(modo: 'persistencia' | 'captura', extra: Record<string, unknown> = {}) {
+    return {
+      strategyId: modo === 'captura' ? 'settlement_capture' : 'funding_standard',
+      strategyVersion: MotorSpread.STRATEGY_VERSION,
+      configVersion: MotorSpread.CONFIG_VERSION,
+      executionMode: 'paper',
+      ...extra,
+    };
   }
 
   private salvar() { fs.writeFileSync(this.stateFile, JSON.stringify(this.estado, null, 2)); }
@@ -673,6 +703,53 @@ export class MotorSpread {
     }
 
     this.salvar();
+
+    // ── instrumentação read-only, SEMPRE por último ────────────────────────
+    // Roda depois que toda decisão do ciclo já foi tomada e salva. Nunca lida
+    // de volta por nada que decida — ver marcacao.ts. Envolvida em try/catch
+    // própria (além da interna a cada chamada) porque isto não pode, sob
+    // nenhuma circunstância, impedir o motor de completar o ciclo.
+    try { await this.instrumentarMarcacao(); } catch (err) {
+      this.log(`instrumentação de marcação falhou (ignorado, não afeta o motor): ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * MARCAÇÃO A MERCADO — read-only (ver marcacao.ts para a matemática).
+   *
+   * Busca bid/ask de cada perna aberta (mesma chamada `fetchTicker` que
+   * `preco()` já usa em outros pontos do ciclo — ccxt já devolve bid/ask
+   * dentro do ticker, então isto não é uma chamada de rede adicional por
+   * campo, só uma leitura mais completa da mesma resposta), calcula PnL não
+   * realizado pelo mark e pelo lado executável, e grava em
+   * `spread/marcacao.json` — arquivo PRÓPRIO, nunca lido por `carregar()`
+   * nem por nenhuma função de decisão.
+   */
+  private async instrumentarMarcacao() {
+    if (!this.posicoes.length) {
+      fs.writeFileSync(this.marcacaoFile, JSON.stringify(resumirMarcacao(this.estado.capital, []), null, 2));
+      return;
+    }
+    const posicoesMarcadas = [];
+    for (const pos of this.posicoes) {
+      let tickerShort: TickerPerna, tickerLong: TickerPerna;
+      try {
+        const [exS, exL] = await Promise.all([this.ex(pos.exchangeShort), this.ex(pos.exchangeLong)]);
+        const [tS, tL] = await Promise.all([exS.fetchTicker(pos.symbol), exL.fetchTicker(pos.symbol)]);
+        tickerShort = { bid: tS.bid ?? tS.last, ask: tS.ask ?? tS.last, mark: tS.mark ?? tS.last };
+        tickerLong = { bid: tL.bid ?? tL.last, ask: tL.ask ?? tL.last, mark: tL.mark ?? tL.last };
+      } catch {
+        continue; // ticker indisponível pra esta posição neste ciclo — pula, não quebra o resto
+      }
+      const taxa = taxaEfetiva(pos.exchangeShort, pos.exchangeLong);
+      posicoesMarcadas.push(marcarPosicao({
+        symbol: pos.symbol, notionalPorPerna: pos.notionalPorPerna,
+        precoEntradaShort: pos.precoEntrada, precoEntradaLong: pos.precoEntrada,
+        tickerShort, tickerLong,
+        fundingAcumulado: pos.fundingAcumulado, taxasPagas: 0, taxaEfetiva: taxa,
+      }));
+    }
+    fs.writeFileSync(this.marcacaoFile, JSON.stringify(resumirMarcacao(this.estado.capital, posicoesMarcadas), null, 2));
   }
 
   /**
@@ -733,6 +810,13 @@ export class MotorSpread {
     // bloqueio era a RESERVA ou o NOTIONAL MÍNIMO, não falta de dinheiro.
     let motivoBloqueioSaldo = '';
 
+    // ── registro de candidatas concorrentes (read-only, Etapa 3) ───────────
+    // Nunca lido de volta pelo laço abaixo — só acumulado e gravado depois
+    // que a decisão do ciclo já terminou. Ver registro-oportunidades.ts.
+    const cycleIdAbrir = novoCycleId(Date.now(), 'persistencia');
+    const registrosCandidatas: CandidataRegistrada[] = [];
+    const escolhidasNesteCiclo: string[] = [];
+
     for (const melhor of ops) {
       if (this.posicoes.length >= maxAgora) break;
       if (jaTenho.has(melhor.symbol)) continue;
@@ -768,6 +852,14 @@ export class MotorSpread {
         // (a primeira do loop ordenado) — é o caso mais informativo pra
         // mostrar, em vez do último ou de uma média
         if (!motivoBloqueioSaldo) motivoBloqueioSaldo = `${melhor.symbol.replace('/USDT:USDT', '')}: ${d.motivo}`;
+        registrosCandidatas.push({
+          symbol: melhor.symbol, exchangeShort: melhor.exchangeShort, exchangeLong: melhor.exchangeLong,
+          spread: melhor.spread, consistencia: melhor.consistencia, duracaoHoras: melhor.duracaoHoras ?? 0,
+          valorEsperado: 0, valorPorHora: 0, folga: 0, custo: 0,
+          escorregamento: 0, escorregamentoMedido: false,
+          capitalNecessario: 0, saldoDisponivel: 0, score: comBonus(melhor),
+          aprovada: false, motivoRejeicao: `saldo_insuficiente: ${d.motivo}`,
+        });
         continue;
       }
 
@@ -796,6 +888,15 @@ export class MotorSpread {
       // medido que justifica isto.
       if (v.folga < 1.0) {
         bloqueadasPorPayback++;
+        registrosCandidatas.push({
+          symbol: melhor.symbol, exchangeShort: melhor.exchangeShort, exchangeLong: melhor.exchangeLong,
+          spread: melhor.spread, consistencia: melhor.consistencia, duracaoHoras: melhor.duracaoHoras ?? 0,
+          valorEsperado: v.valorEsperado, valorPorHora: v.vidaEsperadaHoras > 0 ? v.valorEsperado / v.vidaEsperadaHoras : 0,
+          folga: v.folga, custo: v.custoIdaEVolta,
+          escorregamento: slip.valor, escorregamentoMedido: slip.medido,
+          capitalNecessario: d.notionalPorPerna, saldoDisponivel: d.margemPorPerna,
+          score: comBonus(melhor), aprovada: false, motivoRejeicao: 'payback_insuficiente',
+        });
         continue;
       }
       const tamanhoCheio = v.folga >= this.o.margemPayback;
@@ -805,12 +906,13 @@ export class MotorSpread {
       const margemAbertura = d.margemPorPerna * fracao;
       const custoMontagem = notionalAbertura * taxaReal * 2;
       const p = await this.preco(melhor.exchangeShort, melhor.symbol);
+      const abertaEm = Date.now();
       this.posicoes.push({
         symbol: melhor.symbol,
         exchangeShort: melhor.exchangeShort, exchangeLong: melhor.exchangeLong,
         margemShort: margemAbertura, margemLong: margemAbertura,
         notionalPorPerna: notionalAbertura, precoEntrada: p, precoUltimo: p,
-        abertaEm: Date.now(), spreadNaEntrada: melhor.spread,
+        abertaEm, spreadNaEntrada: melhor.spread,
         fundingAcumulado: 0, pagamentos: 0,
         estagio: tamanhoCheio ? 2 : 1,
       });
@@ -833,6 +935,34 @@ export class MotorSpread {
         // com que custo de travessia a decisão foi tomada, e se foi medido ou
         // assumido — sem isto não dá pra auditar a decisão depois
         escorregamento: slip.valor, escorregamentoMedido: slip.medido,
+        ...this.metaEstrategia('persistencia', {
+          signalId: `${melhor.symbol}-${abertaEm}`, categoria: 'trade',
+          entryReason: tamanhoCheio ? 'payback_gate_full' : 'payback_gate_staged',
+        }),
+      });
+      registrosCandidatas.push({
+        symbol: melhor.symbol, exchangeShort: melhor.exchangeShort, exchangeLong: melhor.exchangeLong,
+        spread: melhor.spread, consistencia: melhor.consistencia, duracaoHoras: melhor.duracaoHoras ?? 0,
+        valorEsperado: v.valorEsperado, valorPorHora: v.vidaEsperadaHoras > 0 ? v.valorEsperado / v.vidaEsperadaHoras : 0,
+        folga: v.folga, custo: custoMontagem,
+        escorregamento: slip.valor, escorregamentoMedido: slip.medido,
+        capitalNecessario: d.notionalPorPerna, saldoDisponivel: d.margemPorPerna,
+        score: comBonus(melhor), aprovada: true,
+      });
+      escolhidasNesteCiclo.push(melhor.symbol);
+    }
+
+    // grava depois que a decisão do ciclo inteiro já terminou — nunca lido
+    // de volta por nenhuma linha acima; falha de escrita não afeta o motor
+    // (registrarCiclo nunca lança, ver registro-oportunidades.ts)
+    if (registrosCandidatas.length) {
+      registrarCiclo(this.root, {
+        cycleId: cycleIdAbrir, ts: Date.now(), modo: 'persistencia',
+        candidatas: registrosCandidatas,
+        escolhida: escolhidasNesteCiclo[0],
+        aprovadasNaoEscolhidas: registrosCandidatas
+          .filter((c) => c.aprovada && !escolhidasNesteCiclo.includes(c.symbol))
+          .map((c) => c.symbol),
       });
     }
 
@@ -950,6 +1080,9 @@ export class MotorSpread {
     this.diario('apara', {
       symbol: pos.symbol, margemAntes: atual, margemAlvo: alvo,
       notionalNovo: pos.notionalPorPerna, custo,
+      ...this.metaEstrategia(pos.modo ?? 'persistencia', {
+        signalId: `${pos.symbol}-${pos.abertaEm}`, categoria: 'gerenciamento',
+      }),
     });
   }
 
@@ -978,6 +1111,9 @@ export class MotorSpread {
     const agora = Date.now();
     let foraDaJanela = 0, naoCobre = 0;
     let melhorCobertura = 0, melhorNome = '', melhorFaltam = 0;
+    const cycleIdCaptura = novoCycleId(agora, 'captura');
+    const registrosCaptura: CandidataRegistrada[] = [];
+    const abertasNesteCiclo: string[] = [];
 
     for (const c of leitura.candidatos) {
       if (this.posicoes.length >= this.o.maxPosicoes) break;
@@ -1009,6 +1145,16 @@ export class MotorSpread {
         melhorNome = c.symbol.replace('/USDT:USDT', '');
         melhorFaltam = faltam / 60_000;
       }
+      registrosCaptura.push({
+        symbol: c.symbol, exchangeShort: c.exchangeShort, exchangeLong: c.exchangeLong,
+        spread: c.spread8h, consistencia: 1, duracaoHoras: faltam / 3_600_000,
+        valorEsperado: v.liquidoPorLiquidacao * d.notionalPorPerna, valorPorHora: 0,
+        folga: v.cobertura, custo: v.custoIdaEVolta * d.notionalPorPerna,
+        escorregamento: slip.valor, escorregamentoMedido: slip.medido,
+        capitalNecessario: d.notionalPorPerna, saldoDisponivel: d.margemPorPerna,
+        score: v.cobertura, aprovada: v.vale,
+        motivoRejeicao: v.vale ? undefined : 'cobertura_insuficiente',
+      });
       if (!v.vale) { naoCobre++; continue; }
 
       const custoMontagem = d.notionalPorPerna * taxaEfetivaAqui * 2;
@@ -1041,6 +1187,21 @@ export class MotorSpread {
         custo: custoMontagem, notional: d.notionalPorPerna, preco: p,
         liquidacaoAlvo: c.proximaLiquidacaoEm, faltamMin: faltam / 60_000,
         escorregamento: slip.valor, escorregamentoMedido: slip.medido,
+        ...this.metaEstrategia('captura', {
+          signalId: `${c.symbol}-${agora}`, categoria: 'trade', entryReason: 'settlement_window',
+        }),
+      });
+      abertasNesteCiclo.push(c.symbol);
+    }
+
+    if (registrosCaptura.length) {
+      registrarCiclo(this.root, {
+        cycleId: cycleIdCaptura, ts: agora, modo: 'captura',
+        candidatas: registrosCaptura,
+        escolhida: abertasNesteCiclo[0],
+        aprovadasNaoEscolhidas: registrosCaptura
+          .filter((c) => c.aprovada && !abertasNesteCiclo.includes(c.symbol))
+          .map((c) => c.symbol),
       });
     }
 
@@ -1112,6 +1273,7 @@ export class MotorSpread {
         symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
         spread: fracaoRecebida, ganho,
         capital: this.estado.capital, modo: 'captura',
+        ...this.metaEstrategia('captura', { signalId: `${pos.symbol}-${pos.abertaEm}` }),
       });
     }
     this.log(
@@ -1147,6 +1309,9 @@ export class MotorSpread {
       motivo, custo: custoSaida, modo: 'captura',
       fundingAcumulado: pos.fundingAcumulado, capital: this.estado.capital,
       minutosMontada: (Date.now() - pos.abertaEm) / 60_000,
+      ...this.metaEstrategia('captura', {
+        signalId: `${pos.symbol}-${pos.abertaEm}`, categoria: 'trade', exitReason: motivo,
+      }),
     });
   }
 
@@ -1245,6 +1410,9 @@ export class MotorSpread {
             symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
             notionalNovo: pos.notionalPorPerna,
             notionalAdicionado, custo: custoEscalonamento,
+            ...this.metaEstrategia('persistencia', {
+              signalId: `${pos.symbol}-${pos.abertaEm}`, categoria: 'gerenciamento',
+            }),
           });
         }
       }
@@ -1278,6 +1446,7 @@ export class MotorSpread {
       this.diario('funding', {
         symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
         spread: atual.spread, ganho, capital: this.estado.capital,
+        ...this.metaEstrategia('persistencia', { signalId: `${pos.symbol}-${pos.abertaEm}` }),
       });
     }
 
@@ -1350,6 +1519,9 @@ export class MotorSpread {
       this.diario('socorre', {
         symbol: pos.symbol, exchange: exApertada, valor: s.valor,
         distanciaLiquidacao: risco.distanciaMinima, variacao,
+        ...this.metaEstrategia('persistencia', {
+          signalId: `${pos.symbol}-${pos.abertaEm}`, categoria: 'rebalanceamento',
+        }),
       });
     }
 
@@ -1373,6 +1545,9 @@ export class MotorSpread {
         this.diario('reinveste', {
           symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
           notionalExtra: extra.notionalPorPerna, notionalNovo: pos.notionalPorPerna, custo: extra.custoMontagem,
+          ...this.metaEstrategia('persistencia', {
+            signalId: `${pos.symbol}-${pos.abertaEm}`, categoria: 'gerenciamento',
+          }),
         });
       }
     }

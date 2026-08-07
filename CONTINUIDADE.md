@@ -2,14 +2,13 @@
 
 > **Para a próxima IA que pegar este projeto.** Este documento existe para que
 > nada se perca entre sessões. Leia isto antes de qualquer outro arquivo — a
-> versão anterior (06/08/2026, manhã) estava desatualizada sobre a
-> confiabilidade real de `iniciar.cmd`/`parar.cmd`: dizia "não testei rodando
-> de verdade ainda". Testei. Achei DOIS bugs reais de start/stop que a versão
-> anterior não sabia que existiam (seção 2), e um bug de dado (não de lógica)
-> nas posições do modo agressivo (seção 3.2). Esta versão reflete o estado
-> real em **07/08/2026**.
+> versão anterior (07/08/2026) tinha o Auditor (`src/audit/auditor.ts`)
+> documentado como funcional em `npm run team`, mas `docs/ARQUITETURA-
+> DECISORIA.md` ainda dizia "não construído" (desatualizado desde a Fase 11).
+> Corrigido, e o Auditor foi ligado aos motores AO VIVO (não só ao `npm run
+> team` sob demanda) — seção 11 desta versão.
 
-Última atualização: **07/08/2026**.
+Última atualização: **08/08/2026**.
 
 ---
 
@@ -588,3 +587,90 @@ substitui rodá-lo de verdade e tentar quebrá-lo de propósito.**
 
 Nada aqui foi inventado para soar melhor. Isso é o que os dados medidos e os
 testes reais até 07/08/2026 realmente dizem.
+
+---
+
+## 11. Sessão 08/08/2026 — Auditor ao vivo, e um achado sem correção (memória)
+
+Pedido: "siga todos os passos que fizer sentido, descarte o que não fizer" —
+depois de uma análise completa dos 21 `.md` do projeto identificando lacunas.
+
+### 11.1 Memória do dashboard e do preenchimento — investigado, sem causa raiz (e está tudo bem)
+
+O pendente #7 da versão anterior deste documento (memória subindo aos
+poucos) foi investigado de verdade, não só remedido. Inspecionado
+`src/dashboard/server.ts`: `cacheCandles` já é podado por `setInterval`,
+`precosAoVivo` já remove chaves inválidas, limpeza de clientes SSE no
+`req.on('close', ...)` já existe. **Nenhum vazamento óbvio encontrado.** A
+hipótese mais provável é fragmentação normal de heap do V8 num processo
+Node de longa duração fazendo `JSON.parse` repetido sobre arquivos que só
+crescem (`vigilancia/historico.jsonl` tinha 53.472 linhas na hora da
+medição) — não uma correção pendente. **Não apliquei nenhuma mudança aqui**
+porque não há evidência de bug, só de crescimento — aplicar uma "correção"
+sem prova seria exatamente o tipo de confiança fabricada que a regra 2 deste
+documento proíbe. Se voltar a ser investigado, o próximo passo real seria
+heap snapshot (`--inspect`) comparando dois pontos no tempo, não leitura de
+código.
+
+### 11.2 O Auditor já existia — a lacuna real era mais estreita do que parecia
+
+Falha minha na análise inicial desta sessão: eu tinha lido `docs/EQUIPE.md`
+e `docs/ARQUITETURA-DECISORIA.md` e concluído que "o Auditor nunca foi
+construído". Falso — `src/audit/auditor.ts` (280 linhas, as 5-6 checagens
+documentadas, `replayAudit()`) já existia, testado, e já estava ligado a
+`npm run team` desde a Fase 11 da `docs/CRONOLOGIA.md`. O erro era só do
+`docs/ARQUITETURA-DECISORIA.md`, que ficou desatualizado depois daquela
+Fase — corrigido nesta sessão (ver a nota inserida na própria seção lá).
+
+**A lacuna real, depois de confirmar isso:** o Auditor só rodava sob
+demanda contra um portfólio hipotético de backtest (`npm run team`), nunca
+contra os motores que estão de fato rodando ao vivo em paper —
+`momentum-live` e `pares-live`.
+
+### 11.3 `src/audit/auditor-live.ts` — o que foi construído
+
+Liga o Auditor já existente aos dois motores ao vivo:
+
+- **Expectativa** (o que o backtest validado promete): para momentum, roda
+  `runBacktest` com `PARAMS_VALIDADOS` sobre `UNIVERSO_MOMENTUM` (mesmo
+  código que `src/cli/desafio.ts` já usa) e monta a `Expectation` via
+  `buildExpectation`. Para pares, usa `poolComTempo()` de
+  `src/pairs/validado.ts` diretamente. **Cacheado em módulo** — computado
+  uma vez por vida do processo, não a cada ciclo.
+- **Realizado**: lê `momentum/diario.jsonl` e `pares/diario.jsonl`, filtra
+  eventos `fecha`, reconstrói `rEquity = pnl / (capital − pnl)` (capital
+  antes do trade, já que o evento só grava o capital depois).
+- **Guarda de evidência mínima ANTES de qualquer cálculo caro**: se há menos
+  de 25 trades fechados, devolve `EVIDENCIA_INSUFICIENTE` sem sequer rodar o
+  backtest de expectativa — mesmo padrão do `src/ml/prontidao-vigilancia.ts`
+  (recusa fabricar veredito sem dado, não é bug quando aparece).
+  Verificado ao vivo em 08/08/2026: momentum tem 1 trade fechado, pares tem
+  0 — os dois corretamente `EVIDENCIA_INSUFICIENTE` por enquanto, e vão
+  continuar assim por um bom tempo (momentum: ~26-34 trades/ano/ativo,
+  Resultado 6; pares: zero cruzamentos de z-score ≥2,5 até agora).
+- **Read-only por desenho**: só relata, nunca fecha posição nem troca par
+  sozinho — mesma divisão de trabalho de custódia (detecta) / motor
+  (decide) já usada no resto do projeto. Não vira decisão automática sem
+  antes ter dado suficiente para o próprio `replayAudit()` validar a si
+  mesmo, como já é feito em `npm run team`.
+
+**Exposto no dashboard**, campo novo `auditoria` no payload de
+`src/dashboard/server.ts` (`montarDados()`), SEM tocar em `pagina.ts` — de
+propósito, para não mexer no template literal gigante que já derrubou o
+servidor uma vez por causa de crase solta (seção 5). Card visual fica para
+quando houver dado real pra mostrar; hoje seria só "sem dado" reescrito em
+HTML, sem ganho sobre o JSON.
+
+**Validado ao vivo, seguindo o protocolo da seção 6 deste documento**: `npm
+test` (302/302) antes e depois, teste isolado em porta descartável (18787)
+confirmando o campo antes de tocar no processo real, snapshot dos 8 PIDs,
+`manutencao.marker` tocado, matei só o PID do dashboard, watchdog religou
+em <20s, confirmei que os outros 7 PIDs eram byte-a-byte os mesmos do
+snapshot anterior, watchdog logou "religado — atualização de código
+aplicada" (não "CAIU", sem alarme falso), confirmei o campo `auditoria` na
+resposta real em `:8787`, apaguei o marker.
+
+**Arquivo**: `src/audit/auditor-live.ts`. **Pronto quando**: já está — o
+código está correto e testado; só falta o mercado gerar os 25 trades
+fechados que faltam em cada motor para o status deixar de ser
+`EVIDENCIA_INSUFICIENTE`. Nada a fazer além de esperar.

@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+# SUPERVISOR INDEPENDENTE DO PAPER PROFIT LAB (Parte 1 do "Paper Profit
+# Dashboard — Captura", 6ª etapa).
+#
+# Controla EXCLUSIVAMENTE o processo `src/cli/paper-profit-lab.ts`. Nunca
+# toca nenhum dos 8 processos do champion — nem o padrão de busca (só
+# 'paper-profit-lab.ts'), nem o marcador de manutenção, nem nenhum arquivo
+# em spread/, momentum/, pares/, vigilancia/*.log.
+#
+# Deliberadamente um script SEPARADO de scripts/supervisor.sh, não uma linha
+# a mais na tabela de lá — é o pedido explícito desta etapa ("continuará
+# completamente separado dos oito processos do champion", já reafirmado
+# nesta etapa como "esse supervisor deverá controlar exclusivamente o Paper
+# Profit Lab").
+#
+# O que verifica antes de decidir reiniciar:
+#   - heartbeat (inteligencia/heartbeat.json) — idade do último ciclo
+#   - PID declarado no heartbeat — vivo de verdade, não só "existe"
+#   - lock (inteligencia/lab.lock) — se mostra outro PID vivo, alguém já
+#     subiu uma instância (manual ou este mesmo supervisor de outra rodada)
+#     — nunca duplica, só loga e espera
+#   - reinícios recentes — 5 em 15min ou 10 em 24h → estado DEGRADADO, para
+#     de tentar reiniciar sozinho até intervenção manual
+#
+# Nunca reinicia o champion, nunca mata processo do champion, nunca altera
+# arquivo do champion, nunca edita configuração nem challenger.
+set -u
+cd "$(dirname "$0")/.."
+
+PADRAO="paper-profit-lab.ts"
+CMD_LANCAMENTO="node --experimental-strip-types --env-file-if-exists=.env src/cli/paper-profit-lab.ts --intervalo 5"
+LOG_LAB="logs/paper-profit-lab.log"
+LOG_SUPERVISOR="inteligencia/supervisor-log.jsonl"
+LOG_SUPERVISOR_HUMANO="inteligencia/supervisor-watchdog.log"
+STATUS_FILE="inteligencia/supervisor-status.json"
+HEARTBEAT_FILE="inteligencia/heartbeat.json"
+LOCK_FILE="inteligencia/lab.lock"
+
+INTERVALO_CHECAGEM_S=30
+IDADE_MAXIMA_CICLO_S=900          # 3x o intervalo default de 5min — mesmo limiar de labProvavelmenteParado()
+MAX_REINICIOS_15MIN=5
+MAX_REINICIOS_24H=10
+
+mkdir -p inteligencia logs
+
+# ── contadores em memória do próprio processo do supervisor — resetam se o
+# supervisor reiniciar, mas o histórico persistido em supervisor-log.jsonl
+# (lido por reinicios_em_janela) não depende deles, então reinícios24h
+# sobrevive a um restart do supervisor. ──
+falhas_consecutivas=0
+
+ts_ms() { date +%s%3N; }
+ts_legivel() { date '+%Y-%m-%dT%H:%M:%S%z'; }
+
+log_humano() {
+  echo "[$(date '+%H:%M:%S')] $1" >> "$LOG_SUPERVISOR_HUMANO"
+}
+
+# Conta reinícios registrados em supervisor-log.jsonl dentro de uma janela em
+# segundos, a partir de agora. Puro grep+contagem — o arquivo é pequeno
+# (um restart não é um evento frequente), nunca precisa ser lido inteiro.
+reinicios_em_janela() {
+  local janela_s="$1"
+  [ -f "$LOG_SUPERVISOR" ] || { echo 0; return; }
+  local agora_ms limite_ms
+  agora_ms=$(ts_ms)
+  limite_ms=$((agora_ms - janela_s * 1000))
+  # cada linha é um objeto JSON com "timestamp":<ms> — grep bruto, sem depender de jq
+  grep -o '"timestamp":[0-9]*' "$LOG_SUPERVISOR" 2>/dev/null | grep -o '[0-9]*' | awk -v lim="$limite_ms" '$1+0 >= lim' | wc -l | tr -d ' '
+}
+
+# PID vivo de verdade — mesma técnica do watchdog do champion (Get-CimInstance
+# via PowerShell), mas SÓ compara contra $PADRAO ('paper-profit-lab.ts'),
+# nunca contra nenhum padrão do champion.
+processo_vivo_com_padrao() {
+  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*$PADRAO*' }).Count" 2>/dev/null | tr -d '\r\n '
+}
+
+# PID específico ainda de pé (não só "algum processo casa o padrão" — o PID
+# exato que o heartbeat ou o lock declararam).
+pid_vivo() {
+  local pid="$1"
+  [ -z "$pid" ] && return 1
+  powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid\").Count" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'
+}
+
+ler_campo_json() {
+  # extrai um campo numérico/simples de um JSON de uma linha só — sem
+  # depender de jq (nem sempre disponível no ambiente). Só serve pra campos
+  # de topo, é o suficiente pro heartbeat/lock daqui.
+  local arquivo="$1" campo="$2"
+  [ -f "$arquivo" ] || { echo ""; return; }
+  grep -o "\"$campo\":[0-9]*" "$arquivo" 2>/dev/null | head -1 | grep -o '[0-9]*$'
+}
+
+registrar_evento() {
+  local pid_anterior="$1" pid_novo="$2" motivo="$3" heartbeat_anterior="$4" tentativa="$5" resultado="$6"
+  local linha
+  linha=$(printf '{"timestamp":%s,"timestampLegivel":"%s","pidAnterior":%s,"pidNovo":%s,"motivo":"%s","heartbeatAnterior":%s,"tentativa":%s,"resultado":"%s"}' \
+    "$(ts_ms)" "$(ts_legivel)" "${pid_anterior:-null}" "${pid_novo:-null}" "$motivo" "${heartbeat_anterior:-null}" "$tentativa" "$resultado")
+  echo "$linha" >> "$LOG_SUPERVISOR"
+}
+
+escrever_status() {
+  local status_supervisor="$1" ultimo_reinicio="$2" motivo_ultimo="$3" reinicios_24h="$4" falhas_consec="$5" degradado="$6"
+  local tmp="$STATUS_FILE.tmp"
+  printf '{\n  "statusSupervisor": "%s",\n  "ultimoReinicio": %s,\n  "motivoUltimoReinicio": "%s",\n  "reinicios24h": %s,\n  "falhasConsecutivas": %s,\n  "labDegradado": %s,\n  "atualizadoEm": %s\n}\n' \
+    "$status_supervisor" "${ultimo_reinicio:-null}" "$motivo_ultimo" "$reinicios_24h" "$falhas_consec" "$degradado" "$(ts_ms)" > "$tmp"
+  mv "$tmp" "$STATUS_FILE"
+}
+
+shutdown_limpo() {
+  log_humano "supervisor-profit-lab: shutdown limpo (SIGINT/SIGTERM) — NÃO derruba o Lab, só para de supervisioná-lo"
+  escrever_status "parado" "" "supervisor encerrado manualmente" "$(reinicios_em_janela 86400)" "$falhas_consecutivas" "false"
+  exit 0
+}
+trap shutdown_limpo INT TERM
+
+log_humano "supervisor-profit-lab iniciado — checando a cada ${INTERVALO_CHECAGEM_S}s, exclusivo do Paper Profit Lab"
+escrever_status "iniciando" "" "" "$(reinicios_em_janela 86400)" 0 "false"
+
+while true; do
+  ultimo_ciclo_ms=$(ler_campo_json "$HEARTBEAT_FILE" "ultimoCiclo")
+  pid_heartbeat=$(ler_campo_json "$HEARTBEAT_FILE" "pid")
+  agora_ms=$(ts_ms)
+
+  idade_s=""
+  if [ -n "$ultimo_ciclo_ms" ] && [ "$ultimo_ciclo_ms" -gt 0 ] 2>/dev/null; then
+    idade_s=$(( (agora_ms - ultimo_ciclo_ms) / 1000 ))
+  fi
+
+  precisa_reiniciar=false
+  motivo=""
+
+  if [ ! -f "$HEARTBEAT_FILE" ]; then
+    precisa_reiniciar=true
+    motivo="heartbeat.json inexistente — Lab nunca subiu ou arquivo foi apagado"
+  elif [ -z "$pid_heartbeat" ] || ! pid_vivo "$pid_heartbeat"; then
+    precisa_reiniciar=true
+    motivo="PID $pid_heartbeat do heartbeat não está mais vivo"
+  elif [ -n "$idade_s" ] && [ "$idade_s" -gt "$IDADE_MAXIMA_CICLO_S" ]; then
+    precisa_reiniciar=true
+    motivo="último ciclo há ${idade_s}s, acima do limiar de ${IDADE_MAXIMA_CICLO_S}s"
+  fi
+
+  if [ "$precisa_reiniciar" = true ]; then
+    # ── respeita o lock: se outra instância JÁ está viva (mesmo PID
+    # diferente do heartbeat, ex.: subida manual concorrente), não duplica —
+    # só loga e espera o próximo ciclo de checagem ──
+    pid_lock=$(ler_campo_json "$LOCK_FILE" "pid")
+    if [ -n "$pid_lock" ] && pid_vivo "$pid_lock"; then
+      log_humano "Lab parece parado (motivo: $motivo), mas lock mostra PID $pid_lock vivo — não duplica instância, aguardando"
+      registrar_evento "$pid_heartbeat" "" "$motivo (lock ocupado por PID $pid_lock, instância não duplicada)" "$ultimo_ciclo_ms" $((falhas_consecutivas + 1)) "adiado_lock_ocupado"
+    else
+      reinicios_15min=$(reinicios_em_janela 900)
+      reinicios_24h=$(reinicios_em_janela 86400)
+
+      if [ "$reinicios_15min" -ge "$MAX_REINICIOS_15MIN" ] || [ "$reinicios_24h" -ge "$MAX_REINICIOS_24H" ]; then
+        falhas_consecutivas=$((falhas_consecutivas + 1))
+        log_humano "Lab degradado — $reinicios_15min reinícios em 15min / $reinicios_24h em 24h, acima do limite ($MAX_REINICIOS_15MIN/$MAX_REINICIOS_24H) — parando de tentar reiniciar sozinho"
+        registrar_evento "$pid_heartbeat" "" "$motivo (limite de reinícios consecutivos atingido)" "$ultimo_ciclo_ms" "$falhas_consecutivas" "degradado_sem_reiniciar"
+        escrever_status "degradado" "" "$motivo" "$reinicios_24h" "$falhas_consecutivas" "true"
+      else
+        # mata só o resíduo que casa EXATAMENTE o padrão do Lab — nunca um
+        # processo do champion, que nunca contém 'paper-profit-lab.ts' na
+        # linha de comando
+        n_vivos=$(processo_vivo_com_padrao)
+        if [ "${n_vivos:-0}" -ge 1 ] 2>/dev/null; then
+          powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*$PADRAO*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
+        fi
+
+        nohup $CMD_LANCAMENTO >> "$LOG_LAB" 2>&1 &
+        disown
+        pid_novo=$!
+        falhas_consecutivas=$((falhas_consecutivas + 1))
+        reinicios_24h=$(( reinicios_24h + 1 ))
+
+        log_humano "Lab reiniciado — motivo: $motivo — pidAnterior=$pid_heartbeat pidNovo=$pid_novo"
+        registrar_evento "$pid_heartbeat" "$pid_novo" "$motivo" "$ultimo_ciclo_ms" "$falhas_consecutivas" "reiniciado"
+        escrever_status "reiniciando" "$(ts_ms)" "$motivo" "$reinicios_24h" "$falhas_consecutivas" "false"
+      fi
+    fi
+  else
+    falhas_consecutivas=0
+    escrever_status "saudavel" "" "" "$(reinicios_em_janela 86400)" 0 "false"
+  fi
+
+  sleep "$INTERVALO_CHECAGEM_S"
+done

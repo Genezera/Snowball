@@ -371,6 +371,63 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
   .wrap{padding:16px 14px 80px}
   .kpis{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ============================================================
+   PROFIT LAB — champion (real) vs. paper lab (virtual), sempre
+   visualmente distintos. Nunca deixar um número paper parecer real.
+   ============================================================ */
+.pl-banner{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.pl-chip{font-size:.66rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:7px 13px;border-radius:999px;border:1px solid var(--border)}
+.pl-chip--champion{color:var(--white);background:rgba(23,217,255,.10);border-color:var(--border-hi)}
+.pl-chip--lab{color:#c79bff;background:rgba(160,110,255,.12);border-color:rgba(160,110,255,.35)}
+.pl-chip--virtual{color:var(--warning);background:rgba(255,200,87,.10);border-color:rgba(255,200,87,.3)}
+.pl-statusbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pl-stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 13px}
+.pl-stat .lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:800}
+.pl-stat .val{font-family:var(--mono);font-size:.98rem;font-weight:800;margin-top:4px;display:flex;align-items:center;gap:7px}
+.pl-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.pl-dot.saudavel{background:var(--positive)}
+.pl-dot.degradado{background:var(--warning)}
+.pl-dot.stale{background:var(--warning)}
+.pl-dot.parado{background:var(--danger)}
+.pl-dot.erro{background:var(--danger)}
+.pl-dot.validacao_em_andamento{background:#c79bff}
+.pl-alerta{margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(255,92,122,.09);border:1px solid rgba(255,92,122,.35);color:var(--danger);font-size:.8rem;line-height:1.6}
+.pl-subnav{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}
+.pl-tab{background:var(--panel);border:1px solid var(--border);color:var(--dim);font-size:.72rem;font-weight:700;padding:8px 13px;border-radius:999px;cursor:pointer;transition:all .15s}
+.pl-tab:hover{color:var(--text);border-color:var(--border-hi)}
+.pl-tab.active{color:var(--white);background:linear-gradient(90deg,rgba(23,217,255,.16),rgba(23,217,255,.03));border-color:var(--border-hi)}
+.pl-page{display:none}
+.pl-page.active{display:block;display:flex;flex-direction:column;gap:16px}
+.pl-fam{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px}
+.pl-fam-control{background:rgba(23,217,255,.14);color:var(--ice)}
+.pl-fam-exploitation{background:rgba(54,227,160,.14);color:var(--positive)}
+.pl-fam-exploration{background:rgba(255,200,87,.14);color:var(--warning)}
+.pl-risco-alto{background:rgba(255,92,122,.16);color:var(--danger);font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pl-oracle{background:rgba(160,110,255,.16);color:#c79bff;font-size:.6rem;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.pl-chal-lista{max-height:560px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.pl-chal-item{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px 12px;cursor:pointer;transition:all .15s;font-size:.78rem}
+.pl-chal-item:hover{border-color:var(--border-hi)}
+.pl-chal-item.active{border-color:var(--cyan);background:rgba(23,217,255,.06)}
+.pl-chal-item .row1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pl-chal-item .id{font-weight:800;font-family:var(--mono);font-size:.74rem}
+.pl-cfg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.pl-cfg-item{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:7px 10px}
+.pl-cfg-item .k{font-size:.6rem;text-transform:uppercase;color:var(--faint);font-weight:800}
+.pl-cfg-item .v{font-family:var(--mono);font-size:.82rem;margin-top:2px}
+.pl-cenario-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.pl-cenario-card h3{font-size:.8rem;margin:0 0 8px}
+.pl-checklist{display:flex;flex-direction:column;gap:8px}
+.pl-check{display:flex;align-items:center;gap:9px;font-size:.8rem}
+.pl-check .box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border-hi);flex:none;display:flex;align-items:center;justify-content:center;font-size:.65rem}
+.pl-check.done .box{background:var(--positive);border-color:var(--positive);color:#02140c}
+.pl-markdown{font-size:.84rem;line-height:1.75;color:var(--text)}
+.pl-markdown h1,.pl-markdown h2,.pl-markdown h3{margin:16px 0 8px}
+.pl-markdown code{font-family:var(--mono);background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px}
+.pl-btn{background:var(--panel);border:1px solid var(--border-hi);color:var(--text);font-size:.68rem;font-weight:700;padding:5px 10px;border-radius:8px;cursor:pointer;transition:all .15s}
+.pl-btn:hover{background:rgba(23,217,255,.08)}
+.pl-btn.danger{border-color:rgba(255,92,122,.4);color:var(--danger)}
+.pl-btn.danger:hover{background:rgba(255,92,122,.08)}
 </style></head>
 <body>
 <div class="app" id="app">
@@ -391,6 +448,7 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
       <div class="sb-item" data-tab="historico" data-tip="Histórico" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-history"/></svg><span class="sb-label">Histórico</span></div>
       <div class="sb-item" data-tab="logs" data-tip="Logs" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-logs"/></svg><span class="sb-label">Logs</span></div>
       <div class="sb-item" data-tab="sistema" data-tip="Sistema" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-settings"/></svg><span class="sb-label">Sistema</span></div>
+      <div class="sb-item" data-tab="profitlab" data-tip="Profit Lab" tabindex="0"><svg class="sb-ic sb-icon" viewBox="0 0 64 64"><use href="#sb-research"/></svg><span class="sb-label">Profit Lab</span></div>
     </nav>
     <div class="sb-foot">
       <button class="sb-toggle" id="sb-toggle-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg><span class="sb-label">Recolher</span></button>
@@ -669,6 +727,216 @@ code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:5px;font-siz
           <p class="caption" style="margin:0">HTML + CSS + SVG + JS puro, sem dependência externa, servido pelo próprio motor. Nenhuma ordem é enviada de nenhum modo — os motores só leem as exchanges e simulam.</p>
         </div>
       </section>
+    </div>
+
+    <!-- ============ PROFIT LAB ============ -->
+    <div class="tabpanel" id="panel-profitlab">
+      <div class="pl-banner">
+        <span class="pl-chip pl-chip--champion">CHAMPION — sistema principal</span>
+        <span class="pl-chip pl-chip--lab">PAPER LAB — experimentos virtuais</span>
+        <span class="pl-chip pl-chip--virtual">100% PAPER · VIRTUAL · NÃO REAL</span>
+      </div>
+
+      <section class="card" id="pl-status-card">
+        <h2>Status do Profit Lab</h2>
+        <div class="pl-statusbar" id="pl-statusbar"></div>
+        <div id="pl-alerta-parado" style="display:none" class="pl-alerta"></div>
+      </section>
+
+      <div class="pl-subnav" id="pl-subnav">
+        <button class="pl-tab active" data-pl="visao">Visão geral</button>
+        <button class="pl-tab" data-pl="championcontrol">Champion vs. Control</button>
+        <button class="pl-tab" data-pl="leaderboard">Leaderboard</button>
+        <button class="pl-tab" data-pl="challengers">Challengers</button>
+        <button class="pl-tab" data-pl="experimentos">Experimentos</button>
+        <button class="pl-tab" data-pl="frequencia">Frequência</button>
+        <button class="pl-tab" data-pl="custos">Custos</button>
+        <button class="pl-tab" data-pl="capital">Capital</button>
+        <button class="pl-tab" data-pl="risco">Risco e realismo</button>
+        <button class="pl-tab" data-pl="captura">Captura de settlement</button>
+        <button class="pl-tab" data-pl="telemetria">Telemetria</button>
+        <button class="pl-tab" data-pl="relatorios">Relatórios da IA</button>
+      </div>
+
+      <!-- Visão geral -->
+      <div class="pl-page active" id="pl-page-visao">
+        <section class="kpis" id="pl-kpis-visao"></section>
+        <section class="grid2">
+          <div class="card">
+            <h2>Champion <span class="note">sistema principal — dinheiro real</span></h2>
+            <div id="pl-champion-detalhe"></div>
+          </div>
+          <div class="card">
+            <h2>Control <span class="note">réplica virtual do champion, mesma lógica</span></h2>
+            <div id="pl-control-detalhe"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Champion vs Control -->
+      <div class="pl-page" id="pl-page-championcontrol">
+        <section class="card">
+          <h2>Validação evento a evento <span class="note" id="pl-cc-status"></span></h2>
+          <p class="caption">O control só é considerado validado quando reproduz TODOS os tipos de evento do champion — 100% de fidelidade em poucos eventos não conta.</p>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Métrica</th><th>Champion</th><th>Control</th><th>Divergência</th></tr></thead>
+            <tbody id="pl-cc-table"></tbody>
+          </table></div>
+        </section>
+        <section class="grid2">
+          <div class="card">
+            <h2>Checklist de tipos de evento observados</h2>
+            <div id="pl-cc-checklist"></div>
+          </div>
+          <div class="card">
+            <h2>Fidelidade de decisões</h2>
+            <div id="pl-cc-fidelidade"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="pl-page" id="pl-page-leaderboard">
+        <section class="card">
+          <h2>Leaderboard <span class="note">clique no cabeçalho pra ordenar</span></h2>
+          <div class="tbl-toolbar">
+            <select id="pl-lb-familia">
+              <option value="todas">Todas as famílias</option>
+              <option value="control">control</option>
+              <option value="exploitation">exploitation</option>
+              <option value="exploration">exploration</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto"><table id="pl-lb-table">
+            <thead><tr>
+              <th>#</th><th>Challenger</th><th>Família</th><th class="sortable" data-col="trades">Trades</th>
+              <th class="sortable" data-col="pnlPaperBase">PnL base</th><th class="sortable" data-col="pnlPaperAjustado">PnL ajustado</th>
+              <th class="sortable" data-col="pnlIncremental">Incremental</th><th class="sortable" data-col="retornoPorMargem">Retorno/margem</th>
+              <th class="sortable" data-col="drawdownMaxPct">Drawdown</th><th>Evidência</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="pl-lb-body"></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <!-- Challengers -->
+      <div class="pl-page" id="pl-page-challengers">
+        <section class="grid2">
+          <div class="card">
+            <h2>Todos os challengers <span class="note" id="pl-chal-count"></span></h2>
+            <div id="pl-chal-lista" class="pl-chal-lista"></div>
+          </div>
+          <div class="card">
+            <h2>Detalhe <span class="note" id="pl-chal-detalhe-tag"></span></h2>
+            <div id="pl-chal-detalhe"><div class="empty">selecione um challenger à esquerda</div></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Experimentos -->
+      <div class="pl-page" id="pl-page-experimentos">
+        <section class="card">
+          <h2>Experimentos <span class="note">cada challenger aprovado É um experimento — hipótese, família, status</span></h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Challenger</th><th>Família</th><th>Hipótese</th><th>Config desde</th><th>Status</th><th>Amostra</th><th>Ação</th></tr></thead>
+            <tbody id="pl-exp-body"></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <!-- Frequência -->
+      <div class="pl-page" id="pl-page-frequencia">
+        <section class="card">
+          <h2>Funil de oportunidades</h2>
+          <div id="pl-funil"></div>
+        </section>
+        <section class="card">
+          <h2>Motivos de rejeição</h2>
+          <div id="pl-motivos-rejeicao"></div>
+        </section>
+        <section class="card">
+          <h2>Payback Grid <span class="note">payback-110 a payback-200</span></h2>
+          <p class="caption">Onde mais frequência começa a destruir a qualidade — compare trades × PnL × drawdown ao longo do grid.</p>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Payback</th><th>Trades</th><th>Funding</th><th>Custos</th><th>PnL</th><th>Fee/gross</th><th>Drawdown</th></tr></thead>
+            <tbody id="pl-payback-grid-body"></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <!-- Custos -->
+      <div class="pl-page" id="pl-page-custos">
+        <section class="card">
+          <h2>Champion <span class="note">decomposição real, do diário</span></h2>
+          <div id="pl-custos-champion"></div>
+        </section>
+        <section class="card">
+          <h2>Decomposição por challenger</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Challenger</th><th>Trading puro</th><th>Gerenciamento</th><th>Total</th><th>Fee/gross trading</th><th>Fee/gross total</th></tr></thead>
+            <tbody id="pl-custos-body"></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <!-- Capital -->
+      <div class="pl-page" id="pl-page-capital">
+        <section class="card">
+          <h2>Capital virtual por challenger <span class="note">nunca somado ao capital do champion</span></h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Challenger</th><th>Família</th><th>Posições abertas</th><th>Capital ocioso</th><th>Concentração máxima</th></tr></thead>
+            <tbody id="pl-capital-body"></tbody>
+          </table></div>
+        </section>
+      </div>
+
+      <!-- Risco e realismo -->
+      <div class="pl-page" id="pl-page-risco">
+        <section class="card">
+          <h2>Risco por challenger</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Challenger</th><th>Drawdown</th><th>Concentração</th><th>Alavancagem</th></tr></thead>
+            <tbody id="pl-risco-body"></tbody>
+          </table></div>
+        </section>
+        <section class="card">
+          <h2>Cenários de realismo <span class="note">ideal · base · conservador · stress</span></h2>
+          <p class="caption">Um único "PnL ajustado" nunca conta a história inteira — aqui estão as 4 premissas lado a lado, por challenger.</p>
+          <div id="pl-cenarios"></div>
+        </section>
+      </div>
+
+      <!-- Captura de settlement -->
+      <div class="pl-page" id="pl-page-captura">
+        <section class="card">
+          <h2>Captura de settlement <span class="note">capture-3m a capture-60m</span></h2>
+          <div class="empty">Os challengers de captura (9 janelas × 2 modos) ainda não foram implementados — ver backlog do Paper Profit Lab. Esta página está pronta pra receber os dados assim que existirem; nenhum número é fabricado enquanto isso.</div>
+        </section>
+      </div>
+
+      <!-- Telemetria -->
+      <div class="pl-page" id="pl-page-telemetria">
+        <section class="kpis" id="pl-telemetria-kpis"></section>
+        <section class="card">
+          <h2>Status por challenger</h2>
+          <div id="pl-telemetria-status" class="procgrid"></div>
+        </section>
+      </div>
+
+      <!-- Relatórios da IA -->
+      <div class="pl-page" id="pl-page-relatorios">
+        <section class="card">
+          <h2>Relatório do dia <span class="note" id="pl-relatorio-data"></span></h2>
+          <div id="pl-relatorio-md" class="pl-markdown"></div>
+        </section>
+        <section class="card">
+          <h2>Auditoria de ações do dashboard <span class="note">toda pausa/retomada/observação, com usuário e motivo</span></h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Quando</th><th>Usuário</th><th>Ação</th><th>Challenger</th><th>Motivo</th></tr></thead>
+            <tbody id="pl-auditoria-body"></tbody>
+          </table></div>
+        </section>
+      </div>
     </div>
 
     <footer class="foot">SNOWBALL — nenhuma ordem enviada além do paper trading declarado — atualizado <span id="foot-ts">—</span></footer>
@@ -1012,7 +1280,8 @@ var PAGE_INFO={
   pesquisa:{t:'Pesquisa',s:'famílias de estratégia, modo agressivo, pares, preenchimento'},
   historico:{t:'Histórico',s:'linha do tempo completa de decisões e operações'},
   logs:{t:'Logs',s:'streaming dos arquivos de log reais'},
-  sistema:{t:'Sistema',s:'coleta, prontidão de ML, diagnóstico do dashboard'}
+  sistema:{t:'Sistema',s:'coleta, prontidão de ML, diagnóstico do dashboard'},
+  profitlab:{t:'Profit Lab',s:'champion vs. challengers — tudo em paper, capital 100% virtual'}
 };
 (function(){
   var app=el('app');
@@ -2294,6 +2563,591 @@ setInterval(function(){
 document.addEventListener('visibilitychange',function(){
   PAUSADO=document.hidden;
 });
+
+// ============================================================
+// PROFIT LAB — conexão, estado e render próprios, deliberadamente
+// separados do render(d) do champion acima. Nunca mistura capital
+// virtual de challenger com capital/equity do champion (Parte 1).
+// ============================================================
+var PL_ULTIMO=null, PL_CHAL_SEL=null, PL_LB_SORT={col:'pnlPaperAjustado',desc:true};
+var PL_STATUS_LBL={saudavel:'saudável',degradado:'degradado',stale:'stale',parado:'parado',erro:'erro'};
+
+function plUsuario(){
+  var u=null;
+  try{u=localStorage.getItem('snowball-pl-usuario')}catch(e){}
+  if(!u){
+    u=(window.prompt('Seu nome — fica registrado em toda ação de auditoria do Profit Lab:','operador')||'operador').trim()||'operador';
+    try{localStorage.setItem('snowball-pl-usuario',u)}catch(e){}
+  }
+  return u;
+}
+
+function plChamarControle(acao,challengerId,extra){
+  var usuario=plUsuario();
+  var motivo=(extra&&extra.motivo!=null)?extra.motivo:(window.prompt('Motivo (fica registrado na auditoria):')||'');
+  if((acao==='pausar')&&!motivo.trim()){window.alert('Motivo é obrigatório pra pausar.');return}
+  var body={acao:acao,challengerId:challengerId,motivo:motivo,usuario:usuario};
+  if(extra&&extra.texto!=null)body.texto=extra.texto;
+  if(extra&&extra.status!=null)body.status=extra.status;
+  fetch('/api/profit-lab/controle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){return r.json()})
+    .then(function(j){
+      if(!j.ok){window.alert('Não foi possível: '+(j.erro||'erro desconhecido'));return}
+      plFetchUmaVez();
+    }).catch(function(){window.alert('Falha de rede ao enviar o comando.')});
+}
+
+function plLinhaDetalhe(l,v){
+  return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.82rem">'+
+    '<span style="color:var(--dim)">'+esc(l)+'</span><span class="num" style="font-family:var(--mono);font-weight:700">'+v+'</span></div>';
+}
+function plFam(f){
+  if(!f)return '—';
+  return '<span class="pl-fam pl-fam-'+esc(f)+'">'+esc(f)+'</span>';
+}
+function plEvidencia(niv){
+  var map={amostra_insuficiente:'amostra insuficiente',sinal_inicial:'sinal inicial',evidencia_intermediaria:'evidência intermediária',candidato_a_promocao:'candidato a promoção'};
+  return '<span class="badge '+(niv==='candidato_a_promocao'?'ok':(niv==='amostra_insuficiente'?'warn':'ok'))+'">'+esc(map[niv]||niv||'—')+'</span>';
+}
+function plBadges(l){
+  var b=[];
+  if(l.eliminado)b.push('<span class="badge bad">eliminado</span>');
+  if(l.pausado)b.push('<span class="badge warn">pausado</span>');
+  if(l.altoRiscoAlavancagem)b.push('<span class="pl-risco-alto">alto risco</span>');
+  if(l.recomendadoEliminar&&!l.eliminado)b.push('<span class="badge warn">resultado provisório</span>');
+  return b.join(' ');
+}
+
+// ---- barra de status ----
+function plRenderStatus(d){
+  var host=el('pl-statusbar'); if(!host)return;
+  var hb=d.heartbeat||{};
+  var uptimeH=hb.startedAt?(Date.now()-hb.startedAt)/3600000:0;
+  var idadeCicloMin=hb.ultimoCiclo?((Date.now()-hb.ultimoCiclo)/60000):null;
+  var ativos=(d.resumo&&d.resumo.numeroAtivos!=null)?d.resumo.numeroAtivos:null;
+  var pausados=(d.resumo&&d.resumo.numeroPausados!=null)?d.resumo.numeroPausados:null;
+  var val=(d.championVsControl&&d.championVsControl.validacao)?d.championVsControl.validacao:null;
+  var ccStatus=val?val.status:'validacao_em_andamento';
+  var itens=[
+    {lbl:'Champion',val:'operando',dot:'saudavel'},
+    {lbl:'Paper Lab',val:PL_STATUS_LBL[d.status]||d.status||'—',dot:d.status},
+    {lbl:'Control validation',val:ccStatus==='validado'?'validado':'validação em andamento',dot:ccStatus==='validado'?'saudavel':'validacao_em_andamento'},
+    {lbl:'Challengers ativos',val:ativos!=null?String(ativos):'—'},
+    {lbl:'Challengers pausados',val:pausados!=null?String(pausados):'—'},
+    {lbl:'Último ciclo',val:hb.ultimoCiclo?timeAgo(hb.ultimoCiclo):'nunca'},
+    {lbl:'Idade do feed',val:idadeCicloMin!=null?idadeCicloMin.toFixed(1)+'min':'—'},
+    {lbl:'Uptime',val:fmtHoras(uptimeH)},
+    {lbl:'Reinícios',val:String(hb.reinicios||0)},
+    {lbl:'Erros 24h',val:d.telemetria?String(d.telemetria.errosUltimas24h):'—'}
+  ];
+  host.innerHTML=itens.map(function(it){
+    return '<div class="pl-stat"><div class="lbl">'+esc(it.lbl)+'</div><div class="val">'+(it.dot?'<span class="pl-dot '+esc(it.dot)+'"></span>':'')+esc(it.val)+'</div></div>';
+  }).join('');
+  var alerta=el('pl-alerta-parado');
+  if(alerta){
+    if(d.status==='parado'){
+      alerta.style.display='block';
+      alerta.textContent='Paper Profit Lab não processa ciclos há '+(idadeCicloMin!=null?idadeCicloMin.toFixed(0):'muitos')+' minutos. O champion continua operando normalmente.';
+    } else { alerta.style.display='none' }
+  }
+}
+
+// ---- visão geral ----
+function plRenderVisao(d){
+  var host=el('pl-kpis-visao'); if(!host)return;
+  var r=d.resumo;
+  if(!r){host.innerHTML='<div class="empty">agregados ainda não existem — aguardando o primeiro ciclo do Lab</div>';return}
+  var kpis=[
+    {l:'PnL do champion',v:fmtUsd(r.champion.pnlRealizado)},
+    {l:'PnL do control',v:r.control?fmtUsd(r.control.pnlBase):'—'},
+    {l:'Melhor PnL challenger',v:r.melhorPnlBase.challengerId?(esc(r.melhorPnlBase.challengerId)+' · '+fmtUsd(r.melhorPnlBase.valor)):'—'},
+    {l:'Melhor PnL ajustado',v:r.melhorPnlAjustado.challengerId?(esc(r.melhorPnlAjustado.challengerId)+' · '+fmtUsd(r.melhorPnlAjustado.valor)):'—'},
+    {l:'Melhor retorno/margem',v:r.melhorRetornoPorMargem.challengerId?esc(r.melhorRetornoPorMargem.challengerId):'—'},
+    {l:'Menor drawdown',v:r.menorDrawdown.challengerId?(esc(r.menorDrawdown.challengerId)+' · '+fmtNum(r.menorDrawdown.valor,1)+'%'):'—'},
+    {l:'Maior frequência',v:r.maiorFrequencia.challengerId?esc(r.maiorFrequencia.challengerId):'—'},
+    {l:'Menor custo',v:r.menorCusto.challengerId?esc(r.menorCusto.challengerId):'—'},
+    {l:'Capital virtual total',v:fmtUsd(r.capitalVirtualTotal)},
+    {l:'Trades paper',v:fmtNum(r.tradesTotaisPaper,0)},
+    {l:'Settlements capturados',v:fmtNum(r.settlementsTotaisPaper,0)}
+  ];
+  host.innerHTML=kpis.map(function(k){return '<div class="kpi"><div class="lbl">'+esc(k.l)+'</div><div class="val">'+k.v+'</div></div>'}).join('');
+
+  var c=r.champion;
+  var ch=el('pl-champion-detalhe');
+  if(ch){
+    ch.innerHTML=[
+      plLinhaDetalhe('PnL realizado',fmtUsd(c.pnlRealizado)),
+      plLinhaDetalhe('PnL não realizado (mark)',fmtUsd(c.pnlNaoRealizadoMark)),
+      plLinhaDetalhe('PnL não realizado (executável)',fmtUsd(c.pnlNaoRealizadoExecutavel)),
+      plLinhaDetalhe('Equity mark',fmtUsd(c.equityMark)),
+      plLinhaDetalhe('Equity de liquidação',fmtUsd(c.equityLiquidacao)),
+      plLinhaDetalhe('Funding bruto',fmtUsd(c.fundingBruto)),
+      plLinhaDetalhe('Custos totais',fmtUsd(c.custosTotais)),
+      plLinhaDetalhe('PnL %',fmtNum(c.pnlPct,2)+'%')
+    ].join('')+(c.marcacaoDisponivel?'':'<div class="empty" style="margin-top:10px">marcação a mercado ainda não disponível — mostrando só o realizado</div>');
+  }
+  var cd=el('pl-control-detalhe');
+  if(cd){
+    cd.innerHTML=r.control?[
+      plLinhaDetalhe('PnL base',fmtUsd(r.control.pnlBase)),
+      plLinhaDetalhe('PnL ajustado',fmtUsd(r.control.pnlAjustado)),
+      plLinhaDetalhe('Retorno %',fmtNum(r.control.retornoPct,2)+'%'),
+      plLinhaDetalhe('Trades',fmtNum(r.control.trades,0))
+    ].join(''):'<div class="empty">control ainda não tem linha no leaderboard</div>';
+  }
+}
+
+// ---- champion vs control ----
+var PL_CC_TIPOS=[
+  {chave:'candidata_rejeitada',lbl:'Candidatas rejeitadas'},
+  {chave:'abertura_normal',lbl:'Entradas'},
+  {chave:'abertura_parcial',lbl:'Entradas parciais'},
+  {chave:'escalonamento',lbl:'Escalonamentos'},
+  {chave:'apara',lbl:'Aparas'},
+  {chave:'reinvestimento',lbl:'Reinvestimentos'},
+  {chave:'funding',lbl:'Funding'},
+  {chave:'saida',lbl:'Saídas'},
+  {chave:'captura',lbl:'Captura'},
+  {chave:'bloqueio_por_saldo',lbl:'Bloqueios por saldo'}
+];
+var PL_CC_CHECKLIST=[
+  {tipos:['abertura_normal','abertura_parcial'],lbl:'abertura observada'},
+  {tipos:['saida'],lbl:'fechamento observado'},
+  {tipos:['funding'],lbl:'funding observado'},
+  {tipos:['escalonamento'],lbl:'escalonamento observado'},
+  {tipos:['apara'],lbl:'apara observada'},
+  {tipos:['reinvestimento'],lbl:'reinvestimento observado'},
+  {tipos:['bloqueio_por_saldo'],lbl:'bloqueio por saldo observado'},
+  {tipos:['captura'],lbl:'captura observada'},
+  {tipos:['multiplas_posicoes'],lbl:'múltiplas posições observadas'}
+];
+function plRenderChampionControl(d){
+  var tabela=el('pl-cc-table'), checklist=el('pl-cc-checklist'), fidel=el('pl-cc-fidelidade'), statusTag=el('pl-cc-status');
+  if(!tabela)return;
+  var payload=d.championVsControl;
+  if(!payload||!payload.validacao){
+    tabela.innerHTML='<tr><td colspan="4" class="empty">validação ainda não rodou — o control precisa acumular decisões comparáveis primeiro</td></tr>';
+    if(checklist)checklist.innerHTML='';
+    if(fidel)fidel.innerHTML='';
+    if(statusTag)statusTag.textContent='';
+    return;
+  }
+  var val=payload.validacao;
+  if(statusTag)statusTag.textContent=val.status==='validado'?'validado':'validação em andamento — nunca marcado como validado só por % alto em poucos eventos';
+
+  var comps=val.comparacoes||[];
+  function contaChampion(tipo){return comps.filter(function(c){return c.eventoChampion===tipo}).length}
+  function contaControl(tipo){return comps.filter(function(c){return c.eventoControl===tipo}).length}
+  var somaCustoChampion=comps.reduce(function(s,c){return s+(c.custoChampion||0)},0);
+  var somaCustoControl=comps.reduce(function(s,c){return s+(c.custoControl||0)},0);
+  var ultimoCapChampion=null;
+  for(var i=comps.length-1;i>=0;i--){if(comps[i].capitalChampion!=null){ultimoCapChampion=comps[i].capitalChampion;break}}
+
+  var linhas=PL_CC_TIPOS.map(function(t){
+    var ch=contaChampion(t.chave), cc=contaControl(t.chave);
+    return '<tr><td>'+esc(t.lbl)+'</td><td class="num">'+ch+'</td><td class="num">'+cc+'</td><td class="num">'+(ch-cc)+'</td></tr>';
+  });
+  linhas.push('<tr><td>Custos (soma, US$)</td><td class="num">'+somaCustoChampion.toFixed(3)+'</td><td class="num">'+somaCustoControl.toFixed(3)+'</td><td class="num">'+(somaCustoChampion-somaCustoControl).toFixed(3)+'</td></tr>');
+  linhas.push('<tr><td>Capital realizado (champion, último visto)</td><td class="num">'+(ultimoCapChampion!=null?fmtUsd(ultimoCapChampion):'—')+'</td><td class="num">—</td><td class="num">—</td></tr>');
+  linhas.push('<tr><td>Equity</td><td class="num" colspan="3" style="color:var(--faint)">não comparável evento a evento nesta versão — ver Visão geral</td></tr>');
+  tabela.innerHTML=linhas.join('');
+
+  if(checklist){
+    checklist.innerHTML='<div class="pl-checklist">'+PL_CC_CHECKLIST.map(function(item){
+      var ok=item.tipos.some(function(t){return val.tiposDeEventoCobertos.indexOf(t)!==-1});
+      return '<div class="pl-check'+(ok?' done':'')+'"><span class="box">'+(ok?'✓':'')+'</span><span>'+esc(item.lbl)+'</span></div>';
+    }).join('')+'</div>';
+  }
+  if(fidel){
+    fidel.innerHTML=
+      plLinhaDetalhe('fidelidadeDecisoes',fmtPct(val.fidelidadeDecisoes,1))+
+      plLinhaDetalhe('decisoesComparaveis',String(val.decisoesComparaveis))+
+      plLinhaDetalhe('decisoesIguais',String(val.decisoesIguais))+
+      plLinhaDetalhe('decisoesDivergentes',String(val.decisoesComparaveis-val.decisoesIguais))+
+      '<div style="margin-top:10px;font-size:.72rem;color:var(--faint)">tiposDeEventoFaltando: '+(val.tiposDeEventoFaltando.length?esc(val.tiposDeEventoFaltando.join(', ')):'nenhum')+'</div>';
+  }
+}
+
+// ---- leaderboard ----
+function plOrdenarLinhas(linhas){
+  var col=PL_LB_SORT.col, desc=PL_LB_SORT.desc;
+  return linhas.slice().sort(function(a,b){
+    var av=a[col], bv=b[col];
+    if(typeof av!=='number')av=0; if(typeof bv!=='number')bv=0;
+    return desc?(bv-av):(av-bv);
+  });
+}
+function plRenderLeaderboard(d){
+  var body=el('pl-lb-body'); if(!body)return;
+  var lb=d.leaderboard;
+  if(!lb||!lb.linhas||!lb.linhas.length){body.innerHTML='<tr><td colspan="11" class="empty">leaderboard ainda vazio</td></tr>';return}
+  var filtroFam=el('pl-lb-familia')?el('pl-lb-familia').value:'todas';
+  var linhas=lb.linhas.filter(function(l){return filtroFam==='todas'||l.familia===filtroFam});
+  linhas=plOrdenarLinhas(linhas);
+  body.innerHTML=linhas.map(function(l,i){
+    var acoes=l.pausado
+      ? '<button class="pl-btn" data-pl-acao="retomar" data-pl-id="'+esc(l.challengerId)+'">retomar</button>'
+      : '<button class="pl-btn danger" data-pl-acao="pausar" data-pl-id="'+esc(l.challengerId)+'">pausar</button>';
+    return '<tr>'+
+      '<td class="num">'+(i+1)+'</td>'+
+      '<td><b>'+esc(l.challengerId)+'</b> '+plBadges(l)+'</td>'+
+      '<td>'+plFam(l.familia)+'</td>'+
+      '<td class="num">'+l.trades+'</td>'+
+      '<td class="num">'+fmtUsd(l.pnlPaperBase)+'</td>'+
+      '<td class="num">'+fmtUsd(l.pnlPaperAjustado)+'</td>'+
+      '<td class="num '+(l.pnlIncremental>=0?'up':'down')+'">'+(l.pnlIncremental>=0?'+':'')+fmtNum(l.pnlIncremental,2)+'pp</td>'+
+      '<td class="num">'+fmtNum(l.retornoPorMargem*100,2)+'%</td>'+
+      '<td class="num">'+fmtNum(l.drawdownMaxPct,1)+'%</td>'+
+      '<td>'+plEvidencia(l.nivelEvidencia)+'</td>'+
+      '<td>'+acoes+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+// ---- challengers (lista + detalhe) ----
+function plRenderChallengers(d){
+  var lista=el('pl-chal-lista'), count=el('pl-chal-count');
+  if(!lista)return;
+  var lb=d.leaderboard;
+  if(!lb||!lb.linhas){lista.innerHTML='<div class="empty">nenhum challenger ainda</div>';return}
+  if(count)count.textContent=lb.linhas.length+' aprovados';
+  lista.innerHTML=lb.linhas.map(function(l){
+    return '<div class="pl-chal-item'+(PL_CHAL_SEL===l.challengerId?' active':'')+'" data-pl-chal="'+esc(l.challengerId)+'">'+
+      '<div class="row1"><span class="id">'+esc(l.challengerId)+'</span>'+plFam(l.familia)+'</div>'+
+      '<div style="margin-top:4px;font-size:.7rem;color:var(--dim)">'+fmtUsd(l.pnlPaperAjustado)+' · '+l.trades+' trades'+(l.pausado?' · pausado':'')+'</div>'+
+      '</div>';
+  }).join('');
+  if(PL_CHAL_SEL)plRenderChallengerDetalhe(PL_CHAL_SEL,d);
+}
+function plRenderChallengerDetalhe(id,d){
+  var host=el('pl-chal-detalhe'), tag=el('pl-chal-detalhe-tag');
+  if(!host)return;
+  var linha=(d.leaderboard&&d.leaderboard.linhas||[]).find(function(l){return l.challengerId===id});
+  var cfg=(d.aprovados||[]).find(function(c){return c.challengerId===id});
+  if(tag)tag.textContent=id;
+  if(!linha){host.innerHTML='<div class="empty">sem dados ainda pra este challenger</div>';return}
+  var acoes='<div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap">'+
+    (linha.pausado
+      ? '<button class="pl-btn" data-pl-acao="retomar" data-pl-id="'+esc(id)+'">retomar</button>'
+      : '<button class="pl-btn danger" data-pl-acao="pausar" data-pl-id="'+esc(id)+'">pausar</button>')+
+    '<button class="pl-btn" data-pl-acao="observacao" data-pl-id="'+esc(id)+'">adicionar observação</button>'+
+    '<button class="pl-btn" data-pl-acao="duplicar" data-pl-id="'+esc(id)+'">duplicar como nova versão</button>'+
+    '</div>';
+  var basico=[
+    plLinhaDetalhe('Versão / config',esc(linha.hipotese?'':'')+esc(cfg?cfg.familia+' · '+id:id)),
+    plLinhaDetalhe('Família',plFam(linha.familia)),
+    plLinhaDetalhe('Status',esc(linha.experimentoStatus||'—')),
+    plLinhaDetalhe('Config desde',linha.configDesde?timeAgo(linha.configDesde):'—'),
+    plLinhaDetalhe('PnL realizado',fmtUsd(linha.pnlPaperBruto)),
+    plLinhaDetalhe('PnL ajustado (base)',fmtUsd(linha.pnlPaperAjustado)),
+    plLinhaDetalhe('Equity',fmtUsd(linha.equity)),
+    plLinhaDetalhe('Drawdown',fmtNum(linha.drawdownMaxPct,1)+'%'),
+    plLinhaDetalhe('Trades',String(linha.trades)),
+    plLinhaDetalhe('Settlements',String(linha.settlements)),
+    plLinhaDetalhe('Custos totais',fmtUsd(linha.custosTotais)),
+    plLinhaDetalhe('Fee/gross',isFinite(linha.feeToGross)?fmtNum(linha.feeToGross*100,1)+'%':'∞'),
+    plLinhaDetalhe('Capital ocioso',fmtUsd(linha.capitalOcioso)),
+    plLinhaDetalhe('Concentração máxima',fmtNum(linha.concentracaoMaxima*100,1)+'%'),
+    plLinhaDetalhe('Nível de evidência',plEvidencia(linha.nivelEvidencia))
+  ].join('');
+  var hipotese=linha.hipotese?'<div class="empty" style="text-align:left;margin:10px 0">'+esc(linha.hipotese)+'</div>':'';
+  var cfgHtml='';
+  if(cfg){
+    cfgHtml='<div class="pl-cfg-grid">'+
+      ['exchanges: '+((cfg.exchanges||[]).join(', ')),'capital/exchange: US$ '+cfg.capitalPorExchange,'alavancagem: '+cfg.alavancagem+'x',
+       'reserva: '+fmtNum(cfg.reserva*100,0)+'%','margemPayback: '+cfg.margemPayback+'x','maxPosicoes: '+cfg.maxPosicoes,
+       'fracaoEstagioInicial: '+(cfg.fracaoEstagioInicial!=null?fmtNum(cfg.fracaoEstagioInicial*100,0)+'%':'padrão (25%)'),
+       'modoEscalonamento: '+(cfg.modoEscalonamento||'imediato')
+      ].map(function(s){var kv=s.split(': ');return '<div class="pl-cfg-item"><div class="k">'+esc(kv[0])+'</div><div class="v">'+esc(kv[1])+'</div></div>'}).join('')+
+      '</div>';
+  }
+  host.innerHTML=hipotese+acoes+basico+'<h3 style="font-size:.8rem;margin:16px 0 4px">Configuração completa (somente leitura)</h3>'+cfgHtml;
+
+  // eventos recentes — busca sob demanda, não vem no payload principal
+  fetch('/api/profit-lab/challenger?id='+encodeURIComponent(id)).then(function(r){return r.json()}).then(function(j){
+    if(!j.ok||!j.diario)return;
+    var eventos=j.diario.slice(0,25);
+    var html='<h3 style="font-size:.8rem;margin:16px 0 4px">Últimos eventos</h3>'+
+      (eventos.length?'<div class="timeline">'+eventos.map(function(ev){
+        var cor=corEvento[ev.evento]||'#516a8c';
+        var titulo=(ev.evento||'evento')+(ev.symbol?' · '+ev.symbol.replace('/USDT:USDT',''):'');
+        return '<div class="tl-item"><span class="tl-dot" style="background:'+cor+'"></span>'+
+          '<div class="tl-body"><b>'+esc(titulo)+'</b><div class="motivo">'+esc(ev.motivo||ev.detalhe||'')+'</div></div>'+
+          '<div class="tl-time">'+timeAgo(ev.ts)+'</div></div>';
+      }).join('')+'</div>':'<div class="empty">sem eventos ainda</div>');
+    var atual=el('pl-chal-detalhe');
+    if(atual && PL_CHAL_SEL===id) atual.innerHTML+=html;
+  }).catch(function(){});
+}
+
+// ---- experimentos ----
+function plRenderExperimentos(d){
+  var body=el('pl-exp-body'); if(!body)return;
+  var lb=d.leaderboard;
+  if(!lb||!lb.linhas.length){body.innerHTML='<tr><td colspan="7" class="empty">nenhum experimento ainda</td></tr>';return}
+  body.innerHTML=lb.linhas.map(function(l){
+    return '<tr><td><b>'+esc(l.challengerId)+'</b></td><td>'+plFam(l.familia)+'</td>'+
+      '<td style="max-width:280px;white-space:normal">'+esc(l.hipotese||'—')+'</td>'+
+      '<td>'+(l.configDesde?timeAgo(l.configDesde):'—')+'</td>'+
+      '<td>'+esc(l.experimentoStatus||'—')+'</td>'+
+      '<td>'+l.trades+' trades</td>'+
+      '<td><select class="pl-exp-status" data-pl-id="'+esc(l.challengerId)+'">'+
+        ['planejado','rodando','pausado','concluido','eliminado','inconclusivo'].map(function(s){
+          return '<option value="'+s+'"'+(s===l.experimentoStatus?' selected':'')+'>'+s+'</option>';
+        }).join('')+'</select></td></tr>';
+  }).join('');
+}
+
+// ---- frequência ----
+function plRenderFrequencia(d){
+  var funilHost=el('pl-funil'), motivosHost=el('pl-motivos-rejeicao'), gridBody=el('pl-payback-grid-body');
+  var f=d.frequencia;
+  if(!f){if(funilHost)funilHost.innerHTML='<div class="empty">sem dados ainda</div>';return}
+  if(funilHost){
+    var etapas=[
+      {l:'Observadas',v:f.funilGlobal.observadas},
+      {l:'Avaliadas',v:f.funilGlobal.avaliadas},
+      {l:'Aprovadas pelo portão',v:f.funilGlobal.aprovadasPeloPortao},
+      {l:'Abertas',v:f.funilGlobal.abertas},
+      {l:'Chegaram ao settlement',v:f.funilGlobal.chegaramAoSettlement}
+    ];
+    var max=Math.max(1,etapas[0].v);
+    funilHost.innerHTML=etapas.map(function(e){
+      var pct=Math.min(100,(e.v/max)*100);
+      return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:4px"><span>'+esc(e.l)+'</span><span class="num">'+fmtNum(e.v,0)+'</span></div>'+
+        '<div class="barmeter"><i style="width:'+pct+'%"></i></div></div>';
+    }).join('')+'<div style="margin-top:8px;font-size:.72rem;color:var(--faint)">ciclos com candidata: '+f.global.ciclosComCandidata+' · sem candidata: '+f.global.ciclosSemCandidata+'</div>';
+  }
+  if(motivosHost){
+    var m=f.motivosRejeicao;
+    motivosHost.innerHTML=[
+      plLinhaDetalhe('Payback insuficiente',fmtNum(m.paybackInsuficiente,0)),
+      plLinhaDetalhe('Saldo',fmtNum(m.saldo,0)),
+      plLinhaDetalhe('Liquidez',m.liquidez==null?'não instrumentado':String(m.liquidez)),
+      plLinhaDetalhe('Custo',m.conCusto==null?'não instrumentado':String(m.conCusto)),
+      plLinhaDetalhe('Consistência',m.consistencia==null?'não instrumentado':String(m.consistencia)),
+      plLinhaDetalhe('Reserva',m.reserva==null?'não instrumentado':String(m.reserva)),
+      plLinhaDetalhe('Concentração',m.concentracao==null?'não instrumentado':String(m.concentracao)),
+      plLinhaDetalhe('Risco',m.risco==null?'não instrumentado':String(m.risco)),
+      plLinhaDetalhe('Fora da janela de captura',m.foraDaJanelaDeCaptura==null?'não instrumentado':String(m.foraDaJanelaDeCaptura))
+    ].join('')+'<div style="margin-top:10px;font-size:.72rem;color:var(--faint)">'+esc(m.nota)+'</div>';
+  }
+  if(gridBody){
+    gridBody.innerHTML=f.paybackGrid.length?f.paybackGrid.map(function(g){
+      return '<tr><td><b>'+fmtNum(g.margemPayback,2)+'x</b> <span style="color:var(--faint);font-size:.7rem">'+esc(g.challengerId)+'</span></td>'+
+        '<td class="num">'+g.trades+'</td><td class="num">'+fmtUsd(g.funding)+'</td><td class="num">'+fmtUsd(g.custosTotais)+'</td>'+
+        '<td class="num">'+fmtUsd(g.pnlBase)+'</td><td class="num">'+(isFinite(g.feeToGross)?fmtNum(g.feeToGross*100,1)+'%':'∞')+'</td>'+
+        '<td class="num">'+fmtNum(g.drawdownMaxPct,1)+'%</td></tr>';
+    }).join(''):'<tr><td colspan="7" class="empty">grid ainda sem dados</td></tr>';
+  }
+}
+
+// ---- custos ----
+function plRenderCustos(d){
+  var champHost=el('pl-custos-champion'), body=el('pl-custos-body');
+  var c=d.custos;
+  if(!c){if(body)body.innerHTML='<tr><td colspan="6" class="empty">sem dados ainda</td></tr>';return}
+  if(champHost){
+    champHost.innerHTML=c.champion?[
+      plLinhaDetalhe('Trading puro',fmtUsd(c.champion.custoTradingPuro)),
+      plLinhaDetalhe('Gerenciamento',fmtUsd(c.champion.custoGerenciamento)),
+      plLinhaDetalhe('Total',fmtUsd(c.champion.custoTotal)),
+      plLinhaDetalhe('Fee/gross trading',isFinite(c.champion.feeToGrossTrading)?fmtNum(c.champion.feeToGrossTrading*100,1)+'%':'∞'),
+      plLinhaDetalhe('Fee/gross total',isFinite(c.champion.feeToGrossTotal)?fmtNum(c.champion.feeToGrossTotal*100,1)+'%':'∞')
+    ].join(''):'<div class="empty">decomposição do champion ainda não disponível (poucos eventos na janela lida)</div>';
+  }
+  if(body){
+    body.innerHTML=c.porChallenger.length?c.porChallenger.map(function(l){
+      return '<tr><td><b>'+esc(l.challengerId)+'</b></td><td class="num">'+fmtUsd(l.custoTradingPuro)+'</td><td class="num">'+fmtUsd(l.custoGerenciamento)+'</td>'+
+        '<td class="num">'+fmtUsd(l.custoTotal)+'</td><td class="num">'+(isFinite(l.feeToGrossTrading)?fmtNum(l.feeToGrossTrading*100,1)+'%':'∞')+'</td>'+
+        '<td class="num">'+(isFinite(l.feeToGrossTotal)?fmtNum(l.feeToGrossTotal*100,1)+'%':'∞')+'</td></tr>';
+    }).join(''):'<tr><td colspan="6" class="empty">sem challengers ainda</td></tr>';
+  }
+}
+
+// ---- capital ----
+function plRenderCapital(d){
+  var body=el('pl-capital-body'); if(!body)return;
+  var r=d.riscos;
+  if(!r||!r.porChallenger.length){body.innerHTML='<tr><td colspan="5" class="empty">sem dados ainda</td></tr>';return}
+  body.innerHTML=r.porChallenger.map(function(l){
+    return '<tr><td><b>'+esc(l.challengerId)+'</b></td><td>'+plFam(l.familia)+'</td><td class="num">'+l.posicoesAbertas+'</td>'+
+      '<td class="num">'+fmtUsd(l.capitalOcioso)+'</td><td class="num">'+fmtNum(l.concentracaoMaxima*100,1)+'%</td></tr>';
+  }).join('');
+}
+
+// ---- risco e realismo ----
+function plRenderRisco(d){
+  var body=el('pl-risco-body'), cenariosHost=el('pl-cenarios');
+  var r=d.riscos;
+  if(body){
+    body.innerHTML=(r&&r.porChallenger.length)?r.porChallenger.map(function(l){
+      return '<tr><td><b>'+esc(l.challengerId)+'</b></td><td class="num">'+fmtNum(l.drawdownMaxPct,1)+'%</td>'+
+        '<td class="num">'+fmtNum(l.concentracaoMaxima*100,1)+'%</td>'+
+        '<td>'+(l.altoRiscoAlavancagem?'<span class="pl-risco-alto">EXPLORAÇÃO PAPER — ALTO RISCO</span>':'padrão')+'</td></tr>';
+    }).join(''):'<tr><td colspan="4" class="empty">sem dados ainda</td></tr>';
+  }
+  if(cenariosHost){
+    var lb=d.leaderboard;
+    if(!lb||!lb.linhas.length){cenariosHost.innerHTML='<div class="empty">sem dados ainda</div>';return}
+    cenariosHost.innerHTML=lb.linhas.slice(0,12).map(function(l){
+      return '<div class="pl-cenario-card"><h3>'+esc(l.challengerId)+' '+(l.altoRiscoAlavancagem?'<span class="pl-risco-alto">alto risco</span>':'')+'</h3>'+
+        '<div style="overflow-x:auto"><table><thead><tr><th>Cenário</th><th>PnL ajustado</th></tr></thead><tbody>'+
+        ['ideal','base','conservador','stress'].map(function(nome){
+          return '<tr><td>'+esc(nome)+'</td><td class="num">'+fmtUsd(l.cenarios[nome])+'</td></tr>';
+        }).join('')+'</tbody></table></div></div>';
+    }).join('');
+  }
+}
+
+// ---- telemetria ----
+function plRenderTelemetria(d){
+  var kpisHost=el('pl-telemetria-kpis'), statusHost=el('pl-telemetria-status');
+  var t=d.telemetria;
+  if(!t){if(kpisHost)kpisHost.innerHTML='<div class="empty">sem dados ainda</div>';return}
+  if(kpisHost){
+    var kpis=[
+      {l:'Uptime',v:fmtHoras(t.uptimeMs/3600000)},
+      {l:'Ciclos processados',v:fmtNum(t.ciclosProcessados,0)},
+      {l:'Ciclos com erro',v:fmtNum(t.ciclosComErro,0)},
+      {l:'Reinícios',v:fmtNum(t.reinicios,0)},
+      {l:'Latência p50',v:fmtNum(t.latencia.p50,0)+'ms'},
+      {l:'Latência p95',v:fmtNum(t.latencia.p95,0)+'ms'},
+      {l:'Latência p99',v:fmtNum(t.latencia.p99,0)+'ms'},
+      {l:'Latência máxima',v:fmtNum(t.latencia.max,0)+'ms'},
+      {l:'Erros últimas 24h',v:fmtNum(t.errosUltimas24h,0)},
+      {l:'Idade do último ciclo',v:isFinite(t.idadeUltimoCicloMs)?fmtHoras(t.idadeUltimoCicloMs/3600000):'nunca rodou'}
+    ];
+    kpisHost.innerHTML=kpis.map(function(k){return '<div class="kpi"><div class="lbl">'+esc(k.l)+'</div><div class="val">'+k.v+'</div></div>'}).join('');
+  }
+  if(statusHost){
+    var entradas=Object.keys(t.statusPorChallenger||{});
+    statusHost.innerHTML=entradas.length?entradas.map(function(id){
+      var st=t.statusPorChallenger[id];
+      var cls=st==='ok'?'ok':(st==='eliminado'?'':'bad');
+      return '<div class="proc'+(st!=='ok'?' morto':'')+'"><div class="proc-nome">'+esc(id)+'</div><div class="proc-status">'+esc(st)+'</div></div>';
+    }).join(''):'<div class="empty">sem status ainda</div>';
+  }
+}
+
+// ---- relatórios da IA ----
+function plMarkdownSimples(md){
+  // conversor propositalmente mínimo — só o suficiente pro relatório do LLM
+  // Profit Analyst (gerarRelatorioDiario/formatarMarkdown), nunca genérico
+  var linhas=md.split('\\n');
+  var html=linhas.map(function(l){
+    if(l.indexOf('### ')===0)return '<h3>'+esc(l.slice(4))+'</h3>';
+    if(l.indexOf('## ')===0)return '<h2>'+esc(l.slice(3))+'</h2>';
+    if(l.indexOf('# ')===0)return '<h1>'+esc(l.slice(2))+'</h1>';
+    if(l.indexOf('- ')===0)return '<div style="margin-left:14px">• '+esc(l.slice(2))+'</div>';
+    if(!l.trim())return '<div style="height:6px"></div>';
+    return '<p>'+esc(l)+'</p>';
+  }).join('');
+  return html;
+}
+function plRenderRelatorios(d){
+  var host=el('pl-relatorio-md'), dataTag=el('pl-relatorio-data'), audBody=el('pl-auditoria-body');
+  var r=d.relatorios;
+  if(host){
+    if(r&&r.maisRecente){
+      if(dataTag)dataTag.textContent=r.maisRecente.data;
+      host.innerHTML=plMarkdownSimples(r.maisRecente.markdown);
+    } else {
+      host.innerHTML='<div class="empty">nenhum relatório diário gerado ainda</div>';
+    }
+  }
+  if(audBody){
+    var aud=d.auditoria||[];
+    audBody.innerHTML=aud.length?aud.slice(0,50).map(function(ev){
+      return '<tr><td>'+new Date(ev.ts).toLocaleString('pt-BR')+'</td><td>'+esc(ev.usuario)+'</td><td>'+esc(ev.acao)+'</td>'+
+        '<td>'+esc(ev.challenger)+'</td><td style="max-width:280px;white-space:normal">'+esc(ev.motivo||'')+'</td></tr>';
+    }).join(''):'<tr><td colspan="5" class="empty">nenhuma ação registrada ainda</td></tr>';
+  }
+}
+
+function plRender(d){
+  PL_ULTIMO=d;
+  plRenderStatus(d);
+  plRenderVisao(d);
+  plRenderChampionControl(d);
+  plRenderLeaderboard(d);
+  plRenderChallengers(d);
+  plRenderExperimentos(d);
+  plRenderFrequencia(d);
+  plRenderCustos(d);
+  plRenderCapital(d);
+  plRenderRisco(d);
+  plRenderTelemetria(d);
+  plRenderRelatorios(d);
+}
+
+// ---- sub-navegação, ordenação, cliques delegados ----
+(function(){
+  var subnav=el('pl-subnav');
+  if(!subnav)return;
+  subnav.addEventListener('click',function(ev){
+    var btn=ev.target.closest('.pl-tab'); if(!btn)return;
+    var alvo=btn.getAttribute('data-pl');
+    document.querySelectorAll('.pl-tab').forEach(function(b){b.classList.remove('active')});
+    document.querySelectorAll('.pl-page').forEach(function(p){p.classList.remove('active')});
+    btn.classList.add('active');
+    var page=el('pl-page-'+alvo); if(page)page.classList.add('active');
+  });
+
+  var lbTable=el('pl-lb-table');
+  if(lbTable)lbTable.addEventListener('click',function(ev){
+    var th=ev.target.closest('.sortable'); if(!th)return;
+    var col=th.getAttribute('data-col');
+    if(PL_LB_SORT.col===col)PL_LB_SORT.desc=!PL_LB_SORT.desc; else PL_LB_SORT={col:col,desc:true};
+    if(PL_ULTIMO)plRenderLeaderboard(PL_ULTIMO);
+  });
+  var lbFam=el('pl-lb-familia');
+  if(lbFam)lbFam.addEventListener('change',function(){if(PL_ULTIMO)plRenderLeaderboard(PL_ULTIMO)});
+
+  var chalLista=el('pl-chal-lista');
+  if(chalLista)chalLista.addEventListener('click',function(ev){
+    var item=ev.target.closest('[data-pl-chal]'); if(!item)return;
+    PL_CHAL_SEL=item.getAttribute('data-pl-chal');
+    if(PL_ULTIMO)plRenderChallengers(PL_ULTIMO);
+  });
+
+  var expBody=el('pl-exp-body');
+  if(expBody)expBody.addEventListener('change',function(ev){
+    var sel=ev.target.closest('.pl-exp-status'); if(!sel)return;
+    plChamarControle('status-experimento',sel.getAttribute('data-pl-id'),{status:sel.value,motivo:'alterado via página Experimentos'});
+  });
+
+  // ações delegadas (pausar/retomar/observação/duplicar) em qualquer página do Profit Lab
+  el('panel-profitlab').addEventListener('click',function(ev){
+    var btn=ev.target.closest('[data-pl-acao]'); if(!btn)return;
+    var acao=btn.getAttribute('data-pl-acao'), id=btn.getAttribute('data-pl-id');
+    if(acao==='observacao'){
+      var texto=window.prompt('Observação para '+id+':');
+      if(texto&&texto.trim())plChamarControle('observacao',id,{texto:texto,motivo:'observação via dashboard'});
+      return;
+    }
+    if(acao==='duplicar'){
+      plChamarControle('duplicar',id,{motivo:'tentativa via dashboard'});
+      return;
+    }
+    plChamarControle(acao,id,{});
+  });
+})();
+
+function plFetchUmaVez(){
+  fetch('/api/profit-lab/dados').then(function(r){return r.json()}).then(plRender).catch(function(){});
+}
+
+var plEs=null, plPoll=null;
+function plPararPolling(){if(plPoll){clearInterval(plPoll);plPoll=null}}
+function plIniciarPolling(){plPararPolling();plPoll=setInterval(plFetchUmaVez,8000)}
+function plConectar(){
+  try{plEs=new EventSource('/api/profit-lab/stream')}catch(e){plIniciarPolling();return}
+  plEs.onopen=function(){plPararPolling()};
+  plEs.onmessage=function(ev){try{plRender(JSON.parse(ev.data))}catch(e){}};
+  plEs.onerror=function(){if(plEs)plEs.close();plIniciarPolling();setTimeout(plConectar,6000)};
+}
+plConectar();
 
 // ---- conexão: SSE com fallback para polling ----
 var esConn=null, pollConn=null;

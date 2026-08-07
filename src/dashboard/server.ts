@@ -32,6 +32,12 @@ import { estatisticasCicloBasis, type EstadoVigilanciaBasis } from '../funding/v
 import { agregarEstatisticas } from '../funding/preenchimento.ts';
 import { avaliarCicloArquivado } from '../ml/rotulo-ciclo.ts';
 import { MINIMO_POSITIVOS_TREINO } from '../ml/prontidao-vigilancia.ts';
+import { auditoriaAoVivo } from '../audit/auditor-live.ts';
+import {
+  pausarChallenger, retomarChallenger, adicionarObservacao, marcarStatusExperimento,
+  duplicarComoNovaVersao, lerAuditoria,
+} from '../inteligencia/controle.ts';
+import { CHALLENGERS_APROVADOS } from '../inteligencia/challengers.ts';
 import { PAGINA } from './pagina.ts';
 
 const execAsync = promisify(exec);
@@ -557,6 +563,158 @@ function observar(arquivo: string) {
   } catch { /* arquivo ainda não existe; o heartbeat cobre */ }
 }
 
+/**
+ * PROFIT LAB — tudo que este dashboard mostra do Paper Profit Lab vem de
+ * `inteligencia/dashboard/*.json`, escritos pelo próprio Lab a cada ciclo
+ * (`dashboard-aggregator.ts`). Esta seção do servidor SÓ LÊ esses arquivos —
+ * nenhuma conta, nenhum agrupamento, nenhuma reconciliação acontece aqui.
+ * Regra do pedido: "nenhum cálculo pesado deverá ocorrer dentro de
+ * dashboard/server.ts".
+ *
+ * A única exceção que este servidor ESCREVE é o controle de challenger
+ * (pausar/retomar/observação/status de experimento) — e mesmo essa escrita
+ * não é deste arquivo: é `controle.ts`, chamado aqui, que valida contra
+ * `CHALLENGERS_APROVADOS` e audita cada ação. O servidor nunca toca
+ * `spread/`, nunca importa `MotorSpread`, nunca envia ordem.
+ */
+const DIR_DASHBOARD_LAB = path.join(ROOT, 'inteligencia', 'dashboard');
+const cacheAgregadosLab: Record<string, { ts: number; dado: any }> = {};
+
+/** Lê um agregado do Lab. JSON parcial ou ausente cai pro último bom conhecido — nunca quebra a página. */
+function lerAgregadoLab(nome: string): any {
+  const p = path.join(DIR_DASHBOARD_LAB, nome);
+  try {
+    if (!fs.existsSync(p)) return cacheAgregadosLab[nome]?.dado ?? null;
+    const dado = JSON.parse(fs.readFileSync(p, 'utf8'));
+    cacheAgregadosLab[nome] = { ts: Date.now(), dado };
+    return dado;
+  } catch {
+    return cacheAgregadosLab[nome]?.dado ?? null;
+  }
+}
+
+function idadeArquivoLab(nome: string): number {
+  try {
+    const p = path.join(DIR_DASHBOARD_LAB, nome);
+    if (!fs.existsSync(p)) return Infinity;
+    return Date.now() - fs.statSync(p).mtimeMs;
+  } catch { return Infinity; }
+}
+
+function lerHeartbeatLab(): any {
+  try {
+    const p = path.join(ROOT, 'inteligencia', 'heartbeat.json');
+    if (!fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch { return null; }
+}
+
+/** Diário de UM challenger — sempre lido do subdiretório dele, nunca de spread/. */
+function lerDiarioChallenger(challengerId: string, limite = 300): any[] {
+  const seguro = /^[a-z0-9-]+$/.test(challengerId); // whitelist de caracteres — challengerId nunca vira caminho arbitrário
+  if (!seguro) return [];
+  const p = path.join(ROOT, 'inteligencia', 'challengers', challengerId, 'diario.jsonl');
+  if (!fs.existsSync(p)) return [];
+  const linhas = fs.readFileSync(p, 'utf8').trim().split('\n').filter(Boolean).slice(-limite);
+  return linhas.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean).reverse();
+}
+
+function lerEstadoChallenger(challengerId: string): any {
+  const seguro = /^[a-z0-9-]+$/.test(challengerId);
+  if (!seguro) return null;
+  const p = path.join(ROOT, 'inteligencia', 'challengers', challengerId, 'estado.json');
+  if (!fs.existsSync(p)) return null;
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
+}
+
+/** Relatórios diários do LLM Profit Analyst — lista + o mais recente por completo. */
+function lerRelatoriosIA(): { arquivos: string[]; maisRecente: { data: string; markdown: string } | null } {
+  const dir = path.join(ROOT, 'inteligencia', 'relatorios-diarios');
+  if (!fs.existsSync(dir)) return { arquivos: [], maisRecente: null };
+  const arquivos = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort().reverse();
+  if (!arquivos.length) return { arquivos, maisRecente: null };
+  const data = arquivos[0].replace('.md', '');
+  const markdown = fs.readFileSync(path.join(dir, arquivos[0]), 'utf8');
+  return { arquivos, maisRecente: { data, markdown } };
+}
+
+/** Estado geral da barra de status (Parte 2 do pedido) — deriva de heartbeat + idade dos arquivos, nunca reconstrói nada. */
+function statusProfitLab(hb: any): { status: string; motivo: string } {
+  if (!hb) return { status: 'parado', motivo: 'nenhum heartbeat encontrado — o Lab nunca rodou ou o arquivo foi apagado' };
+  const idadeMin = hb.ultimoCiclo ? (Date.now() - hb.ultimoCiclo) / 60_000 : Infinity;
+  if (idadeMin === Infinity) return { status: 'parado', motivo: 'heartbeat existe mas nenhum ciclo foi processado ainda' };
+  if (idadeMin > 15) return { status: 'parado', motivo: `sem ciclo processado há ${idadeMin.toFixed(0)}min` };
+  if (idadeMin > 6) return { status: 'stale', motivo: `último ciclo há ${idadeMin.toFixed(1)}min — mais lento que o esperado (5min)` };
+  if (hb.ciclosComErro > 0 && hb.ciclosProcessados > 0 && hb.ciclosComErro / hb.ciclosProcessados > 0.2) return { status: 'degradado', motivo: 'mais de 20% dos ciclos recentes com erro' };
+  return { status: 'saudavel', motivo: 'ciclos recentes e sem erro relevante' };
+}
+
+function montarProfitLab() {
+  const hb = lerHeartbeatLab();
+  const resumo = lerAgregadoLab('resumo.json');
+  const leaderboard = lerAgregadoLab('leaderboard.json');
+  const frequencia = lerAgregadoLab('frequencia.json');
+  const custos = lerAgregadoLab('custos.json');
+  const riscos = lerAgregadoLab('riscos.json');
+  const telemetria = lerAgregadoLab('telemetria.json');
+  const championVsControl = lerAgregadoLab('champion-vs-control.json');
+  // leaderboard multi-strategy (auditoria — Parte 1/9): champion + Lab +
+  // baselines + adaptadores de momentum/pares, com janela comum explícita.
+  // Mesmo padrão de leitura pura dos outros agregados — nunca recalculado aqui.
+  const leaderboardMulti = lerAgregadoLab('leaderboard-multi.json');
+  // janela comum (deltas + commonWindowStart/End) — Dashboard 2.0 precisa
+  // disso pro Command Center nunca comparar motores de janelas diferentes.
+  const janelaComum = lerAgregadoLab('janela-comum.json');
+  const st = statusProfitLab(hb);
+  return {
+    status: st.status, statusMotivo: st.motivo,
+    idadeSegundos: {
+      resumo: Math.round(idadeArquivoLab('resumo.json') / 1000),
+      leaderboard: Math.round(idadeArquivoLab('leaderboard.json') / 1000),
+    },
+    heartbeat: hb,
+    resumo, leaderboard, frequencia, custos, riscos, telemetria, championVsControl, leaderboardMulti, janelaComum,
+    relatorios: lerRelatoriosIA(),
+    auditoria: lerAuditoria(ROOT, 100),
+    aprovados: CHALLENGERS_APROVADOS.map((c) => ({
+      challengerId: c.challengerId, familia: c.familia, hipotese: c.hipotese,
+      exchanges: c.exchanges, capitalPorExchange: c.capitalPorExchange, alavancagem: c.alavancagem,
+      reserva: c.reserva, margemPayback: c.margemPayback, maxPosicoes: c.maxPosicoes,
+      fracaoEstagioInicial: c.fracaoEstagioInicial, modoEscalonamento: c.modoEscalonamento,
+    })),
+    geradoEm: Date.now(),
+  };
+}
+
+const clientesLab = new Set<http.ServerResponse>();
+async function transmitirLab() {
+  if (!clientesLab.size) return;
+  const payload = `data: ${JSON.stringify(montarProfitLab())}\n\n`;
+  for (const c of clientesLab) {
+    try { c.write(payload); } catch { clientesLab.delete(c); }
+  }
+}
+function observarLab() {
+  const dir = DIR_DASHBOARD_LAB;
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    let pendente: NodeJS.Timeout | null = null;
+    fs.watch(dir, () => {
+      if (pendente) clearTimeout(pendente);
+      pendente = setTimeout(() => { pendente = null; void transmitirLab(); }, 400);
+    });
+  } catch { /* diretório ainda não existe — heartbeat de 10s cobre */ }
+}
+
+function corpoJson(req: http.IncomingMessage): Promise<any> {
+  return new Promise((resolve, reject) => {
+    let dados = '';
+    req.on('data', (c) => { dados += c; if (dados.length > 20_000) req.destroy(); });
+    req.on('end', () => { try { resolve(dados ? JSON.parse(dados) : {}); } catch (e) { reject(e); } });
+    req.on('error', reject);
+  });
+}
+
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORTA}`);
 
@@ -575,6 +733,130 @@ const servidor = http.createServer(async (req, res) => {
   if (url.pathname === '/api/dados') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(await retrato()));
+    return;
+  }
+
+  // ── Profit Lab: leitura ───────────────────────────────────────────────
+  if (url.pathname === '/api/profit-lab/dados') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(montarProfitLab()));
+    return;
+  }
+
+  if (url.pathname === '/api/profit-lab/stream') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    });
+    res.write(`data: ${JSON.stringify(montarProfitLab())}\n\n`);
+    clientesLab.add(res);
+    req.on('close', () => clientesLab.delete(res));
+    return;
+  }
+
+  if (url.pathname === '/api/profit-lab/challenger') {
+    const id = url.searchParams.get('id') ?? '';
+    const estado = lerEstadoChallenger(id);
+    const diario = lerDiarioChallenger(id, 300);
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: estado != null, estado, diario }));
+    return;
+  }
+
+  // ── Live Operations (Dashboard 2.0): feed global de eventos, merge de
+  // todos os diários (challengers aprovados + champion), só LEITURA e cap
+  // de linhas — nunca recalcula nada, só junta e ordena o que já existe.
+  if (url.pathname === '/api/profit-lab/eventos-recentes') {
+    try {
+      // `ts+evento` NÃO é único — achado ao vivo: o champion pode gravar dois
+      // "bloqueado" no MESMO milissegundo (duas rejeições distintas no
+      // mesmo ciclo síncrono), e diários legados (antes do sequenceNumber
+      // desta sessão) não têm nenhum campo próprio de identidade. O índice
+      // do map() garante unicidade mesmo nesse caso — sem ele, o React
+      // duplicava/reconciliava linhas erradas na timeline (achado testando
+      // no navegador, não hipotético).
+      // Achado auditando cobertura: um cap GLOBAL de 150 depois do merge
+      // deixava challengers de baixo volume (ex.: captura, que só loga
+      // algumas vezes por hora) sendo engolidos pelos de alto volume (ex.:
+      // champion, que loga "bloqueado" a cada ~5min). A garantia agora é
+      // por challenger — cada um contribui até `POR_CHALLENGER` eventos
+      // mais recentes ANTES do merge, então ninguém é 100% starved só por
+      // outro challenger ser mais barulhento.
+      const POR_CHALLENGER = 8;
+      const porChallenger = CHALLENGERS_APROVADOS.flatMap((c) =>
+        lerDiarioChallenger(c.challengerId, POR_CHALLENGER).map((ev: any, idx: number) => ({
+          eventId: ev.eventId ?? `${c.challengerId}-legado-${ev.ts}-${idx}`,
+          sequenceNumber: ev.sequenceNumber ?? null,
+          cycleId: ev.cycleId ?? null,
+          challengerId: c.challengerId,
+          timestamp: ev.ts,
+          evento: ev.evento,
+          motivo: ev.motivo ?? null,
+        })),
+      );
+      const championEventos = lerDiario(POR_CHALLENGER)
+        .filter((ev: any) => ev.evento !== 'leitura')
+        .map((ev: any, idx: number) => ({
+          eventId: `champion-${ev.ts}-${ev.evento}-${idx}`,
+          sequenceNumber: null, cycleId: null,
+          challengerId: 'funding-arbitrage-champion',
+          timestamp: ev.ts, evento: ev.evento, motivo: ev.motivo ?? null,
+        }));
+      const todos = [...porChallenger, ...championEventos]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 300);
+
+      // Manifesto de cobertura (Parte 2 da auditoria) — os 47 challengers
+      // aprovados SEMPRE aparecem aqui, mesmo os que não têm nenhum evento
+      // ainda. "Desaparecer silenciosamente" deixa de ser possível: quem
+      // olha a lista sabe exatamente por quê cada um está ou não no feed.
+      const cobertura = CHALLENGERS_APROVADOS.map((c) => {
+        const p = path.join(ROOT, 'inteligencia', 'challengers', c.challengerId);
+        const possuiEstado = fs.existsSync(path.join(p, 'estado.json'));
+        const possuiDiario = fs.existsSync(path.join(p, 'diario.jsonl'));
+        const numEventos = todos.filter((e) => e.challengerId === c.challengerId).length;
+        return {
+          challengerId: c.challengerId, ativo: true, tipo: c.tipo ?? 'persistencia',
+          possuiEstado, possuiDiario, possuiEventos: numEventos > 0,
+          incluidoNoEndpoint: numEventos > 0,
+          motivoDaExclusao: numEventos > 0 ? null
+            : !possuiDiario ? 'nenhuma decisão registrada ainda — sem diario.jsonl'
+            : 'diario existe mas não teve evento nos últimos ' + POR_CHALLENGER + ' registros dentro da janela mesclada',
+        };
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, eventos: todos, cobertura, totalChallengersAprovados: CHALLENGERS_APROVADOS.length, geradoEm: Date.now() }));
+    } catch (e) {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, erro: (e as Error).message, eventos: [], geradoEm: Date.now() }));
+    }
+    return;
+  }
+
+  // ── Profit Lab: controle — única superfície de escrita, sempre auditada ──
+  if (url.pathname === '/api/profit-lab/controle' && req.method === 'POST') {
+    try {
+      const body = await corpoJson(req);
+      const usuario = typeof body.usuario === 'string' && body.usuario.trim() ? body.usuario.trim().slice(0, 60) : 'operador-dashboard';
+      const challengerId = String(body.challengerId ?? '');
+      const motivo = String(body.motivo ?? '');
+      let resultado;
+      switch (body.acao) {
+        case 'pausar': resultado = pausarChallenger(ROOT, challengerId, usuario, motivo); break;
+        case 'retomar': resultado = retomarChallenger(ROOT, challengerId, usuario, motivo); break;
+        case 'observacao': resultado = adicionarObservacao(ROOT, challengerId, usuario, String(body.texto ?? '')); break;
+        case 'status-experimento': resultado = marcarStatusExperimento(ROOT, challengerId, usuario, String(body.status ?? ''), motivo); break;
+        case 'duplicar': resultado = duplicarComoNovaVersao(ROOT, challengerId, usuario); break;
+        default: resultado = { ok: false, erro: `ação desconhecida: ${body.acao}` };
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(resultado));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, erro: (e as Error).message }));
+    }
     return;
   }
 
@@ -794,6 +1076,14 @@ async function montarDados() {
       exposicao, concentracao, dreno, piorDreno: piorDrenoVal, tetoPorExchange: 0.40,
       config: { alavancagem, reserva: reservaConfig, margemPayback, maxPosicoes: 3, tetoPorExchange: 0.40 },
       custodia: lerCustodia(),
+      // Auditor ao vivo (src/audit/auditor-live.ts): compara o realizado dos
+      // motores momentum/pares contra o que o backtest validado promete.
+      // Barato hoje — curto-circuita antes de qualquer backtest enquanto não
+      // houver os 25 trades mínimos (ver docs/CONTINUIDADE.md), que é o caso
+      // atual dos dois. Quando passar do mínimo, o backtest de expectativa é
+      // cacheado em módulo na primeira chamada — chamadas seguintes são só
+      // leitura de diario.jsonl + aritmética, sem custo de rede.
+      auditoria: auditoriaAoVivo(),
       vigilancia: {
         ...saudeVig,
         fonte: usandoVigilancia ? 'vigilância · mercado inteiro' : 'varredura própria · 32 ativos',
@@ -832,9 +1122,11 @@ servidor.listen(PORTA, () => {
   observar(path.join(ROOT, 'vigilancia', 'custodia.json'));
   observar(path.join(ROOT, 'vigilancia', 'ciclos-basis.json'));
   observar(path.join(ROOT, 'vigilancia', 'supervisor-watchdog.log'));
+  observarLab();
   // heartbeat: mantém a conexão viva e atualiza os campos que dependem do
   // relógio (idade do dado, horas de vida) mesmo sem mudança em disco
   setInterval(() => void transmitir(), 10_000);
+  setInterval(() => void transmitirLab(), 10_000);
 
   // preço ao vivo das posições abertas e dos melhores candidatos — sondado a
   // cada ~2,5s e empurrado assim que chega, sem esperar o heartbeat

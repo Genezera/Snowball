@@ -21,6 +21,12 @@ node_modules/
 /state/
 /models/
 /research/
+# estado de execução do Paper Profit Lab (diários/estados por challenger,
+# heartbeat, lock, logs) — mesma categoria de /spread/ e /vigilancia/ acima,
+# só que ainda não tinha entrado aqui; achado ao montar o checkpoint de
+# segurança da migração do Dashboard 2.0 (nunca deveria ter chance de ser
+# commitado por engano).
+/inteligencia/
 
 # relatórios gerados
 /reports/

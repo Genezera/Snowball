@@ -108,7 +108,7 @@ Nenhum deles substitui o módulo de operação original — todos **alimentam** 
 | **Gestor de Risco** | o capital suporta isso? qual tamanho? | **poder de veto**, sobrepõe todos | `src/risk/capital.ts` — **pronto** |
 | **Alocador** | o que deve estar rodando agora? | decide o pool ativo | `src/cli/pool.ts` — **pronto** |
 | **Operador** | executar as ordens | executa; não decide | `src/live/executor.ts` — **pronto** |
-| **Auditor** | o realizado bate com o esperado? | dispara realarme e reavaliação | **não construído** |
+| **Auditor** | o realizado bate com o esperado? | dispara realarme e reavaliação | `src/audit/auditor.ts` — **pronto**, ligado a `npm run team` desde a Fase 11 (ver [EQUIPE.md](EQUIPE.md)) e, desde 08/2026, também aos motores ao vivo via `src/audit/auditor-live.ts` (ver nota abaixo) |
 
 ### Os protocolos de comunicação
 
@@ -154,8 +154,25 @@ Implementado como laço fechado entre Auditor e Analista:
 5. A troca só acontece se o novo candidato for materialmente melhor que o atual
    — senão o custo de girar supera o ganho.
 
-**O que falta construir:** o Auditor. É o único papel ainda vazio, e é o que
-fecha o laço. Está no [BACKLOG](BACKLOG.md).
+**Atualização (08/2026): o Auditor foi construído** em `src/audit/auditor.ts`
+(as 5-6 checagens descritas acima, mais `replayAudit()`) e usado por
+`npm run team` desde a Fase 11 — ver [EQUIPE.md](EQUIPE.md) para o resultado
+da primeira reunião completa. Esta seção descrevia corretamente o desenho
+antes de existir; ficou desatualizada quanto ao "falta construir" e foi
+corrigida aqui.
+
+O que ainda faltava até esta correção: o Auditor só rodava sob demanda,
+nunca contra os motores que estão de fato rodando ao vivo (`momentum-live`,
+`pares-live`). `src/audit/auditor-live.ts` fecha essa lacuna — compara os
+trades fechados de cada motor (lidos de `*/diario.jsonl`) contra a
+expectativa dos backtests validados (Resultado 10 para momentum, Resultado
+7/14 para pares), exposto no payload do dashboard (`auditoria`, ver
+`src/dashboard/server.ts`). É só leitura/relato — não fecha posição nem troca
+par sozinho, mesma divisão de trabalho de custódia/motor no resto do
+projeto. Mesma disciplina do pipeline de ML (`src/ml/prontidao-vigilancia.ts`):
+recusa fabricar veredito sem os 25 trades mínimos. Em 07-08/08/2026 os dois
+motores ainda não têm dado suficiente (momentum: 1 trade fechado; pares: 0)
+— `EVIDENCIA_INSUFICIENTE` é a resposta correta agora, não um bug.
 
 ---
 
