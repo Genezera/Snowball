@@ -32,7 +32,11 @@ import { montarOportunidades } from './services/oportunidades.ts';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..'); // raiz do repositório Snowball
 const PORTA = Number(process.env.PORTA_V2_API ?? 5184);
-const DIR_LOGS = path.join(__dirname, 'logs');
+// Diretório de runtime (heartbeat/logs/crash-diagnostics). Padrão de PRODUÇÃO
+// preservado (`api/logs`); só é sobrescrito por API_V2_LOG_DIR para permitir
+// uma instância ISOLADA de teste (porta 5199) que nunca clobber o heartbeat
+// de produção que o supervisor lê. Nada de leitura de estado do Snowball muda.
+const DIR_LOGS = process.env.API_V2_LOG_DIR ? path.resolve(process.env.API_V2_LOG_DIR) : path.join(__dirname, 'logs');
 const JANELA_COBERTURA_MS = 6 * 3_600_000;
 
 fs.mkdirSync(DIR_LOGS, { recursive: true });

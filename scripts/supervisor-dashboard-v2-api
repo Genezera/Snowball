@@ -1,139 +1,273 @@
 #!/usr/bin/env bash
-# SUPERVISOR INDEPENDENTE DA API DO DASHBOARD 2.0 (Parte 4 — "Isolamento
-# Real, Estabilidade e Transporte Incremental").
+# SUPERVISOR DA API DO SNOWBALL DASHBOARD (V2) — versão BLINDADA (resiliência).
 #
-# Controla EXCLUSIVAMENTE `dashboard-v2/api/server.ts` — porta 5184. Nunca
-# toca nenhum dos 8 processos do champion, nunca toca o Paper Profit Lab,
-# nunca toca o dashboard antigo (porta 8787). Mesmo padrão de
-# scripts/supervisor-profit-lab, propositalmente um script separado — não
-# uma linha a mais em nenhum supervisor existente.
+# Controla EXCLUSIVAMENTE a API V2 (dashboard-v2/api/server.ts, porta 5184 em
+# produção). Nunca toca motores, estratégias, capital, execução ou o legado.
+#
+# Corrige a fragilidade comprovada do supervisor original (degradado TERMINAL,
+# sem backoff, sem janela de graça de startup, identificação por substring):
+#   - Máquina de estados explícita: starting / healthy / unhealthy / backoff /
+#     degraded / recovering.
+#   - Janela de GRAÇA de startup separada do limiar de heartbeat — um startup
+#     lento (processo vivo, ainda não servindo) NÃO é confundido com crash; um
+#     processo MORTO é detectado na hora, mesmo dentro da graça.
+#   - Backoff exponencial + jitter entre restarts; só zera após período
+#     saudável CONTÍNUO comprovado (não porque a porta abriu por segundos).
+#   - Identificação por PORTA (netstat) + verificação de que o PID é a API V2;
+#     nunca mata processo desconhecido; EADDRINUSE/porta-ocupada é estado próprio.
+#   - Instância única (lock/mutex da lib) + nunca duas APIs simultâneas.
+#   - Circuit breaker PRESERVADO, observável e com AUTO-HEAL: após cooldown,
+#     tenta recuperação controlada; N probes saudáveis seguidas voltam a healthy;
+#     falha → degraded com novo cooldown (sem loop infinito).
+#   - Classificação de falha (process_crash/heartbeat_stale/startup_timeout/
+#     port_in_use/lock_conflict/http_unhealthy/spawn_failure/manual_stop/unknown).
+#   - Só falhas REAIS contam pro circuit breaker; startup inicial e probes de
+#     auto-heal NÃO contam como crash (item 11).
+#
+# Caminhos/porta/limiares parametrizáveis por env, com PRODUÇÃO como padrão —
+# o teste isolado (porta 5199, runtime próprio) roda EXATAMENTE esta lógica.
 set -u
 cd "$(dirname "$0")/.."
+
+# ── CONFIG (env → default de produção) ──────────────────────────────────────
+SV_PORT="${SV_API_PORT:-5184}"
+SV_RUNTIME="${SV_RUNTIME_DIR:-dashboard-v2/api/logs}"
+SV_HEALTH_PATH="${SV_HEALTH_PATH:-/api/v2/health}"
+SV_ENTRYPOINT="${SV_ENTRYPOINT:-dashboard-v2/api/server.ts}"
+SV_CMD="${SV_CMD:-node --experimental-strip-types dashboard-v2/api/server.ts}"
+SV_CHECK_S="${SV_CHECK_S:-15}"
+SV_HEARTBEAT_MAX_S="${SV_HEARTBEAT_MAX_S:-30}"
+SV_STARTUP_GRACE_S="${SV_STARTUP_GRACE_S:-90}"   # baseado na medição (docs/incidents/api-supervisor-coldstart.md)
+SV_BACKOFF_BASE_S="${SV_BACKOFF_BASE_S:-2}"
+SV_BACKOFF_MAX_S="${SV_BACKOFF_MAX_S:-60}"
+SV_BACKOFF_JITTER_PCT="${SV_BACKOFF_JITTER_PCT:-20}"
+SV_HEALTHY_RESET_S="${SV_HEALTHY_RESET_S:-120}"  # saúde CONTÍNUA p/ zerar backoff
+SV_MAX_RESTARTS_15MIN="${SV_MAX_RESTARTS_15MIN:-5}"
+SV_MAX_RESTARTS_24H="${SV_MAX_RESTARTS_24H:-10}"
+SV_DEGRADED_COOLDOWN_S="${SV_DEGRADED_COOLDOWN_S:-300}"
+SV_PROBE_INTERVAL_S="${SV_PROBE_INTERVAL_S:-30}"
+SV_SUCCESS_PROBES_REQUIRED="${SV_SUCCESS_PROBES_REQUIRED:-3}"
+
+mkdir -p "$SV_RUNTIME"
+export LOCK_FILE="${SV_LOCK_FILE:-$SV_RUNTIME/supervisor-api.lock}"
+export MUTEX_DIR="${SV_MUTEX_DIR:-$SV_RUNTIME/supervisor-api.lockdir}"
 source scripts/lib/json-field.sh
-# lock/mutex PRÓPRIOS deste supervisor -- nunca compartilhados com os
-# outros 3.
-export LOCK_FILE="dashboard-v2/api/logs/supervisor-api.lock"
-export MUTEX_DIR="dashboard-v2/api/logs/supervisor-api.lockdir"
 source scripts/lib/supervisor-lock.sh
 
-PADRAO="dashboard-v2/api/server.ts"
-CMD_LANCAMENTO="node --experimental-strip-types dashboard-v2/api/server.ts"
-LOG_API="dashboard-v2/api/logs/api.log"
-LOG_SUPERVISOR="dashboard-v2/api/logs/supervisor-log.jsonl"
-LOG_SUPERVISOR_HUMANO="dashboard-v2/api/logs/supervisor-watchdog.log"
-STATUS_FILE="dashboard-v2/api/logs/supervisor-status.json"
-HEARTBEAT_FILE="dashboard-v2/api/logs/heartbeat.json"
+HEARTBEAT_FILE="$SV_RUNTIME/heartbeat.json"
+LOG_API="$SV_RUNTIME/api.log"
+LOG_SUPERVISOR="$SV_RUNTIME/supervisor-log.jsonl"
+LOG_HUMANO="$SV_RUNTIME/supervisor-watchdog.log"
+STATUS_FILE="$SV_RUNTIME/supervisor-status.json"
 
-INTERVALO_CHECAGEM_S=15
-IDADE_MAXIMA_HEARTBEAT_S=30   # heartbeat próprio grava a cada 10s — 3x isso já é folgado
-MAX_REINICIOS_15MIN=5
-MAX_REINICIOS_24H=10
-
-mkdir -p dashboard-v2/api/logs
-
-falhas_consecutivas=0
 ts_ms() { date +%s%3N; }
+ts_s() { date +%s; }
 ts_legivel() { date '+%Y-%m-%dT%H:%M:%S%z'; }
-log_humano() { echo "[$(date '+%H:%M:%S')] $1" >> "$LOG_SUPERVISOR_HUMANO"; }
+log_humano() { echo "[$(date '+%H:%M:%S')] $1" >> "$LOG_HUMANO"; }
 
+# ── identificação por PORTA (item 7) ────────────────────────────────────────
+pid_na_porta() {
+  netstat -ano 2>/dev/null | grep -E ":$SV_PORT[^0-9]" | grep -i LISTENING \
+    | awk '{print $NF}' | sort -u | grep -E '^[0-9]+$' | head -1
+}
+porta_escutando() { [ -n "$(pid_na_porta)" ]; }
+comando_do_pid() { timeout 6 powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter \"ProcessId=$1\").CommandLine" 2>/dev/null | tr -d '\r'; }
+# O processo que escuta a porta É a API V2? Identidade em duas camadas, sem
+# depender de CIM frágil:
+#   1) ASSINATURA do health — a resposta de /api/v2/health carrega o marcador
+#      "2.0.0-api" (versão da nossa API). Autoritativa quando o HTTP responde,
+#      e um squatter desconhecido nunca a produz.
+#   2) fallback por LINHA DE COMANDO (CIM) — cobre o caso "processo é nosso mas
+#      o HTTP está fora" (API travada); exige o entrypoint da API V2.
+# Sem evidência de nenhuma das duas → DESCONHECIDO (nunca assume ours; nunca mata).
+porta_eh_api_v2() {
+  local pid; pid=$(pid_na_porta); [ -z "$pid" ] && return 1
+  curl -s --max-time 3 "http://localhost:$SV_PORT$SV_HEALTH_PATH" 2>/dev/null | grep -q '2.0.0-api' && return 0
+  local cmd; cmd=$(comando_do_pid "$pid")
+  case "$cmd" in *"$SV_ENTRYPOINT"*) return 0 ;; *api/server.ts*) return 0 ;; *) return 1 ;; esac
+}
+http_saudavel() { [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://localhost:$SV_PORT$SV_HEALTH_PATH" 2>/dev/null)" = "200" ]; }
+heartbeat_idade_s() {
+  [ -f "$HEARTBEAT_FILE" ] || { echo -1; return; }
+  local m; m=$(stat -c %Y "$HEARTBEAT_FILE" 2>/dev/null || stat -f %m "$HEARTBEAT_FILE" 2>/dev/null)
+  [ -n "$m" ] && echo $(( $(ts_s) - m )) || echo -1
+}
+matar_api_na_porta() {
+  local pid; pid=$(pid_na_porta); [ -z "$pid" ] && return 0
+  porta_eh_api_v2 || { log_humano "porta $SV_PORT ocupada por PID $pid que NÃO é a API V2 — NÃO vou matar"; return 1; }
+  taskkill //PID "$pid" //F >/dev/null 2>&1
+  for _ in 1 2 3 4 5 6 7 8 9 10; do [ -z "$(pid_na_porta)" ] && break; sleep 0.3; done
+}
+
+# ── contadores (circuit breaker) — só conta RESTART de verdade (item 11) ────
 reinicios_em_janela() {
-  local janela_s="$1"
-  [ -f "$LOG_SUPERVISOR" ] || { echo 0; return; }
-  local agora_ms limite_ms
-  agora_ms=$(ts_ms); limite_ms=$((agora_ms - janela_s * 1000))
-  grep -o '"timestamp":[0-9]*' "$LOG_SUPERVISOR" 2>/dev/null | grep -o '[0-9]*' | awk -v lim="$limite_ms" '$1+0 >= lim' | wc -l | tr -d ' '
+  local janela_s="$1"; [ -f "$LOG_SUPERVISOR" ] || { echo 0; return; }
+  local lim; lim=$(( $(ts_ms) - janela_s * 1000 ))
+  grep '"tipo":"restart"' "$LOG_SUPERVISOR" 2>/dev/null | grep -o '"timestamp":[0-9]*' | grep -o '[0-9]*' \
+    | awk -v l="$lim" '$1+0 >= l' | wc -l | tr -d ' '
 }
-
-processo_vivo_com_padrao() {
-  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*server.ts*' -and \$_.CommandLine -like '*dashboard-v2*api*' }).Count" 2>/dev/null | tr -d '\r\n '
-}
-pid_vivo() {
-  local pid="$1"; [ -z "$pid" ] && return 1
-  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"ProcessId=$pid\").Count" 2>/dev/null | tr -d '\r\n ' | grep -qx '1'
-}
-# ACHADO REAL (causava restart desnecessário a cada checagem, mesmo com a
-# API saudável): a regex antiga aqui exigia dígito IMEDIATAMENTE depois dos
-# dois-pontos, mas `JSON.stringify(..., null, 2)` sempre inclui um espaço
-# ("pid": 123). Substituído por `scripts/lib/json-field.sh`, que usa
-# `node -e` com `JSON.parse` de verdade -- nunca mais regex pra campo JSON.
-
 registrar_evento() {
-  local pid_anterior="$1" pid_novo="$2" motivo="$3" tentativa="$4" resultado="$5"
-  printf '{"timestamp":%s,"timestampLegivel":"%s","pidAnterior":%s,"pidNovo":%s,"motivo":"%s","tentativa":%s,"resultado":"%s"}\n' \
-    "$(ts_ms)" "$(ts_legivel)" "${pid_anterior:-null}" "${pid_novo:-null}" "$motivo" "$tentativa" "$resultado" >> "$LOG_SUPERVISOR"
+  # tipo | classificacao | motivo | pidAnterior | pidNovo | backoffS
+  printf '{"timestamp":%s,"timestampLegivel":"%s","tipo":"%s","classificacao":"%s","motivo":"%s","pidAnterior":%s,"pidNovo":%s,"backoffS":%s}\n' \
+    "$(ts_ms)" "$(ts_legivel)" "$1" "$2" "$3" "${4:-null}" "${5:-null}" "${6:-null}" >> "$LOG_SUPERVISOR"
 }
+
+# ── backoff exponencial + jitter (item 6) ───────────────────────────────────
+calc_backoff() {
+  local falhas="$1" val jitter_range jitter
+  [ "$falhas" -lt 1 ] && falhas=1
+  val=$(( SV_BACKOFF_BASE_S * (1 << (falhas - 1)) ))
+  [ "$val" -gt "$SV_BACKOFF_MAX_S" ] && val="$SV_BACKOFF_MAX_S"
+  jitter_range=$(( val * SV_BACKOFF_JITTER_PCT / 100 ))
+  jitter=0
+  [ "$jitter_range" -gt 0 ] && jitter=$(( (RANDOM % (2 * jitter_range + 1)) - jitter_range ))
+  val=$(( val + jitter )); [ "$val" -lt 1 ] && val=1
+  echo "$val"
+}
+
+# ── status observável (item 10) ─────────────────────────────────────────────
 escrever_status() {
-  local status="$1" ultimo_reinicio="$2" motivo="$3" reinicios_24h="$4" falhas="$5" degradado="$6"
+  local estado="$1" classificacao="$2" pid="$3"
   local tmp="$STATUS_FILE.tmp"
-  printf '{\n  "processo": "dashboard-v2-api",\n  "porta": 5184,\n  "statusSupervisor": "%s",\n  "ultimoReinicio": %s,\n  "motivoUltimoReinicio": "%s",\n  "reinicios24h": %s,\n  "falhasConsecutivas": %s,\n  "degradado": %s,\n  "atualizadoEm": %s\n}\n' \
-    "$status" "${ultimo_reinicio:-null}" "$motivo" "$reinicios_24h" "$falhas" "$degradado" "$(ts_ms)" > "$tmp"
+  printf '{\n  "processo": "snowball-dashboard-api",\n  "porta": %s,\n  "estado": "%s",\n  "classificacaoUltimaFalha": "%s",\n  "pidApi": %s,\n  "restarts15m": %s,\n  "restarts24h": %s,\n  "consecutiveFailures": %s,\n  "currentBackoffS": %s,\n  "nextProbeAt": %s,\n  "degradedSince": %s,\n  "lastHealthyAt": %s,\n  "lastFailureReason": "%s",\n  "probesOk": %s,\n  "startupGraceS": %s,\n  "heartbeatMaxS": %s,\n  "degradado": %s,\n  "atualizadoEm": %s\n}\n' \
+    "$SV_PORT" "$estado" "$classificacao" "${pid:-null}" \
+    "$(reinicios_em_janela 900)" "$(reinicios_em_janela 86400)" "$FALHAS_CONSEC" "$BACKOFF_ATUAL_S" \
+    "${PROXIMO_PROBE_MS:-null}" "${DEGRADED_DESDE_MS:-null}" "${ULTIMO_SAUDAVEL_MS:-null}" "$ULTIMA_FALHA" \
+    "$PROBES_OK" "$SV_STARTUP_GRACE_S" "$SV_HEARTBEAT_MAX_S" "$([ "$estado" = degraded ] && echo true || echo false)" "$(ts_ms)" > "$tmp"
   mv "$tmp" "$STATUS_FILE"
 }
 
-lock_iniciar_ou_sair "$(pwd)/scripts/supervisor-dashboard-v2-api" "$LOG_SUPERVISOR_HUMANO" || exit 1
+# ── estado em memória ───────────────────────────────────────────────────────
+ESTADO="starting"; FALHAS_CONSEC=0; BACKOFF_ATUAL_S=0
+PROXIMA_TENTATIVA_MS=0; LANCADO_EM_MS=0; LAST_LAUNCHED_PID=""
+ULTIMO_SAUDAVEL_MS="null"; SAUDAVEL_CONTINUO_DESDE_MS=0
+DEGRADED_DESDE_MS="null"; PROXIMO_PROBE_MS="null"; PROBES_OK=0
+ULTIMA_FALHA=""; CLASSIF=""
+
+lock_iniciar_ou_sair "$(pwd)/scripts/supervisor-dashboard-v2-api" "$LOG_HUMANO" || exit 1
 
 shutdown_limpo() {
   lock_liberar
-  log_humano "supervisor-dashboard-v2-api: shutdown limpo — NÃO derruba a API V2, só para de supervisioná-la — lock liberado"
-  escrever_status "parado" "" "supervisor encerrado manualmente" "$(reinicios_em_janela 86400)" "$falhas_consecutivas" "false"
+  registrar_evento "manual_stop" "manual_stop" "supervisor encerrado (SIGINT/SIGTERM) — NÃO derruba a API" "" "" ""
+  log_humano "supervisor-api: shutdown limpo — NÃO derruba a API V2, só para de supervisioná-la — lock liberado"
+  escrever_status "parado" "manual_stop" ""
   exit 0
 }
 trap shutdown_limpo INT TERM
 
-log_humano "supervisor-dashboard-v2-api iniciado — checando a cada ${INTERVALO_CHECAGEM_S}s, exclusivo da API V2 (porta 5184)"
-escrever_status "iniciando" "" "" "$(reinicios_em_janela 86400)" 0 "false"
+log_humano "supervisor-api BLINDADO iniciado — porta $SV_PORT, runtime $SV_RUNTIME, check ${SV_CHECK_S}s, grace ${SV_STARTUP_GRACE_S}s, heartbeatMax ${SV_HEARTBEAT_MAX_S}s"
+escrever_status "starting" "" ""
+
+# lançamento PURO: port-check + spawn. Não mexe em contador/evento (o CHAMADOR
+# decide se é start inicial, restart de falha ou probe de auto-heal).
+# retorna: 0=lançou · 2=já há API saudável (single instance) · 4=porta ocupada por desconhecido
+lancar_api() {
+  if porta_escutando; then
+    if porta_eh_api_v2; then
+      http_saudavel && return 2
+      matar_api_na_porta || return 4
+    else
+      return 4
+    fi
+  fi
+  API_V2_LOG_DIR="$SV_RUNTIME" PORTA_V2_API="$SV_PORT" nohup $SV_CMD >> "$LOG_API" 2>&1 &
+  disown
+  LAST_LAUNCHED_PID=$!
+  LANCADO_EM_MS=$(ts_ms)
+  ESTADO="starting"
+  return 0
+}
+
+# primeira subida (tipo=start, NÃO conta como falha/restart)
+if ! porta_escutando; then
+  if lancar_api; then registrar_evento "start" "startup" "primeira subida da API" "" "${LAST_LAUNCHED_PID:-null}" ""; fi
+fi
 
 while true; do
   lock_atualizar_heartbeat
-  ultimo_hb_ms=$(ler_campo_json "$HEARTBEAT_FILE" "startedAt")
-  ultima_req_ms=$(ler_campo_json "$HEARTBEAT_FILE" "ultimaRequisicao")
-  pid_hb=$(ler_campo_json "$HEARTBEAT_FILE" "pid")
   agora_ms=$(ts_ms)
+  pid_atual=$(pid_na_porta)
 
-  # idade do heartbeat: usa mtime do arquivo (salvo a cada 10s pelo próprio
-  # processo), não um campo interno — mais simples e não depende do formato
-  idade_arquivo_s=""
-  if [ -f "$HEARTBEAT_FILE" ]; then
-    mtime_s=$(stat -c %Y "$HEARTBEAT_FILE" 2>/dev/null || stat -f %m "$HEARTBEAT_FILE" 2>/dev/null)
-    [ -n "$mtime_s" ] && idade_arquivo_s=$(( $(date +%s) - mtime_s ))
+  em_grace=false
+  [ "$LANCADO_EM_MS" -gt 0 ] && [ $(( (agora_ms - LANCADO_EM_MS) / 1000 )) -lt "$SV_STARTUP_GRACE_S" ] && em_grace=true
+  lancado_vivo=false
+  [ -n "$LAST_LAUNCHED_PID" ] && kill -0 "$LAST_LAUNCHED_PID" 2>/dev/null && lancado_vivo=true
+
+  saudavel=false
+  if porta_escutando && porta_eh_api_v2 && http_saudavel; then
+    idade_hb=$(heartbeat_idade_s)
+    if { [ "$idade_hb" -ge 0 ] && [ "$idade_hb" -le "$SV_HEARTBEAT_MAX_S" ]; } || [ "$em_grace" = true ]; then
+      saudavel=true
+    fi
   fi
 
-  precisa_reiniciar=false
-  motivo=""
-  if [ ! -f "$HEARTBEAT_FILE" ]; then
-    precisa_reiniciar=true; motivo="heartbeat.json inexistente — API V2 nunca subiu ou arquivo foi apagado"
-  elif [ -z "$pid_hb" ] || ! pid_vivo "$pid_hb"; then
-    precisa_reiniciar=true; motivo="PID $pid_hb do heartbeat não está mais vivo (crash provável)"
-  elif [ -n "$idade_arquivo_s" ] && [ "$idade_arquivo_s" -gt "$IDADE_MAXIMA_HEARTBEAT_S" ]; then
-    precisa_reiniciar=true; motivo="heartbeat parado há ${idade_arquivo_s}s, acima do limiar de ${IDADE_MAXIMA_HEARTBEAT_S}s"
-  fi
-
-  if [ "$precisa_reiniciar" = true ]; then
-    reinicios_15min=$(reinicios_em_janela 900)
-    reinicios_24h=$(reinicios_em_janela 86400)
-    if [ "$reinicios_15min" -ge "$MAX_REINICIOS_15MIN" ] || [ "$reinicios_24h" -ge "$MAX_REINICIOS_24H" ]; then
-      falhas_consecutivas=$((falhas_consecutivas + 1))
-      log_humano "API V2 degradada — $reinicios_15min reinícios em 15min / $reinicios_24h em 24h — parando de tentar reiniciar sozinho"
-      registrar_evento "$pid_hb" "" "$motivo (limite de reinícios atingido)" "$falhas_consecutivas" "degradado_sem_reiniciar"
-      escrever_status "degradado" "" "$motivo" "$reinicios_24h" "$falhas_consecutivas" "true"
-    else
-      n_vivos=$(processo_vivo_com_padrao)
-      if [ "${n_vivos:-0}" -ge 1 ] 2>/dev/null; then
-        timeout 8 powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*server.ts*' -and \$_.CommandLine -like '*dashboard-v2*api*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
-      fi
-      nohup $CMD_LANCAMENTO >> "$LOG_API" 2>&1 &
-      disown
-      pid_novo=$!
-      falhas_consecutivas=$((falhas_consecutivas + 1))
-      reinicios_24h=$((reinicios_24h + 1))
-      log_humano "API V2 reiniciada — motivo: $motivo — pidAnterior=$pid_hb pidNovo=$pid_novo"
-      registrar_evento "$pid_hb" "$pid_novo" "$motivo" "$falhas_consecutivas" "reiniciado"
-      escrever_status "reiniciando" "$(ts_ms)" "$motivo" "$reinicios_24h" "$falhas_consecutivas" "false"
+  if [ "$saudavel" = true ]; then
+    if [ "$ESTADO" != healthy ]; then SAUDAVEL_CONTINUO_DESDE_MS=$agora_ms; PROBES_OK=0; fi
+    PROBES_OK=$(( PROBES_OK + 1 )); ULTIMO_SAUDAVEL_MS=$agora_ms; ESTADO="healthy"; CLASSIF=""
+    if [ "$DEGRADED_DESDE_MS" != null ] && [ "$PROBES_OK" -ge "$SV_SUCCESS_PROBES_REQUIRED" ]; then
+      log_humano "auto-heal COMPLETO — $PROBES_OK probes saudáveis ≥ $SV_SUCCESS_PROBES_REQUIRED, saindo de degradado"
+      registrar_evento "recovered" "" "auto-heal: $PROBES_OK probes saudáveis" "" "$pid_atual" ""
+      DEGRADED_DESDE_MS="null"; PROXIMO_PROBE_MS="null"; FALHAS_CONSEC=0; BACKOFF_ATUAL_S=0
+    elif [ "$DEGRADED_DESDE_MS" = null ] && [ "$FALHAS_CONSEC" -ne 0 ] \
+         && [ $(( (agora_ms - SAUDAVEL_CONTINUO_DESDE_MS) / 1000 )) -ge "$SV_HEALTHY_RESET_S" ]; then
+      log_humano "saúde contínua ≥${SV_HEALTHY_RESET_S}s — zerando backoff/falhas"
+      registrar_evento "backoff_reset" "" "saúde contínua comprovada" "" "$pid_atual" ""
+      FALHAS_CONSEC=0; BACKOFF_ATUAL_S=0
     fi
   else
-    falhas_consecutivas=0
-    escrever_status "saudavel" "" "" "$(reinicios_em_janela 86400)" 0 "false"
+    PROBES_OK=0
+    if [ "$em_grace" = true ] && porta_escutando && ! porta_eh_api_v2; then
+      ESTADO="unhealthy"; CLASSIF="port_in_use"; ULTIMA_FALHA="porta ocupada por desconhecido durante startup"
+    elif [ "$em_grace" = true ] && { porta_escutando || [ "$lancado_vivo" = true ]; }; then
+      ESTADO="starting"; CLASSIF="starting"   # ainda subindo (vivo) → tolera
+    elif porta_escutando && ! porta_eh_api_v2; then
+      ESTADO="unhealthy"; CLASSIF="port_in_use"; ULTIMA_FALHA="porta $SV_PORT ocupada por processo desconhecido"
+      registrar_evento "port_in_use" "port_in_use" "$ULTIMA_FALHA" "" "" ""
+    else
+      if [ "$em_grace" = true ] && ! porta_escutando && [ "$lancado_vivo" = false ]; then
+        CLASSIF="startup_timeout"; ULTIMA_FALHA="processo morreu durante o cold-start"
+      elif ! porta_escutando; then
+        CLASSIF="process_crash"; ULTIMA_FALHA="API não escuta a porta $SV_PORT (processo caiu)"
+      elif ! http_saudavel; then
+        CLASSIF="http_unhealthy"; ULTIMA_FALHA="processo vivo mas HTTP != 200"
+      else
+        CLASSIF="heartbeat_stale"; ULTIMA_FALHA="heartbeat parado além de ${SV_HEARTBEAT_MAX_S}s"
+      fi
+
+      r15=$(reinicios_em_janela 900); r24=$(reinicios_em_janela 86400)
+      if [ "$ESTADO" = degraded ] || [ "$ESTADO" = recovering ]; then
+        # AUTO-HEAL: só age no probe agendado, gated por cooldown (item 9)
+        if [ "$PROXIMO_PROBE_MS" != null ] && [ "$agora_ms" -ge "$PROXIMO_PROBE_MS" ]; then
+          ESTADO="recovering"
+          log_humano "cooldown expirou — recuperação controlada (probe), causa=$CLASSIF"
+          lancar_api; rc=$?
+          registrar_evento "probe" "$CLASSIF" "auto-heal: tentativa controlada pós-cooldown (rc=$rc)" "" "${LAST_LAUNCHED_PID:-null}" ""
+          [ "$rc" -eq 4 ] && ESTADO="degraded"
+          PROXIMO_PROBE_MS=$(( $(ts_ms) + SV_DEGRADED_COOLDOWN_S * 1000 ))  # rearma p/ próxima
+        fi
+      elif [ "$r15" -ge "$SV_MAX_RESTARTS_15MIN" ] || [ "$r24" -ge "$SV_MAX_RESTARTS_24H" ]; then
+        [ "$DEGRADED_DESDE_MS" = null ] && DEGRADED_DESDE_MS=$agora_ms
+        ESTADO="degraded"
+        PROXIMO_PROBE_MS=$(( agora_ms + SV_DEGRADED_COOLDOWN_S * 1000 ))
+        log_humano "DEGRADADO — $r15/15min $r24/24h (causa: $CLASSIF). Cooldown ${SV_DEGRADED_COOLDOWN_S}s antes de auto-heal."
+        registrar_evento "degraded" "$CLASSIF" "circuit breaker: $r15/15min $r24/24h" "" "" ""
+      elif [ "$agora_ms" -lt "$PROXIMA_TENTATIVA_MS" ]; then
+        ESTADO="backoff"
+      else
+        FALHAS_CONSEC=$(( FALHAS_CONSEC + 1 ))
+        BACKOFF_ATUAL_S=$(calc_backoff "$FALHAS_CONSEC")
+        PROXIMA_TENTATIVA_MS=$(( agora_ms + BACKOFF_ATUAL_S * 1000 ))
+        lancar_api; rc=$?
+        case $rc in
+          0) registrar_evento "restart" "$CLASSIF" "relançando (backoff ${BACKOFF_ATUAL_S}s)" "" "${LAST_LAUNCHED_PID:-null}" "$BACKOFF_ATUAL_S"
+             log_humano "API relançada (classif=$CLASSIF) backoff ${BACKOFF_ATUAL_S}s falhas $FALHAS_CONSEC" ;;
+          2) ESTADO="healthy"; FALHAS_CONSEC=$(( FALHAS_CONSEC - 1 )) ;;   # já havia API saudável — desconta
+          4) ESTADO="unhealthy"; CLASSIF="port_in_use"; FALHAS_CONSEC=$(( FALHAS_CONSEC - 1 )); ULTIMA_FALHA="porta ocupada por desconhecido — não lançou" ;;
+        esac
+      fi
+    fi
   fi
 
-  sleep "$INTERVALO_CHECAGEM_S"
+  escrever_status "$ESTADO" "$CLASSIF" "$pid_atual"
+  sleep "$SV_CHECK_S"
 done
