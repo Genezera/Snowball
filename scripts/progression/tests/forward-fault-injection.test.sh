@@ -35,13 +35,15 @@ hashApos3=$(g accumulatedEventHash)
 printf '%s\n' "{\"ts\":$((T+1)),\"k\":\"DDD/USDT:USDT|bitget|bybit\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1}" > "$OBS.tmp"; mv "$OBS.tmp" "$OBS.keep"
 head -c 20 "$OBS" > "$OBS.trunc" 2>/dev/null; mv "$OBS.trunc" "$OBS"   # trunca o arquivo (size < byteOffset)
 run; st3=$(g sourceStatus); ev3=$(g eventCount)
-{ [ "$st3" = "SOURCE_TRUNCATED" ] || [ "$st3" = "SOURCE_IDENTITY_CHANGED" ]; } && ok "truncamento detectado ($st3), suspende" || bad "não detectou truncamento ($st3)"
+# v1.7: truncar via mv troca a identidade → detecção de rotação roda antes; sem cauda em comum ⇒ NO_OVERLAP (suspende avanço, não zera)
+{ [ "$st3" = "SOURCE_TRUNCATED" ] || [ "$st3" = "SOURCE_IDENTITY_CHANGED" ] || [ "$st3" = "SOURCE_IDENTITY_CHANGED_NO_OVERLAP" ]; } && ok "truncamento/identidade detectado ($st3), suspende" || bad "não detectou truncamento ($st3)"
 [ "$ev3" = "3" ] && ok "truncamento NÃO reseta contagem (eventCount preservado=3)" || bad "resetou no truncamento ($ev3)"
 
 # T4: ROTAÇÃO (novo arquivo no mesmo path) => identidade muda => suspende
 rm -f "$OBS"; sleep 1; echo "{\"ts\":$((T+2)),\"k\":\"EEE/USDT:USDT|okx|gate\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1}" > "$OBS"
 run; st4=$(g sourceStatus)
-{ [ "$st4" = "SOURCE_IDENTITY_CHANGED" ] || [ "$st4" = "SOURCE_TRUNCATED" ]; } && ok "rotação/identidade detectada ($st4), suspende (não reinicia do zero)" || bad "não detectou rotação ($st4)"
+# v1.7: novo arquivo sem cauda em comum ⇒ SOURCE_IDENTITY_CHANGED_NO_OVERLAP (suspende, não reinicia do zero)
+{ [ "$st4" = "SOURCE_IDENTITY_CHANGED" ] || [ "$st4" = "SOURCE_TRUNCATED" ] || [ "$st4" = "SOURCE_IDENTITY_CHANGED_NO_OVERLAP" ]; } && ok "rotação/identidade detectada ($st4), suspende (não reinicia do zero)" || bad "não detectou rotação ($st4)"
 
 # T5: DETERMINISMO — o hash é FÍSICO (sourceFileId+byteStart+byteEnd+lineHash), então o
 # MESMO arquivo processado 2x (estado fresco) dá o MESMO hash.

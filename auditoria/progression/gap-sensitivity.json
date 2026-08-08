@@ -1,59 +1,59 @@
 {
   "schema": "snowball.gap-sensitivity.v1_5",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
-  "janelaH": 147.09,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "janelaH": 148.38,
   "cenarios": [
     {
       "gapMin": 15,
-      "episodios": 28091,
-      "completos": 27934,
+      "episodios": 28401,
+      "completos": 28244,
       "leftCensored": 5,
       "rightCensored": 152,
-      "duracaoMedianaCompletosH": 0,
-      "modelPositive": 7126,
-      "reaparicoesMediaPorChave": 9.6301
+      "duracaoMedianaCompletosH": 0.03,
+      "modelPositive": 7175,
+      "reaparicoesMediaPorChave": 9.7097
     },
     {
       "gapMin": 30,
-      "episodios": 18476,
-      "completos": 18319,
+      "episodios": 18694,
+      "completos": 18537,
       "leftCensored": 5,
       "rightCensored": 152,
       "duracaoMedianaCompletosH": 0.17,
-      "modelPositive": 5061,
-      "reaparicoesMediaPorChave": 6.3339
+      "modelPositive": 5094,
+      "reaparicoesMediaPorChave": 6.3911
     },
     {
       "gapMin": 45,
-      "episodios": 15098,
-      "completos": 14941,
+      "episodios": 15248,
+      "completos": 15091,
       "leftCensored": 5,
       "rightCensored": 152,
       "duracaoMedianaCompletosH": 0.34,
-      "modelPositive": 4277,
-      "reaparicoesMediaPorChave": 5.1759
+      "modelPositive": 4303,
+      "reaparicoesMediaPorChave": 5.213
     },
     {
       "gapMin": 60,
-      "episodios": 13417,
-      "completos": 13260,
+      "episodios": 13543,
+      "completos": 13386,
       "leftCensored": 5,
       "rightCensored": 152,
       "duracaoMedianaCompletosH": 0.43,
-      "modelPositive": 3910,
-      "reaparicoesMediaPorChave": 4.5996
+      "modelPositive": 3933,
+      "reaparicoesMediaPorChave": 4.6301
     }
   ],
   "estabilidade": {
     "duracaoMedianaCompletos_varreduraH": [
-      0,
+      0.03,
       0.17,
       0.34,
       0.43
     ],
     "duracaoMedianaEstavel": true,
-    "conclusaoRobusta": "A duração mediana do episódio de scanner fica em ~0.17h em todos os gaps (15→60min): a conclusão de que o episódio de scanner é CURTO (minutos) e NÃO cobre o payback (~160h) é ROBUSTA ao gap. Aumentar o gap junta mais reaparições num episódio (reaparicoesMedia cai de 9.6301 p/ 4.5996) mas não muda a conclusão qualitativa.",
+    "conclusaoRobusta": "A duração mediana do episódio de scanner fica em ~0.17h em todos os gaps (15→60min): a conclusão de que o episódio de scanner é CURTO (minutos) e NÃO cobre o payback (~160h) é ROBUSTA ao gap. Aumentar o gap junta mais reaparições num episódio (reaparicoesMedia cai de 9.7097 p/ 4.6301) mas não muda a conclusão qualitativa.",
     "naoAdotar30minCego": "Testado 15/30/45/60min — a conclusão (episódio de scanner ≠ tempo de hold; só o forward decide payback) é estável. 30min é razoável, não arbitrário."
   },
   "honestidade": "observed (segmentação por gap). A escolha do gap muda contagens/reaparições mas não a conclusão qualitativa central."

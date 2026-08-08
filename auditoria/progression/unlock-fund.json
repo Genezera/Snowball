@@ -1,17 +1,17 @@
 {
   "schema": "snowball.unlock-fund.v1_2",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "item7_fundoDesbloqueio": {
     "natureza": "contabilidade SHADOW — o fundo NÃO financia nenhum motor real.",
-    "lucroTotal": 12.7528,
-    "parcelaOperacional": 5.0524,
-    "parcelaReservada": 7.7004,
-    "saldoDoFundo": 7.7004,
+    "lucroTotal": 12.9763,
+    "parcelaOperacional": 5.1639,
+    "parcelaReservada": 7.8124,
+    "saldoDoFundo": 7.8124,
     "capitalMinimoProximoMotor": 200,
-    "progressoPct": 3.85,
+    "progressoPct": 3.91,
     "motorCandidatoAoDesbloqueio": "settlement-capture",
-    "nota": "Política C acumula 7.7004 (3.85% de US$200) a custo ZERO de PnL do motor saturado. Nada é financiado de verdade."
+    "nota": "Política C acumula 7.8124 (3.91% de US$200) a custo ZERO de PnL do motor saturado. Nada é financiado de verdade."
   },
   "item8_rankingSegundoMotor": [
     {

@@ -1,0 +1,32 @@
+{
+  "schema": "snowball.assurance-level.v1_7",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "nivelRealDeclarado": [
+    "PROCESS_CRASH_SAFE"
+  ],
+  "HOST_REBOOT_TESTED": false,
+  "niveis": {
+    "PROCESS_CRASH_SAFE": {
+      "declarado": true,
+      "evidencia": "forward-crash-injection (7 pontos, 7/7), wal-durability (10/10), recovery-matrix (8/8): kill do processo recupera com mesmo stateHash/saldos/eventCount; WAL + checkpoint atômico + fsync + rename garantem que nunca há estado meio-escrito.",
+      "escopo": "Falha do PROCESSO node (crash, kill -9, exceção). NÃO cobre o SO/host caindo junto."
+    },
+    "HOST_REBOOT_TESTED": {
+      "declarado": false,
+      "evidencia": "NÃO testado neste ambiente. fsync do arquivo + fsync do diretório (quando o SO suporta) são condição necessária, mas reinício abrupto do host não foi exercido de forma descartável.",
+      "escopo": "Reinício abrupto do host/container com o processo perdendo tudo em memória de uma vez."
+    },
+    "POWER_LOSS_DURABLE": {
+      "declarado": false,
+      "evidencia": "NÃO declarado. fsync força o cache do SO ao dispositivo e o rename é atômico, o que dá ORDERING correto, mas durabilidade real sob queda de energia depende do firmware/cache do disco (write barriers) — não testável aqui sem hardware dedicado.",
+      "escopo": "Perda de energia no meio de um fsync/rename."
+    },
+    "STORAGE_FAILURE_TOLERANT": {
+      "declarado": false,
+      "evidencia": "NÃO declarado. Detectamos corrupção via checksum + schemaVersion e caímos para o checkpoint anterior (RECOVERED_FROM_PREVIOUS) ou SUSPENDEMOS, mas não há replicação/ECC contra perda de disco inteiro.",
+      "escopo": "Bit rot, setor perdido, disco morto."
+    }
+  },
+  "honestidade": "Só se declara o que foi realmente testado. Crash de processo PROVADO não vira reboot de host; ordering via fsync/rename NÃO é durabilidade sob queda de energia. Ver item 7 (host reboot) para o status do ambiente descartável."
+}

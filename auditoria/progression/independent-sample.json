@@ -1,0 +1,24 @@
+{
+  "schema": "snowball.independent-sample.v1_7",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "contagemCorreta": {
+    "sourceOpportunityIdUnicosFechados": 0,
+    "divergenciasReais": 0,
+    "censuradasAbertas": 0
+  },
+  "contagemInflada_NAO_USADA": {
+    "somaFechamentosPorPolitica": 0,
+    "nota": "Isto contaria a MESMA oportunidade uma vez por política — NÃO é usado no gate."
+  },
+  "metas": {
+    "unicasFechadas": 30,
+    "divergencias": 15
+  },
+  "atende": {
+    "unicasFechadas": false,
+    "divergencias": false
+  },
+  "veredito": "Amostra INSUFICIENTE: 0/30 únicas, 0/15 divergências. Posições abertas (0) são censuradas e NÃO contam.",
+  "honestidade": "Unidade de evidência = oportunidade-fonte única fechada. Multiplicar por políticas seria contar o mesmo evento várias vezes."
+}

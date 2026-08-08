@@ -33,9 +33,15 @@ const ordem = [
   'gap-sensitivity.cjs',        // v1.5 Parte 9 (sensibilidade do gap 15/30/45/60)
   'gap-coverage.cjs',           // v1.6 Parte 12 (gap sensitivity corrigida por cobertura)
   'common-window-validator.cjs', // v1.5 Parte 7 (validator dos 5 processos)
-  'common-watermark.cjs',       // v1.6 Partes 5,6 (watermark comum + snapshots)
-  'source-health.cjs',          // v1.6 Parte 7 (modelo de saúde da fonte)
-  'relatorio-forward.cjs',      // v1.4/1.5/1.6 (identidade/capital local/diário/gate estendido)
+  'common-watermark.cjs',       // v1.6/1.7 Partes 5,6 (watermark comum + cobertura contínua)
+  'source-health.cjs',          // v1.6/1.7 Parte 7/8 (saúde da fonte + por exchange)
+  'host-reboot.cjs',            // v1.7 Parte 7 (status honesto do reboot de host)
+  'assurance-level.cjs',        // v1.7 Parte 1 (nível de garantia realmente testado)
+  'paired-economic-fidelity.cjs', // v1.7 Parte 9 (dataset pareado por oportunidade-fonte)
+  'independent-sample.cjs',     // v1.7 Parte 10 (sourceOpportunityId únicos, censura)
+  'concentration.cjs',          // v1.7 Parte 11 (limites de concentração)
+  'stress-paired.cjs',          // v1.7 Parte 12 (stress no conjunto pareado)
+  'relatorio-forward.cjs',      // v1.4→1.7 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
 let ok = 0;

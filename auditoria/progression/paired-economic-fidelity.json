@@ -1,0 +1,50 @@
+{
+  "schema": "snowball.paired-economic-fidelity.v1_7",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "fechadasPorPolitica": {
+    "trial": 0,
+    "control": 0,
+    "observer-max3": 0,
+    "observer-max4": 0,
+    "observer-max5": 0
+  },
+  "censuradasPorPolitica": {
+    "trial": 0,
+    "control": 0,
+    "observer-max3": 0,
+    "observer-max4": 0,
+    "observer-max5": 0
+  },
+  "resumo": {
+    "uniqueSourceOpportunityClosed": 0,
+    "divergenciasReais": 0,
+    "censuradasAbertas": 0
+  },
+  "campos": [
+    "sourceOpportunityId",
+    "sourceEpisodeId",
+    "controlPositionId",
+    "championPositionId",
+    "entryTs",
+    "closeTs",
+    "exchanges",
+    "notional",
+    "custoEntrada",
+    "custoSaida",
+    "funding",
+    "closeReason",
+    "realizedPnL",
+    "markedPnL",
+    "executablePnL"
+  ],
+  "pares": [],
+  "operacoesFechadas": {
+    "trial": [],
+    "control": [],
+    "observer-max3": [],
+    "observer-max4": [],
+    "observer-max5": []
+  },
+  "honestidade": "Compara a MESMA oportunidade-fonte entre políticas, evento a evento. Nesta fase há 0 oportunidades-fonte únicas FECHADas e 0 posições ABERTAS (censuradas). PnL de posição aberta NÃO conta — só fechamentos reais. Marked/executable == realized no fecho (posição liquidada)."
+}

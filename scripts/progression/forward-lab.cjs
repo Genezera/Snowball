@@ -35,10 +35,12 @@ const CAP_POR_EX = L.ALVO_POR_EXCHANGE;
 const TAKER = 0.0005, SLIP = 0.0002, CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
 const NOTIONAL = L.ALVO_POR_EXCHANGE, MARGEM_PERNA = NOTIONAL / L.ALAVANCAGEM;
 const STALE_CICLOS = 3, DEDUP_MAX = 20000, LATE_MS = 10 * 60000;
+const SCHEMA_VERSION = 'forward.v1_7';   // v1.7: checkpoint/WAL carregam schemaVersion + checksum
+const ROT_TAIL = 24;                       // últimos N logicalObservationHash guardados p/ overlap de rotação
 
 const BASE = path.join(L.ROOT, 'auditoria', 'progression', 'forward');
 const DIR = path.join(BASE, LABEL); fs.mkdirSync(DIR, { recursive: true });
-const F = { estado: path.join(DIR, 'estado.json'), prev: path.join(DIR, 'estado.prev.json'), wal: path.join(DIR, 'wal.json'), ledger: path.join(DIR, 'ledger.jsonl'), diario: path.join(DIR, 'diario.jsonl'), heartbeat: path.join(DIR, 'heartbeat.json'), lock: path.join(DIR, 'lock.json'), snapshots: path.join(DIR, 'snapshots.jsonl') };
+const F = { estado: path.join(DIR, 'estado.json'), prev: path.join(DIR, 'estado.prev.json'), wal: path.join(DIR, 'wal.json'), ledger: path.join(DIR, 'ledger.jsonl'), diario: path.join(DIR, 'diario.jsonl'), heartbeat: path.join(DIR, 'heartbeat.json'), lock: path.join(DIR, 'lock.json'), snapshots: path.join(DIR, 'snapshots.jsonl'), recovery: path.join(DIR, 'recovery.json') };
 const OBS = process.env.FORWARD_OBS || path.join(L.ROOT, 'vigilancia', 'arquivo-observacoes.jsonl');
 const EPOCH = process.env.FORWARD_EPOCH || path.join(BASE, 'epoch.json');
 const CRASH_AT = process.env.FORWARD_CRASH_AT || null;
@@ -51,17 +53,34 @@ const crashIf = (pt) => { if (CRASH_AT === pt) { try { fs.writeFileSync(path.joi
 function fileIdentity() { try { const st = fs.statSync(OBS); return { id: `${st.dev}:${st.ino || Math.round(st.birthtimeMs)}`, size: st.size, mtimeMs: st.mtimeMs }; } catch { return { id: null, size: 0, mtimeMs: 0 }; } }
 function adquirirLock() { const c = rd(F.lock, null); if (c && c.heartbeat && now() - c.heartbeat < 90_000) return false; fs.writeFileSync(F.lock, JSON.stringify({ pid: process.pid, heartbeat: now() })); return true; }
 
-// ── escrita ATÔMICA: prev backup, tmp, fsync, rename atômico (crash-injectável) ──
+// ── checksum + schemaVersion sobre o payload (canonical sem o campo checksum) ──
+function comChecksum(obj) { const semChk = { ...obj, schemaVersion: SCHEMA_VERSION }; delete semChk.checksum; const checksum = sha(JSON.stringify(semChk)); return { ...semChk, checksum }; }
+// lê + VERIFICA: reason ∈ MISSING/UNPARSEABLE/SCHEMA_MISMATCH/NO_CHECKSUM/CHECKSUM_INVALID/OK
+function lerVerificado(p) {
+  let raw; try { raw = fs.readFileSync(p, 'utf8'); } catch { return { ok: false, reason: 'MISSING', obj: null }; }
+  let o; try { o = JSON.parse(raw); } catch { return { ok: false, reason: 'UNPARSEABLE', obj: null }; }  // vazio/parcial/truncado → JSON quebra
+  if (o.schemaVersion && o.schemaVersion !== SCHEMA_VERSION) return { ok: false, reason: 'SCHEMA_MISMATCH', obj: o };
+  if (o.checksum == null) return { ok: false, reason: 'NO_CHECKSUM', obj: o };
+  const semChk = { ...o }; delete semChk.checksum;
+  if (sha(JSON.stringify(semChk)) !== o.checksum) return { ok: false, reason: 'CHECKSUM_INVALID', obj: o };
+  return { ok: true, reason: 'OK', obj: o };
+}
+function fsyncDir() { try { const dfd = fs.openSync(DIR, 'r'); fs.fsyncSync(dfd); fs.closeSync(dfd); return true; } catch { return false; } } // metadados do diretório qdo suportado (posix); Windows não suporta → false
+
+// ── escrita ATÔMICA DURÁVEL: prev backup, checksum, tmp, fsync, rename atômico, dir fsync ──
 function escreverAtomico(p, obj, comCrash) {
   const tmp = p + '.tmp';
-  try { if (fs.existsSync(p)) fs.copyFileSync(p, F.prev); } catch {}
+  // backup prev SÓ para o checkpoint principal (nunca sobrescrever o prev com o WAL)
+  try { if (p === F.estado && fs.existsSync(p)) fs.copyFileSync(p, F.prev); } catch {}
+  const payload = comChecksum(obj);
   const fd = fs.openSync(tmp, 'w');
-  fs.writeSync(fd, JSON.stringify(obj, null, 2));
+  fs.writeSync(fd, JSON.stringify(payload, null, 2));
   if (comCrash) crashIf('during_tmp_write');
   fs.fsyncSync(fd); fs.closeSync(fd);
   if (comCrash) crashIf('after_fsync');
   if (comCrash) crashIf('before_rename');
   fs.renameSync(tmp, p);                    // rename atômico (libuv usa MOVEFILE_REPLACE_EXISTING no Windows)
+  fsyncDir();                               // persiste metadados do diretório qdo o SO suporta
   if (comCrash) crashIf('after_rename');
 }
 
@@ -69,26 +88,77 @@ function estadoInicial(epoch) {
   const saldos = {}; for (const e of EXCHS) saldos[e] = CAP_POR_EX;
   const fi = fileIdentity();
   return { modo: MODE, label: LABEL, maxPos: MAXPOS, iniciadoEm: now(), forwardEpochId: epoch ? epoch.forwardEpochId : null,
-    cursor: { sourceFileId: OBS, fileIdentity: fi.id, byteOffset: epoch ? epoch.byteOffset : fi.size, lineNumber: epoch ? epoch.lineNumber : 0, lastCompleteLineHash: null, lastTimestamp: epoch ? epoch.timestamp : now(), lastOpportunityKey: null, partial: '' },
+    cursor: { sourceFileId: OBS, fileIdentity: fi.id, byteOffset: epoch ? epoch.byteOffset : fi.size, lineNumber: epoch ? epoch.lineNumber : 0, lastCompleteLineHash: null, lastTimestamp: epoch ? epoch.timestamp : now(), lastOpportunityKey: null, partial: '', tailLogicalHashes: [] },
     saldosPorExchange: saldos, capitalInicial: EXCHS.length * CAP_POR_EX, virtuais: {}, fundingAcum: 0, custosAcum: 0,
-    eventCount: 0, accumulatedEventHash: '', lastCycleId: 0, sourceStatus: 'OK', lateEvents: 0,
-    contadores: { avaliadas: 0, abertas: 0, fechadas: 0, bloqueadas: 0, dedupIgnorados: 0 },
+    eventCount: 0, accumulatedEventHash: '', lastCycleId: 0, walSequence: 0, sourceStatus: 'OK', lateEvents: 0,
+    contadores: { avaliadas: 0, abertas: 0, fechadas: 0, bloqueadas: 0, dedupIgnorados: 0, rotationOverlapSkipped: 0 },
     bloqueios: { aggregateCapitalBlocked: 0, localBalanceBlocked: 0, reserveBlocked: 0, maxPositionsBlocked: 0, minOrderBlocked: 0, evNaoPositivo: 0 },
     recentEventIds: [] };
 }
 
-function carregarEstado() {
+// ── RECOVERY MATRIX (item 3): classifica o boot; NUNCA começa do zero silenciosamente ──
+// Estados: FRESH_START / RESET_NEW_EPOCH / RECOVERED_FROM_PRIMARY / RECOVERED_FROM_PREVIOUS /
+//          REPLAYED_PREPARED_CYCLE / SUSPENDED_CHECKPOINT_CORRUPTION / SUSPENDED_WAL_CORRUPTION /
+//          SUSPENDED_SCHEMA_MISMATCH
+function recuperar() {
   const epoch = rd(EPOCH, null);
-  let est = rd(F.estado, null); if (!est) est = rd(F.prev, null); // recupera do prev se checkpoint corrompido/ausente
-  if (epoch && (!est || est.forwardEpochId !== epoch.forwardEpochId)) {
-    if (est) { try { fs.writeFileSync(path.join(DIR, `warmup-${est.forwardEpochId || 'none'}.json`), JSON.stringify({ status: 'WARMUP_NOT_COMPARABLE', preservadoEm: now(), estado: est }, null, 2)); } catch {} }
-    est = estadoInicial(epoch);
-  } else if (!est) est = estadoInicial(epoch);
-  if (!est.recentEventIds) est.recentEventIds = [];
-  // recuperação via WAL: PREPARED sem COMMITTED = ciclo incompleto → resume do byteOffset (idempotente)
-  const wal = rd(F.wal, null);
-  est._recuperado = !!(wal && wal.status === 'PREPARED' && wal.cycleId > (est.lastCycleId || 0));
-  return est;
+  const prim = lerVerificado(F.estado);
+  const prev = lerVerificado(F.prev);
+  const walV = lerVerificado(F.wal);
+  const existePrim = prim.reason !== 'MISSING', existePrev = prev.reason !== 'MISSING', existeWal = walV.reason !== 'MISSING';
+  const suspenso = (recoveryState, detalhe) => ({ suspenso: true, recoveryState, detalhe, est: null });
+
+  // schema incompatível em qualquer checkpoint presente → SUSPENDER (migração é decisão explícita)
+  if (prim.reason === 'SCHEMA_MISMATCH' || prev.reason === 'SCHEMA_MISMATCH')
+    return suspenso('SUSPENDED_SCHEMA_MISMATCH', { primario: prim.reason, anterior: prev.reason, esperado: SCHEMA_VERSION });
+  // WAL presente porém corrompido → não dá p/ confiar na recuperação
+  if (existeWal && (walV.reason === 'UNPARSEABLE' || walV.reason === 'CHECKSUM_INVALID'))
+    return suspenso('SUSPENDED_WAL_CORRUPTION', { wal: walV.reason });
+
+  // primeiro boot legítimo (nada persistido) → começar do epoch NÃO é "do zero silencioso"
+  if (!existePrim && !existePrev) return { suspenso: false, recoveryState: 'FRESH_START', est: estadoInicial(epoch) };
+
+  // escolher a melhor base íntegra
+  let base = null, recoveryState = null;
+  if (prim.ok) { base = prim.obj; recoveryState = 'RECOVERED_FROM_PRIMARY'; }
+  else if (prev.ok) { base = prev.obj; recoveryState = 'RECOVERED_FROM_PREVIOUS'; }        // primário corrompido/ausente, anterior íntegro
+  else return suspenso('SUSPENDED_CHECKPOINT_CORRUPTION', { primario: prim.reason, anterior: prev.reason });
+
+  // COMMITTED com checkpoint ausente/corrompido do MESMO ciclo já cai em RECOVERED_FROM_PREVIOUS acima.
+  // troca de epoch → reset explícito com preservação de warmup (não é do-zero silencioso)
+  if (epoch && base.forwardEpochId !== epoch.forwardEpochId) {
+    try { fs.writeFileSync(path.join(DIR, `warmup-${base.forwardEpochId || 'none'}.json`), JSON.stringify({ status: 'WARMUP_NOT_COMPARABLE', preservadoEm: now(), estado: base }, null, 2)); } catch {}
+    return { suspenso: false, recoveryState: 'RESET_NEW_EPOCH', est: estadoInicial(epoch) };
+  }
+
+  const est = base; if (!est.recentEventIds) est.recentEventIds = [];
+  if (!est.cursor.tailLogicalHashes) est.cursor.tailLogicalHashes = [];
+  if (est.walSequence == null) est.walSequence = 0;
+  if (est.contadores && est.contadores.rotationOverlapSkipped == null) est.contadores.rotationOverlapSkipped = 0;
+  // WAL PREPARED sem COMMITTED de ciclo > lastCycleId = ciclo em voo → reaplicar é idempotente (byteOffset + physicalEventId)
+  if (walV.ok && walV.obj.status === 'PREPARED' && walV.obj.cycleId > (est.lastCycleId || 0)) {
+    est._recuperado = true; recoveryState = 'REPLAYED_PREPARED_CYCLE';
+  }
+  return { suspenso: false, recoveryState, est };
+}
+
+function registrarRecovery(r, extra) {
+  try { fs.writeFileSync(F.recovery, JSON.stringify({ recoveryState: r.recoveryState, suspenso: !!r.suspenso, detalhe: r.detalhe || null, schemaVersion: SCHEMA_VERSION, walSequence: r.est ? r.est.walSequence : null, ts: now(), ...extra }, null, 2)); } catch {}
+}
+
+// ── detecta cópia de cauda numa rotação: os 1ºs logicalObservationHash do novo arquivo
+// coincidem com a cauda do antigo → devolve quantas linhas pular p/ não contar em dobro ──
+function logicalHashDeLinha(linha) { let o; try { o = JSON.parse(linha); } catch { return null; } if (!o.k || o.apr == null) return null; return sha(`${o.ts}|${o.k}|${o.apr}|${o.spread || 0}|${o.vol || 0}`).slice(0, 16); }
+function detectarOverlapRotacao(fi, tail) {
+  let head = ''; try { const fd = fs.openSync(OBS, 'r'); const n = Math.min(fi.size, 262144); const buf = Buffer.alloc(n); fs.readSync(fd, buf, 0, n, 0); fs.closeSync(fd); head = buf.toString('utf8'); } catch {}
+  const linhas = head.split('\n'); const seq = []; let cum = 0;
+  for (let i = 0; i < linhas.length - 1; i++) { const lb = Buffer.byteLength(linhas[i] + '\n', 'utf8'); cum += lb; const h = logicalHashDeLinha(linhas[i]); if (h) seq.push({ hash: h, cumBytes: cum }); }
+  const t = tail || [];
+  for (let k = Math.min(seq.length, t.length); k >= 1; k--) {
+    let match = true; for (let j = 0; j < k; j++) { if (seq[j].hash !== t[t.length - k + j]) { match = false; break; } }
+    if (match) return { status: 'SOURCE_ROTATED_TAILCOPY', overlapLinhas: k, novoByteOffset: seq[k - 1].cumBytes };
+  }
+  return { status: 'SOURCE_IDENTITY_CHANGED_NO_OVERLAP', overlapLinhas: 0, novoByteOffset: null };
 }
 
 function economia(apr, spread) { const c = CUSTO_FRAC + Math.max(0, spread || 0); return apr * 24 / 8760 - c; }
@@ -96,12 +166,26 @@ function margemLivre(est, ex) { return (est.saldosPorExchange[ex] || 0) * (1 - L
 function stateHash(est) { return sha(JSON.stringify({ so: est.cursor.byteOffset, ec: est.eventCount, aeh: est.accumulatedEventHash, sal: est.saldosPorExchange, vi: Object.keys(est.virtuais).sort(), fu: L.r4(est.fundingAcum), cu: L.r4(est.custosAcum) })).slice(0, 24); }
 
 function umCiclo() {
-  const est = carregarEstado();
-  const cur = est.cursor; const fi = fileIdentity();
+  const r = recuperar();
+  if (r.suspenso) { registrarRecovery(r); append(F.diario, { ts: now(), evento: 'recovery', recoveryState: r.recoveryState, detalhe: r.detalhe }); console.log(`[forward-lab ${LABEL}] ${r.recoveryState} — SUSPENSO (não processa; não zera)`); return; }
+  const est = r.est; registrarRecovery(r);
+  if (r.recoveryState === 'REPLAYED_PREPARED_CYCLE') append(F.diario, { ts: now(), evento: 'recovery', recoveryState: r.recoveryState, cycleId: (est.lastCycleId || 0) + 1 });
+  const cur = est.cursor; const fi = fileIdentity(); let rotouTailcopy = false;
   if (fi.id == null) { est.sourceStatus = 'SOURCE_UNAVAILABLE'; persistir(est); return; }
-  if (cur.fileIdentity && fi.id !== cur.fileIdentity) { est.sourceStatus = 'SOURCE_IDENTITY_CHANGED'; append(F.diario, { ts: now(), evento: 'source_status', status: 'SOURCE_IDENTITY_CHANGED', de: cur.fileIdentity, para: fi.id }); persistir(est); return; }
+  if (cur.fileIdentity && fi.id !== cur.fileIdentity) {
+    // ── ROTATION OVERLAP (item 4): o novo arquivo pode começar com uma CÓPIA da cauda do antigo.
+    // Compara os primeiros logicalObservationHash do novo arquivo com a cauda guardada; se houver
+    // sobreposição, avança o byteOffset para PULAR as linhas copiadas → impede dupla contagem.
+    const rot = detectarOverlapRotacao(fi, cur.tailLogicalHashes || []);
+    append(F.diario, { ts: now(), evento: 'source_status', status: rot.status, de: cur.fileIdentity, para: fi.id, overlapLinhas: rot.overlapLinhas, novoByteOffset: rot.novoByteOffset });
+    est.sourceStatus = rot.status;
+    if (rot.status === 'SOURCE_IDENTITY_CHANGED_NO_OVERLAP') { persistir(est); return; } // sem prova de continuidade → suspende avanço (não zera)
+    cur.fileIdentity = fi.id; cur.byteOffset = rot.novoByteOffset; cur.partial = '';   // pula as linhas copiadas da cauda
+    est.contadores.rotationOverlapSkipped += rot.overlapLinhas; rotouTailcopy = true;
+  }
   if (fi.size < cur.byteOffset) { est.sourceStatus = 'SOURCE_TRUNCATED'; append(F.diario, { ts: now(), evento: 'source_status', status: 'SOURCE_TRUNCATED', size: fi.size, byteOffset: cur.byteOffset }); persistir(est); return; }
-  est.sourceStatus = 'OK'; cur.fileIdentity = fi.id;
+  est.sourceStatus = rotouTailcopy ? 'SOURCE_ROTATED_TAILCOPY' : 'OK'; cur.fileIdentity = fi.id;
+  const tailHashes = cur.tailLogicalHashes || (cur.tailLogicalHashes = []);
 
   const prevPartial = cur.partial || '';
   const prevPartialLen = Buffer.byteLength(prevPartial, 'utf8');
@@ -128,6 +212,7 @@ function umCiclo() {
     if (dedupSet.has(physicalEventId)) { est.contadores.dedupIgnorados++; continue; } // dedup FÍSICO (não por conteúdo)
     dedupSet.add(physicalEventId);
     const logicalObservationHash = sha(`${o.ts}|${o.k}|${o.apr}|${o.spread || 0}|${o.vol || 0}`).slice(0, 16);
+    tailHashes.push(logicalObservationHash); if (tailHashes.length > ROT_TAIL) tailHashes.shift(); // cauda p/ overlap de rotação
     const [sym, long, short] = o.k.split('|');
     const ingestionTime = now(), latenessMs = ingestionTime - o.ts, lateEvent = latenessMs > LATE_MS;
     if (lateEvent) est.lateEvents++;
@@ -139,8 +224,9 @@ function umCiclo() {
 
   // ── WAL PREPARED ────────────────────────────────────────────────────────────
   const cycleId = (est.lastCycleId || 0) + 1;
+  est.walSequence = (est.walSequence || 0) + 1;
   const stateHashBefore = stateHash(est);
-  const wal = { cycleId, inputStartOffset: startOffset, inputEndOffset: cur.byteOffset, eventIds: batch.map((b) => b.physicalEventId), stateHashBefore, decisoes: [], stateHashAfter: null, status: 'PREPARED', ts: now() };
+  const wal = { schemaVersion: SCHEMA_VERSION, walSequence: est.walSequence, cycleId, inputStartOffset: startOffset, inputEndOffset: cur.byteOffset, eventIds: batch.map((b) => b.physicalEventId), stateHashBefore, decisoes: [], stateHashAfter: null, status: 'PREPARED', ts: now() };
   escreverAtomico(F.wal, wal);
   crashIf('after_wal_prepared');
 

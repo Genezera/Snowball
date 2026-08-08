@@ -1,18 +1,18 @@
 {
   "schema": "snowball.forward-epoch.v1_5",
-  "forwardEpochId": "ee31383589a5e5a1",
-  "snapshotId": "108d18978feeeaa3",
+  "forwardEpochId": "c816ed1a27fbc747",
+  "snapshotId": "075111ada19b82ad",
   "configEpochId": "epoch-1",
   "sourceFileId": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
   "fileIdentity": "3968459148:130604389193919400",
-  "byteOffset": 14720921,
-  "lineNumber": 126125,
-  "eventHash": "b1c5bda9cdeeb85be6b23f7afc5b4089",
-  "timestamp": 1786224456225,
+  "byteOffset": 14923765,
+  "lineNumber": 127867,
+  "eventHash": "e9d2980c76e95f256fa16acf53d664bb",
+  "timestamp": 1786228781781,
   "primeiraObservacaoEsperada": "a próxima linha appendada após byteOffset (forward começa daqui)",
   "ultimaObservacaoAntesDoEpoch": {
-    "ts": 1786224456225,
-    "k": "XLM/USDT:USDT|bitget|gate"
+    "ts": 1786228781781,
+    "k": "FIL/USDT:USDT|binanceusdm|bybit"
   },
   "processos": [
     "trial",
@@ -22,5 +22,5 @@
     "observer-max5"
   ],
   "warmupPolicy": "estado anterior de qualquer processo é preservado como warmup-<epoch>.json (WARMUP_NOT_COMPARABLE); nada é apagado.",
-  "congeladoEm": "2026-08-08T21:27:36.225Z"
+  "congeladoEm": "2026-08-08T22:39:41.781Z"
 }

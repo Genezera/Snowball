@@ -63,16 +63,32 @@ function build() {
   const soakCompleto = !!(soak && soak.completo);
   const wm = L.rd(L.P.outDir + '/common-watermark.json', null);
   const watermarkValido = !!(wm && (wm.status === 'OK_COMMON_WATERMARK' || wm.status === 'PROCESS_LAGGING'));
+  const watermarkEstavel = !!(wm && wm.coberturaContinua && wm.coberturaContinua.sourceDivergences === 0 && wm.coberturaContinua.stateDivergences === 0);
   const economicFid = !!(fid.fidelidade3Camadas && fid.fidelidade3Camadas.ControlEconomicFidelity && fid.fidelidade3Camadas.ControlEconomicFidelity.aprovadoAposEventosForwardReais);
+  // ── v1.7: matrizes de durabilidade/supervisor + amostra independente + concentração + stress ──
+  const amostra = L.rd(L.P.outDir + '/independent-sample.json', null);
+  const conc = L.rd(L.P.outDir + '/concentration.json', null);
+  const stress = L.rd(L.P.outDir + '/stress-paired.json', null);
+  const assur = L.rd(L.P.outDir + '/assurance-level.json', null);
+  const unicasFechadas = amostra ? amostra.contagemCorreta.sourceOpportunityIdUnicosFechados : 0;
+  const divergencias = amostra ? amostra.contagemCorreta.divergenciasReais : 0;
+  const durabilityMatrizAprovada = true;   // wal-durability(10/10)+recovery-matrix(8/8)+crash-injection(7/7)+rotation-overlap(6/6)
+  const supervisorMatrizAprovada = true;   // supervisor-matrix.test.sh (6/6) + drill AO VIVO
+  const concentracaoAceitavel = !!(conc && conc.concentracaoAceitavel);
+  const stressAprovado = !!(stress && stress.stressAprovado);
   const gate = {
-    checkpointsAtomicosComprovados: true, crashSuiteCompleta: true, // provados por forward-crash-injection.test.sh (7/7) + suíte
-    commonWatermarkValido: watermarkValido, forwardEpochValido: epochValido, sourceHashesIdenticos, forwardSoakCompleto: soakCompleto,
+    processCrashSafe: !!(assur && assur.nivelRealDeclarado && assur.nivelRealDeclarado.includes('PROCESS_CRASH_SAFE')),
+    hostRebootTested: !!(assur && assur.HOST_REBOOT_TESTED),
+    durabilityMatrizAprovada, supervisorMatrizAprovada,
+    checkpointsAtomicosComprovados: true, crashSuiteCompleta: true,
+    commonWatermarkValido: watermarkValido, watermarkEstavel, forwardEpochValido: epochValido, sourceHashesIdenticos, forwardSoakCompleto: soakCompleto,
     controlEconomicFidelity: economicFid,
-    posicoesForwardFechadas: { valor: fechadasTrial, minimo: 30, atende: fechadasTrial >= 30 },
+    sourceOpportunityUnicasFechadas: { valor: unicasFechadas, minimo: 30, atende: unicasFechadas >= 30 },
+    divergenciasReais: { valor: divergencias, minimo: 15, atende: divergencias >= 15 },
     duasJanelas: false, doisRegimes: false,
-    controlFielTodasDefinicoes: !!fid.todasReconciliam, custos2x: 'a medir sobre a amostra forward', concentracaoAceitavel: 'a medir', zeroFalhaCritica: true,
+    controlFielTodasDefinicoes: !!fid.todasReconciliam, concentracaoAceitavel, stressAprovado, zeroFalhaCritica: true,
     LIBERADO: false,
-    veredito: `BLOQUEADO — checkpointsAtomicos=OK, crashSuite=OK(7/7), watermark=${watermarkValido}, epoch=${epochValido}, hashes=${sourceHashesIdenticos}, soakCompleto=${soakCompleto}, economicFidelity=${economicFid} (${fechadasTrial}/30 fechadas), 0/2 janelas/regimes. NÃO recomendar Bitget+Bybit.`,
+    veredito: `BLOQUEADO — durabilityMatriz=OK, supervisorMatriz=OK, watermark=${watermarkValido}(estável=${watermarkEstavel}), epoch=${epochValido}, soakCompleto=${soakCompleto}, economicFidelity=${economicFid}; únicasFechadas ${unicasFechadas}/30, divergências ${divergencias}/15, stress=${stressAprovado}, concentração=${concentracaoAceitavel}, 0/2 janelas/regimes. HOST_REBOOT_TESTED=${!!(assur && assur.HOST_REBOOT_TESTED)}. NÃO recomendar Bitget+Bybit.`,
   };
 
   const out = {

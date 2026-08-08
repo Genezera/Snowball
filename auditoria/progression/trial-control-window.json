@@ -1,7 +1,7 @@
 {
   "schema": "snowball.trial-control-window.v1_2",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "parametros": {
     "trial": {
       "exchanges": [
@@ -50,29 +50,29 @@
   },
   "item4_controle6ex": {
     "capitalInicial": 600,
-    "funding": 23.5298,
+    "funding": 23.7538,
     "custos": 10.2033,
-    "pnlLiquido": 13.3265,
-    "capitalFinal": 613.3265,
-    "retornoPct": 2.22,
+    "pnlLiquido": 13.5505,
+    "capitalFinal": 613.5505,
+    "retornoPct": 2.26,
     "posicoes": 27,
     "perdidas": 0,
     "minOrder": 0,
     "drawdownPct": 8.93,
-    "feeToGross": 0.4336,
-    "capitalBloqueadoPicoUSD": 190.13,
-    "capitalOciosoUSD": 229.87,
-    "concentracaoTop1": 0.2533,
-    "capitalHoras": 7202.12,
+    "feeToGross": 0.4295,
+    "capitalBloqueadoPicoUSD": 190.36,
+    "capitalOciosoUSD": 229.64,
+    "concentracaoTop1": 0.2497,
+    "capitalHoras": 7350.81,
     "reconciliacao": {
-      "calculado": 613.3265,
+      "calculado": 613.5505,
       "identidade": "capitalInicial + funding − custos",
       "reconcilia": true
     },
     "reconciliacaoComChampion": {
-      "championNet": 12.7528,
-      "controlePnl": 13.3265,
-      "diferenca": 0.5737,
+      "championNet": 12.9763,
+      "controlePnl": 13.5505,
+      "diferenca": 0.5742,
       "tolerancia": 1,
       "reconcilia": true,
       "nota": "Diferença vem do funding acumulado das posições abertas ainda não líquido do custo de fechamento."
@@ -81,17 +81,17 @@
   "item5_commonWindow": {
     "janela": {
       "inicio": "2026-08-04T01:44:39.037Z",
-      "fim": "2026-08-08T21:02:36.233Z",
+      "fim": "2026-08-08T21:48:24.958Z",
       "mesma": true
     },
     "comparacao": {
       "pnlAbsolutoUSD": {
         "trial": 5.9127,
-        "control": 13.3265
+        "control": 13.5505
       },
       "retornoPct": {
         "trial": 2.96,
-        "control": 2.22
+        "control": 2.26
       },
       "drawdownPct": {
         "trial": 0,
@@ -99,7 +99,7 @@
       },
       "feeToGross": {
         "trial": 0.2192,
-        "control": 0.4336
+        "control": 0.4295
       },
       "oportunidades": {
         "trial": 6,
@@ -107,15 +107,15 @@
       },
       "capitalHoras": {
         "trial": 1721.18,
-        "control": 7202.12
+        "control": 7350.81
       },
       "capitalOciosoUSD": {
         "trial": 82.88,
-        "control": 229.87
+        "control": 229.64
       },
       "concentracaoTop1": {
         "trial": 0.6672,
-        "control": 0.2533
+        "control": 0.2497
       },
       "ordensMinimasBloqueadas": {
         "trial": 0,
@@ -123,7 +123,7 @@
       },
       "funding": {
         "trial": 7.5726,
-        "control": 23.5298
+        "control": 23.7538
       },
       "custos": {
         "trial": 1.6599,
@@ -133,7 +133,7 @@
         "falhasDeExchangeObservadas": 0,
         "nota": "sem falhas de exchange registradas na janela (custódia)"
       },
-      "retornoMarginal2exVs6ex": 7.4138
+      "retornoMarginal2exVs6ex": 7.6378
     }
   },
   "item6_gateJanelasRegimes": {
@@ -145,7 +145,7 @@
       "control": true,
       "valores": {
         "trial": 4.2528,
-        "control": 3.1232
+        "control": 3.3472
       }
     },
     "nenhumaOperacaoDominante": false,
@@ -157,7 +157,7 @@
       "atende": false
     },
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.5737, tol 1)."
+    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.5742, tol 1)."
   },
   "honestidade": "observed (posições/funding/custos do Champion) + replay (sandbox reconciliado). Trial enviesado p/ o par que o Champion escolheu; 1 janela/1 regime → decisão NÃO liberada."
 }

@@ -1,11 +1,11 @@
 {
   "schema": "snowball.source-health.v1_6",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "arquivo": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
-  "arquivoBytes": 14720921,
-  "lastModifiedISO": "2026-08-08T21:29:11.873Z",
-  "idadeArquivoS": 294,
+  "arquivoBytes": 14939753,
+  "lastModifiedISO": "2026-08-08T22:49:11.920Z",
+  "idadeArquivoS": 36,
   "scanIntervalEsperadoS": 300,
   "coletorHeartbeat": {
     "ok": true,
@@ -19,6 +19,45 @@
     ]
   },
   "classificacaoGlobal": "NO_NEW_DATA_YET",
+  "ultimoCicloCompletoISO": "2026-08-08T22:44:50.203Z",
+  "saudePorExchange": {
+    "binanceusdm": {
+      "ultimaObsTs": 1786229090203,
+      "ocorrencias": 2691,
+      "idadeUltimaObsS": 297,
+      "classe": "HEALTHY"
+    },
+    "bybit": {
+      "ultimaObsTs": 1786229090203,
+      "ocorrencias": 4133,
+      "idadeUltimaObsS": 297,
+      "classe": "HEALTHY"
+    },
+    "okx": {
+      "ultimaObsTs": 1786229090203,
+      "ocorrencias": 2581,
+      "idadeUltimaObsS": 297,
+      "classe": "HEALTHY"
+    },
+    "gate": {
+      "ultimaObsTs": 1786229090203,
+      "ocorrencias": 3123,
+      "idadeUltimaObsS": 297,
+      "classe": "HEALTHY"
+    },
+    "bitget": {
+      "ultimaObsTs": 1786229090203,
+      "ocorrencias": 1978,
+      "idadeUltimaObsS": 297,
+      "classe": "HEALTHY"
+    },
+    "bingx": {
+      "ultimaObsTs": 1786229090203,
+      "ocorrencias": 3558,
+      "idadeUltimaObsS": 297,
+      "classe": "HEALTHY"
+    }
+  },
   "classesPossiveis": [
     "NO_NEW_DATA_YET",
     "COLLECTOR_DOWNTIME",

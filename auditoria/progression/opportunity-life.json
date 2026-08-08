@@ -1,19 +1,19 @@
 {
   "schema": "snowball.opportunity-life.v1_3",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "item7_funil": {
-    "oportunidadesDistintas": 2917,
-    "modelPositiveEV_holdMax168h": 1076,
-    "modelPositiveEV_queViveramAtePayback": 154,
-    "realmentePositivas_vidaObservada": 154,
+    "oportunidadesDistintas": 2925,
+    "modelPositiveEV_holdMax168h": 1074,
+    "modelPositiveEV_queViveramAtePayback": 159,
+    "realmentePositivas_vidaObservada": 159,
     "abertasPeloChampion_simbolos": 1,
-    "explicacao": "De 2917 oportunidades, 1076 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 154 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~154 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
+    "explicacao": "De 2925 oportunidades, 1074 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 159 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~159 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
   },
   "distribuicao": {
-    "duracaoMedianaH": 27.21,
-    "paybackMedianoH": 160.17,
-    "pctQueViveramAtePayback": 5.28
+    "duracaoMedianaH": 27.48,
+    "paybackMedianoH": 160.91,
+    "pctQueViveramAtePayback": 5.44
   },
   "item6_multiHorizonte": {
     "horizontes": [
@@ -103,6 +103,19 @@
         }
       },
       {
+        "sym": "COTI/USDT:USDT",
+        "aprMediano": 9.6828,
+        "duracaoH": 64.63,
+        "paybackH": 10.53,
+        "evVidaObservada": 5.9795,
+        "evPorHorizonte": {
+          "h1": -1.0537,
+          "h8": -0.28,
+          "h24": 1.4885,
+          "h72": 6.7942
+        }
+      },
+      {
         "sym": "ACE/USDT:USDT",
         "aprMediano": 16.5636,
         "duracaoH": 41.06,
@@ -113,19 +126,6 @@
           "h8": -0.28,
           "h24": 2.7453,
           "h72": 11.8213
-        }
-      },
-      {
-        "sym": "ACE/USDT:USDT",
-        "aprMediano": 10.4649,
-        "duracaoH": 60.11,
-        "paybackH": 10.34,
-        "evVidaObservada": 5.9456,
-        "evPorHorizonte": {
-          "h1": -1.1162,
-          "h8": -0.28,
-          "h24": 1.6314,
-          "h72": 7.3656
         }
       }
     ]

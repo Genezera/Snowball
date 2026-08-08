@@ -37,17 +37,34 @@ function build() {
   const controlSnap = noWatermark['control'], obs3Snap = noWatermark['observer-max3'];
   const controlVsObs3Igual = controlSnap && obs3Snap && controlSnap.stateHash === obs3Snap.stateHash;
 
-  const spread = Math.max(...Object.values(maxPorLabel)) - minimumCommittedEventCount;
+  const maxEventCount = Math.max(...Object.values(maxPorLabel));
+  const spread = maxEventCount - minimumCommittedEventCount;
   let status = 'OK_COMMON_WATERMARK';
   if (!hashesConcordam) status = 'SOURCE_DIVERGENCE';
   else if (controlSnap && obs3Snap && !controlVsObs3Igual) status = 'STATE_DIVERGENCE';
   else if (spread > 0) status = 'PROCESS_LAGGING'; // adiantamento assíncrono (comparação ainda válida no watermark)
 
+  // ── v1.7 item 5: cobertura CONTÍNUA do watermark comum (append-only, cresce no soak) ──
+  const latestOffset = {}; for (const l of presentes) latestOffset[l] = porLabel[l][porLabel[l].length - 1].committedOffset;
+  const maxLatestOffset = Math.max(...Object.values(latestOffset));
+  const watermarkCoveragePct = maxEventCount > 0 ? L.r2((minimumCommittedEventCount / maxEventCount) * 100) : 100;
+  const maxProcessLagEvents = spread, maxProcessLagBytes = maxLatestOffset - minimumCommittedOffset;
+  const covLog = path.join(BASE, 'watermark-coverage.jsonl');
+  let hist = []; try { hist = fs.readFileSync(covLog, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)); } catch {}
+  const rec = { ts: asOf, status, watermarkCoveragePct, commonEventCount: minimumCommittedEventCount, commonCommittedOffset: minimumCommittedOffset, maxProcessLagEvents, maxProcessLagBytes, hashesConcordam };
+  if (!hist.length || hist[hist.length - 1].ts !== asOf) { try { fs.appendFileSync(covLog, JSON.stringify(rec) + '\n'); hist.push(rec); } catch {} }
+  const sourceDivergences = hist.filter((r) => r.status === 'SOURCE_DIVERGENCE').length;
+  const stateDivergences = hist.filter((r) => r.status === 'STATE_DIVERGENCE').length;
+  let maxReconvergenceTimeMs = 0, divStart = null;
+  for (const r of hist) { const div = r.status === 'SOURCE_DIVERGENCE' || r.status === 'STATE_DIVERGENCE'; if (div) { if (divStart == null) divStart = r.ts; } else if (divStart != null) { maxReconvergenceTimeMs = Math.max(maxReconvergenceTimeMs, r.ts - divStart); divStart = null; } }
+  const coverageMediaPct = hist.length ? L.r2(hist.reduce((s, r) => s + (r.watermarkCoveragePct || 0), 0) / hist.length) : watermarkCoveragePct;
+
   const out = {
-    schema: 'snowball.common-watermark.v1_6', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
+    schema: 'snowball.common-watermark.v1_7', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
     minimumCommittedOffset, minimumCommittedEventCount, commonAccumulatedHash, commonLastEventIdHashPrefix: (commonAccumulatedHash || '').slice(0, 12),
     hashesConcordamNoWatermark: hashesConcordam, spreadEventCount: spread,
     status,
+    coberturaContinua: { watermarkCoveragePct, coverageMediaPct, commonCommittedOffset: minimumCommittedOffset, commonEventCount: minimumCommittedEventCount, maxProcessLagEvents, maxProcessLagBytes, maxReconvergenceTimeMs, sourceDivergences, stateDivergences, amostras: hist.length },
     economiaNoWatermark,
     controlVsObserverMax3Identico: controlVsObs3Igual,
     nota: status === 'PROCESS_LAGGING' ? 'Um processo está adiantado (assíncrono) — a comparação econômica usa o watermark comum, então continua VÁLIDA.' : (status === 'OK_COMMON_WATERMARK' ? 'Todos no mesmo watermark; hashes concordam.' : 'Divergência — comparação econômica SUSPENSA fora do watermark.'),
@@ -55,6 +72,7 @@ function build() {
   };
   const p = L.writeJSON('common-watermark.json', out);
   console.log(JSON.stringify({ saida: p, status, minimumCommittedEventCount, minimumCommittedOffset, hashesConcordam, spread, controlVsObs3Igual,
+    cobertura: { coveragePct: watermarkCoveragePct, lagEvents: maxProcessLagEvents, lagBytes: maxProcessLagBytes, sourceDiv: sourceDivergences, stateDiv: stateDivergences, amostras: hist.length },
     econ: economiaNoWatermark.map((e) => `${e.label}: ev${e.eventCount} cap ${e.capital} pos ${e.posicoes}`) }, null, 2));
 }
 build();

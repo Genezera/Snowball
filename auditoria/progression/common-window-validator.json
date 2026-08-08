@@ -1,17 +1,17 @@
 {
   "schema": "snowball.common-window-validator.v1_5",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "epoch": {
-    "forwardEpochId": "ee31383589a5e5a1",
-    "byteOffset": 14720921,
+    "forwardEpochId": "c816ed1a27fbc747",
+    "byteOffset": 14923765,
     "fileIdentity": "3968459148:130604389193919400"
   },
   "processos": [
     {
       "label": "trial",
-      "forwardEpochId": "ee31383589a5e5a1",
-      "byteOffset": 14720921,
+      "forwardEpochId": "c816ed1a27fbc747",
+      "byteOffset": 14923765,
       "eventCount": 0,
       "accumulatedEventHash": "",
       "sourceStatus": "OK",
@@ -20,8 +20,8 @@
     },
     {
       "label": "control",
-      "forwardEpochId": "ee31383589a5e5a1",
-      "byteOffset": 14720921,
+      "forwardEpochId": "c816ed1a27fbc747",
+      "byteOffset": 14923765,
       "eventCount": 0,
       "accumulatedEventHash": "",
       "sourceStatus": "OK",
@@ -30,8 +30,8 @@
     },
     {
       "label": "observer-max3",
-      "forwardEpochId": "ee31383589a5e5a1",
-      "byteOffset": 14720921,
+      "forwardEpochId": "c816ed1a27fbc747",
+      "byteOffset": 14923765,
       "eventCount": 0,
       "accumulatedEventHash": "",
       "sourceStatus": "OK",
@@ -40,8 +40,8 @@
     },
     {
       "label": "observer-max4",
-      "forwardEpochId": "ee31383589a5e5a1",
-      "byteOffset": 14720921,
+      "forwardEpochId": "c816ed1a27fbc747",
+      "byteOffset": 14923765,
       "eventCount": 0,
       "accumulatedEventHash": "",
       "sourceStatus": "OK",
@@ -50,8 +50,8 @@
     },
     {
       "label": "observer-max5",
-      "forwardEpochId": "ee31383589a5e5a1",
-      "byteOffset": 14720921,
+      "forwardEpochId": "c816ed1a27fbc747",
+      "byteOffset": 14923765,
       "eventCount": 0,
       "accumulatedEventHash": "",
       "sourceStatus": "OK",

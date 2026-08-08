@@ -23,5 +23,5 @@
 {"par":"gate+okx","ts":1785980648362,"symbol":"BICO/USDT:USDT","acao":"financia","notional":238.73,"margem":47.75,"funding":0.7077,"custo":0.4776,"pnl":0.23,"aberta":false}
 {"par":"gate+okx","ts":1786041678035,"symbol":"BICO/USDT:USDT","acao":"financia","notional":261.9,"margem":52.38,"funding":1.6781,"custo":0.5433,"pnl":1.1348,"aberta":false}
 {"par":"gate+okx","ts":1786138069487,"symbol":"BICO/USDT:USDT","acao":"financia","notional":251.38,"margem":50.28,"funding":1.3562,"custo":0.5028,"pnl":0.8534,"aberta":false}
-{"par":"gate+okx","ts":1786169106062,"symbol":"BICO/USDT:USDT","acao":"financia","notional":93.64,"margem":53.34,"funding":0.7176,"custo":0,"pnl":0.7176,"aberta":true}
+{"par":"gate+okx","ts":1786169106062,"symbol":"BICO/USDT:USDT","acao":"financia","notional":94.2,"margem":53.57,"funding":0.9416,"custo":0,"pnl":0.9416,"aberta":true}
 {"par":"bingx+gate","ts":1786119554962,"symbol":"RIF/USDT:USDT","acao":"financia","notional":353.06,"margem":70.61,"funding":0.7908,"custo":0.7414,"pnl":0.0494,"aberta":false}

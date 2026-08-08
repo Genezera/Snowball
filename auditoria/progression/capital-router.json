@@ -1,7 +1,7 @@
 {
   "schema": "snowball.capital-router.v1",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "natureza": "SHADOW/observer — nenhuma ordem, saldo, fechamento, sizing ou aprovação real. Só registra a decisão que TOMARIA e compara com o Champion.",
   "formatoComum": [
     "opportunityId",

@@ -1,0 +1,55 @@
+{
+  "schema": "snowball.concentration.v1_7",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "operacoesPositivas": 0,
+  "ganhoIncrementalTotal": 0,
+  "limites": {
+    "posicao": 25,
+    "simbolo": 35,
+    "par": 50,
+    "janela": 50
+  },
+  "checks": {
+    "posicao": {
+      "top": {
+        "chave": null,
+        "valor": 0,
+        "pct": 0
+      },
+      "limite": 25,
+      "ok": true
+    },
+    "simbolo": {
+      "top": {
+        "chave": null,
+        "valor": 0,
+        "pct": 0
+      },
+      "limite": 35,
+      "ok": true
+    },
+    "parExchanges": {
+      "top": {
+        "chave": null,
+        "valor": 0,
+        "pct": 0
+      },
+      "limite": 50,
+      "ok": true
+    },
+    "janela": {
+      "top": {
+        "chave": null,
+        "valor": 0,
+        "pct": 0
+      },
+      "limite": 50,
+      "ok": true
+    }
+  },
+  "amostraSuficiente": false,
+  "concentracaoAceitavel": false,
+  "veredito": "Amostra insuficiente p/ julgar concentração (0 fechamentos positivos). NÃO aceitável ainda.",
+  "honestidade": "Concentração só é avaliável com fechamentos reais suficientes. Com amostra ~0, o resultado é \"não aceitável ainda\" por falta de evidência, não por aprovação."
+}

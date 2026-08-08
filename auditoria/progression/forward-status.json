@@ -1,12 +1,12 @@
 {
   "schema": "snowball.forward-status.v1_3",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "processos": {
     "trial": {
       "modo": "trial",
       "vivo": true,
-      "iniciadoEm": "2026-08-08T21:30:48.034Z",
+      "iniciadoEm": "2026-08-08T22:47:16.011Z",
       "capitalInicial": 200,
       "capitalAtual": 200,
       "funding": 0,
@@ -33,7 +33,7 @@
     "control": {
       "modo": "control",
       "vivo": true,
-      "iniciadoEm": "2026-08-08T21:30:48.587Z",
+      "iniciadoEm": "2026-08-08T22:47:16.529Z",
       "capitalInicial": 600,
       "capitalAtual": 600,
       "funding": 0,

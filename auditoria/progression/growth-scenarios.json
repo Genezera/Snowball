@@ -1,19 +1,19 @@
 {
   "schema": "snowball.growth-scenarios.v1_1",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "politica": "SEM taxa-base de longo prazo; SEM data prometida para níveis futuros. Só trajetória observada + stress mecânico + intervalo enquanto a amostra for insuficiente.",
   "trajetoriaObservada": {
     "tipo": "observed",
     "capitalInicial": 200,
-    "capitalAtual": 612.7528,
-    "pontos": 1011,
+    "capitalAtual": 612.9763,
+    "pontos": 1027,
     "primeiroTs": "2026-08-03T12:04:31.297Z",
-    "ultimoTs": "2026-08-08T21:02:36.233Z",
-    "diasObservados": 5.39,
-    "fundingObservado": 23.5298,
-    "custosObservado": 10.777,
-    "netObservado": 12.7528,
+    "ultimoTs": "2026-08-08T21:48:24.958Z",
+    "diasObservados": 5.45,
+    "fundingObservado": 23.7538,
+    "custosObservado": 10.7775,
+    "netObservado": 12.9763,
     "maxDrawdownPct": 0.43,
     "nota": "Trajetória de fato. Inclui 1 aporte de US$400 (4 exchanges) — não é lucro."
   },
@@ -27,50 +27,50 @@
   "stressMecanico": [
     {
       "id": "observado",
-      "net": 12.7528,
+      "net": 12.9763,
       "tipo": "observed",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_1_5x",
-      "net": 7.3643,
+      "net": 7.5875,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_2x",
-      "net": 1.9758,
+      "net": 2.1987,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "funding_menos25",
-      "net": 6.8704,
+      "net": 7.0378,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "funding_menos50",
-      "net": 0.9879,
+      "net": 1.0994,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_2x_funding_menos25",
-      "net": -3.9066,
+      "net": -3.7397,
       "tipo": "simulated",
       "sobreviveComLucro": false
     }
   ],
   "intervaloCenarios": {
-    "min": -3.9066,
-    "max": 12.7528,
-    "observado": 12.7528
+    "min": -3.7397,
+    "max": 12.9763,
+    "observado": 12.9763
   },
   "projecaoTemporal": null,
   "projecaoTemporalNota": "REMOVIDO: v1.0 usava 0,67%/dia (2,72 dias de amostra) para projetar datas de nível. Isso é extrapolação indevida — nenhuma data é prometida.",
   "contribuicaoPorMotor": {
-    "champion-funding": 12.7528,
+    "champion-funding": 12.9763,
     "outros": 0
   },
   "honestidade": "Só fato observado + stress mecânico. Nenhuma taxa de longo prazo, nenhuma data, nenhum lucro futuro garantido. Bootstrap só quando houver ≥2 janelas/regimes."

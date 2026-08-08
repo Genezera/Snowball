@@ -1,7 +1,7 @@
 {
   "schema": "snowball.exchange-replay-2ex.v1_1",
-  "geradoEm": "2026-08-08T21:02:36.233Z",
-  "asOfMs": 1786222956233,
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
   "parametros": {
     "capitalInicial": 200,
     "porExchange": 100,
@@ -12,8 +12,8 @@
   },
   "commonWindow": {
     "inicio": "2026-08-04T01:44:39.037Z",
-    "fim": "2026-08-08T21:02:36.233Z",
-    "horas": 115.3,
+    "fim": "2026-08-08T21:48:24.958Z",
+    "horas": 116.06,
     "mesmaParaTodas": true
   },
   "reconciliacao": {
@@ -58,21 +58,21 @@
       ],
       "posicoesNoPar": 4,
       "capitalInicial": 200,
-      "funding": 4.4595,
+      "funding": 4.6835,
       "custos": 1.5237,
-      "pnlRealizado": 2.9358,
+      "pnlRealizado": 3.1598,
       "residualRealizado": 0,
-      "capitalFinal": 202.9358,
+      "capitalFinal": 203.1598,
       "posicoesFinanciadas": 4,
       "posicoesPerdidasPorMargem": 0,
       "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 53.34,
-      "capitalOciosoPicoUSD": 86.66,
-      "equityMarcada": 202.9358,
+      "capitalBloqueadoPicoUSD": 53.57,
+      "capitalOciosoPicoUSD": 86.43,
+      "equityMarcada": 203.1598,
       "drawdownPct": 0,
       "reconciliacao": {
-        "calculado": 202.9358,
-        "reportado": 202.9358,
+        "calculado": 203.1598,
+        "reportado": 203.1598,
         "reconcilia": true
       },
       "rank": 2
@@ -451,7 +451,7 @@
     },
     "seisFinanciadas": {
       "capitalUsado": 600,
-      "pnl": 13.3265,
+      "pnl": 13.5505,
       "nota": "Champion real multi-par: acessa posições de TODOS os pares"
     },
     "duasMaisFundoMigracao": {
@@ -460,8 +460,8 @@
       "custoEstimadoPorTroca": 0.2,
       "nota": "trocar de par custa taxa de saque/depósito + tempo de settlement — corrói ganho de troca frequente"
     },
-    "diferencaFixo2_vs_6financiadas": 7.4138,
-    "conclusao": "6 exchanges financiadas rendem 13.3265 vs 5.9127 do melhor par fixo (US$200): diferença de 7.4138. A troca dinâmica NÃO é comprovável na amostra (1 janela) e o custo/tempo de migração desencoraja troca frequente."
+    "diferencaFixo2_vs_6financiadas": 7.6378,
+    "conclusao": "6 exchanges financiadas rendem 13.5505 vs 5.9127 do melhor par fixo (US$200): diferença de 7.6378. A troca dinâmica NÃO é comprovável na amostra (1 janela) e o custo/tempo de migração desencoraja troca frequente."
   },
   "honestidade": "Todas as 15 combinações reconciliam exatamente."
 }
