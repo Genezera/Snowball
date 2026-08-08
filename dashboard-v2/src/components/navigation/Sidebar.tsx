@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useT } from '../../i18n';
 
 interface NavItem { to: string; label: string; glyph: string; pendente?: boolean }
 interface NavGroup { titulo: string; itens: NavItem[] }
@@ -64,11 +65,12 @@ const GRUPOS: NavGroup[] = [
 ];
 
 function ItemLink({ item, colapsado, aoNavegar }: { item: NavItem; colapsado: boolean; aoNavegar?: () => void }) {
+  const t = useT();
   return (
     <NavLink
       key={item.to} to={item.to} end={item.to === '/'}
       onClick={aoNavegar}
-      title={colapsado ? item.label : undefined}
+      title={colapsado ? t(item.label) : undefined}
       style={({ isActive }) => ({
         display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
         padding: '9px var(--space-3)', borderRadius: 'var(--radius-sm)',
@@ -89,9 +91,9 @@ function ItemLink({ item, colapsado, aoNavegar }: { item: NavItem; colapsado: bo
             style={{ flex: 'none', filter: isActive ? 'drop-shadow(0 0 5px var(--snow-glow))' : 'none' }}>
             <path d={item.glyph} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {!colapsado && <span style={{ flex: 1 }}>{item.label}</span>}
+          {!colapsado && <span style={{ flex: 1 }}>{t(item.label)}</span>}
           {!colapsado && item.pendente && (
-            <span title="Em construção (Etapa B/C)" style={{
+            <span title={t('Em construção (Etapa B/C)')} style={{
               fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
               color: 'var(--ink-3)', border: '1px solid var(--border-hairline)', borderRadius: 4, padding: '1px 5px',
             }}>soon</span>
@@ -105,6 +107,7 @@ function ItemLink({ item, colapsado, aoNavegar }: { item: NavItem; colapsado: bo
 export function Sidebar({ modoMobile = false, aoNavegar }: { modoMobile?: boolean; aoNavegar?: () => void } = {}) {
   // No drawer mobile a sidebar é sempre expandida (nunca "comprimida"); o
   // recolher-pra-ícones é só do desktop.
+  const t = useT();
   const [colapsadoDesktop, setColapsado] = useState(false);
   const colapsado = modoMobile ? false : colapsadoDesktop;
   const [gruposFechados, setGruposFechados] = useState<Set<string>>(new Set());
@@ -150,7 +153,7 @@ export function Sidebar({ modoMobile = false, aoNavegar }: { modoMobile?: boolea
                     color: 'var(--ink-3)',
                   }}
                 >
-                  <span>{grupo.titulo}</span>
+                  <span>{t(grupo.titulo)}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
                     style={{ transform: fechado ? 'rotate(-90deg)' : 'none', transition: 'transform var(--dur-fast) var(--ease-out)' }}>
                     <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -172,9 +175,9 @@ export function Sidebar({ modoMobile = false, aoNavegar }: { modoMobile?: boolea
             marginTop: 'var(--space-2)',
             transition: 'background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)',
           }}
-          aria-label={colapsado ? 'Expandir menu' : 'Recolher menu'}
+          aria-label={colapsado ? t('Expandir menu') : t('Recolher menu')}
         >
-          {colapsado ? '»' : '« Recolher'}
+          {colapsado ? '»' : t('« Recolher')}
         </button>
       )}
     </motion.aside>

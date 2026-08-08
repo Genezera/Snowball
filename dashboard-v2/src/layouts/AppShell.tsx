@@ -1,17 +1,20 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Sidebar } from '../components/navigation/Sidebar';
 import { Ticker } from '../components/navigation/Ticker';
+import { LangToggle } from '../components/navigation/LangToggle';
 import { useLiveStore } from '../stores/liveStore';
+import { useT, useLang, localeDe } from '../i18n';
 
 /** Relógio local + UTC (item 6) — dado, atualiza a cada segundo, sem piscar. */
 function Relogio() {
+  const loc = localeDe(useLang());
   const [agora, setAgora] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setAgora(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  const local = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const utc = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+  const local = agora.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const utc = agora.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
   return (
     <div className="tabular" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--text-2xs)', color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
       <span style={{ color: 'var(--ink-1)', fontWeight: 700 }}>{local}</span>
@@ -25,6 +28,7 @@ const STATUS_COLOR: Record<string, string> = { conectando: 'var(--warn-500)', ao
 
 /** LED pulsante (identidade Snowball) só quando ao vivo; estático nos demais estados. */
 function Pill({ label, status }: { label: string; status: string }) {
+  const t = useT();
   const aoVivo = status === 'aoVivo';
   return (
     <div style={{
@@ -35,7 +39,7 @@ function Pill({ label, status }: { label: string; status: string }) {
         width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[status] ?? 'var(--ink-3)',
         animation: aoVivo ? 'snow-pulse 1.8s infinite' : 'none',
       }} />
-      {label} · {STATUS_LABEL[status] ?? status}
+      {label} · {t(STATUS_LABEL[status] ?? status)}
     </div>
   );
 }
@@ -58,6 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const profitLabStatus = useLiveStore((s) => s.profitLabStatus);
   const ehMobile = useEhMobile();
   const [drawerAberto, setDrawerAberto] = useState(false);
+  const t = useT();
 
   useEffect(() => iniciar(), [iniciar]);
   // ao voltar pra desktop, garante o drawer fechado
@@ -98,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {ehMobile && (
             <button
               onClick={() => setDrawerAberto((a) => !a)}
-              aria-label={drawerAberto ? 'Fechar menu' : 'Abrir menu'} aria-expanded={drawerAberto}
+              aria-label={drawerAberto ? t('Fechar menu') : t('Abrir menu')} aria-expanded={drawerAberto}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
                 width: 36, height: 36, borderRadius: 'var(--radius-sm)',
@@ -111,9 +116,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span style={{
             fontSize: 'var(--text-2xs)', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--snow-primary)',
             border: '1px solid var(--brass-700)', borderRadius: 4, padding: '2px 7px', textShadow: '0 0 10px var(--snow-glow)',
-          }}>PAPER · VIRTUAL · NÃO REAL</span>
+          }}>{t('PAPER · VIRTUAL · NÃO REAL')}</span>
           <div style={{ flex: 1 }} />
           <Relogio />
+          <LangToggle />
           <span style={{ width: 1, height: 20, background: 'var(--border-subtle)', flex: 'none' }} aria-hidden />
           <Pill label="Champion" status={championStatus} />
           <Pill label="Profit Lab" status={profitLabStatus} />
@@ -125,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             que uma região rolável seja alcançável por teclado. Tornar o
             próprio main focável resolve universalmente, sem depender do
             conteúdo ter um botão/link. */}
-        <main tabIndex={0} aria-label="Conteúdo da página" style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)' }}>
+        <main tabIndex={0} aria-label={t('Conteúdo da página')} style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)' }}>
           {children}
         </main>
       </div>
