@@ -29,8 +29,10 @@ const ordem = [
   'maxpositions-test.cjs',      // v1.3 Parte 8 (maxPos 3/4/5)
   'forward-status.cjs',         // v1.3 Partes 9,10 (common-window forward + gate)
   'opportunity-episodes.cjs',   // v1.4 Partes 2,3,4,5 (episódios/censura/no-lookahead/funil)
-  'control-fidelity-vectorial.cjs', // v1.4 Parte 6 (fidelidade por definição ≤US$0,01)
-  'relatorio-forward.cjs',      // v1.4 Partes 1,10,11,12 (identidade/capital local/diário/gate)
+  'control-fidelity-vectorial.cjs', // v1.4/1.5 (fidelidade por definição + consistência interna)
+  'gap-sensitivity.cjs',        // v1.5 Parte 9 (sensibilidade do gap 15/30/45/60)
+  'common-window-validator.cjs', // v1.5 Parte 7 (validator dos 5 processos)
+  'relatorio-forward.cjs',      // v1.4/1.5 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
 let ok = 0;

@@ -1,0 +1,26 @@
+{
+  "schema": "snowball.forward-epoch.v1_5",
+  "forwardEpochId": "465a50b7aa1e382e",
+  "snapshotId": "bd7e3b9a01d13fc5",
+  "configEpochId": "epoch-1",
+  "sourceFileId": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
+  "fileIdentity": "3968459148:130604389193919400",
+  "byteOffset": 14658894,
+  "lineNumber": 125588,
+  "eventHash": "2c78ee61d17fdf94c5707a2399272e81",
+  "timestamp": 1786223223268,
+  "primeiraObservacaoEsperada": "a próxima linha appendada após byteOffset (forward começa daqui)",
+  "ultimaObservacaoAntesDoEpoch": {
+    "ts": 1786223223268,
+    "k": "XMR/USDT:USDT|bitget|bingx"
+  },
+  "processos": [
+    "trial",
+    "control",
+    "observer-max3",
+    "observer-max4",
+    "observer-max5"
+  ],
+  "warmupPolicy": "estado anterior de qualquer processo é preservado como warmup-<epoch>.json (WARMUP_NOT_COMPARABLE); nada é apagado.",
+  "congeladoEm": "2026-08-08T21:07:03.268Z"
+}

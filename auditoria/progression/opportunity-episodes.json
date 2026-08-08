@@ -1,7 +1,7 @@
 {
   "schema": "snowball.opportunity-episodes.v1_4",
-  "geradoEm": "2026-08-08T20:05:50.479Z",
-  "asOfMs": 1786219550479,
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
   "interpretacaoCorreta": {
     "duracaoMedianaEpisodioScannerH": 0.17,
     "duracaoMedianaHoldPosicaoRealH": 2.97,
@@ -23,12 +23,12 @@
   },
   "janela": {
     "inicio": "2026-08-02T18:21:54.848Z",
-    "fim": "2026-08-08T20:56:40.506Z",
-    "chavesDistintas": 2913
+    "fim": "2026-08-08T21:12:11.387Z",
+    "chavesDistintas": 2916
   },
   "item2_3_episodios": {
-    "total": 18423,
-    "completos": 18275,
+    "total": 18458,
+    "completos": 18293,
     "exemplos": [
       {
         "id": "KAITO/USDT:USDT|bybit|binanceusdm|epoch-1#1785696993854",
@@ -88,17 +88,17 @@
   },
   "item3_censura": {
     "leftCensored": 5,
-    "rightCensored": 143,
-    "completeEpisodes": 18275,
+    "rightCensored": 160,
+    "completeEpisodes": 18293,
     "observationCoverageMediana": 1,
     "duracaoMedianaH_completosApenas": 0.17,
     "duracaoMedianaH_todos_ENGANOSA": 0.17,
     "nota": "A mediana de duração v1.3 (27h) misturava censurados. Correta = só completos. Censurados à direita NÃO têm duração conhecida."
   },
   "item5_funilCorrigido": {
-    "allEpisodes": 18423,
-    "completeEpisodes": 18275,
-    "modelPositiveAtDecisionTime": 5050,
+    "allEpisodes": 18458,
+    "completeEpisodes": 18293,
+    "modelPositiveAtDecisionTime": 5056,
     "survivedPayback": 0,
     "engineApproved": 13,
     "opened": 1,

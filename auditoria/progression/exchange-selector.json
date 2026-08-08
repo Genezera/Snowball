@@ -1,7 +1,7 @@
 {
   "schema": "snowball.exchange-selector.v1",
-  "geradoEm": "2026-08-08T20:05:50.479Z",
-  "asOfMs": 1786219550479,
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
   "metodo": "replay cronológico; sem seleção retrospectiva de vencedores; common-window por construção (scans varrem todas as exchanges no mesmo ciclo).",
   "exchangesOperacionais": [
     "binanceusdm",
@@ -52,7 +52,7 @@
         "bloqueadas": 0
       }
     ],
-    "lucroPerdidoAoRestringirA2Exchanges": 7.2534,
+    "lucroPerdidoAoRestringirA2Exchanges": 7.4138,
     "duasExchangesSaoSuficientes": null
   },
   "veredito": {
@@ -134,9 +134,9 @@
       },
       "realizado": {
         "posicoes": 5,
-        "funding": 4.7557,
+        "funding": 4.9162,
         "custo": 2.3919,
-        "pnlLiquido": 2.3638
+        "pnlLiquido": 2.5242
       },
       "rank": 3
     },

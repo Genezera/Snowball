@@ -50,9 +50,21 @@ function build() {
 
   const todasMonetariasOk = dim.every((d) => d.reconcilia);
   const todasOk = todasMonetariasOk && dimNaoMonetarias.every((d) => d.reconcilia);
+
+  // ── v1.5 item 11: SEPARAR consistência interna do Champion vs fidelidade do Control ──
+  const cc = [];
+  const addCC = (id, lhs, rhs) => { const d = L.r4(lhs - rhs); cc.push({ identidade: id, valor: L.r4(lhs), esperado: L.r4(rhs), diferenca: d, ok: Math.abs(d) <= 0.01 }); };
+  addCC('capital = capitalInicial + funding − custos', estado.capital, estado.capitalInicial + estado.fundingTotal - estado.custosTotal);
+  addCC('Σ saldosPorExchange = capital', Object.values(estado.saldos || {}).reduce((s, v) => s + v, 0), estado.capital);
+  if (marcacao) { addCC('equityMark = capitalRealizado + pnlMark', marcacao.equityMark, marcacao.capitalRealizado + (marcacao.pnlNaoRealizadoMark || 0));
+    addCC('equityLiquidacao = capitalRealizado + pnlExec − custoFecho', marcacao.equityLiquidacao, marcacao.capitalRealizado + (marcacao.pnlNaoRealizadoExecutavel || 0) - (marcacao.custoEstimadoFechamentoTotal || 0)); }
+  const championConsistente = cc.every((c) => c.ok);
+
   const out = {
-    schema: 'snowball.control-fidelity-vectorial.v1_4', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
+    schema: 'snowball.control-fidelity-vectorial.v1_5', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
     toleranciaUSD: 0.01, semCategoriaResidual: true,
+    championAccountingConsistency: { identidadesInternas: cc, consistente: championConsistente, nota: 'Identidades INTERNAS do Champion (não comparação com o Control) — a base contábil do Champion fecha consigo mesma.' },
+    controlForwardFidelity: { nota: 'Reconstrução do Control (por instância/positionId) vs Champion, evento a evento, cada definição na SUA base ≤US$0,01.' },
     nota: 'Cada definição reconcilia na SUA base (realized vs realized, marked vs marked, executable vs executable). NÃO se usa resíduo p/ compensar bases diferentes: marked e realized são coisas distintas e cada uma bate com a sua fonte no Champion.',
     dimensoesMonetarias: dim, dimensoesNaoMonetarias: dimNaoMonetarias,
     fundingPosicoesAbertas: L.r4(fundingAbertas),

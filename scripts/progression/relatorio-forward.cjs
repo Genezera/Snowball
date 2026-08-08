@@ -54,15 +54,20 @@ function build() {
     nota: fontesIguais ? 'Todos os processos leem a MESMA fonte (arquivo-observacoes.jsonl) — common-window válido.' : 'FONTES DIFERENTES — comparação SUSPENSA.',
   };
 
-  // item 12: gate
+  // item 14 (v1.5): gate estendido com Forward Epoch + hashes + soak
   const fechadasTrial = (processos.find((p) => p.label === 'trial') || {}).posicoesFechadas || 0;
+  const val = L.rd(L.P.outDir + '/common-window-validator.json', null);
+  const soak = L.rd(L.ROOT + '/auditoria/progression/forward-soak-resumo.json', null);
+  const epochValido = !!(val && val.checks && val.checks.forwardEpochIdIgual && val.checks.startOffsetIgual);
+  const sourceHashesIdenticos = !!(val && val.checks && val.checks.sourceIdentityIgual && !val.checks.divergenciaHashMesmaContagem);
+  const soakCompleto = !!(soak && soak.completo);
   const gate = {
+    forwardEpochValido: epochValido, sourceHashesIdenticos, forwardSoakCompleto: soakCompleto,
     posicoesForwardFechadas: { valor: fechadasTrial, minimo: 30, atende: fechadasTrial >= 30 },
     duasJanelas: false, doisRegimes: false,
-    controlFielTodasDefinicoes: !!fid.todasReconciliam, monitorOperacionalCompleto: false,
-    custos2x: 'a medir sobre a amostra forward', concentracaoAceitavel: 'a medir', zeroFalhaCritica: true,
+    controlFielTodasDefinicoes: !!fid.todasReconciliam, custos2x: 'a medir sobre a amostra forward', concentracaoAceitavel: 'a medir', zeroFalhaCritica: true,
     LIBERADO: false,
-    veredito: `BLOQUEADO — ${fechadasTrial}/30 posições forward fechadas, 0/2 janelas, 0/2 regimes, monitor incompleto. Control fiel em todas as definições: ${!!fid.todasReconciliam}. NÃO recomendar Bitget+Bybit.`,
+    veredito: `BLOQUEADO — epochValido=${epochValido}, sourceHashesIdenticos=${sourceHashesIdenticos}, soakCompleto=${soakCompleto}, ${fechadasTrial}/30 fechadas, 0/2 janelas, 0/2 regimes. Control fiel: ${!!fid.todasReconciliam}. NÃO recomendar Bitget+Bybit.`,
   };
 
   const out = {

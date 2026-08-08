@@ -1,0 +1,60 @@
+{
+  "schema": "snowball.gap-sensitivity.v1_5",
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
+  "janelaH": 146.84,
+  "cenarios": [
+    {
+      "gapMin": 15,
+      "episodios": 28058,
+      "completos": 27893,
+      "leftCensored": 5,
+      "rightCensored": 160,
+      "duracaoMedianaCompletosH": 0,
+      "modelPositive": 7115,
+      "reaparicoesMediaPorChave": 9.6221
+    },
+    {
+      "gapMin": 30,
+      "episodios": 18458,
+      "completos": 18293,
+      "leftCensored": 5,
+      "rightCensored": 160,
+      "duracaoMedianaCompletosH": 0.17,
+      "modelPositive": 5056,
+      "reaparicoesMediaPorChave": 6.3299
+    },
+    {
+      "gapMin": 45,
+      "episodios": 15083,
+      "completos": 14918,
+      "leftCensored": 5,
+      "rightCensored": 160,
+      "duracaoMedianaCompletosH": 0.34,
+      "modelPositive": 4272,
+      "reaparicoesMediaPorChave": 5.1725
+    },
+    {
+      "gapMin": 60,
+      "episodios": 13403,
+      "completos": 13238,
+      "leftCensored": 5,
+      "rightCensored": 160,
+      "duracaoMedianaCompletosH": 0.43,
+      "modelPositive": 3905,
+      "reaparicoesMediaPorChave": 4.5964
+    }
+  ],
+  "estabilidade": {
+    "duracaoMedianaCompletos_varreduraH": [
+      0,
+      0.17,
+      0.34,
+      0.43
+    ],
+    "duracaoMedianaEstavel": true,
+    "conclusaoRobusta": "A duração mediana do episódio de scanner fica em ~0.17h em todos os gaps (15→60min): a conclusão de que o episódio de scanner é CURTO (minutos) e NÃO cobre o payback (~160h) é ROBUSTA ao gap. Aumentar o gap junta mais reaparições num episódio (reaparicoesMedia cai de 9.6221 p/ 4.5964) mas não muda a conclusão qualitativa.",
+    "naoAdotar30minCego": "Testado 15/30/45/60min — a conclusão (episódio de scanner ≠ tempo de hold; só o forward decide payback) é estável. 30min é razoável, não arbitrário."
+  },
+  "honestidade": "observed (segmentação por gap). A escolha do gap muda contagens/reaparições mas não a conclusão qualitativa central."
+}

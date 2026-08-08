@@ -1,7 +1,7 @@
 {
   "schema": "snowball.bosses.v1",
-  "geradoEm": "2026-08-08T20:05:50.479Z",
-  "asOfMs": 1786219550479,
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
   "maquinaEstados": {
     "estados": [
       "UNTESTED",
@@ -15,12 +15,12 @@
     "notaDefeated": "DEFEATED exige ≥2 janelas E ≥2 regimes — inatingível com 1 janela. Máximo atual: PROVISIONALLY_DEFEATED."
   },
   "resumo": {
-    "PASSED_CURRENT_WINDOW": [
-      "custos",
-      "sobrevivencia"
-    ],
     "PROVISIONALLY_DEFEATED": [
+      "custos",
       "concentracao"
+    ],
+    "PASSED_CURRENT_WINDOW": [
+      "sobrevivencia"
     ],
     "ACTIVE": [
       "capacidade",
@@ -32,36 +32,35 @@
       "id": "custos",
       "nome": "Chefe dos Custos",
       "metricas": {
-        "feeToGross": 0.458,
+        "feeToGross": 0.4549,
         "limiteFeeToGross": 0.6,
-        "netObservado": 12.6655,
-        "netComCustos2x": 1.9616,
-        "funding": 23.3693,
-        "custos": 10.7039
+        "netObservado": 12.8255,
+        "netComCustos2x": 2.1213,
+        "funding": 23.5298,
+        "custos": 10.7043
       },
       "criterios": {
         "feeToGrossAbaixoLimite": true,
         "lucroPositivoComCustos2x": true,
         "custosNaoConsomemMaioria": true
       },
-      "status": "PASSED_CURRENT_WINDOW",
-      "nota": "Sobrevive a custos 2×, porém com folga PEQUENA (+1.9616). Margem fina."
+      "status": "PROVISIONALLY_DEFEATED"
     },
     "sobrevivencia": {
       "id": "sobrevivencia",
       "nome": "Chefe da Sobrevivência",
       "metricas": {
         "drawdownMaxPct": 0.43,
-        "distanciaLiquidacaoMin": 0.17925054736011303,
+        "distanciaLiquidacaoMin": 0.17886341474753864,
         "distMinInfo": {
           "symbol": "1000CAT/USDT:USDT",
           "leg": "long",
-          "distancia": 0.1793
+          "distancia": 0.1789
         },
         "capitalFloor": 600,
-        "capitalAtual": 612.6655,
+        "capitalAtual": 612.8255,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 612.8017729860271
+        "equityExecutavel": 612.8790450093637
       },
       "criterios": {
         "drawdownControlado": true,
@@ -80,8 +79,8 @@
           "symbol": "KMNO/USDT:USDT",
           "funding": 4.5199
         },
-        "top1Share": 0.1934,
-        "herfindahl": 0.1179,
+        "top1Share": 0.1921,
+        "herfindahl": 0.1164,
         "nSimbolosComFunding": 16,
         "usoPorExchange": {
           "gate": 1,
@@ -123,8 +122,8 @@
         "fontesLucrativas": [
           {
             "motor": "champion-funding",
-            "pnlLiquido": 12.6655,
-            "amostra": 37
+            "pnlLiquido": 12.8255,
+            "amostra": 38
           },
           {
             "motor": "settlement-capture",

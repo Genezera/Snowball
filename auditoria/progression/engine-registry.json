@@ -1,7 +1,7 @@
 {
   "schema": "snowball.engine-registry.v1",
-  "geradoEm": "2026-08-08T20:05:50.479Z",
-  "asOfMs": 1786219550479,
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
   "totalMotores": 9,
   "porEstado": {
     "LIVE": 1,
@@ -22,12 +22,12 @@
       "capitalMinimo": 200,
       "capitalMaxEstimado": null,
       "capacidade": "possível-saturação",
-      "frequencia": "0.2361/h (27 aberturas em 114.35h)",
-      "pnlLiquido": 12.6655,
+      "frequencia": "0.2342/h (27 aberturas em 115.3h)",
+      "pnlLiquido": 12.8255,
       "drawdown": "0.43%",
-      "feeToGross": 0.458,
+      "feeToGross": 0.4549,
       "capitalHoras": "ver capital-ledger",
-      "amostra": "37 pagamentos / 24 fechados",
+      "amostra": "38 pagamentos / 24 fechados",
       "confianca": "alta",
       "correlacao": "baseline (referência)",
       "dependencias": [

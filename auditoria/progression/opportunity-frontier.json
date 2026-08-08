@@ -1,7 +1,7 @@
 {
   "schema": "snowball.opportunity-frontier.v1_2",
-  "geradoEm": "2026-08-08T20:05:50.479Z",
-  "asOfMs": 1786219550479,
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
   "modeloEconomico": {
     "takerFee": 0.0005,
     "slippage": 0.0002,
@@ -14,22 +14,22 @@
   },
   "janela": {
     "inicio": "2026-08-02T18:21:54.848Z",
-    "fim": "2026-08-08T20:56:40.506Z",
-    "horas": 146.58
+    "fim": "2026-08-08T21:12:11.387Z",
+    "horas": 146.84
   },
   "item1_observerPreSaldo": {
-    "observacoesBrutas": 125337,
-    "oportunidadesDistintas": 2913,
+    "observacoesBrutas": 125723,
+    "oportunidadesDistintas": 2916,
     "foraDos6Operacionais": 0,
     "semFeaturesRaw": 0,
-    "viaveisEconomicamente": 1073,
-    "positivasEV": 1073,
-    "aprMedianoGlobal": 0.161,
-    "aprP90": 1.0893,
-    "nota": "Das 2913 oportunidades distintas observadas (6 exchanges), 1073 têm EV líquido positivo com payback ≤168h (margem 1.5×). ESTE É UM LIMITE SUPERIOR: assume que dá p/ segurar até 168h. A vida real de cada oportunidade NÃO está no bruto (só ts/spread/apr/vol) — e é justamente ela que derruba o número.",
-    "respostaItem1": "As saldo-rejeições do motor tinham features zeradas (rejeitadas antes de avaliar). Recomputando do bruto com hold-máx de 168h, até 1073 oportunidades PODERIAM ser positivas; mas o motor, usando a VIDA REAL de cada oportunidade, aprovou só ~13 (v1.1) — as demais não vivem tempo suficiente p/ pagar o round-trip. Em ambos os casos: 0 positivas bloqueadas por CAPITAL (margem/posição = US$40). O gargalo é vida/oferta de EV+, não capital.",
+    "viaveisEconomicamente": 1074,
+    "positivasEV": 1074,
+    "aprMedianoGlobal": 0.1612,
+    "aprP90": 1.095,
+    "nota": "Das 2916 oportunidades distintas observadas (6 exchanges), 1074 têm EV líquido positivo com payback ≤168h (margem 1.5×). ESTE É UM LIMITE SUPERIOR: assume que dá p/ segurar até 168h. A vida real de cada oportunidade NÃO está no bruto (só ts/spread/apr/vol) — e é justamente ela que derruba o número.",
+    "respostaItem1": "As saldo-rejeições do motor tinham features zeradas (rejeitadas antes de avaliar). Recomputando do bruto com hold-máx de 168h, até 1074 oportunidades PODERIAM ser positivas; mas o motor, usando a VIDA REAL de cada oportunidade, aprovou só ~13 (v1.1) — as demais não vivem tempo suficiente p/ pagar o round-trip. Em ambos os casos: 0 positivas bloqueadas por CAPITAL (margem/posição = US$40). O gargalo é vida/oferta de EV+, não capital.",
     "limiteSuperiorVsReal": {
-      "upperBoundHoldMax": 1073,
+      "upperBoundHoldMax": 1074,
       "realDoMotorV1": 13,
       "motivoDiferenca": "vida esperada por oportunidade (ausente no bruto) — o motor exige payback dentro da vida observada; o modelo assume hold até 168h."
     }
@@ -39,11 +39,11 @@
       {
         "capital": 200,
         "maxConcorrentes": 3,
-        "positivasObservadas": 1073,
-        "positivasFinanciaveis": 1073,
+        "positivasObservadas": 1074,
+        "positivasFinanciaveis": 1074,
         "positivasBloqueadasPorCapital": 0,
-        "evPoolTotalUSD_upperBound": 216.2332,
-        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6046,
+        "evPoolTotalUSD_upperBound": 216.515,
+        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6048,
         "capitalHoras": 20160,
         "capitalOciosoUSD": 20,
         "retornoMarginalPorDolar": null
@@ -51,11 +51,11 @@
       {
         "capital": 300,
         "maxConcorrentes": 3,
-        "positivasObservadas": 1073,
-        "positivasFinanciaveis": 1073,
+        "positivasObservadas": 1074,
+        "positivasFinanciaveis": 1074,
         "positivasBloqueadasPorCapital": 0,
-        "evPoolTotalUSD_upperBound": 216.2332,
-        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6046,
+        "evPoolTotalUSD_upperBound": 216.515,
+        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6048,
         "capitalHoras": 20160,
         "capitalOciosoUSD": 90,
         "retornoMarginalPorDolar": 0
@@ -63,11 +63,11 @@
       {
         "capital": 400,
         "maxConcorrentes": 3,
-        "positivasObservadas": 1073,
-        "positivasFinanciaveis": 1073,
+        "positivasObservadas": 1074,
+        "positivasFinanciaveis": 1074,
         "positivasBloqueadasPorCapital": 0,
-        "evPoolTotalUSD_upperBound": 216.2332,
-        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6046,
+        "evPoolTotalUSD_upperBound": 216.515,
+        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6048,
         "capitalHoras": 20160,
         "capitalOciosoUSD": 160,
         "retornoMarginalPorDolar": 0
@@ -75,11 +75,11 @@
       {
         "capital": 600,
         "maxConcorrentes": 3,
-        "positivasObservadas": 1073,
-        "positivasFinanciaveis": 1073,
+        "positivasObservadas": 1074,
+        "positivasFinanciaveis": 1074,
         "positivasBloqueadasPorCapital": 0,
-        "evPoolTotalUSD_upperBound": 216.2332,
-        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6046,
+        "evPoolTotalUSD_upperBound": 216.515,
+        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6048,
         "capitalHoras": 20160,
         "capitalOciosoUSD": 300,
         "retornoMarginalPorDolar": 0
@@ -87,11 +87,11 @@
       {
         "capital": 800,
         "maxConcorrentes": 3,
-        "positivasObservadas": 1073,
-        "positivasFinanciaveis": 1073,
+        "positivasObservadas": 1074,
+        "positivasFinanciaveis": 1074,
         "positivasBloqueadasPorCapital": 0,
-        "evPoolTotalUSD_upperBound": 216.2332,
-        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6046,
+        "evPoolTotalUSD_upperBound": 216.515,
+        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6048,
         "capitalHoras": 20160,
         "capitalOciosoUSD": 440,
         "retornoMarginalPorDolar": 0
@@ -99,11 +99,11 @@
       {
         "capital": 1000,
         "maxConcorrentes": 3,
-        "positivasObservadas": 1073,
-        "positivasFinanciaveis": 1073,
+        "positivasObservadas": 1074,
+        "positivasFinanciaveis": 1074,
         "positivasBloqueadasPorCapital": 0,
-        "evPoolTotalUSD_upperBound": 216.2332,
-        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6046,
+        "evPoolTotalUSD_upperBound": 216.515,
+        "pnlLiquidoConcorrenciaLimitadoUSD": 0.6048,
         "capitalHoras": 20160,
         "capitalOciosoUSD": 580,
         "retornoMarginalPorDolar": 0
@@ -114,7 +114,7 @@
       "economicaComprovada": "~US$171.43: acima disso o capital não financia mais posições concorrentes (limite maxPos=3) nem há EV+ suficiente. Capital extra fica ocioso.",
       "desconhecidaPorFeatures": "0 observações sem apr/spread + ausência de \"vida esperada\" por observação → viabilidade é ESTIMADA (modelo), não a decisão exata do motor."
     },
-    "conclusao": "A fronteira satura ~US$171.43 (3 posições concorrentes). Positivas bloqueadas por capital: 0 em todos os níveis. O gargalo é OFERTA de EV+ (1073 oportunidades) + limite de 3 posições, não capital."
+    "conclusao": "A fronteira satura ~US$171.43 (3 posições concorrentes). Positivas bloqueadas por capital: 0 em todos os níveis. O gargalo é OFERTA de EV+ (1074 oportunidades) + limite de 3 posições, não capital."
   },
   "honestidade": "observed (spread/apr/vol brutos) + simulated (EV recomputado por modelo documentado). Não é a decisão exata do motor (que zerou as features das saldo-rejeições). Nenhuma ordem, nenhum capital movido."
 }

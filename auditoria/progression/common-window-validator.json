@@ -1,0 +1,73 @@
+{
+  "schema": "snowball.common-window-validator.v1_5",
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
+  "epoch": {
+    "forwardEpochId": "465a50b7aa1e382e",
+    "byteOffset": 14658894,
+    "fileIdentity": "3968459148:130604389193919400"
+  },
+  "processos": [
+    {
+      "label": "trial",
+      "forwardEpochId": "465a50b7aa1e382e",
+      "byteOffset": 14674707,
+      "eventCount": 135,
+      "accumulatedEventHash": "d460764fdb7f815b547290f1e70d4103",
+      "sourceStatus": "OK",
+      "fileIdentity": "3968459148:130604389193919400",
+      "vivo": true
+    },
+    {
+      "label": "control",
+      "forwardEpochId": "465a50b7aa1e382e",
+      "byteOffset": 14674707,
+      "eventCount": 135,
+      "accumulatedEventHash": "d460764fdb7f815b547290f1e70d4103",
+      "sourceStatus": "OK",
+      "fileIdentity": "3968459148:130604389193919400",
+      "vivo": true
+    },
+    {
+      "label": "observer-max3",
+      "forwardEpochId": "465a50b7aa1e382e",
+      "byteOffset": 14674707,
+      "eventCount": 135,
+      "accumulatedEventHash": "d460764fdb7f815b547290f1e70d4103",
+      "sourceStatus": "OK",
+      "fileIdentity": "3968459148:130604389193919400",
+      "vivo": true
+    },
+    {
+      "label": "observer-max4",
+      "forwardEpochId": "465a50b7aa1e382e",
+      "byteOffset": 14674707,
+      "eventCount": 135,
+      "accumulatedEventHash": "d460764fdb7f815b547290f1e70d4103",
+      "sourceStatus": "OK",
+      "fileIdentity": "3968459148:130604389193919400",
+      "vivo": true
+    },
+    {
+      "label": "observer-max5",
+      "forwardEpochId": "465a50b7aa1e382e",
+      "byteOffset": 14674707,
+      "eventCount": 135,
+      "accumulatedEventHash": "d460764fdb7f815b547290f1e70d4103",
+      "sourceStatus": "OK",
+      "fileIdentity": "3968459148:130604389193919400",
+      "vivo": true
+    }
+  ],
+  "checks": {
+    "forwardEpochIdIgual": true,
+    "startOffsetIgual": true,
+    "sourceIdentityIgual": true,
+    "divergenciaHashMesmaContagem": false,
+    "spreadContagemEventos": 0
+  },
+  "detalhesDivergencia": [],
+  "comparisonStatus": "OK",
+  "nota": "Os 5 processos partem do MESMO epoch/offset/fonte; hashes acumulados concordam na mesma contagem. Comparação econômica VÁLIDA (o spread de contagem é só defasagem de ciclo assíncrono; converge).",
+  "honestidade": "Divergência de contagem transitória (ciclos assíncronos) NÃO é divergência de fonte — só conta como SUSPENDED se dois processos na MESMA contagem têm hashes diferentes."
+}
