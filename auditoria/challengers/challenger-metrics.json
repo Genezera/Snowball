@@ -1,0 +1,225 @@
+{
+  "snapshot": "1786189433850",
+  "fidelidade": {
+    "posicoes": 12,
+    "pnlRealTotal": 5.4379,
+    "pnlControlTotal": 5.4379,
+    "difAbs": 0.000043,
+    "tolerancia": 0.01,
+    "fiel": true
+  },
+  "gate": {
+    "fechamentosComparaveis": {
+      "valor": 12,
+      "minimo": 30,
+      "atende": false
+    },
+    "janelasCronologicas": {
+      "valor": 2,
+      "minimo": 2,
+      "atende": true
+    },
+    "regimes": {
+      "valor": 2,
+      "minimo": 2,
+      "atende": true
+    },
+    "controlFiel": true,
+    "challengersPositivosPosStress": [
+      "closeConfirm",
+      "nextSettlement",
+      "evExit"
+    ],
+    "ddEDistLiqNaoPiores": "não instrumentado por ciclo (marcado — não fabricado)",
+    "LIBERADO": false,
+    "veredito": "BLOQUEADO — 12/30 fechamentos comparáveis; dd/dist-liq por ciclo não instrumentados. NÃO recomendar alterar o Champion."
+  },
+  "commonWindowPorStress": {
+    "normal": {
+      "control": {
+        "pnlLiquido": 5.4379,
+        "fundingAdicional": 0,
+        "settlementsAdicionais": 0,
+        "custoOportunidade": 0,
+        "inversoesConfirmadas": 0
+      },
+      "closeConfirm": {
+        "pnlLiquido": 5.7357,
+        "fundingAdicional": 0.5493,
+        "settlementsAdicionais": 3,
+        "custoOportunidade": 0.2515,
+        "inversoesConfirmadas": 0
+      },
+      "nextSettlement": {
+        "pnlLiquido": 10.0884,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      },
+      "evExit": {
+        "pnlLiquido": 10.0884,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      }
+    },
+    "custo1.5x": {
+      "control": {
+        "pnlLiquido": 2.6108,
+        "fundingAdicional": 0,
+        "settlementsAdicionais": 0,
+        "custoOportunidade": 0,
+        "inversoesConfirmadas": 0
+      },
+      "closeConfirm": {
+        "pnlLiquido": 2.9086,
+        "fundingAdicional": 0.5493,
+        "settlementsAdicionais": 3,
+        "custoOportunidade": 0.2515,
+        "inversoesConfirmadas": 0
+      },
+      "nextSettlement": {
+        "pnlLiquido": 7.2613,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      },
+      "evExit": {
+        "pnlLiquido": 7.2613,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      }
+    },
+    "custo2x": {
+      "control": {
+        "pnlLiquido": -0.2168,
+        "fundingAdicional": 0,
+        "settlementsAdicionais": 0,
+        "custoOportunidade": 0,
+        "inversoesConfirmadas": 0
+      },
+      "closeConfirm": {
+        "pnlLiquido": 0.081,
+        "fundingAdicional": 0.5493,
+        "settlementsAdicionais": 3,
+        "custoOportunidade": 0.2515,
+        "inversoesConfirmadas": 0
+      },
+      "nextSettlement": {
+        "pnlLiquido": 4.4337,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      },
+      "evExit": {
+        "pnlLiquido": 4.4337,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      }
+    },
+    "slippage2x": {
+      "control": {
+        "pnlLiquido": 5.4379,
+        "fundingAdicional": 0,
+        "settlementsAdicionais": 0,
+        "custoOportunidade": 0,
+        "inversoesConfirmadas": 0
+      },
+      "closeConfirm": {
+        "pnlLiquido": 5.4842,
+        "fundingAdicional": 0.5493,
+        "settlementsAdicionais": 3,
+        "custoOportunidade": 0.2515,
+        "inversoesConfirmadas": 0
+      },
+      "nextSettlement": {
+        "pnlLiquido": 8.763,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      },
+      "evExit": {
+        "pnlLiquido": 8.763,
+        "fundingAdicional": 5.9762,
+        "settlementsAdicionais": 6,
+        "custoOportunidade": 1.3255,
+        "inversoesConfirmadas": 0
+      }
+    },
+    "funding-25%": {
+      "control": {
+        "pnlLiquido": 2.6649,
+        "fundingAdicional": 0,
+        "settlementsAdicionais": 0,
+        "custoOportunidade": 0,
+        "inversoesConfirmadas": 0
+      },
+      "closeConfirm": {
+        "pnlLiquido": 2.8254,
+        "fundingAdicional": 0.4119,
+        "settlementsAdicionais": 3,
+        "custoOportunidade": 0.2515,
+        "inversoesConfirmadas": 0
+      },
+      "nextSettlement": {
+        "pnlLiquido": 5.8495,
+        "fundingAdicional": 4.3336,
+        "settlementsAdicionais": 5,
+        "custoOportunidade": 1.1491,
+        "inversoesConfirmadas": 0
+      },
+      "evExit": {
+        "pnlLiquido": 5.8495,
+        "fundingAdicional": 4.3336,
+        "settlementsAdicionais": 5,
+        "custoOportunidade": 1.1491,
+        "inversoesConfirmadas": 0
+      }
+    },
+    "funding-50%": {
+      "control": {
+        "pnlLiquido": -0.1083,
+        "fundingAdicional": 0,
+        "settlementsAdicionais": 0,
+        "custoOportunidade": 0,
+        "inversoesConfirmadas": 0
+      },
+      "closeConfirm": {
+        "pnlLiquido": -0.0852,
+        "fundingAdicional": 0.2747,
+        "settlementsAdicionais": 3,
+        "custoOportunidade": 0.2515,
+        "inversoesConfirmadas": 0
+      },
+      "nextSettlement": {
+        "pnlLiquido": 1.6446,
+        "fundingAdicional": 2.8578,
+        "settlementsAdicionais": 4,
+        "custoOportunidade": 1.1049,
+        "inversoesConfirmadas": 0
+      },
+      "evExit": {
+        "pnlLiquido": 1.6446,
+        "fundingAdicional": 2.8578,
+        "settlementsAdicionais": 4,
+        "custoOportunidade": 1.1049,
+        "inversoesConfirmadas": 0
+      }
+    }
+  },
+  "benchmark": {
+    "taxaOportPorCapHora": 0.0002532,
+    "fundingTotalReal": 18.177
+  },
+  "limitacoes": "Funding pós-fechamento é ESTIMADO do apr do historico (não realizado). PnL residual por perna, mark por exchange por ciclo, e distância de liquidação por ciclo NÃO estão instrumentados — marcados, não fabricados. Amostra pequena.",
+  "recomendacao": "NÃO alterar o Champion. Acumular ≥30 fechamentos comparáveis e instrumentar dd/dist-liq por ciclo antes de qualquer comparação formal. Manter os challengers em paper isolado, observando."
+}
