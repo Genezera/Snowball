@@ -1,0 +1,62 @@
+{
+  "snapshot": "1786189433850",
+  "geradoEm": "2026-08-08T14:13:39.796Z",
+  "fidelidade": {
+    "pnlReal": 9.1699,
+    "pnlControl": 9.1697,
+    "difAbs": 0.0002,
+    "tolerancia": 0.01,
+    "fiel": true
+  },
+  "commonWindowBatch": {
+    "control": {
+      "fechados": 20,
+      "abertas": 3,
+      "pnl": 9.1697,
+      "riscoExits": 0,
+      "entradas": 23,
+      "telemetriaLinhas": 3
+    },
+    "closeConfirm": {
+      "fechados": 20,
+      "abertas": 3,
+      "pnl": 9.1697,
+      "riscoExits": 19,
+      "entradas": 23,
+      "telemetriaLinhas": 23
+    },
+    "nextSettlement": {
+      "fechados": 19,
+      "abertas": 4,
+      "pnl": 8.8582,
+      "riscoExits": 19,
+      "entradas": 23,
+      "telemetriaLinhas": 23
+    },
+    "evExit": {
+      "fechados": 19,
+      "abertas": 4,
+      "pnl": 8.8582,
+      "riscoExits": 19,
+      "entradas": 23,
+      "telemetriaLinhas": 23
+    }
+  },
+  "divergenciaEvVsNextSettlement": {
+    "identicas": true,
+    "acao": "candidatas a FUNDIR (comportamento idêntico) — confirmar ao vivo antes"
+  },
+  "gate": {
+    "fechamentosComparaveisComExtensao": 0,
+    "minimo": 30,
+    "nota": "replay batch NÃO produz divergência de extensão (usa dados de mercado atuais para posições históricas → risk-exit por stale). Divergência real exige rodar AO VIVO por dias.",
+    "controlFiel": true,
+    "riscoPorCicloInstrumentado": true,
+    "fundingObservado": "real enquanto o Champion segura; extensão usa rate observado ao vivo (a coletar)",
+    "janelas": 2,
+    "regimes": 2,
+    "LIBERADO": false,
+    "veredito": "BLOQUEADO — Control fiel e telemetria pronta, mas 0 fechamentos comparáveis COM extensão (precisa dias ao vivo). NÃO alterar o Champion."
+  },
+  "recomendacao": "NÃO alterar o Champion. Rodar os 4 challengers AO VIVO (já iniciados) por >=2 janelas/regimes até >=30 fechamentos com extensão; então comparar com custos 2x e checar dd/dist-liq não piores e nenhuma posição dominante."
+}

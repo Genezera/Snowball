@@ -1,0 +1,8 @@
+# Runtime isolado dos challengers (volátil, cresce ao vivo) — não versionado.
+# O CÓDIGO fica em scripts/challengers-timing/; os relatórios em auditoria/challengers/.
+*/estado.json
+*/diario.jsonl
+*/telemetria.jsonl
+*/heartbeat.json
+*/live.log
+*/challenger.lock
