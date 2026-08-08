@@ -3,7 +3,7 @@
   "geradoEm": "2026-08-08T20:05:50.479Z",
   "asOfMs": 1786219550479,
   "invariante": {
-    "capitalFinal": 612.7172,
+    "capitalFinal": 612.6655,
     "tempoParaNivelIdenticoEntrePoliticas": true,
     "explicacao": "Com 100% do lucro retido, A/B/C atingem o mesmo capital no mesmo tempo. A escolha NÃO acelera o crescimento — muda apenas exposição/ocioso/risco."
   },
@@ -12,14 +12,14 @@
     "drawdownObservadoPct": 0.43,
     "tempoParaDesbloquear": "idêntico (função do capital total, não da política)",
     "utilizacao": {
-      "A": "57.76%",
-      "B": "57.09%",
-      "C": "57.42%"
+      "A": "57.79%",
+      "B": "57.12%",
+      "C": "57.45%"
     },
     "capitalParado": {
       "A": 0,
-      "B": 4.08,
-      "C": 2.04
+      "B": 4.1,
+      "C": 2.05
     },
     "risco": {
       "A": "maior exposição",
@@ -34,25 +34,25 @@
     "A": {
       "nome": "Reinvestimento contínuo",
       "descricao": "Todo lucro líquido aumenta imediatamente a base operacional, respeitando reserva/limites/ordem mínima.",
-      "utilizacaoMediaUSD": 353.89,
-      "utilizacaoMediaPct": 57.76,
+      "utilizacaoMediaUSD": 354.04,
+      "utilizacaoMediaPct": 57.79,
       "capitalOciosoMedioUSD": 0,
       "exposicaoMaxUSD": 428.95
     },
     "B": {
       "nome": "Reinvestimento por degraus",
       "descricao": "A base operacional só sobe ao atingir um degrau economicamente útil (min notional, 2ª posição, novo motor, nova exchange).",
-      "utilizacaoMediaUSD": 349.81,
-      "utilizacaoMediaPct": 57.09,
-      "capitalOciosoMedioUSD": 4.08,
+      "utilizacaoMediaUSD": 349.94,
+      "utilizacaoMediaPct": 57.12,
+      "capitalOciosoMedioUSD": 4.1,
       "exposicaoMaxUSD": 419.97
     },
     "C": {
       "nome": "Fundo de desbloqueio",
       "descricao": "Parte do lucro fica em reserva interna até atingir o capital mínimo de um novo módulo. Todo o dinheiro permanece no Snowball.",
-      "utilizacaoMediaUSD": 351.85,
-      "utilizacaoMediaPct": 57.42,
-      "capitalOciosoMedioUSD": 2.04,
+      "utilizacaoMediaUSD": 351.99,
+      "utilizacaoMediaPct": 57.45,
+      "capitalOciosoMedioUSD": 2.05,
       "exposicaoMaxUSD": 422.56
     }
   },

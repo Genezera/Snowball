@@ -6,14 +6,14 @@
   "trajetoriaObservada": {
     "tipo": "observed",
     "capitalInicial": 200,
-    "capitalAtual": 612.7172,
-    "pontos": 1001,
+    "capitalAtual": 612.6655,
+    "pontos": 1003,
     "primeiroTs": "2026-08-03T12:04:31.297Z",
     "ultimoTs": "2026-08-08T20:05:50.479Z",
-    "diasObservados": 5.36,
+    "diasObservados": 5.37,
     "fundingObservado": 23.3693,
-    "custosObservado": 10.6521,
-    "netObservado": 12.7172,
+    "custosObservado": 10.7039,
+    "netObservado": 12.6655,
     "maxDrawdownPct": 0.43,
     "nota": "Trajetória de fato. Inclui 1 aporte de US$400 (4 exchanges) — não é lucro."
   },
@@ -27,50 +27,50 @@
   "stressMecanico": [
     {
       "id": "observado",
-      "net": 12.7172,
+      "net": 12.6655,
       "tipo": "observed",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_1_5x",
-      "net": 7.3912,
+      "net": 7.3136,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_2x",
-      "net": 2.0651,
+      "net": 1.9616,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "funding_menos25",
-      "net": 6.8749,
+      "net": 6.8232,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "funding_menos50",
-      "net": 1.0325,
+      "net": 0.9808,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_2x_funding_menos25",
-      "net": -3.7772,
+      "net": -3.8807,
       "tipo": "simulated",
       "sobreviveComLucro": false
     }
   ],
   "intervaloCenarios": {
-    "min": -3.7772,
-    "max": 12.7172,
-    "observado": 12.7172
+    "min": -3.8807,
+    "max": 12.6655,
+    "observado": 12.6655
   },
   "projecaoTemporal": null,
   "projecaoTemporalNota": "REMOVIDO: v1.0 usava 0,67%/dia (2,72 dias de amostra) para projetar datas de nível. Isso é extrapolação indevida — nenhuma data é prometida.",
   "contribuicaoPorMotor": {
-    "champion-funding": 12.7172,
+    "champion-funding": 12.6655,
     "outros": 0
   },
   "honestidade": "Só fato observado + stress mecânico. Nenhuma taxa de longo prazo, nenhuma data, nenhum lucro futuro garantido. Bootstrap só quando houver ≥2 janelas/regimes."

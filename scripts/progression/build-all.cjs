@@ -28,6 +28,9 @@ const ordem = [
   'opportunity-life.cjs',       // v1.3 Partes 6,7 (vida + multi-horizonte)
   'maxpositions-test.cjs',      // v1.3 Parte 8 (maxPos 3/4/5)
   'forward-status.cjs',         // v1.3 Partes 9,10 (common-window forward + gate)
+  'opportunity-episodes.cjs',   // v1.4 Partes 2,3,4,5 (episódios/censura/no-lookahead/funil)
+  'control-fidelity-vectorial.cjs', // v1.4 Parte 6 (fidelidade por definição ≤US$0,01)
+  'relatorio-forward.cjs',      // v1.4 Partes 1,10,11,12 (identidade/capital local/diário/gate)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
 let ok = 0;

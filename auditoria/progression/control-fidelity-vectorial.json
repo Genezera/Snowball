@@ -1,0 +1,91 @@
+{
+  "schema": "snowball.control-fidelity-vectorial.v1_4",
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
+  "toleranciaUSD": 0.01,
+  "semCategoriaResidual": true,
+  "nota": "Cada definição reconcilia na SUA base (realized vs realized, marked vs marked, executable vs executable). NÃO se usa resíduo p/ compensar bases diferentes: marked e realized são coisas distintas e cada uma bate com a sua fonte no Champion.",
+  "dimensoesMonetarias": [
+    {
+      "definicao": "funding",
+      "base": "soma de ganhos de funding",
+      "control": 23.3693,
+      "champion": 23.3693,
+      "diferenca": 0,
+      "reconcilia": true
+    },
+    {
+      "definicao": "custos",
+      "base": "soma de custos de eventos",
+      "control": 10.7039,
+      "champion": 10.7039,
+      "diferenca": 0,
+      "reconcilia": true
+    },
+    {
+      "definicao": "capital",
+      "base": "capitalInicial + funding − custos",
+      "control": 612.6655,
+      "champion": 612.6655,
+      "diferenca": 0,
+      "reconcilia": true
+    },
+    {
+      "definicao": "realized PnL",
+      "base": "capital − capitalInicial",
+      "control": 12.6655,
+      "champion": 12.6655,
+      "diferenca": 0,
+      "reconcilia": true
+    },
+    {
+      "definicao": "marked PnL",
+      "base": "equityMark − capitalRealizado",
+      "control": 1.1233,
+      "champion": 1.1233,
+      "diferenca": 0,
+      "reconcilia": true
+    },
+    {
+      "definicao": "executable PnL",
+      "base": "equityLiquidacao − capitalRealizado + custoEstimadoFechamentoTotal",
+      "control": 1.0464,
+      "champion": 1.0464,
+      "diferenca": 0,
+      "reconcilia": true
+    },
+    {
+      "definicao": "saldos por exchange",
+      "base": "soma dos saldos por exchange = capital",
+      "control": 612.6655,
+      "champion": 612.6655,
+      "diferenca": 0,
+      "reconcilia": true
+    }
+  ],
+  "dimensoesNaoMonetarias": [
+    {
+      "definicao": "posições (contagem)",
+      "control": 3,
+      "champion": 3,
+      "reconcilia": true
+    },
+    {
+      "definicao": "positionIds (conjunto)",
+      "control": [
+        "BICO/USDT:USDT:1786169106062",
+        "1000CAT/USDT:USDT:1786219244131",
+        "ZBT/USDT:USDT:1786222650260"
+      ],
+      "champion": [
+        "BICO/USDT:USDT:1786169106062",
+        "1000CAT/USDT:USDT:1786219244131",
+        "ZBT/USDT:USDT:1786222650260"
+      ],
+      "reconcilia": true
+    }
+  ],
+  "fundingPosicoesAbertas": 2.8395,
+  "todasReconciliam": true,
+  "veredito": "Control FIEL ao Champion em TODAS as 9 definições, cada uma ≤US$0,01 na sua base, sem categoria residual."
+}

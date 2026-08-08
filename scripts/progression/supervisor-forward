@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# v1.4 — PARTE 7. Supervisor ISOLADO só dos 5 processos forward (trial-bitget-bybit,
+# control-six-exchanges, observer-max3/4/5). heartbeat, lock/mutex single-instance,
+# restart com backoff, cursor preservado (no estado.json de cada label). ZERO
+# interação com o Champion/motores. Nenhuma ordem.
+set -u
+cd "$(dirname "$0")/../.."
+BASE=auditoria/progression/forward
+NODE="node"; PROC="scripts/progression/forward-lab.cjs"
+# label|args
+DEFS=(
+  "trial|--mode trial --label trial"
+  "control|--mode control --label control"
+  "observer-max3|--mode control --maxpos 3 --label observer-max3"
+  "observer-max4|--mode control --maxpos 4 --label observer-max4"
+  "observer-max5|--mode control --maxpos 5 --label observer-max5"
+)
+INTERVALO_CHECK=30; CICLO=300; HEARTBEAT_MAX_S=$((CICLO * 2 + 60))
+BACKOFF_BASE=5; BACKOFF_MAX=120
+LOCK="$BASE/supervisor.lock"; MUTEX="$BASE/supervisor.lockdir"; LOG="$BASE/supervisor.log"
+mkdir -p "$BASE"
+log() { echo "[$(date '+%H:%M:%S')] $1" >> "$LOG"; }
+
+if ! mkdir "$MUTEX" 2>/dev/null; then
+  if [ -f "$LOCK" ]; then hb=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).heartbeat||0)}catch(e){console.log(0)}' "$LOCK" 2>/dev/null)
+    if [ -n "$hb" ] && [ $(( $(date +%s%3N) - hb )) -lt 90000 ]; then log "outro supervisor-forward vivo — saindo"; exit 0; fi; fi
+  rmdir "$MUTEX" 2>/dev/null; mkdir "$MUTEX" 2>/dev/null || { log "mutex ocupado"; exit 1; }
+fi
+echo '{"pid":'$$',"heartbeat":'$(date +%s%3N)'}' > "$LOCK"; rmdir "$MUTEX" 2>/dev/null
+
+declare -A FALHAS PROXIMA; for d in "${DEFS[@]}"; do l="${d%%|*}"; FALHAS[$l]=0; PROXIMA[$l]=0; done
+proc_vivo() { timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*forward-lab*' -and \$_.CommandLine -like '*--label $1*' }).Count" 2>/dev/null | tr -d '\r\n '; }
+vivo_fresco() { local l="$1" hbf="$BASE/$1/heartbeat.json"; [ -f "$hbf" ] || return 1
+  local u; u=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).ultimoCiclo||0)}catch(e){console.log(0)}' "$hbf" 2>/dev/null)
+  [ -n "$u" ] && [ $(( $(date +%s%3N) - u )) -lt $((HEARTBEAT_MAX_S * 1000)) ]; }
+lancar() { local l="$1" a="$2"; nohup $NODE "$PROC" $a --intervalo "$CICLO" >> "$BASE/$l/live.log" 2>&1 & disown; log "$l (re)lançado — cursor preservado no estado.json"; }
+
+trap 'rm -f "$LOCK"; rmdir "$MUTEX" 2>/dev/null; log "supervisor-forward encerrado (limpo)"; exit 0' INT TERM
+log "supervisor-forward iniciado — 5 processos, check ${INTERVALO_CHECK}s, ZERO interação com Champion"
+while true; do
+  echo '{"pid":'$$',"heartbeat":'$(date +%s%3N)'}' > "$LOCK"
+  for d in "${DEFS[@]}"; do
+    l="${d%%|*}"; a="${d#*|}"
+    n=$(proc_vivo "$l")
+    if [ "${n:-0}" -ge 1 ] 2>/dev/null && vivo_fresco "$l"; then FALHAS[$l]=0; continue; fi
+    agora=$(date +%s); [ "$agora" -lt "${PROXIMA[$l]}" ] && continue
+    mkdir -p "$BASE/$l"
+    if [ "${n:-0}" -ge 1 ] 2>/dev/null; then timeout 8 powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*forward-lab*' -and \$_.CommandLine -like '*--label $l*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -EA SilentlyContinue }" >/dev/null 2>&1; fi
+    lancar "$l" "$a"
+    FALHAS[$l]=$(( FALHAS[$l] + 1 ))
+    bk=$(( BACKOFF_BASE * (1 << (FALHAS[$l] > 5 ? 5 : FALHAS[$l]-1 > 0 ? FALHAS[$l]-1 : 0)) )); [ "$bk" -gt "$BACKOFF_MAX" ] && bk=$BACKOFF_MAX
+    PROXIMA[$l]=$(( agora + bk )); log "$l backoff ${bk}s (falha ${FALHAS[$l]})"
+  done
+  sleep "$INTERVALO_CHECK"
+done

@@ -17,16 +17,18 @@ const args = process.argv.slice(2);
 const MODE = args[args.indexOf('--mode') + 1] || 'trial';
 const ONCE = args.includes('--once');
 const INTERVALO_S = Number(args[args.indexOf('--intervalo') + 1]) || 300;
+const MAXPOS = args.includes('--maxpos') ? Number(args[args.indexOf('--maxpos') + 1]) : L.MAX_POSICOES;
+const LABEL = args.includes('--label') ? args[args.indexOf('--label') + 1] : MODE; // dir de estado (observers: observer-maxN)
 const EXCHS = MODE === 'control' ? L.EXCHANGES : ['bitget', 'bybit'];
 const CAP_POR_EX = L.ALVO_POR_EXCHANGE;      // US$100 virtual por exchange
 const TAKER = 0.0005, SLIP = 0.0002, CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
 const NOTIONAL = L.ALVO_POR_EXCHANGE, MARGEM = 2 * NOTIONAL / L.ALAVANCAGEM; // 40
 const STALE_CICLOS = 3; // fecha virtual se a oportunidade some por N ciclos
 
-const DIR = path.join(L.ROOT, 'auditoria', 'progression', 'forward', MODE);
+const DIR = path.join(L.ROOT, 'auditoria', 'progression', 'forward', LABEL);
 fs.mkdirSync(DIR, { recursive: true });
 const F = { estado: path.join(DIR, 'estado.json'), ledger: path.join(DIR, 'ledger.jsonl'), diario: path.join(DIR, 'diario.jsonl'), heartbeat: path.join(DIR, 'heartbeat.json'), lock: path.join(DIR, 'lock.json') };
-const OBS = path.join(L.ROOT, 'vigilancia', 'arquivo-observacoes.jsonl');
+const OBS = process.env.FORWARD_OBS || path.join(L.ROOT, 'vigilancia', 'arquivo-observacoes.jsonl'); // override p/ testes isolados
 const now = () => Date.now();
 const rd = (p, d) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return d; } };
 const append = (p, o) => { try { fs.appendFileSync(p, JSON.stringify(o) + '\n'); } catch {} };
@@ -83,7 +85,7 @@ function umCiclo() {
     const livreLong = margemLivre(est, long), livreShort = margemLivre(est, short);
     const abertasCount = Object.keys(est.virtuais).length;
     let motivo = null;
-    if (abertasCount >= L.MAX_POSICOES) motivo = 'maxPositionsBlocked';
+    if (abertasCount >= MAXPOS) motivo = 'maxPositionsBlocked';
     else if (margemPorPerna > livreLong || margemPorPerna > livreShort) motivo = 'exchangeLocalBalanceBlocked';
     else if ((est.saldosPorExchange[long] < CAP_POR_EX * L.RESERVA) || (est.saldosPorExchange[short] < CAP_POR_EX * L.RESERVA)) motivo = 'reserveBlocked';
     const capTotalLivre = EXCHS.reduce((s, e) => s + margemLivre(est, e), 0);
@@ -117,13 +119,13 @@ function umCiclo() {
   est.cursorTs = maxTs;
   const capitalAtual = est.capitalInicial + est.fundingAcum - est.custosAcum;
   fs.writeFileSync(F.estado, JSON.stringify({ ...est, capitalAtual: L.r4(capitalAtual) }, null, 2));
-  fs.writeFileSync(F.heartbeat, JSON.stringify({ pid: process.pid, modo: MODE, ultimoCiclo: now(), abertas: Object.keys(est.virtuais).length, fechadas: est.contadores.fechadas, capital: L.r4(capitalAtual) }, null, 2));
+  fs.writeFileSync(F.heartbeat, JSON.stringify({ pid: process.pid, modo: MODE, label: LABEL, maxPos: MAXPOS, ultimoCiclo: now(), abertas: Object.keys(est.virtuais).length, fechadas: est.contadores.fechadas, capital: L.r4(capitalAtual) }, null, 2));
   const l = rd(F.lock, {}); l.heartbeat = now(); fs.writeFileSync(F.lock, JSON.stringify(l));
 }
 
-if (!adquirirLock()) { console.log(`[forward-lab ${MODE}] outra instância viva — saindo`); process.exit(0); }
+if (!adquirirLock()) { console.log(`[forward-lab ${LABEL}] outra instância viva — saindo`); process.exit(0); }
 process.on('SIGINT', () => { try { fs.unlinkSync(F.lock); } catch {} process.exit(0); });
 process.on('SIGTERM', () => { try { fs.unlinkSync(F.lock); } catch {} process.exit(0); });
-console.log(`[forward-lab ${MODE}] iniciado — ${EXCHS.join('+')} US$${EXCHS.length * CAP_POR_EX}, intervalo ${INTERVALO_S}s, FORWARD, NENHUMA ORDEM`);
+console.log(`[forward-lab ${LABEL}] iniciado — mode ${MODE} ${EXCHS.join('+')} US$${EXCHS.length * CAP_POR_EX} maxPos ${MAXPOS}, intervalo ${INTERVALO_S}s, FORWARD, NENHUMA ORDEM`);
 umCiclo();
 if (!ONCE) setInterval(umCiclo, INTERVALO_S * 1000);

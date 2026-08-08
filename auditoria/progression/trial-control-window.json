@@ -55,7 +55,7 @@
     "pnlLiquido": 13.166,
     "capitalFinal": 613.166,
     "retornoPct": 2.19,
-    "posicoes": 26,
+    "posicoes": 27,
     "perdidas": 0,
     "minOrder": 0,
     "drawdownPct": 8.93,
@@ -70,9 +70,9 @@
       "reconcilia": true
     },
     "reconciliacaoComChampion": {
-      "championNet": 12.7172,
+      "championNet": 12.6655,
       "controlePnl": 13.166,
-      "diferenca": 0.4488,
+      "diferenca": 0.5005,
       "tolerancia": 1,
       "reconcilia": true,
       "nota": "Diferença vem do funding acumulado das posições abertas ainda não líquido do custo de fechamento."
@@ -103,7 +103,7 @@
       },
       "oportunidades": {
         "trial": 6,
-        "control": 26
+        "control": 27
       },
       "capitalHoras": {
         "trial": 1721.18,
@@ -153,11 +153,11 @@
     "amostraMinima": {
       "minimo": 30,
       "trial": 6,
-      "control": 26,
+      "control": 27,
       "atende": false
     },
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.4488, tol 1)."
+    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.5005, tol 1)."
   },
   "honestidade": "observed (posições/funding/custos do Champion) + replay (sandbox reconciliado). Trial enviesado p/ o par que o Champion escolheu; 1 janela/1 regime → decisão NÃO liberada."
 }

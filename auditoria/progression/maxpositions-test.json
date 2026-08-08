@@ -8,7 +8,7 @@
     {
       "maxPositions": 3,
       "oportunidadesCapturadas": 15,
-      "pnlPotencialUSD": 23.921,
+      "pnlPotencialUSD": 23.9216,
       "capitalNecessarioUSD": 171.43,
       "picoMargemUSD": 120,
       "usoSimultaneoExchanges": 5,
@@ -18,7 +18,7 @@
     {
       "maxPositions": 4,
       "oportunidadesCapturadas": 19,
-      "pnlPotencialUSD": 26.6461,
+      "pnlPotencialUSD": 26.6467,
       "capitalNecessarioUSD": 228.57,
       "picoMargemUSD": 160,
       "usoSimultaneoExchanges": 5,
@@ -28,12 +28,12 @@
     {
       "maxPositions": 5,
       "oportunidadesCapturadas": 23,
-      "pnlPotencialUSD": 34.5313,
+      "pnlPotencialUSD": 34.3032,
       "capitalNecessarioUSD": 285.71,
       "picoMargemUSD": 200,
       "usoSimultaneoExchanges": 5,
       "concentracaoTop1": 0.2937,
-      "retornoMarginalPorDolar": 0.138
+      "retornoMarginalPorDolar": 0.134
     }
   ],
   "gargalo": "LIMITE DE POSIÇÕES *pelo modelo leniente* (até 86 janelas de payback sobrepostas). MAS este modelo superconta (151 vs ~13 do motor): janelas de payback de ~160h se sobrepõem em excesso, e o motor exige best-ranked + payback-dentro-da-vida. O gargalo REAL só o TESTE FORWARD (itens 3/4) resolve.",

@@ -1,39 +1,40 @@
 {
   "schema": "snowball.snapshot.v1_3",
-  "snapshotId": "078177b68a4fabd3",
+  "snapshotId": "bd7e3b9a01d13fc5",
   "tsInicial": 1785758671297,
   "tsInicialISO": "2026-08-03T12:04:31.297Z",
-  "tsFinal": 1786221939115,
-  "tsFinalISO": "2026-08-08T20:45:39.115Z",
-  "ultimoEventId": "1786221939115:bloqueado:MERL/USDT:USDT",
-  "ultimoCycleId": "ADA/USDT:USDT|bitget|binanceusdm",
-  "commit": "b899d468d67bc8534edb85e9e218a4a272dca3fc",
+  "tsFinal": 1786222650260,
+  "tsFinalISO": "2026-08-08T20:57:30.260Z",
+  "ultimoEventId": "1786222650260:abre:ZBT/USDT:USDT",
+  "ultimoCycleId": "PIXEL/USDT:USDT|bybit|bingx",
+  "commit": "7b0a55e8aae2aaf1648236dcb6eac25c15813136",
   "configEpochId": "epoch-1",
-  "capitalNoCorte": 612.7172,
+  "capitalNoCorte": 612.6655,
   "fundingNoCorte": 23.3693,
-  "custosNoCorte": 10.6521,
+  "custosNoCorte": 10.7039,
   "posicoesAbertasNoCorte": [
     "BICO/USDT:USDT",
-    "1000CAT/USDT:USDT"
+    "1000CAT/USDT:USDT",
+    "ZBT/USDT:USDT"
   ],
   "hashes": {
     "spread/diario.jsonl": {
-      "sha256": "087e10cd640cd649a8eb317cbf50caaf92103c515e2ab1828105fbd9a75ca77e",
-      "bytes": 481961
+      "sha256": "d69600ae1ebb3863caa00cb4a584b38fd1f641b6a41ea3115ec9596007d5552a",
+      "bytes": 483683
     },
     "spread/estado.json": {
-      "sha256": "495d761cb630de978bbab0ba319d635ea30183be900cfdf39850bcad2bfa12f5",
-      "bytes": 1975
+      "sha256": "c8cd837c94452eeb11ea8c9eed152199cfef483e523ca24a2a35dc2f108fa8d7",
+      "bytes": 2426
     },
     "spread/marcacao.json": {
-      "sha256": "1908a715bf5ba61efe0d75fe47375d4a2532faece5865ed68120a7cd47ec580e",
-      "bytes": 1673
+      "sha256": "13244bb23d5d0253a070d1240ab0b50d546ac53e7c3643f67144cd2b272f8246",
+      "bytes": 2318
     },
     "vigilancia/arquivo-observacoes.jsonl": {
-      "sha256": "9ab05f156902237a1d1a5ab1ddbe2643fdd75acb42d5f637ed9764ac5b175b45",
-      "bytes": 14585918
+      "sha256": "44cf75ff30b91d83e439b25da99927cedc23c9221af498375ea190fc3fce89ab",
+      "bytes": 14629670
     }
   },
-  "eventosNoDiario": 2022,
+  "eventosNoDiario": 2028,
   "nota": "Corte comum congelado. Todas as comparações v1.3 (Control, Trial replay, frontier, vida) usam ESTE snapshotId. Os processos FORWARD (Trial/Control live-paper) partem daqui para a frente."
 }

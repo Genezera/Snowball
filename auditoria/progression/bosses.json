@@ -15,12 +15,12 @@
     "notaDefeated": "DEFEATED exige ≥2 janelas E ≥2 regimes — inatingível com 1 janela. Máximo atual: PROVISIONALLY_DEFEATED."
   },
   "resumo": {
-    "PROVISIONALLY_DEFEATED": [
-      "custos",
-      "concentracao"
-    ],
     "PASSED_CURRENT_WINDOW": [
+      "custos",
       "sobrevivencia"
+    ],
+    "PROVISIONALLY_DEFEATED": [
+      "concentracao"
     ],
     "ACTIVE": [
       "capacidade",
@@ -32,35 +32,36 @@
       "id": "custos",
       "nome": "Chefe dos Custos",
       "metricas": {
-        "feeToGross": 0.4558,
+        "feeToGross": 0.458,
         "limiteFeeToGross": 0.6,
-        "netObservado": 12.7172,
-        "netComCustos2x": 2.0651,
+        "netObservado": 12.6655,
+        "netComCustos2x": 1.9616,
         "funding": 23.3693,
-        "custos": 10.6521
+        "custos": 10.7039
       },
       "criterios": {
         "feeToGrossAbaixoLimite": true,
         "lucroPositivoComCustos2x": true,
         "custosNaoConsomemMaioria": true
       },
-      "status": "PROVISIONALLY_DEFEATED"
+      "status": "PASSED_CURRENT_WINDOW",
+      "nota": "Sobrevive a custos 2×, porém com folga PEQUENA (+1.9616). Margem fina."
     },
     "sobrevivencia": {
       "id": "sobrevivencia",
       "nome": "Chefe da Sobrevivência",
       "metricas": {
         "drawdownMaxPct": 0.43,
-        "distanciaLiquidacaoMin": 0.18937224932964092,
+        "distanciaLiquidacaoMin": 0.17925054736011303,
         "distMinInfo": {
           "symbol": "1000CAT/USDT:USDT",
           "leg": "long",
-          "distancia": 0.1894
+          "distancia": 0.1793
         },
         "capitalFloor": 600,
-        "capitalAtual": 612.7172,
+        "capitalAtual": 612.6655,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 612.8115751545266
+        "equityExecutavel": 612.8017729860271
       },
       "criterios": {
         "drawdownControlado": true,
@@ -86,7 +87,8 @@
           "gate": 1,
           "okx": 1,
           "binanceusdm": 1,
-          "bybit": 1
+          "bybit": 2,
+          "bingx": 1
         }
       },
       "criterios": {
@@ -121,7 +123,7 @@
         "fontesLucrativas": [
           {
             "motor": "champion-funding",
-            "pnlLiquido": 12.7172,
+            "pnlLiquido": 12.6655,
             "amostra": 37
           },
           {

@@ -3,17 +3,17 @@
   "geradoEm": "2026-08-08T20:05:50.479Z",
   "asOfMs": 1786219550479,
   "item7_funil": {
-    "oportunidadesDistintas": 2910,
-    "modelPositiveEV_holdMax168h": 1071,
+    "oportunidadesDistintas": 2913,
+    "modelPositiveEV_holdMax168h": 1073,
     "modelPositiveEV_queViveramAtePayback": 151,
     "realmentePositivas_vidaObservada": 151,
     "abertasPeloChampion_simbolos": 1,
-    "explicacao": "De 2910 oportunidades, 1071 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 151 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~151 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
+    "explicacao": "De 2913 oportunidades, 1073 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 151 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~151 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
   },
   "distribuicao": {
-    "duracaoMedianaH": 27.15,
-    "paybackMedianoH": 160.38,
-    "pctQueViveramAtePayback": 5.19
+    "duracaoMedianaH": 27.14,
+    "paybackMedianoH": 160.31,
+    "pctQueViveramAtePayback": 5.18
   },
   "item6_multiHorizonte": {
     "horizontes": [

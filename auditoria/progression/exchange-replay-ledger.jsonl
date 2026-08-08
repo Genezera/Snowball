@@ -19,6 +19,7 @@
 {"par":"bingx+bybit","ts":1786010614510,"symbol":"BANK/USDT:USDT","acao":"financia","notional":239.85,"margem":47.97,"funding":1.6944,"custo":0.611,"pnl":1.0835,"aberta":false}
 {"par":"bingx+bybit","ts":1786117867708,"symbol":"COTI/USDT:USDT","acao":"financia","notional":167.59,"margem":33.52,"funding":0.7828,"custo":0.4713,"pnl":0.3115,"aberta":false}
 {"par":"bingx+bybit","ts":1786206110501,"symbol":"KAITO/USDT:USDT","acao":"financia","notional":311.78,"margem":62.36,"funding":1.594,"custo":0.7438,"pnl":0.8502,"aberta":false}
+{"par":"bingx+bybit","ts":1786222650260,"symbol":"ZBT/USDT:USDT","acao":"financia","notional":34,"margem":13.6,"funding":0,"custo":0,"pnl":0,"aberta":true}
 {"par":"gate+okx","ts":1785980648362,"symbol":"BICO/USDT:USDT","acao":"financia","notional":238.73,"margem":47.75,"funding":0.7077,"custo":0.4776,"pnl":0.23,"aberta":false}
 {"par":"gate+okx","ts":1786041678035,"symbol":"BICO/USDT:USDT","acao":"financia","notional":261.9,"margem":52.38,"funding":1.6781,"custo":0.5433,"pnl":1.1348,"aberta":false}
 {"par":"gate+okx","ts":1786138069487,"symbol":"BICO/USDT:USDT","acao":"financia","notional":251.38,"margem":50.28,"funding":1.3562,"custo":0.5028,"pnl":0.8534,"aberta":false}

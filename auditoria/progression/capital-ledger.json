@@ -3,8 +3,8 @@
   "geradoEm": "2026-08-08T20:05:50.479Z",
   "asOfMs": 1786219550479,
   "reconciliacao": {
-    "calculado": 612.7172,
-    "reportado": 612.7172,
+    "calculado": 612.6655,
+    "reportado": 612.6655,
     "diferenca": 0,
     "reconcilia": true,
     "identidade": "capital = capitalInicial + funding − custos"
@@ -27,35 +27,35 @@
     }
   },
   "capitalRealizado": {
-    "value": 612.7172158039554,
+    "value": 612.6654845229905,
     "source": "champion_observed",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 1
   },
   "equityMarcada": {
-    "value": 613.6852534772925,
+    "value": 613.7887950152274,
     "source": "champion_observed",
-    "observedAt": 1786221939956,
+    "observedAt": 1786222651615,
     "ageMs": 0,
     "confidence": 1
   },
   "equityExecutavel": {
-    "value": 612.8115751545266,
+    "value": 612.8017729860271,
     "source": "champion_observed",
-    "observedAt": 1786221939956,
+    "observedAt": 1786222651615,
     "ageMs": 0,
     "confidence": 1
   },
   "lucroAcumulado": {
-    "value": 12.7172,
+    "value": 12.6655,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "custosAcumulados": {
-    "value": 10.652121292516412,
+    "value": 10.703852573481349,
     "source": "champion_observed",
     "observedAt": 1786219550479,
     "ageMs": 0,
@@ -70,34 +70,34 @@
   },
   "drawdown": {
     "maxObservadoPct": 0.43,
-    "atualPct": 0.01,
+    "atualPct": 0.02,
     "picoTs": 1786219550479,
     "valeTs": 1785832241753,
     "source": "derived"
   },
   "reservaOperacional": {
-    "value": 183.8152,
+    "value": 183.7996,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalLivre": {
-    "value": 277.8217,
+    "value": 264.185,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalComprometido": {
-    "value": 151.0803,
+    "value": 164.6809,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "notionalExposto": {
-    "value": 337.9832,
+    "value": 371.9847,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
@@ -111,7 +111,7 @@
     "confidence": 0.7
   },
   "lucroReinvestivel": {
-    "value": 12.7172,
+    "value": 12.6655,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
@@ -125,19 +125,19 @@
     "confidence": 0.7
   },
   "capitalNecessarioProximoNivel": {
-    "valor": 187.28,
+    "valor": 187.33,
     "nivelAtualPorCapital": 3,
     "proximoNivel": 4,
-    "capitalDeployable": 428.9021,
+    "capitalDeployable": 428.8658,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
   "saldosPorExchange": {
     "binanceusdm": 100.55104875308373,
-    "bybit": 104.9187114844298,
+    "bybit": 104.89284584394734,
     "okx": 101.55028096209945,
     "gate": 101.53890761530586,
     "bitget": 102.95464060316152,
-    "bingx": 101.20362638587504
+    "bingx": 101.17776074539258
   },
   "posicoesAbertas": [
     {
@@ -157,6 +157,15 @@
       "margem": 97.7368,
       "fundingAcumulado": 2.1219,
       "abertaEm": 1786219244131
+    },
+    {
+      "symbol": "ZBT/USDT:USDT",
+      "exchangeShort": "bingx",
+      "exchangeLong": "bybit",
+      "notionalPorPerna": 34.0015,
+      "margem": 13.6006,
+      "fundingAcumulado": 0,
+      "abertaEm": 1786222650260
     }
   ],
   "politicaComposicao": {

@@ -2,7 +2,7 @@
   "schema": "snowball.levels.v1_1",
   "geradoEm": "2026-08-08T20:05:50.479Z",
   "asOfMs": 1786219550479,
-  "capitalRealizado": 612.7172,
+  "capitalRealizado": 612.6655,
   "capitalLevel": 3,
   "evidenceLevel": 1,
   "operationalLevel": 1,
@@ -182,7 +182,7 @@
       "evidenciaAtingida": false,
       "unlockStatus": "LOCKED",
       "blockedReasons": [
-        "capital insuficiente: US$612.72 < US$800 (estimativa)"
+        "capital insuficiente: US$612.67 < US$800 (estimativa)"
       ]
     },
     {
@@ -213,7 +213,7 @@
       "evidenciaAtingida": false,
       "unlockStatus": "LOCKED",
       "blockedReasons": [
-        "capital insuficiente: US$612.72 < US$1200 (estimativa)"
+        "capital insuficiente: US$612.67 < US$1200 (estimativa)"
       ]
     },
     {
@@ -247,7 +247,7 @@
       "evidenciaAtingida": false,
       "unlockStatus": "LOCKED",
       "blockedReasons": [
-        "capital insuficiente: US$612.72 < US$2000 (estimativa)"
+        "capital insuficiente: US$612.67 < US$2000 (estimativa)"
       ]
     }
   ]
