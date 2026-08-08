@@ -1,0 +1,104 @@
+{
+  "schema": "snowball.progression-status.v1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "nivelAtual": 1,
+  "nivelAtualNome": "Motor principal",
+  "progressoNivel": {
+    "proximo": 2,
+    "nome": "Eficiência",
+    "unlockStatus": "BLOCKED",
+    "bloqueios": [
+      "capital suficiente; falta evidência: gate dos challengers de timing LIBERADO · Chefe Concentração derrotado"
+    ]
+  },
+  "proximoDesbloqueio": "N2 Eficiência — BLOCKED",
+  "capitalAtual": 609.9825,
+  "capitalNecessarioProximoNivelEvidencia": 0,
+  "capitalNecessarioNota": "Capital do próximo nível JÁ atingido — o bloqueio é EVIDÊNCIA (gate/amostra), não dinheiro.",
+  "fronteiraCapital": {
+    "proximoNivelPorCapital": 4,
+    "gapUSD": 190.02,
+    "nota": "faltam US$ para o próximo degrau de capital."
+  },
+  "chefesAtivos": [
+    "capacidade",
+    "diversificacao"
+  ],
+  "chefesDerrotados": [
+    "custos",
+    "sobrevivencia",
+    "concentracao"
+  ],
+  "motoresPorEstado": {
+    "LIVE": 1,
+    "DATA_COLLECTION": 4,
+    "SHADOW": 1,
+    "LOCKED": 2,
+    "ARCHITECTURE_ONLY": 1
+  },
+  "motoresBloqueados": [
+    "news-event-radar",
+    "listing-opportunity-lab",
+    "acoes-multimercado"
+  ],
+  "motoresEmPesquisa": [
+    "close-timing-challengers",
+    "settlement-capture",
+    "funding-cross-sectional",
+    "pares",
+    "momentum"
+  ],
+  "motoresElegiveis": [
+    "champion-funding"
+  ],
+  "contribuicaoPnL": {
+    "champion-funding": 9.9825,
+    "outros": 0,
+    "nota": "100% do lucro vem do funding; nenhum 2º motor comprovado."
+  },
+  "progressoAmostra": {
+    "challengersTimingRealExtensions": "0/30",
+    "settlementCaptura": "4/30",
+    "exchangeSelectorEVpositivo": "13/30"
+  },
+  "progressoGates": {
+    "reconciliacao": true,
+    "chefeCustos": "DERROTADO",
+    "chefeSobrevivencia": "DERROTADO",
+    "chefeConcentracao": "DERROTADO",
+    "chefeCapacidade": "ATIVO",
+    "chefeDiversificacao": "ATIVO"
+  },
+  "exchangeSelector": {
+    "melhorParRealizado": {
+      "par": "bitget+bybit",
+      "pnl": 6.0439
+    },
+    "suficienteParaEscolher2": false,
+    "lucroPerdidoAoRestringir": 4.4165
+  },
+  "crescimento": {
+    "retornoDiarioObsPct": 0.6652,
+    "avisoAmostra": "AMOSTRA INSUFICIENTE: só 2.72 dias de epoch-1. TODA projeção abaixo é HIPÓTESE frágil — não é lucro futuro garantido. Não extrapolar dias como meses."
+  },
+  "displaySchemaDashboardV2": {
+    "destino": "Dashboard V2 canônico (futuro; nenhuma interface criada nesta fase)",
+    "campos": [
+      "nivelAtual",
+      "progressoNivel",
+      "proximoDesbloqueio",
+      "capitalAtual",
+      "capitalNecessario",
+      "chefesAtivos",
+      "motoresBloqueados",
+      "motoresEmPesquisa",
+      "motoresElegiveis",
+      "contribuicaoPnL",
+      "progressoAmostra",
+      "progressoGates"
+    ],
+    "fonte": "auditoria/progression/*.json (read-only, append-only)"
+  },
+  "honestidade": "Nível por EVIDÊNCIA = 1 (capital suporta 3). Nada promovido. Nenhuma alteração real. Distingue observed/replayed/simulated/shadow/hypothetical."
+}

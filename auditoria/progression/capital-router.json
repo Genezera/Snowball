@@ -1,0 +1,51 @@
+{
+  "schema": "snowball.capital-router.v1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "natureza": "SHADOW/observer — nenhuma ordem, saldo, fechamento, sizing ou aprovação real. Só registra a decisão que TOMARIA e compara com o Champion.",
+  "formatoComum": [
+    "opportunityId",
+    "engineId",
+    "timestamp",
+    "capitalRequired",
+    "expectedGrossReturn",
+    "expectedNetReturn",
+    "expectedDuration",
+    "expectedCapitalHours",
+    "expectedCosts",
+    "expectedDrawdown",
+    "liquidationRisk",
+    "confidence",
+    "dataQuality",
+    "capacity",
+    "expiry",
+    "blockedReasons"
+  ],
+  "criteriosComparacao": [
+    "lucro líquido esperado",
+    "retorno por capital-hora",
+    "custo",
+    "risco",
+    "confiança",
+    "duração",
+    "capacidade",
+    "reserva necessária",
+    "correlação com abertas",
+    "oportunidade perdida ao comprometer capital"
+  ],
+  "amostra": {
+    "episodios": 2077,
+    "shadowAlocaria": 6,
+    "championEscolheu": 11,
+    "concordamEscolha": 4,
+    "ambosRejeitam": 2064,
+    "divergem": 9,
+    "taxaConcordancia": 0.9957
+  },
+  "honestidade": "A maioria esmagadora dos episódios tem EV não-positivo → shadow e Champion REJEITAM juntos. A concordância alta reflete que quase nada passa no custo/payback, não que o router \"acerta\". Router é observador; a decisão real continua do Champion.",
+  "posicoesAbertasChampion": [
+    "CXMT/USDT:USDT",
+    "BICO/USDT:USDT",
+    "LA/USDT:USDT"
+  ]
+}

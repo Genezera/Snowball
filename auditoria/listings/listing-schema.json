@@ -1,0 +1,213 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://snowball.local/schemas/listing-episode.json",
+  "title": "Listing Episode",
+  "description": "Episódio de uma moeda recém-listada num perp. Fase coleta/replay/paper — ZERO execução real. Toda instância é append-only e carrega provenance. Rótulos de evidência: observed | replayed | simulated | shadow | hypothetical | live-paper | real (real NÃO ocorre nesta fase).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "symbol",
+    "negociacaoTs",
+    "primeiraExchange",
+    "provenance"
+  ],
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "Símbolo/par da moeda listada (ex.: NEWCOIN-USDT-PERP).",
+      "minLength": 1
+    },
+    "anuncioTs": {
+      "type": ["integer", "null"],
+      "description": "Horário anunciado da listagem, epoch ms. Pode divergir de negociacaoTs.",
+      "minimum": 0
+    },
+    "negociacaoTs": {
+      "type": "integer",
+      "description": "Horário REAL do primeiro trade negociável, epoch ms. Âncora de todas as janelas relativas.",
+      "minimum": 0
+    },
+    "primeiraExchange": {
+      "type": "string",
+      "description": "Exchange onde a moeda começou a negociar.",
+      "minLength": 1
+    },
+    "exchangesExistentes": {
+      "type": "array",
+      "description": "Exchanges onde a moeda JÁ negociava antes desta listagem (base para Cross-Exchange Lead/Lag). Vazio se estreia absoluta.",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "default": []
+    },
+    "primeiroPreco": {
+      "type": ["number", "null"],
+      "description": "Preço do primeiro trade observado.",
+      "exclusiveMinimum": 0
+    },
+    "orderBook": {
+      "type": ["object", "null"],
+      "description": "Snapshot do order book. bids/asks são níveis [preço, tamanho]. Pode conter múltiplos snapshots via campo ts em outro registro append-only.",
+      "additionalProperties": false,
+      "required": ["bids", "asks"],
+      "properties": {
+        "ts": {
+          "type": ["integer", "null"],
+          "description": "observedAt do snapshot de book, epoch ms.",
+          "minimum": 0
+        },
+        "bids": {
+          "type": "array",
+          "description": "Níveis de compra, ordenados do melhor para o pior.",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[preco, tamanho]"
+          }
+        },
+        "asks": {
+          "type": "array",
+          "description": "Níveis de venda, ordenados do melhor para o pior.",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[preco, tamanho]"
+          }
+        }
+      }
+    },
+    "spread": {
+      "type": ["object", "null"],
+      "description": "Spread melhor ask − melhor bid.",
+      "additionalProperties": false,
+      "properties": {
+        "abs": { "type": ["number", "null"], "description": "Spread absoluto em preço.", "minimum": 0 },
+        "bps": { "type": ["number", "null"], "description": "Spread em basis points do mid.", "minimum": 0 }
+      }
+    },
+    "profundidade": {
+      "type": ["object", "null"],
+      "description": "Liquidez agregada até um alcance de bps em cada lado do book.",
+      "additionalProperties": false,
+      "properties": {
+        "alcanceBps": { "type": ["number", "null"], "description": "Alcance de bps considerado.", "minimum": 0 },
+        "bidNotional": { "type": ["number", "null"], "description": "Notional agregado do lado bid.", "minimum": 0 },
+        "askNotional": { "type": ["number", "null"], "description": "Notional agregado do lado ask.", "minimum": 0 }
+      }
+    },
+    "trades": {
+      "type": "array",
+      "description": "Fluxo de trades observados. Append-only; pode ser resumo ou amostra referenciando um .jsonl bruto por rawHash.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ts", "preco", "tamanho"],
+        "properties": {
+          "ts": { "type": "integer", "description": "observedAt do trade, epoch ms.", "minimum": 0 },
+          "preco": { "type": "number", "exclusiveMinimum": 0 },
+          "tamanho": { "type": "number", "exclusiveMinimum": 0 },
+          "lado": { "type": ["string", "null"], "enum": ["buy", "sell", null], "description": "Lado agressor, se conhecido." }
+        }
+      }
+    },
+    "volume": {
+      "type": ["object", "null"],
+      "description": "Volume acumulado por janela (relativa a negociacaoTs).",
+      "additionalProperties": false,
+      "properties": {
+        "janela_1min": { "type": ["number", "null"], "minimum": 0 },
+        "janela_5min": { "type": ["number", "null"], "minimum": 0 },
+        "janela_15min": { "type": ["number", "null"], "minimum": 0 },
+        "janela_1h": { "type": ["number", "null"], "minimum": 0 },
+        "janela_24h": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "volatilidade": {
+      "type": ["object", "null"],
+      "description": "Volatilidade realizada por janela (dispersão de retornos).",
+      "additionalProperties": false,
+      "properties": {
+        "janela_1min": { "type": ["number", "null"], "minimum": 0 },
+        "janela_5min": { "type": ["number", "null"], "minimum": 0 },
+        "janela_15min": { "type": ["number", "null"], "minimum": 0 },
+        "janela_1h": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "slippage": {
+      "type": ["object", "null"],
+      "description": "Slippage MEDIDO contra o book observado para tamanhos-alvo. NÃO é execução — é métrica sobre dados observed (evidence=replayed/simulated).",
+      "additionalProperties": false,
+      "properties": {
+        "tamanhoAlvo": { "type": ["number", "null"], "description": "Notional-alvo hipotético usado no cálculo.", "minimum": 0 },
+        "bpsCompra": { "type": ["number", "null"], "description": "Slippage estimado para comprar tamanhoAlvo, em bps." },
+        "bpsVenda": { "type": ["number", "null"], "description": "Slippage estimado para vender tamanhoAlvo, em bps." },
+        "modelo": { "type": ["string", "null"], "description": "Identificador do modelo de slippage usado." }
+      }
+    },
+    "maxima": {
+      "type": ["number", "null"],
+      "description": "Máxima de preço do episódio.",
+      "exclusiveMinimum": 0
+    },
+    "minima": {
+      "type": ["number", "null"],
+      "description": "Mínima de preço do episódio.",
+      "exclusiveMinimum": 0
+    },
+    "tempoAteMaximaMs": {
+      "type": ["integer", "null"],
+      "description": "ms de negociacaoTs até a máxima.",
+      "minimum": 0
+    },
+    "tempoAteQuedaMs": {
+      "type": ["integer", "null"],
+      "description": "ms de negociacaoTs até o início da queda sustentada.",
+      "minimum": 0
+    },
+    "preco_1min": { "type": ["number", "null"], "description": "Preço em negociacaoTs + 1 min.", "exclusiveMinimum": 0 },
+    "preco_5min": { "type": ["number", "null"], "description": "Preço em negociacaoTs + 5 min.", "exclusiveMinimum": 0 },
+    "preco_15min": { "type": ["number", "null"], "description": "Preço em negociacaoTs + 15 min.", "exclusiveMinimum": 0 },
+    "preco_1h": { "type": ["number", "null"], "description": "Preço em negociacaoTs + 1 h.", "exclusiveMinimum": 0 },
+    "preco_8h": { "type": ["number", "null"], "description": "Preço em negociacaoTs + 8 h.", "exclusiveMinimum": 0 },
+    "preco_24h": { "type": ["number", "null"], "description": "Preço em negociacaoTs + 24 h.", "exclusiveMinimum": 0 },
+    "provenance": {
+      "type": "object",
+      "description": "Proveniência obrigatória. Sem provenance, a linha não entra no dataset.",
+      "additionalProperties": false,
+      "required": ["source", "observedAt", "evidence", "rawHash"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Origem do dado (ex.: ws:binanceusdm:trades, feed:anuncio).",
+          "minLength": 1
+        },
+        "observedAt": {
+          "type": "integer",
+          "description": "Carimbo local de quando o coletor observou o payload, epoch ms.",
+          "minimum": 0
+        },
+        "collector": {
+          "type": ["string", "null"],
+          "description": "Identificador/versão do coletor que gravou a linha."
+        },
+        "rawHash": {
+          "type": "string",
+          "description": "Hash do payload bruto (ex.: sha256) para auditoria de integridade.",
+          "minLength": 8
+        },
+        "evidence": {
+          "type": "string",
+          "description": "Rótulo de evidência. 'real' NÃO é permitido nesta fase.",
+          "enum": ["observed", "replayed", "simulated", "shadow", "hypothetical", "live-paper"]
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Observações livres (ex.: lacunas, reconexões, gaps de stream)."
+        }
+      }
+    }
+  }
+}

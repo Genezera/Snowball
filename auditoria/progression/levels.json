@@ -1,0 +1,245 @@
+{
+  "schema": "snowball.levels.v1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "capitalRealizado": 609.9825,
+  "nivelAtual": 1,
+  "nivelAtualNome": "Motor principal",
+  "proximoNivel": {
+    "levelId": 2,
+    "nome": "Eficiência",
+    "unlockStatus": "BLOCKED",
+    "blockedReasons": [
+      "capital suficiente; falta evidência: gate dos challengers de timing LIBERADO · Chefe Concentração derrotado"
+    ]
+  },
+  "principio": "Capital sozinho não desbloqueia. Um lucro isolado ou uma moeda que subiu muito NÃO desbloqueia um motor. Exige capital + amostra + 2 janelas + 2 regimes + custos estressados + drawdown aceitável + concentração + estabilidade + dados íntegros + rollback + aprovação humana.",
+  "niveis": [
+    {
+      "levelId": 0,
+      "nome": "Fundação",
+      "descricao": "Dados íntegros, contabilidade reconciliada, processos estáveis, zero perda/duplicação.",
+      "capitalMinimo": 0,
+      "slots": 0,
+      "capitalMinimoEstimativa": false,
+      "preRequisitos": [
+        "reconciliação exata",
+        "fidelidade/integridade do Control OK"
+      ],
+      "metricasObrigatorias": [
+        "reconciliação exata",
+        "fidelidade/integridade do Control OK"
+      ],
+      "modulosDesbloqueados": [
+        "ledger",
+        "reconciliação",
+        "supervisão",
+        "monitor de integridade"
+      ],
+      "riscosNovos": [
+        "corrupção de estado",
+        "perda/duplicação de evento"
+      ],
+      "bossCondition": "Integridade: reconcilia exato + monitor sem perda/duplicação.",
+      "capitalAtingido": true,
+      "evidenciaAtingida": true,
+      "unlockStatus": "UNLOCKED",
+      "blockedReasons": []
+    },
+    {
+      "levelId": 1,
+      "nome": "Motor principal",
+      "descricao": "Funding delta-neutro em 2 exchanges, US$100 cada, protegendo o capital inicial e provando lucro líquido após custos.",
+      "capitalMinimo": 200,
+      "slots": 2,
+      "capitalMinimoEstimativa": false,
+      "preRequisitos": [
+        "Champion LIVE",
+        "Chefe Custos derrotado",
+        "Chefe Sobrevivência derrotado",
+        "lucro líquido > 0"
+      ],
+      "metricasObrigatorias": [
+        "Champion LIVE",
+        "Chefe Custos derrotado",
+        "Chefe Sobrevivência derrotado",
+        "lucro líquido > 0"
+      ],
+      "modulosDesbloqueados": [
+        "Champion funding",
+        "marcação executável",
+        "saída de risco"
+      ],
+      "riscosNovos": [
+        "inversão de spread",
+        "custo > funding",
+        "liquidação"
+      ],
+      "bossCondition": "Chefe dos Custos + Chefe da Sobrevivência derrotados na amostra viva.",
+      "capitalAtingido": true,
+      "evidenciaAtingida": true,
+      "unlockStatus": "UNLOCKED",
+      "blockedReasons": []
+    },
+    {
+      "levelId": 2,
+      "nome": "Eficiência",
+      "descricao": "Segunda posição simultânea, melhor timing de fechamento e uso de margem, seleção dinâmica de exchanges.",
+      "capitalMinimo": 400,
+      "slots": 4,
+      "capitalMinimoEstimativa": false,
+      "preRequisitos": [
+        "gate dos challengers de timing LIBERADO",
+        "Chefe Concentração derrotado"
+      ],
+      "metricasObrigatorias": [
+        "gate dos challengers de timing LIBERADO",
+        "Chefe Concentração derrotado"
+      ],
+      "modulosDesbloqueados": [
+        "close-timing challengers",
+        "exchange selector",
+        "2ª posição simultânea"
+      ],
+      "riscosNovos": [
+        "concentração",
+        "correlação entre posições"
+      ],
+      "bossCondition": "Challenger de timing com gate LIBERADO + Chefe da Concentração derrotado.",
+      "capitalAtingido": true,
+      "evidenciaAtingida": false,
+      "unlockStatus": "BLOCKED",
+      "blockedReasons": [
+        "capital suficiente; falta evidência: gate dos challengers de timing LIBERADO · Chefe Concentração derrotado"
+      ]
+    },
+    {
+      "levelId": 3,
+      "nome": "Segunda fonte de lucro",
+      "descricao": "Um segundo motor comprovado (captura de settlement, cross-sectional, momentum ou pares) contribuindo lucro independente.",
+      "capitalMinimo": 600,
+      "slots": 6,
+      "capitalMinimoEstimativa": false,
+      "preRequisitos": [
+        "Chefe Diversificação derrotado (≥2 fontes independentes lucrativas com amostra)"
+      ],
+      "metricasObrigatorias": [
+        "Chefe Diversificação derrotado (≥2 fontes independentes lucrativas com amostra)"
+      ],
+      "modulosDesbloqueados": [
+        "settlement capture",
+        "funding cross-sectional",
+        "momentum",
+        "pares"
+      ],
+      "riscosNovos": [
+        "dependência do mesmo evento",
+        "correlação oculta"
+      ],
+      "bossCondition": "Chefe da Diversificação derrotado (≥2 fontes independentes lucrativas).",
+      "capitalAtingido": true,
+      "evidenciaAtingida": false,
+      "unlockStatus": "BLOCKED",
+      "blockedReasons": [
+        "capital suficiente; falta evidência: Chefe Diversificação derrotado (≥2 fontes independentes lucrativas com amostra)"
+      ]
+    },
+    {
+      "levelId": 4,
+      "nome": "Eventos especiais",
+      "descricao": "Radar de notícias/eventos, novas listagens, unlocks, anomalias de volume — oportunidades raras.",
+      "capitalMinimo": 800,
+      "slots": 8,
+      "capitalMinimoEstimativa": true,
+      "preRequisitos": [
+        "Chefe Capacidade derrotado",
+        "dados de evento/listagem suficientes"
+      ],
+      "metricasObrigatorias": [
+        "Chefe Capacidade derrotado",
+        "dados de evento/listagem suficientes"
+      ],
+      "modulosDesbloqueados": [
+        "news/event radar",
+        "listing opportunity lab"
+      ],
+      "riscosNovos": [
+        "sinal de LLM tratado como verdade",
+        "iliquidez de listagem",
+        "slippage extremo"
+      ],
+      "bossCondition": "Chefe da Capacidade derrotado (motor atual satura) + dados de evento suficientes.",
+      "capitalAtingido": false,
+      "evidenciaAtingida": false,
+      "unlockStatus": "LOCKED",
+      "blockedReasons": [
+        "capital insuficiente: US$609.98 < US$800 (estimativa)"
+      ]
+    },
+    {
+      "levelId": 5,
+      "nome": "Portfólio multimotor",
+      "descricao": "Alocador de capital distribuindo entre várias estratégias comprovadas conforme oportunidade.",
+      "capitalMinimo": 1200,
+      "slots": 12,
+      "capitalMinimoEstimativa": true,
+      "preRequisitos": [
+        "≥2 motores ELIGIBLE/LIVE",
+        "router shadow fiel por ≥2 janelas"
+      ],
+      "metricasObrigatorias": [
+        "≥2 motores ELIGIBLE/LIVE",
+        "router shadow fiel por ≥2 janelas"
+      ],
+      "modulosDesbloqueados": [
+        "capital allocator",
+        "capital opportunity router (live)"
+      ],
+      "riscosNovos": [
+        "má alocação",
+        "risco sistêmico entre motores"
+      ],
+      "bossCondition": "≥2 motores ELIGIBLE + router shadow fiel por ≥2 janelas.",
+      "capitalAtingido": false,
+      "evidenciaAtingida": false,
+      "unlockStatus": "LOCKED",
+      "blockedReasons": [
+        "capital insuficiente: US$609.98 < US$1200 (estimativa)"
+      ]
+    },
+    {
+      "levelId": 6,
+      "nome": "Novos mercados",
+      "descricao": "Ações fracionárias/ETFs/eventos em ações, com capital, risco, execução e contabilidade separados de cripto.",
+      "capitalMinimo": 2000,
+      "slots": 20,
+      "capitalMinimoEstimativa": true,
+      "preRequisitos": [
+        "arquitetura multi-mercado com capital/risco/contabilidade separados",
+        "custos normalizados"
+      ],
+      "metricasObrigatorias": [
+        "arquitetura multi-mercado com capital/risco/contabilidade separados",
+        "custos normalizados"
+      ],
+      "modulosDesbloqueados": [
+        "stock data provider",
+        "broker adapter",
+        "market calendar",
+        "corporate actions"
+      ],
+      "riscosNovos": [
+        "gap overnight",
+        "calendário/execução distintos",
+        "mistura de contabilidade"
+      ],
+      "bossCondition": "Arquitetura multi-mercado com capital separado + custos/risco normalizados.",
+      "capitalAtingido": false,
+      "evidenciaAtingida": false,
+      "unlockStatus": "LOCKED",
+      "blockedReasons": [
+        "capital insuficiente: US$609.98 < US$2000 (estimativa)"
+      ]
+    }
+  ]
+}

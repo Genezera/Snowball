@@ -1,0 +1,240 @@
+{
+  "schema": "snowball.engine-registry.v1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "totalMotores": 9,
+  "porEstado": {
+    "LIVE": 1,
+    "DATA_COLLECTION": 4,
+    "SHADOW": 1,
+    "LOCKED": 2,
+    "ARCHITECTURE_ONLY": 1
+  },
+  "promocaoAutomatica": false,
+  "nota": "Nenhum motor é promovido automaticamente. Estados derivados de dados reais; amostras pequenas mantêm confiança baixa/insuficiente.",
+  "motores": [
+    {
+      "engineId": "champion-funding",
+      "nome": "Champion — funding delta-neutro",
+      "mercado": "cripto-perp",
+      "estado": "LIVE",
+      "baseline": true,
+      "capitalMinimo": 200,
+      "capitalMaxEstimado": null,
+      "capacidade": "constrangido-por-capital (headroom)",
+      "frequencia": "0.2125/h (23 aberturas em 108.24h)",
+      "pnlLiquido": 9.9825,
+      "drawdown": "0.43%",
+      "feeToGross": 0.4645,
+      "capitalHoras": "ver capital-ledger",
+      "amostra": "34 pagamentos / 20 fechados",
+      "confianca": "alta",
+      "correlacao": "baseline (referência)",
+      "dependencias": [
+        "6 exchanges",
+        "taxas de funding",
+        "spread cruzado"
+      ],
+      "blockedReasons": [],
+      "unlockLevel": 1
+    },
+    {
+      "engineId": "close-timing-challengers",
+      "nome": "Challengers de timing de fechamento",
+      "mercado": "cripto-perp",
+      "estado": "DATA_COLLECTION",
+      "capitalMinimo": 0,
+      "capacidade": "observador (não aloca capital)",
+      "frequencia": "contínua (espelha o Champion)",
+      "pnlLiquido": 0,
+      "drawdown": null,
+      "feeToGross": null,
+      "capitalHoras": 0,
+      "amostra": "0 extensões reais (gate BLOQUEADO)",
+      "confianca": "insuficiente",
+      "correlacao": "≈1 com Champion (por construção)",
+      "dependencias": [
+        "Champion",
+        "telemetria de risco 2 pernas"
+      ],
+      "blockedReasons": [
+        "gate BLOQUEADO: <30 realExtensions, <15 decisionDivergences"
+      ],
+      "unlockLevel": 2
+    },
+    {
+      "engineId": "settlement-capture",
+      "nome": "Captura de settlement",
+      "mercado": "cripto-perp",
+      "estado": "SHADOW",
+      "capitalMinimo": 200,
+      "capacidade": "baixa (janela curta pré-settlement)",
+      "frequencia": "6 capturas observadas",
+      "pnlLiquido": 0.8228,
+      "drawdown": null,
+      "feeToGross": 0.7011,
+      "capitalHoras": null,
+      "amostra": "4 concluídas / 2 inversões",
+      "confianca": "insuficiente",
+      "correlacao": "compartilha exchanges/funding com o Champion",
+      "dependencias": [
+        "relógio de settlement",
+        "liquidez pré-settlement"
+      ],
+      "blockedReasons": [
+        "amostra pequena (4 < 30)",
+        "inversões antes do settlement"
+      ],
+      "unlockLevel": 3
+    },
+    {
+      "engineId": "funding-cross-sectional",
+      "nome": "Funding cross-sectional",
+      "mercado": "cripto-perp",
+      "estado": "DATA_COLLECTION",
+      "capitalMinimo": 200,
+      "capacidade": "média (ranking contínuo)",
+      "frequencia": "20 símbolos ranqueados",
+      "pnlLiquido": 0,
+      "drawdown": null,
+      "feeToGross": null,
+      "capitalHoras": null,
+      "amostra": "20 ranqueados / 2 aprovados",
+      "confianca": "insuficiente",
+      "correlacao": "depende das mesmas taxas de funding",
+      "dependencias": [
+        "ranking de funding entre símbolos"
+      ],
+      "blockedReasons": [
+        "0 oportunidades aprovadas (valorPorHora=0)"
+      ],
+      "unlockLevel": 3
+    },
+    {
+      "engineId": "pares",
+      "nome": "Pares (mean-reversion)",
+      "mercado": "cripto",
+      "estado": "DATA_COLLECTION",
+      "capitalMinimo": 200,
+      "capacidade": "desconhecida",
+      "frequencia": "barras diárias",
+      "pnlLiquido": 0,
+      "drawdown": null,
+      "feeToGross": null,
+      "capitalHoras": null,
+      "amostra": "0 fechados",
+      "confianca": "insuficiente",
+      "correlacao": "independente do funding (potencial)",
+      "dependencias": [
+        "cointegração",
+        "p-value/half-life"
+      ],
+      "blockedReasons": [
+        "nenhum par passou p-value/half-life/threshold — ausência real de sinal"
+      ],
+      "unlockLevel": 3
+    },
+    {
+      "engineId": "momentum",
+      "nome": "Momentum",
+      "mercado": "cripto",
+      "estado": "DATA_COLLECTION",
+      "capitalMinimo": 200,
+      "capacidade": "desconhecida",
+      "frequencia": "intradiária",
+      "pnlLiquido": -0.9946,
+      "drawdown": "0.59%",
+      "feeToGross": null,
+      "capitalHoras": null,
+      "amostra": "1 fechados / 0 vitórias / 44 abertos",
+      "confianca": "insuficiente",
+      "correlacao": "independente do funding (potencial)",
+      "dependencias": [
+        "universo",
+        "timeframe",
+        "custos"
+      ],
+      "blockedReasons": [
+        "amostra fechada mínima (1) e PnL inicial negativo (-0.9946)"
+      ],
+      "unlockLevel": 3
+    },
+    {
+      "engineId": "news-event-radar",
+      "nome": "Radar de notícias/eventos",
+      "mercado": "cripto",
+      "estado": "LOCKED",
+      "capitalMinimo": 800,
+      "capacidade": "n/a",
+      "frequencia": "orientada a evento",
+      "pnlLiquido": null,
+      "drawdown": null,
+      "feeToGross": null,
+      "capitalHoras": null,
+      "amostra": "nenhuma (só arquitetura)",
+      "confianca": "insuficiente",
+      "correlacao": "desconhecida",
+      "dependencias": [
+        "feeds oficiais verificáveis",
+        "deduplicação",
+        "provenance"
+      ],
+      "blockedReasons": [
+        "só arquitetura + coleta read-only; LLM não emite sinal/ordem"
+      ],
+      "unlockLevel": 4
+    },
+    {
+      "engineId": "listing-opportunity-lab",
+      "nome": "Listing Opportunity Lab",
+      "mercado": "cripto",
+      "estado": "LOCKED",
+      "capitalMinimo": 800,
+      "capacidade": "n/a",
+      "frequencia": "por listagem",
+      "pnlLiquido": null,
+      "drawdown": null,
+      "feeToGross": null,
+      "capitalHoras": null,
+      "amostra": "nenhuma (coleta por WebSocket pendente)",
+      "confianca": "insuficiente",
+      "correlacao": "desconhecida",
+      "dependencias": [
+        "WebSocket",
+        "order book",
+        "slippage sim",
+        "circuit breakers"
+      ],
+      "blockedReasons": [
+        "ciclo de 5min insuficiente p/ primeiros segundos; falta coleta WS"
+      ],
+      "unlockLevel": 4
+    },
+    {
+      "engineId": "acoes-multimercado",
+      "nome": "Ações e outros mercados",
+      "mercado": "ações",
+      "estado": "ARCHITECTURE_ONLY",
+      "capitalMinimo": 2000,
+      "capacidade": "n/a",
+      "frequencia": "sessão de bolsa",
+      "pnlLiquido": null,
+      "drawdown": null,
+      "feeToGross": null,
+      "capitalHoras": null,
+      "amostra": "nenhuma",
+      "confianca": "insuficiente",
+      "correlacao": "baixa com cripto (potencial)",
+      "dependencias": [
+        "broker adapter",
+        "market calendar",
+        "corporate actions",
+        "capital/risco/contabilidade SEPARADOS"
+      ],
+      "blockedReasons": [
+        "sem execução nesta fase; só arquitetura futura"
+      ],
+      "unlockLevel": 6
+    }
+  ]
+}

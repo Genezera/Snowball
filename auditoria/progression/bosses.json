@@ -1,0 +1,133 @@
+{
+  "schema": "snowball.bosses.v1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "resumo": {
+    "derrotados": [
+      "custos",
+      "sobrevivencia",
+      "concentracao"
+    ],
+    "ativos": [
+      "capacidade",
+      "diversificacao"
+    ]
+  },
+  "chefes": {
+    "custos": {
+      "id": "custos",
+      "nome": "Chefe dos Custos",
+      "metricas": {
+        "feeToGross": 0.4645,
+        "limiteFeeToGross": 0.6,
+        "netObservado": 9.9825,
+        "netComCustos2x": 1.3219,
+        "funding": 18.6432,
+        "custos": 8.6606
+      },
+      "criterios": {
+        "feeToGrossAbaixoLimite": true,
+        "lucroPositivoComCustos2x": true,
+        "custosNaoConsomemMaioria": true
+      },
+      "status": "DERROTADO",
+      "nota": "Sobrevive a custos 2×, porém com folga PEQUENA (+1.3219). Margem fina."
+    },
+    "sobrevivencia": {
+      "id": "sobrevivencia",
+      "nome": "Chefe da Sobrevivência",
+      "metricas": {
+        "drawdownMaxPct": 0.43,
+        "distanciaLiquidacaoMin": 0.17982537573523708,
+        "distMinInfo": {
+          "symbol": "LA/USDT:USDT",
+          "leg": "long",
+          "distancia": 0.1798
+        },
+        "capitalFloor": 600,
+        "capitalAtual": 609.9825,
+        "fechamentosEmergencia": 1,
+        "equityExecutavel": 608.6735756368391
+      },
+      "criterios": {
+        "drawdownControlado": true,
+        "semPerdaCatastrofica": true,
+        "distanciaLiquidacaoSegura": true,
+        "pisoCapitalRespeitado": true
+      },
+      "status": "DERROTADO",
+      "nota": "Houve 1 fechamento(s) de emergência no histórico — monitorar."
+    },
+    "concentracao": {
+      "id": "concentracao",
+      "nome": "Chefe da Concentração",
+      "metricas": {
+        "top1Symbol": {
+          "symbol": "KMNO/USDT:USDT",
+          "funding": 4.5199
+        },
+        "top1Share": 0.2424,
+        "herfindahl": 0.1528,
+        "nSimbolosComFunding": 14,
+        "usoPorExchange": {
+          "gate": 2,
+          "bybit": 2,
+          "okx": 1,
+          "bitget": 1
+        }
+      },
+      "criterios": {
+        "nenhumaPosicaoDomina": true,
+        "nenhumAtivoDomina": true,
+        "nenhumaExchangeConcentraExcesso": true,
+        "umaOperacaoNaoExplicaMaioria": true
+      },
+      "status": "DERROTADO"
+    },
+    "capacidade": {
+      "id": "capacidade",
+      "nome": "Chefe da Capacidade",
+      "metricas": {
+        "oportunidadesRejeitadasPorSaldo": 6422,
+        "totalCandidatos": 21195,
+        "temSegundoMotorAbsorvente": false
+      },
+      "criterios": {
+        "motorSaturaCapital": false,
+        "evidenciaDeSaturacao": false,
+        "existeSegundoMotorParaAbsorver": false
+      },
+      "status": "ATIVO",
+      "nota": "6422 oportunidades rejeitadas por saldo insuficiente: o motor é CONSTRANGIDO POR CAPITAL, não saturado — há headroom de capacidade e falta um 2º motor para absorver."
+    },
+    "diversificacao": {
+      "id": "diversificacao",
+      "nome": "Chefe da Diversificação",
+      "metricas": {
+        "fontesLucrativas": [
+          {
+            "motor": "champion-funding",
+            "pnlLiquido": 9.9825,
+            "amostra": 34
+          },
+          {
+            "motor": "settlement-capture",
+            "pnlLiquido": 0.8228,
+            "amostra": 4,
+            "nota": "amostra pequena"
+          }
+        ],
+        "capturaPnl": 0.8228,
+        "capturaAmostra": 4
+      },
+      "criterios": {
+        "duasFontesIndependentesLucrativas": false,
+        "correlacaoConhecida": false,
+        "naoDependemDoMesmoEvento": false
+      },
+      "status": "ATIVO",
+      "nota": "Só o funding tem amostra suficiente e lucro; captura é positiva (+0.8228) mas com amostra pequena (4). Falta uma 2ª fonte comprovada e independente."
+    }
+  },
+  "honestidade": "Status derivado de dados observados do Champion. Amostra pequena para captura/diversificação. Custos 2× deixa folga pequena."
+}

@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://snowball.local/schemas/event-schema.json",
+  "title": "NewsEventRadarEvent",
+  "description": "Evento observado (read-only, append-only) pelo Radar de Notícias/Eventos — Parte 9. Registra APENAS fatos publicados por fontes verificáveis. Nenhum campo prevê preço como verdade, define sizing ou promove estratégia. priceAfter/volumeAfter/marketWindow são OBSERVAÇÕES posteriores, não previsões. Nada aqui entra na tomada de decisão nesta fase.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "sourceUrl",
+    "sourceType",
+    "publishedAt",
+    "observedAt",
+    "affectedAssets",
+    "eventType",
+    "reliability",
+    "rawContentHash",
+    "summary"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "description": "Identificador único e estável do evento (ex.: UUID ou ULID). Chave primária no storage append-only.",
+      "minLength": 1
+    },
+    "sourceUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL exata da fonte de onde o conteúdo foi coletado. Base da proveniência; sem ela o evento não passa de 'unverified'."
+    },
+    "sourceType": {
+      "type": "string",
+      "description": "Natureza da fonte que originou o evento.",
+      "enum": [
+        "exchange_official",
+        "project_official",
+        "press_official",
+        "api_feed",
+        "internal_metric"
+      ]
+    },
+    "publishedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Instante (ISO 8601 / RFC 3339) em que a FONTE declara ter publicado o conteúdo."
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Instante (ISO 8601 / RFC 3339) em que NÓS coletamos o conteúdo via fetch read-only. Pode diferir muito de publishedAt."
+    },
+    "affectedAssets": {
+      "type": "array",
+      "description": "Ativos/símbolos afetados pelo evento, extraídos do conteúdo (ex.: [\"BTC\", \"ARB\"]). Pode ser vazio quando o evento é macro/geral.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "eventType": {
+      "type": "string",
+      "description": "Categoria do evento observado. Enum canônico espelhado em docs/NEWS-EVENT-RADAR-ARCHITECTURE.md.",
+      "enum": [
+        "new_listing",
+        "delisting",
+        "token_unlock",
+        "hack_exploit",
+        "chain_halt",
+        "partnership",
+        "protocol_upgrade",
+        "governance",
+        "funding_change",
+        "exchange_issue",
+        "regulation",
+        "macro_event",
+        "abnormal_volume",
+        "other"
+      ]
+    },
+    "reliability": {
+      "type": "string",
+      "description": "Confiabilidade da FONTE (não da LLM). Um resumo bem escrito de fonte anônima continua 'unverified'.",
+      "enum": [
+        "official",
+        "verified_feed",
+        "secondary",
+        "unverified"
+      ]
+    },
+    "duplicateGroup": {
+      "type": "string",
+      "description": "Identificador de cluster que agrupa eventos de FONTES distintas descrevendo o MESMO fato do mundo. Não apaga membros: cada evento-fonte permanece no storage. Reversível (mudança = novo registro)."
+    },
+    "rawContentHash": {
+      "type": "string",
+      "description": "SHA-256 (hex) do conteúdo bruto normalizado (não da URL). Chave de idempotência: mesmo conteúdo -> mesmo hash -> não duplica.",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Resumo curto e factual do conteúdo (pode ser gerado por LLM). Sem opinião, sem previsão de preço, sem recomendação.",
+      "minLength": 1
+    },
+    "marketWindow": {
+      "type": "object",
+      "description": "Janela de observação de mercado ao redor do evento, usada só para anotar priceBefore/After e volumeBefore/After. Observação, não previsão.",
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Início da janela de observação (ISO 8601)."
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fim da janela de observação (ISO 8601)."
+        }
+      }
+    },
+    "priceBefore": {
+      "type": ["number", "null"],
+      "description": "Preço observado do ativo de referência ANTES do evento (fim de marketWindow.start). Observação factual; null quando não medido.",
+      "minimum": 0
+    },
+    "priceAfter": {
+      "type": ["number", "null"],
+      "description": "Preço observado DEPOIS do evento (dentro de marketWindow). OBSERVAÇÃO posterior, NUNCA previsão. null quando não medido.",
+      "minimum": 0
+    },
+    "volumeBefore": {
+      "type": ["number", "null"],
+      "description": "Volume observado ANTES do evento. Observação factual; null quando não medido.",
+      "minimum": 0
+    },
+    "volumeAfter": {
+      "type": ["number", "null"],
+      "description": "Volume observado DEPOIS do evento. OBSERVAÇÃO posterior, não previsão. null quando não medido.",
+      "minimum": 0
+    }
+  }
+}
