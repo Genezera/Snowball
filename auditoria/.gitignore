@@ -8,3 +8,4 @@ dataset/candidate-observations.jsonl
 # forward live-paper (runtime volátil: estado/ledger/diário/heartbeat/lock)
 progression/forward/
 progression/forward-soak-resumo.json
+progression/economic/

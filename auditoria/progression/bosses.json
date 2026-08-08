@@ -51,16 +51,16 @@
       "nome": "Chefe da Sobrevivência",
       "metricas": {
         "drawdownMaxPct": 0.43,
-        "distanciaLiquidacaoMin": 0.17231203872517667,
+        "distanciaLiquidacaoMin": 0.13707968123949196,
         "distMinInfo": {
           "symbol": "BICO/USDT:USDT",
           "leg": "short",
-          "distancia": 0.1723
+          "distancia": 0.1371
         },
         "capitalFloor": 600,
         "capitalAtual": 612.9763,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 613.2185368655886
+        "equityExecutavel": 613.0026702258214
       },
       "criterios": {
         "drawdownControlado": true,

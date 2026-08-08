@@ -1,0 +1,21 @@
+{
+  "schema": "snowball.economic-sample.v1_8",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "contagemCorreta": {
+    "sourcePositionIdUnicosFechados": 0,
+    "sourceDecisionIdUnicos": 0,
+    "divergenciasReaisPorPosicaoFonte": 0,
+    "rightCensored": 0
+  },
+  "metas": {
+    "posicoesFonteUnicas": 30,
+    "divergencias": 15
+  },
+  "atende": {
+    "posicoesFonteUnicas": false,
+    "divergencias": false
+  },
+  "veredito": "Amostra econômica INSUFICIENTE: 0/30 posições-fonte únicas, 0/15 divergências. RIGHT_CENSORED (0) não contam. economicSoak recém-iniciado.",
+  "honestidade": "Unidade = sourcePositionId único fechado. Não se reusa fechamento do warmup v1.7 (ECONOMIC_WARMUP_NOT_GATE_ELIGIBLE)."
+}

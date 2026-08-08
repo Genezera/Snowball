@@ -3,9 +3,9 @@
   "geradoEm": "2026-08-08T21:48:24.958Z",
   "asOfMs": 1786225704958,
   "arquivo": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
-  "arquivoBytes": 14939753,
-  "lastModifiedISO": "2026-08-08T22:49:11.920Z",
-  "idadeArquivoS": 36,
+  "arquivoBytes": 15115365,
+  "lastModifiedISO": "2026-08-08T23:44:12.001Z",
+  "idadeArquivoS": 71,
   "scanIntervalEsperadoS": 300,
   "coletorHeartbeat": {
     "ok": true,
@@ -19,42 +19,42 @@
     ]
   },
   "classificacaoGlobal": "NO_NEW_DATA_YET",
-  "ultimoCicloCompletoISO": "2026-08-08T22:44:50.203Z",
+  "ultimoCicloCompletoISO": "2026-08-08T23:41:40.278Z",
   "saudePorExchange": {
     "binanceusdm": {
-      "ultimaObsTs": 1786229090203,
-      "ocorrencias": 2691,
-      "idadeUltimaObsS": 297,
+      "ultimaObsTs": 1786232500278,
+      "ocorrencias": 2628,
+      "idadeUltimaObsS": 222,
       "classe": "HEALTHY"
     },
     "bybit": {
-      "ultimaObsTs": 1786229090203,
-      "ocorrencias": 4133,
-      "idadeUltimaObsS": 297,
+      "ultimaObsTs": 1786232500278,
+      "ocorrencias": 4187,
+      "idadeUltimaObsS": 222,
       "classe": "HEALTHY"
     },
     "okx": {
-      "ultimaObsTs": 1786229090203,
-      "ocorrencias": 2581,
-      "idadeUltimaObsS": 297,
+      "ultimaObsTs": 1786232500278,
+      "ocorrencias": 2566,
+      "idadeUltimaObsS": 222,
       "classe": "HEALTHY"
     },
     "gate": {
-      "ultimaObsTs": 1786229090203,
-      "ocorrencias": 3123,
-      "idadeUltimaObsS": 297,
+      "ultimaObsTs": 1786232500278,
+      "ocorrencias": 3050,
+      "idadeUltimaObsS": 222,
       "classe": "HEALTHY"
     },
     "bitget": {
-      "ultimaObsTs": 1786229090203,
-      "ocorrencias": 1978,
-      "idadeUltimaObsS": 297,
+      "ultimaObsTs": 1786232500278,
+      "ocorrencias": 1908,
+      "idadeUltimaObsS": 222,
       "classe": "HEALTHY"
     },
     "bingx": {
-      "ultimaObsTs": 1786229090203,
-      "ocorrencias": 3558,
-      "idadeUltimaObsS": 297,
+      "ultimaObsTs": 1786232500278,
+      "ocorrencias": 3739,
+      "idadeUltimaObsS": 222,
       "classe": "HEALTHY"
     }
   },

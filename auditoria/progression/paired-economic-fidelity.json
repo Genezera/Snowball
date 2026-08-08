@@ -3,23 +3,23 @@
   "geradoEm": "2026-08-08T21:48:24.958Z",
   "asOfMs": 1786225704958,
   "fechadasPorPolitica": {
-    "trial": 0,
-    "control": 0,
-    "observer-max3": 0,
-    "observer-max4": 0,
-    "observer-max5": 0
+    "trial": 2,
+    "control": 2,
+    "observer-max3": 2,
+    "observer-max4": 2,
+    "observer-max5": 4
   },
   "censuradasPorPolitica": {
-    "trial": 0,
-    "control": 0,
-    "observer-max3": 0,
-    "observer-max4": 0,
-    "observer-max5": 0
+    "trial": 1,
+    "control": 3,
+    "observer-max3": 3,
+    "observer-max4": 4,
+    "observer-max5": 5
   },
   "resumo": {
-    "uniqueSourceOpportunityClosed": 0,
-    "divergenciasReais": 0,
-    "censuradasAbertas": 0
+    "uniqueSourceOpportunityClosed": 4,
+    "divergenciasReais": 4,
+    "censuradasAbertas": 16
   },
   "campos": [
     "sourceOpportunityId",
@@ -38,13 +38,671 @@
     "markedPnL",
     "executablePnL"
   ],
-  "pares": [],
+  "pares": [
+    {
+      "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496174",
+      "sym": "SHOP/USDT:USDT",
+      "exchanges": [
+        "bybit",
+        "bitget"
+      ],
+      "politicas": {
+        "trial": {
+          "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496174",
+          "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786229536034",
+          "k": "SHOP/USDT:USDT|bybit|bitget",
+          "sym": "SHOP/USDT:USDT",
+          "exchanges": [
+            "bybit",
+            "bitget"
+          ],
+          "controlPositionId": "trial:SHOP/USDT:USDT|bybit|bitget:1786229536034",
+          "championPositionId": null,
+          "entryTs": 1786229536034,
+          "closeTs": 1786230736072,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0058,
+          "realizedPnL": -0.2742,
+          "markedPnL": -0.2742,
+          "executablePnL": -0.2742,
+          "aberta": false
+        },
+        "observer-max5": {
+          "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496174",
+          "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786229538256",
+          "k": "SHOP/USDT:USDT|bybit|bitget",
+          "sym": "SHOP/USDT:USDT",
+          "exchanges": [
+            "bybit",
+            "bitget"
+          ],
+          "controlPositionId": "observer-max5:SHOP/USDT:USDT|bybit|bitget:1786229538256",
+          "championPositionId": null,
+          "entryTs": 1786229538256,
+          "closeTs": 1786230738286,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0058,
+          "realizedPnL": -0.2742,
+          "markedPnL": -0.2742,
+          "executablePnL": -0.2742,
+          "aberta": false
+        }
+      },
+      "politicasQueFecharam": [
+        "trial",
+        "observer-max5"
+      ],
+      "realizedPnLPorPolitica": {
+        "trial": -0.2742,
+        "control": null,
+        "observer-max3": null,
+        "observer-max4": null,
+        "observer-max5": -0.2742
+      },
+      "spreadRealizedPnL": 0,
+      "divergiu": true,
+      "tipoDivergencia": "decisao_diferente"
+    },
+    {
+      "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496175",
+      "sym": "SHOP/USDT:USDT",
+      "exchanges": [
+        "bybit",
+        "bitget"
+      ],
+      "politicas": {
+        "trial": {
+          "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496175",
+          "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786231036081",
+          "k": "SHOP/USDT:USDT|bybit|bitget",
+          "sym": "SHOP/USDT:USDT",
+          "exchanges": [
+            "bybit",
+            "bitget"
+          ],
+          "controlPositionId": "trial:SHOP/USDT:USDT|bybit|bitget:1786231036081",
+          "championPositionId": null,
+          "entryTs": 1786231036081,
+          "closeTs": 1786232236129,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0057,
+          "realizedPnL": -0.2743,
+          "markedPnL": -0.2743,
+          "executablePnL": -0.2743,
+          "aberta": false
+        },
+        "observer-max5": {
+          "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496175",
+          "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786231338308",
+          "k": "SHOP/USDT:USDT|bybit|bitget",
+          "sym": "SHOP/USDT:USDT",
+          "exchanges": [
+            "bybit",
+            "bitget"
+          ],
+          "controlPositionId": "observer-max5:SHOP/USDT:USDT|bybit|bitget:1786231338308",
+          "championPositionId": null,
+          "entryTs": 1786231338308,
+          "closeTs": 1786232238307,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0,
+          "realizedPnL": -0.28,
+          "markedPnL": -0.28,
+          "executablePnL": -0.28,
+          "aberta": false
+        }
+      },
+      "politicasQueFecharam": [
+        "trial",
+        "observer-max5"
+      ],
+      "realizedPnLPorPolitica": {
+        "trial": -0.2743,
+        "control": null,
+        "observer-max3": null,
+        "observer-max4": null,
+        "observer-max5": -0.28
+      },
+      "spreadRealizedPnL": 0.0057,
+      "divergiu": true,
+      "tipoDivergencia": "decisao_diferente"
+    },
+    {
+      "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+      "sym": "1000CAT/USDT:USDT",
+      "exchanges": [
+        "binanceusdm",
+        "bybit"
+      ],
+      "politicas": {
+        "control": {
+          "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+          "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229536561",
+          "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+          "sym": "1000CAT/USDT:USDT",
+          "exchanges": [
+            "binanceusdm",
+            "bybit"
+          ],
+          "controlPositionId": "control:1000CAT/USDT:USDT|binanceusdm|bybit:1786229536561",
+          "championPositionId": null,
+          "entryTs": 1786229536561,
+          "closeTs": 1786231036613,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0168,
+          "realizedPnL": -0.2632,
+          "markedPnL": -0.2632,
+          "executablePnL": -0.2632,
+          "aberta": false
+        },
+        "observer-max3": {
+          "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+          "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229537074",
+          "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+          "sym": "1000CAT/USDT:USDT",
+          "exchanges": [
+            "binanceusdm",
+            "bybit"
+          ],
+          "controlPositionId": "observer-max3:1000CAT/USDT:USDT|binanceusdm|bybit:1786229537074",
+          "championPositionId": null,
+          "entryTs": 1786229537074,
+          "closeTs": 1786231037125,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0168,
+          "realizedPnL": -0.2632,
+          "markedPnL": -0.2632,
+          "executablePnL": -0.2632,
+          "aberta": false
+        },
+        "observer-max4": {
+          "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+          "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229537611",
+          "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+          "sym": "1000CAT/USDT:USDT",
+          "exchanges": [
+            "binanceusdm",
+            "bybit"
+          ],
+          "controlPositionId": "observer-max4:1000CAT/USDT:USDT|binanceusdm|bybit:1786229537611",
+          "championPositionId": null,
+          "entryTs": 1786229537611,
+          "closeTs": 1786231037644,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0168,
+          "realizedPnL": -0.2632,
+          "markedPnL": -0.2632,
+          "executablePnL": -0.2632,
+          "aberta": false
+        },
+        "observer-max5": {
+          "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+          "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229538255",
+          "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+          "sym": "1000CAT/USDT:USDT",
+          "exchanges": [
+            "binanceusdm",
+            "bybit"
+          ],
+          "controlPositionId": "observer-max5:1000CAT/USDT:USDT|binanceusdm|bybit:1786229538255",
+          "championPositionId": null,
+          "entryTs": 1786229538255,
+          "closeTs": 1786231038291,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0168,
+          "realizedPnL": -0.2632,
+          "markedPnL": -0.2632,
+          "executablePnL": -0.2632,
+          "aberta": false
+        }
+      },
+      "politicasQueFecharam": [
+        "control",
+        "observer-max3",
+        "observer-max4",
+        "observer-max5"
+      ],
+      "realizedPnLPorPolitica": {
+        "trial": null,
+        "control": -0.2632,
+        "observer-max3": -0.2632,
+        "observer-max4": -0.2632,
+        "observer-max5": -0.2632
+      },
+      "spreadRealizedPnL": 0,
+      "divergiu": true,
+      "tipoDivergencia": "decisao_diferente"
+    },
+    {
+      "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+      "sym": "COTI/USDT:USDT",
+      "exchanges": [
+        "bingx",
+        "bybit"
+      ],
+      "politicas": {
+        "control": {
+          "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+          "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229536560",
+          "k": "COTI/USDT:USDT|bingx|bybit",
+          "sym": "COTI/USDT:USDT",
+          "exchanges": [
+            "bingx",
+            "bybit"
+          ],
+          "controlPositionId": "control:COTI/USDT:USDT|bingx|bybit:1786229536560",
+          "championPositionId": null,
+          "entryTs": 1786229536560,
+          "closeTs": 1786231336631,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0273,
+          "realizedPnL": -0.2527,
+          "markedPnL": -0.2527,
+          "executablePnL": -0.2527,
+          "aberta": false
+        },
+        "observer-max3": {
+          "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+          "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229537073",
+          "k": "COTI/USDT:USDT|bingx|bybit",
+          "sym": "COTI/USDT:USDT",
+          "exchanges": [
+            "bingx",
+            "bybit"
+          ],
+          "controlPositionId": "observer-max3:COTI/USDT:USDT|bingx|bybit:1786229537073",
+          "championPositionId": null,
+          "entryTs": 1786229537073,
+          "closeTs": 1786231337134,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0273,
+          "realizedPnL": -0.2527,
+          "markedPnL": -0.2527,
+          "executablePnL": -0.2527,
+          "aberta": false
+        },
+        "observer-max4": {
+          "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+          "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229537611",
+          "k": "COTI/USDT:USDT|bingx|bybit",
+          "sym": "COTI/USDT:USDT",
+          "exchanges": [
+            "bingx",
+            "bybit"
+          ],
+          "controlPositionId": "observer-max4:COTI/USDT:USDT|bingx|bybit:1786229537611",
+          "championPositionId": null,
+          "entryTs": 1786229537611,
+          "closeTs": 1786231337658,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0273,
+          "realizedPnL": -0.2527,
+          "markedPnL": -0.2527,
+          "executablePnL": -0.2527,
+          "aberta": false
+        },
+        "observer-max5": {
+          "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+          "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229538254",
+          "k": "COTI/USDT:USDT|bingx|bybit",
+          "sym": "COTI/USDT:USDT",
+          "exchanges": [
+            "bingx",
+            "bybit"
+          ],
+          "controlPositionId": "observer-max5:COTI/USDT:USDT|bingx|bybit:1786229538254",
+          "championPositionId": null,
+          "entryTs": 1786229538254,
+          "closeTs": 1786231338310,
+          "closeReason": "scanner_episode_ended",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "custoSaida": 0.14,
+          "funding": 0.0273,
+          "realizedPnL": -0.2527,
+          "markedPnL": -0.2527,
+          "executablePnL": -0.2527,
+          "aberta": false
+        }
+      },
+      "politicasQueFecharam": [
+        "control",
+        "observer-max3",
+        "observer-max4",
+        "observer-max5"
+      ],
+      "realizedPnLPorPolitica": {
+        "trial": null,
+        "control": -0.2527,
+        "observer-max3": -0.2527,
+        "observer-max4": -0.2527,
+        "observer-max5": -0.2527
+      },
+      "spreadRealizedPnL": 0,
+      "divergiu": true,
+      "tipoDivergencia": "decisao_diferente"
+    }
+  ],
   "operacoesFechadas": {
-    "trial": [],
-    "control": [],
-    "observer-max3": [],
-    "observer-max4": [],
-    "observer-max5": []
+    "trial": [
+      {
+        "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496174",
+        "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786229536034",
+        "k": "SHOP/USDT:USDT|bybit|bitget",
+        "sym": "SHOP/USDT:USDT",
+        "exchanges": [
+          "bybit",
+          "bitget"
+        ],
+        "controlPositionId": "trial:SHOP/USDT:USDT|bybit|bitget:1786229536034",
+        "championPositionId": null,
+        "entryTs": 1786229536034,
+        "closeTs": 1786230736072,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0058,
+        "realizedPnL": -0.2742,
+        "markedPnL": -0.2742,
+        "executablePnL": -0.2742,
+        "aberta": false
+      },
+      {
+        "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496175",
+        "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786231036081",
+        "k": "SHOP/USDT:USDT|bybit|bitget",
+        "sym": "SHOP/USDT:USDT",
+        "exchanges": [
+          "bybit",
+          "bitget"
+        ],
+        "controlPositionId": "trial:SHOP/USDT:USDT|bybit|bitget:1786231036081",
+        "championPositionId": null,
+        "entryTs": 1786231036081,
+        "closeTs": 1786232236129,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0057,
+        "realizedPnL": -0.2743,
+        "markedPnL": -0.2743,
+        "executablePnL": -0.2743,
+        "aberta": false
+      }
+    ],
+    "control": [
+      {
+        "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+        "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229536561",
+        "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+        "sym": "1000CAT/USDT:USDT",
+        "exchanges": [
+          "binanceusdm",
+          "bybit"
+        ],
+        "controlPositionId": "control:1000CAT/USDT:USDT|binanceusdm|bybit:1786229536561",
+        "championPositionId": null,
+        "entryTs": 1786229536561,
+        "closeTs": 1786231036613,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0168,
+        "realizedPnL": -0.2632,
+        "markedPnL": -0.2632,
+        "executablePnL": -0.2632,
+        "aberta": false
+      },
+      {
+        "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+        "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229536560",
+        "k": "COTI/USDT:USDT|bingx|bybit",
+        "sym": "COTI/USDT:USDT",
+        "exchanges": [
+          "bingx",
+          "bybit"
+        ],
+        "controlPositionId": "control:COTI/USDT:USDT|bingx|bybit:1786229536560",
+        "championPositionId": null,
+        "entryTs": 1786229536560,
+        "closeTs": 1786231336631,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0273,
+        "realizedPnL": -0.2527,
+        "markedPnL": -0.2527,
+        "executablePnL": -0.2527,
+        "aberta": false
+      }
+    ],
+    "observer-max3": [
+      {
+        "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+        "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229537074",
+        "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+        "sym": "1000CAT/USDT:USDT",
+        "exchanges": [
+          "binanceusdm",
+          "bybit"
+        ],
+        "controlPositionId": "observer-max3:1000CAT/USDT:USDT|binanceusdm|bybit:1786229537074",
+        "championPositionId": null,
+        "entryTs": 1786229537074,
+        "closeTs": 1786231037125,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0168,
+        "realizedPnL": -0.2632,
+        "markedPnL": -0.2632,
+        "executablePnL": -0.2632,
+        "aberta": false
+      },
+      {
+        "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+        "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229537073",
+        "k": "COTI/USDT:USDT|bingx|bybit",
+        "sym": "COTI/USDT:USDT",
+        "exchanges": [
+          "bingx",
+          "bybit"
+        ],
+        "controlPositionId": "observer-max3:COTI/USDT:USDT|bingx|bybit:1786229537073",
+        "championPositionId": null,
+        "entryTs": 1786229537073,
+        "closeTs": 1786231337134,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0273,
+        "realizedPnL": -0.2527,
+        "markedPnL": -0.2527,
+        "executablePnL": -0.2527,
+        "aberta": false
+      }
+    ],
+    "observer-max4": [
+      {
+        "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+        "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229537611",
+        "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+        "sym": "1000CAT/USDT:USDT",
+        "exchanges": [
+          "binanceusdm",
+          "bybit"
+        ],
+        "controlPositionId": "observer-max4:1000CAT/USDT:USDT|binanceusdm|bybit:1786229537611",
+        "championPositionId": null,
+        "entryTs": 1786229537611,
+        "closeTs": 1786231037644,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0168,
+        "realizedPnL": -0.2632,
+        "markedPnL": -0.2632,
+        "executablePnL": -0.2632,
+        "aberta": false
+      },
+      {
+        "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+        "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229537611",
+        "k": "COTI/USDT:USDT|bingx|bybit",
+        "sym": "COTI/USDT:USDT",
+        "exchanges": [
+          "bingx",
+          "bybit"
+        ],
+        "controlPositionId": "observer-max4:COTI/USDT:USDT|bingx|bybit:1786229537611",
+        "championPositionId": null,
+        "entryTs": 1786229537611,
+        "closeTs": 1786231337658,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0273,
+        "realizedPnL": -0.2527,
+        "markedPnL": -0.2527,
+        "executablePnL": -0.2527,
+        "aberta": false
+      }
+    ],
+    "observer-max5": [
+      {
+        "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496174",
+        "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786229538256",
+        "k": "SHOP/USDT:USDT|bybit|bitget",
+        "sym": "SHOP/USDT:USDT",
+        "exchanges": [
+          "bybit",
+          "bitget"
+        ],
+        "controlPositionId": "observer-max5:SHOP/USDT:USDT|bybit|bitget:1786229538256",
+        "championPositionId": null,
+        "entryTs": 1786229538256,
+        "closeTs": 1786230738286,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0058,
+        "realizedPnL": -0.2742,
+        "markedPnL": -0.2742,
+        "executablePnL": -0.2742,
+        "aberta": false
+      },
+      {
+        "sourceOpportunityId": "1000CAT/USDT:USDT|binanceusdm|bybit@496174",
+        "sourceEpisodeId": "1000CAT/USDT:USDT|binanceusdm|bybit#1786229538255",
+        "k": "1000CAT/USDT:USDT|binanceusdm|bybit",
+        "sym": "1000CAT/USDT:USDT",
+        "exchanges": [
+          "binanceusdm",
+          "bybit"
+        ],
+        "controlPositionId": "observer-max5:1000CAT/USDT:USDT|binanceusdm|bybit:1786229538255",
+        "championPositionId": null,
+        "entryTs": 1786229538255,
+        "closeTs": 1786231038291,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0168,
+        "realizedPnL": -0.2632,
+        "markedPnL": -0.2632,
+        "executablePnL": -0.2632,
+        "aberta": false
+      },
+      {
+        "sourceOpportunityId": "COTI/USDT:USDT|bingx|bybit@496174",
+        "sourceEpisodeId": "COTI/USDT:USDT|bingx|bybit#1786229538254",
+        "k": "COTI/USDT:USDT|bingx|bybit",
+        "sym": "COTI/USDT:USDT",
+        "exchanges": [
+          "bingx",
+          "bybit"
+        ],
+        "controlPositionId": "observer-max5:COTI/USDT:USDT|bingx|bybit:1786229538254",
+        "championPositionId": null,
+        "entryTs": 1786229538254,
+        "closeTs": 1786231338310,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0.0273,
+        "realizedPnL": -0.2527,
+        "markedPnL": -0.2527,
+        "executablePnL": -0.2527,
+        "aberta": false
+      },
+      {
+        "sourceOpportunityId": "SHOP/USDT:USDT|bybit|bitget@496175",
+        "sourceEpisodeId": "SHOP/USDT:USDT|bybit|bitget#1786231338308",
+        "k": "SHOP/USDT:USDT|bybit|bitget",
+        "sym": "SHOP/USDT:USDT",
+        "exchanges": [
+          "bybit",
+          "bitget"
+        ],
+        "controlPositionId": "observer-max5:SHOP/USDT:USDT|bybit|bitget:1786231338308",
+        "championPositionId": null,
+        "entryTs": 1786231338308,
+        "closeTs": 1786232238307,
+        "closeReason": "scanner_episode_ended",
+        "notional": 100,
+        "custoEntrada": 0.14,
+        "custoSaida": 0.14,
+        "funding": 0,
+        "realizedPnL": -0.28,
+        "markedPnL": -0.28,
+        "executablePnL": -0.28,
+        "aberta": false
+      }
+    ]
   },
-  "honestidade": "Compara a MESMA oportunidade-fonte entre políticas, evento a evento. Nesta fase há 0 oportunidades-fonte únicas FECHADas e 0 posições ABERTAS (censuradas). PnL de posição aberta NÃO conta — só fechamentos reais. Marked/executable == realized no fecho (posição liquidada)."
+  "honestidade": "Compara a MESMA oportunidade-fonte entre políticas, evento a evento. Nesta fase há 4 oportunidades-fonte únicas FECHADas e 16 posições ABERTAS (censuradas). PnL de posição aberta NÃO conta — só fechamentos reais. Marked/executable == realized no fecho (posição liquidada)."
 }

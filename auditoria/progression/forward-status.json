@@ -8,88 +8,88 @@
       "vivo": true,
       "iniciadoEm": "2026-08-08T22:47:16.011Z",
       "capitalInicial": 200,
-      "capitalAtual": 200,
-      "funding": 0,
-      "custos": 0,
-      "pnlLiquido": 0,
-      "abertas": 0,
-      "avaliadas": 0,
-      "abertasTotal": 0,
-      "fechadas": 0,
+      "capitalAtual": 199.3116,
+      "funding": 0.0116,
+      "custos": 0.7,
+      "pnlLiquido": -0.6884,
+      "abertas": 1,
+      "avaliadas": 67,
+      "abertasTotal": 3,
+      "fechadas": 2,
       "bloqueios": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
         "maxPositionsBlocked": 0,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 62
       },
       "saldosPorExchange": {
-        "bitget": 100,
-        "bybit": 100
+        "bitget": 80,
+        "bybit": 80
       },
-      "retornoPct": 0
+      "retornoPct": -0.34
     },
     "control": {
       "modo": "control",
       "vivo": true,
       "iniciadoEm": "2026-08-08T22:47:16.529Z",
       "capitalInicial": 600,
-      "capitalAtual": 600,
-      "funding": 0,
-      "custos": 0,
-      "pnlLiquido": 0,
-      "abertas": 0,
-      "avaliadas": 0,
-      "abertasTotal": 0,
-      "fechadas": 0,
+      "capitalAtual": 599.312,
+      "funding": 0.292,
+      "custos": 0.98,
+      "pnlLiquido": -0.688,
+      "abertas": 3,
+      "avaliadas": 1515,
+      "abertasTotal": 5,
+      "fechadas": 2,
       "bloqueios": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 101,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 1387
       },
       "saldosPorExchange": {
-        "binanceusdm": 100,
-        "bybit": 100,
+        "binanceusdm": 80,
+        "bybit": 60,
         "okx": 100,
         "gate": 100,
         "bitget": 100,
-        "bingx": 100
+        "bingx": 40
       },
-      "retornoPct": 0
+      "retornoPct": -0.11
     }
   },
   "item9_commonWindowForward": {
     "pnlAbsolutoUSD": {
-      "trial": 0,
-      "control": 0
+      "trial": -0.6884,
+      "control": -0.688
     },
     "retornoPct": {
-      "trial": 0,
-      "control": 0
+      "trial": -0.34,
+      "control": -0.11
     },
     "funding": {
-      "trial": 0,
-      "control": 0
+      "trial": 0.0116,
+      "control": 0.292
     },
     "custos": {
-      "trial": 0,
-      "control": 0
+      "trial": 0.7,
+      "control": 0.98
     },
     "oportunidadesAvaliadas": {
-      "trial": 0,
-      "control": 0
+      "trial": 67,
+      "control": 1515
     },
     "posicoesAbertas": {
-      "trial": 0,
-      "control": 0
+      "trial": 3,
+      "control": 5
     },
     "posicoesFechadas": {
-      "trial": 0,
-      "control": 0
+      "trial": 2,
+      "control": 2
     },
     "bloqueiosPorSaldoLocal": {
       "trial": {
@@ -98,35 +98,35 @@
         "reserveBlocked": 0,
         "maxPositionsBlocked": 0,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 62
       },
       "control": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 101,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 1387
       }
     },
     "saldosPorExchange": {
       "trial": {
-        "bitget": 100,
-        "bybit": 100
+        "bitget": 80,
+        "bybit": 80
       },
       "control": {
-        "binanceusdm": 100,
-        "bybit": 100,
+        "binanceusdm": 80,
+        "bybit": 60,
         "okx": 100,
         "gate": 100,
         "bitget": 100,
-        "bingx": 100
+        "bingx": 40
       }
     }
   },
   "item10_gateSelecaoExchanges": {
     "posicoesFechadasForward": {
-      "valor": 0,
+      "valor": 2,
       "minimo": 30,
       "atende": false
     },
@@ -137,9 +137,9 @@
     "nenhumaPosicaoAcima25pctDoGanho": "a medir (sem fechados forward ainda)",
     "nenhumSimboloAcima35pct": "a medir",
     "zeroFalhaCriticaExchange": true,
-    "resultadoForwardNaoApenasReplay": false,
+    "resultadoForwardNaoApenasReplay": true,
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — 0/30 posições FECHADAS forward, 0/2 janelas, 0/2 regimes. Os processos forward começaram agora; NÃO recomendar Bitget+Bybit até acumular resultado FORWARD real (não replay). Control fiel ao Champion: true."
+    "veredito": "BLOQUEADO — 2/30 posições FECHADAS forward, 0/2 janelas, 0/2 regimes. Os processos forward começaram agora; NÃO recomendar Bitget+Bybit até acumular resultado FORWARD real (não replay). Control fiel ao Champion: true."
   },
   "nota": "Os processos FORWARD (Trial/Control) começaram do zero e acumulam com o tempo (funding ao longo de horas). No corte da entrega os números forward são mínimos — por design. A decisão de exchanges espera resultado forward + 2 janelas/2 regimes.",
   "honestidade": "live-paper (forward, shadow). Nenhuma ordem; nenhum saldo real. Trial enviesa nada — parte do zero e só vê oportunidades novas."

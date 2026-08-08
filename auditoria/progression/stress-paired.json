@@ -2,38 +2,38 @@
   "schema": "snowball.stress-paired.v1_7",
   "geradoEm": "2026-08-08T21:48:24.958Z",
   "asOfMs": 1786225704958,
-  "operacoesNoConjunto": 0,
+  "operacoesNoConjunto": 2,
   "custoRoundTripFrac": 0.0028,
   "slippageAdicionalPorPerna": 0.0002,
   "cenarios": {
     "baseline": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -0.5159,
       "positivas": 0
     },
     "custos_1_5x": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -0.7959,
       "positivas": 0
     },
     "custos_2x": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -1.0759,
       "positivas": 0
     },
     "funding_menos_25": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -0.5269,
       "positivas": 0
     },
     "funding_menos_50": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -0.5379,
       "positivas": 0
     },
     "slippage_adicional": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -0.6759,
       "positivas": 0
     },
     "perda_bybit": {
@@ -42,13 +42,13 @@
       "positivas": 0
     },
     "combinado_2x_funding_menos_50": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -1.2579,
       "positivas": 0
     }
   },
   "amostraSuficiente": false,
   "stressAprovado": false,
-  "veredito": "Amostra insuficiente p/ stress (0 fechamentos). NÃO aprovado ainda.",
+  "veredito": "Amostra insuficiente p/ stress (2 fechamentos). NÃO aprovado ainda.",
   "honestidade": "Stress aplicado ao MESMO conjunto pareado (control 6-ex). Com amostra ~0, o veredito é \"não aprovado ainda\" por falta de evidência."
 }

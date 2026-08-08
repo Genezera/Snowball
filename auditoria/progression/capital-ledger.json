@@ -34,16 +34,16 @@
     "confidence": 1
   },
   "equityMarcada": {
-    "value": 614.4244587974066,
+    "value": 614.4370276169182,
     "source": "champion_observed",
-    "observedAt": 1786229373980,
+    "observedAt": 1786232430100,
     "ageMs": 0,
     "confidence": 1
   },
   "equityExecutavel": {
-    "value": 613.2185368655886,
+    "value": 613.0026702258214,
     "source": "champion_observed",
-    "observedAt": 1786229373980,
+    "observedAt": 1786232430100,
     "ageMs": 0,
     "confidence": 1
   },

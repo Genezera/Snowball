@@ -3,12 +3,12 @@
   "geradoEm": "2026-08-08T21:48:24.958Z",
   "asOfMs": 1786225704958,
   "contagemCorreta": {
-    "sourceOpportunityIdUnicosFechados": 0,
-    "divergenciasReais": 0,
-    "censuradasAbertas": 0
+    "sourceOpportunityIdUnicosFechados": 4,
+    "divergenciasReais": 4,
+    "censuradasAbertas": 16
   },
   "contagemInflada_NAO_USADA": {
-    "somaFechamentosPorPolitica": 0,
+    "somaFechamentosPorPolitica": 12,
     "nota": "Isto contaria a MESMA oportunidade uma vez por política — NÃO é usado no gate."
   },
   "metas": {
@@ -19,6 +19,6 @@
     "unicasFechadas": false,
     "divergencias": false
   },
-  "veredito": "Amostra INSUFICIENTE: 0/30 únicas, 0/15 divergências. Posições abertas (0) são censuradas e NÃO contam.",
+  "veredito": "Amostra INSUFICIENTE: 4/30 únicas, 4/15 divergências. Posições abertas (16) são censuradas e NÃO contam.",
   "honestidade": "Unidade de evidência = oportunidade-fonte única fechada. Multiplicar por políticas seria contar o mesmo evento várias vezes."
 }

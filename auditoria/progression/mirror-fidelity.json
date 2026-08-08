@@ -1,0 +1,22 @@
+{
+  "schema": "snowball.mirror-fidelity.v1_8",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "operacional": {
+    "championAbertas": 3,
+    "mirrorAbertas": 3,
+    "soNoMirror": [],
+    "soNoChampion": [],
+    "fiel": true
+  },
+  "contabil": {
+    "maxDiffFundingAberto": 0,
+    "fiel": true,
+    "capitalEspelhado": true,
+    "championCapital": 612.9763,
+    "mirrorChampionCapital": 612.9763
+  },
+  "fielTotal": true,
+  "nota": "Mirror segue o Champion evento a evento (abre/escala/funding/fecha). Divergência operacional só apareceria se o Mirror perdesse um evento do Champion.",
+  "honestidade": "Fidelidade do Mirror é SEPARADA da do Policy Control. Mirror = baseline contábil-operacional; Policy = reexecução de regras a partir do feed."
+}

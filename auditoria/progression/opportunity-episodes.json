@@ -23,12 +23,12 @@
   },
   "janela": {
     "inicio": "2026-08-02T18:21:54.848Z",
-    "fim": "2026-08-08T22:44:50.203Z",
-    "chavesDistintas": 2925
+    "fim": "2026-08-08T23:41:40.278Z",
+    "chavesDistintas": 2929
   },
   "item2_3_episodios": {
-    "total": 18694,
-    "completos": 18537,
+    "total": 18821,
+    "completos": 18675,
     "exemplos": [
       {
         "id": "KAITO/USDT:USDT|bybit|binanceusdm|epoch-1#1785696993854",
@@ -88,17 +88,17 @@
   },
   "item3_censura": {
     "leftCensored": 5,
-    "rightCensored": 152,
-    "completeEpisodes": 18537,
+    "rightCensored": 141,
+    "completeEpisodes": 18675,
     "observationCoverageMediana": 1,
     "duracaoMedianaH_completosApenas": 0.17,
     "duracaoMedianaH_todos_ENGANOSA": 0.17,
     "nota": "A mediana de duração v1.3 (27h) misturava censurados. Correta = só completos. Censurados à direita NÃO têm duração conhecida."
   },
   "item5_funilCorrigido": {
-    "allEpisodes": 18694,
-    "completeEpisodes": 18537,
-    "modelPositiveAtDecisionTime": 5094,
+    "allEpisodes": 18821,
+    "completeEpisodes": 18675,
+    "modelPositiveAtDecisionTime": 5114,
     "survivedPayback": 0,
     "engineApproved": 13,
     "opened": 1,

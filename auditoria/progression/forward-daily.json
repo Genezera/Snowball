@@ -3,9 +3,9 @@
   "geradoEm": "2026-08-08T21:48:24.958Z",
   "asOfMs": 1786225704958,
   "item1_identidadeCommonWindow": {
-    "snapshotId": "dbda9764e3d23b54",
-    "lastEventId": "1786229368205:leitura:",
-    "lastCycleId": "AR/USDT:USDT|bingx|binanceusdm",
+    "snapshotId": "a80df90fb1f58da3",
+    "lastEventId": "1786232424297:leitura:",
+    "lastCycleId": "AEON/USDT:USDT|bitget|okx",
     "configEpochId": "epoch-1",
     "porProcesso": [
       {
@@ -35,26 +35,26 @@
   },
   "supervisor": {
     "vivo": true,
-    "pid": 132942
+    "pid": 134318
   },
   "item11_processos": [
     {
       "label": "trial",
       "vivo": true,
       "maxPos": 3,
-      "heartbeatAgeS": 152,
+      "heartbeatAgeS": 187,
       "restarts": 4,
-      "uptimeMin": 3,
+      "uptimeMin": 58,
       "startObservationTs": 1786229236011,
-      "eventosAvaliados": 0,
-      "posicoesAbertas": 0,
-      "posicoesFechadas": 0,
-      "pnlLiquido": 0,
-      "funding": 0,
-      "custos": 0,
+      "eventosAvaliados": 67,
+      "posicoesAbertas": 1,
+      "posicoesFechadas": 2,
+      "pnlLiquido": -0.6884,
+      "funding": 0.0116,
+      "custos": 0.7,
       "saldosPorExchange": {
-        "bitget": 100,
-        "bybit": 100
+        "bitget": 80,
+        "bybit": 80
       },
       "bloqueiosLocais": {
         "aggregateCapitalBlocked": 0,
@@ -62,142 +62,142 @@
         "reserveBlocked": 0,
         "maxPositionsBlocked": 0,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 62
       },
-      "diarioLinhas": 0,
-      "ledgerLinhas": 0
+      "diarioLinhas": 5,
+      "ledgerLinhas": 3
     },
     {
       "label": "control",
       "vivo": true,
       "maxPos": 3,
-      "heartbeatAgeS": 152,
+      "heartbeatAgeS": 187,
       "restarts": 4,
-      "uptimeMin": 3,
+      "uptimeMin": 58,
       "startObservationTs": 1786229236529,
-      "eventosAvaliados": 0,
-      "posicoesAbertas": 0,
-      "posicoesFechadas": 0,
-      "pnlLiquido": 0,
-      "funding": 0,
-      "custos": 0,
+      "eventosAvaliados": 1515,
+      "posicoesAbertas": 3,
+      "posicoesFechadas": 2,
+      "pnlLiquido": -0.688,
+      "funding": 0.292,
+      "custos": 0.98,
       "saldosPorExchange": {
-        "binanceusdm": 100,
-        "bybit": 100,
+        "binanceusdm": 80,
+        "bybit": 60,
         "okx": 100,
         "gate": 100,
         "bitget": 100,
-        "bingx": 100
+        "bingx": 40
       },
       "bloqueiosLocais": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 101,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 1387
       },
-      "diarioLinhas": 0,
-      "ledgerLinhas": 0
+      "diarioLinhas": 108,
+      "ledgerLinhas": 5
     },
     {
       "label": "observer-max3",
       "vivo": true,
       "maxPos": 3,
-      "heartbeatAgeS": 151,
+      "heartbeatAgeS": 186,
       "restarts": 4,
-      "uptimeMin": 3,
+      "uptimeMin": 58,
       "startObservationTs": 1786229237042,
-      "eventosAvaliados": 0,
-      "posicoesAbertas": 0,
-      "posicoesFechadas": 0,
-      "pnlLiquido": 0,
-      "funding": 0,
-      "custos": 0,
+      "eventosAvaliados": 1515,
+      "posicoesAbertas": 3,
+      "posicoesFechadas": 2,
+      "pnlLiquido": -0.688,
+      "funding": 0.292,
+      "custos": 0.98,
       "saldosPorExchange": {
-        "binanceusdm": 100,
-        "bybit": 100,
+        "binanceusdm": 80,
+        "bybit": 60,
         "okx": 100,
         "gate": 100,
         "bitget": 100,
-        "bingx": 100
+        "bingx": 40
       },
       "bloqueiosLocais": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 101,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 1387
       },
-      "diarioLinhas": 0,
-      "ledgerLinhas": 0
+      "diarioLinhas": 108,
+      "ledgerLinhas": 5
     },
     {
       "label": "observer-max4",
       "vivo": true,
       "maxPos": 4,
-      "heartbeatAgeS": 150,
+      "heartbeatAgeS": 186,
       "restarts": 4,
-      "uptimeMin": 3,
+      "uptimeMin": 58,
       "startObservationTs": 1786229237584,
-      "eventosAvaliados": 0,
-      "posicoesAbertas": 0,
-      "posicoesFechadas": 0,
-      "pnlLiquido": 0,
-      "funding": 0,
-      "custos": 0,
+      "eventosAvaliados": 1515,
+      "posicoesAbertas": 4,
+      "posicoesFechadas": 2,
+      "pnlLiquido": -0.7827,
+      "funding": 0.3373,
+      "custos": 1.12,
       "saldosPorExchange": {
-        "binanceusdm": 100,
-        "bybit": 100,
+        "binanceusdm": 80,
+        "bybit": 60,
         "okx": 100,
-        "gate": 100,
+        "gate": 80,
         "bitget": 100,
-        "bingx": 100
+        "bingx": 20
       },
       "bloqueiosLocais": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 93,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 1387
       },
-      "diarioLinhas": 0,
-      "ledgerLinhas": 0
+      "diarioLinhas": 101,
+      "ledgerLinhas": 6
     },
     {
       "label": "observer-max5",
       "vivo": true,
       "maxPos": 5,
-      "heartbeatAgeS": 150,
+      "heartbeatAgeS": 185,
       "restarts": 5,
-      "uptimeMin": 2,
+      "uptimeMin": 58,
       "startObservationTs": 1786229238227,
-      "eventosAvaliados": 0,
-      "posicoesAbertas": 0,
-      "posicoesFechadas": 0,
-      "pnlLiquido": 0,
-      "funding": 0,
-      "custos": 0,
+      "eventosAvaliados": 1515,
+      "posicoesAbertas": 5,
+      "posicoesFechadas": 4,
+      "pnlLiquido": -1.4676,
+      "funding": 0.3524,
+      "custos": 1.82,
       "saldosPorExchange": {
-        "binanceusdm": 100,
-        "bybit": 100,
+        "binanceusdm": 80,
+        "bybit": 40,
         "okx": 100,
-        "gate": 100,
-        "bitget": 100,
-        "bingx": 100
+        "gate": 80,
+        "bitget": 80,
+        "bingx": 20
       },
       "bloqueiosLocais": {
         "aggregateCapitalBlocked": 0,
-        "localBalanceBlocked": 0,
+        "localBalanceBlocked": 1,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 87,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 0
+        "evNaoPositivo": 1387
       },
-      "diarioLinhas": 0,
-      "ledgerLinhas": 0
+      "diarioLinhas": 101,
+      "ledgerLinhas": 9
     }
   ],
   "integridade": {
@@ -247,8 +247,8 @@
     ]
   },
   "episodios": {
-    "allEpisodes": 18694,
-    "completeEpisodes": 18537,
+    "allEpisodes": 18821,
+    "completeEpisodes": 18675,
     "survivedPayback": 0
   },
   "item12_gate": {
@@ -256,20 +256,24 @@
     "hostRebootTested": false,
     "durabilityMatrizAprovada": true,
     "supervisorMatrizAprovada": true,
+    "durabilitySoakCompleto": false,
+    "identidadeCausalValidada": true,
+    "mirrorControlFiel": true,
+    "policyControlDivergenciasExplicadas": true,
+    "semFechamentoImplicitoScannerStale": true,
+    "economicSoakIntegro": true,
     "checkpointsAtomicosComprovados": true,
     "crashSuiteCompleta": true,
     "commonWatermarkValido": true,
     "watermarkEstavel": true,
     "forwardEpochValido": true,
     "sourceHashesIdenticos": true,
-    "forwardSoakCompleto": false,
-    "controlEconomicFidelity": false,
-    "sourceOpportunityUnicasFechadas": {
+    "sourcePositionUnicasFechadas": {
       "valor": 0,
       "minimo": 30,
       "atende": false
     },
-    "divergenciasReais": {
+    "divergenciasReaisEconomicas": {
       "valor": 0,
       "minimo": 15,
       "atende": false
@@ -281,7 +285,7 @@
     "stressAprovado": false,
     "zeroFalhaCritica": true,
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — durabilityMatriz=OK, supervisorMatriz=OK, watermark=true(estável=true), epoch=true, soakCompleto=false, economicFidelity=false; únicasFechadas 0/30, divergências 0/15, stress=false, concentração=false, 0/2 janelas/regimes. HOST_REBOOT_TESTED=false. NÃO recomendar Bitget+Bybit."
+    "veredito": "BLOQUEADO — identidadeCausal=OK, MirrorFiel=true, PolicyDivExplicadas=true, semCloseImplicito=OK, economicSoak=EPOCH_CONGELADA; posições-fonte únicas 0/30, divergências 0/15, 0/2 janelas/regimes, stress=false, concentração=false, durabilitySoakCompleto=false. NÃO recomendar Bitget+Bybit."
   },
   "honestidade": "live-paper forward. Números mínimos no início (processos recém-supervisionados). Nenhuma ordem; nenhum saldo real."
 }

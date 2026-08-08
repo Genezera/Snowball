@@ -22,15 +22,15 @@
       },
       {
         "identidade": "equityMark = capitalRealizado + pnlMark",
-        "valor": 614.4245,
-        "esperado": 614.4245,
+        "valor": 614.437,
+        "esperado": 614.437,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "equityLiquidacao = capitalRealizado + pnlExec − custoFecho",
-        "valor": 613.2185,
-        "esperado": 613.2185,
+        "valor": 613.0027,
+        "esperado": 613.0027,
         "diferenca": 0,
         "ok": true
       }
@@ -57,8 +57,8 @@
       "camada": 3,
       "definicoesReconciliamAgora": true,
       "aprovadoAposEventosForwardReais": false,
-      "fechadasForward": 0,
-      "nota": "entradas/positionIds/exchanges/notional/custos/funding/fechamentos/saldos/realized/marked/executable PnL ≤US$0,01. APROVAÇÃO só após ≥30 eventos econômicos FORWARD reais (hoje 0)."
+      "fechadasForward": 2,
+      "nota": "entradas/positionIds/exchanges/notional/custos/funding/fechamentos/saldos/realized/marked/executable PnL ≤US$0,01. APROVAÇÃO só após ≥30 eventos econômicos FORWARD reais (hoje 2)."
     }
   },
   "nota": "Cada definição reconcilia na SUA base (realized vs realized, marked vs marked, executable vs executable). NÃO se usa resíduo p/ compensar bases diferentes: marked e realized são coisas distintas e cada uma bate com a sua fonte no Champion.",
@@ -98,16 +98,16 @@
     {
       "definicao": "marked PnL",
       "base": "equityMark − capitalRealizado",
-      "control": 1.4482,
-      "champion": 1.4482,
+      "control": 1.4608,
+      "champion": 1.4608,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "executable PnL",
       "base": "equityLiquidacao − capitalRealizado + custoEstimadoFechamentoTotal",
-      "control": 1.3159,
-      "champion": 1.3159,
+      "control": 1.1001,
+      "champion": 1.1001,
       "diferenca": 0,
       "reconcilia": true
     },

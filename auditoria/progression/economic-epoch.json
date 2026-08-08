@@ -1,0 +1,21 @@
+{
+  "schema": "snowball.economic-epoch.v1_8",
+  "economicForwardEpochId": "032a0b32782e1e8a",
+  "forwardEpochId": "032a0b32782e1e8a",
+  "sourceFileId": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
+  "fileIdentity": "3968459148:130604389193919400",
+  "byteOffset": 15115365,
+  "lineNumber": 0,
+  "timestamp": 1786225704958,
+  "championCapitalNaEpoch": 612.9763,
+  "congeladoEm": "2026-08-08T21:48:24.958Z",
+  "processos": [
+    "mirror",
+    "policy",
+    "trial",
+    "observer-max3",
+    "observer-max4",
+    "observer-max5"
+  ],
+  "nota": "Todos os processos econômicos partem deste byteOffset (mesmo watermark). Mirror lê o Champion, não o feed."
+}

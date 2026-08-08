@@ -1,0 +1,47 @@
+{
+  "schema": "snowball.policy-control-fidelity.v1_8",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "championAbertas": 3,
+  "policyAbertas": 0,
+  "tiposDivergencia": [
+    "ENTRY_DIVERGENCE",
+    "SIZING_DIVERGENCE",
+    "RANKING_DIVERGENCE",
+    "BALANCE_DIVERGENCE",
+    "CLOSE_DIVERGENCE",
+    "DATA_DIVERGENCE"
+  ],
+  "contadores": {
+    "ENTRY_DIVERGENCE": 3,
+    "SIZING_DIVERGENCE": 0,
+    "RANKING_DIVERGENCE": 0,
+    "BALANCE_DIVERGENCE": 0,
+    "CLOSE_DIVERGENCE": 0,
+    "DATA_DIVERGENCE": 0
+  },
+  "divergencias": [
+    {
+      "tipo": "ENTRY_DIVERGENCE",
+      "detalhe": "Champion tem BICO|gate+okx, Policy não",
+      "causaProvavel": "warmup (posição aberta antes da economicForwardEpoch) ou DATA_DIVERGENCE"
+    },
+    {
+      "tipo": "ENTRY_DIVERGENCE",
+      "detalhe": "Champion tem 1000CAT|binanceusdm+bybit, Policy não",
+      "causaProvavel": "warmup (posição aberta antes da economicForwardEpoch) ou DATA_DIVERGENCE"
+    },
+    {
+      "tipo": "ENTRY_DIVERGENCE",
+      "detalhe": "Champion tem ZBT|bingx+bybit, Policy não",
+      "causaProvavel": "warmup (posição aberta antes da economicForwardEpoch) ou DATA_DIVERGENCE"
+    }
+  ],
+  "explicadas": {
+    "warmupPreEpoch": 3,
+    "total": 3,
+    "todasExplicadas": true
+  },
+  "separadaDoMirror": true,
+  "honestidade": "Policy Control reexecuta regras do feed; divergências vs Champion no início são majoritariamente ENTRY por WARMUP (Champion abriu antes da economicForwardEpoch) ou DATA (Champion vê exchanges/dados fora do feed comum). Fidelidade SEPARADA da do Mirror."
+}

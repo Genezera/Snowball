@@ -11,9 +11,9 @@
     {
       "label": "trial",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 14923765,
-      "eventCount": 0,
-      "accumulatedEventHash": "",
+      "byteOffset": 15100198,
+      "eventCount": 1515,
+      "accumulatedEventHash": "50ae6f19831fb3498f7f6a332bb37272",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
       "vivo": true
@@ -21,9 +21,9 @@
     {
       "label": "control",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 14923765,
-      "eventCount": 0,
-      "accumulatedEventHash": "",
+      "byteOffset": 15100198,
+      "eventCount": 1515,
+      "accumulatedEventHash": "50ae6f19831fb3498f7f6a332bb37272",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
       "vivo": true
@@ -31,9 +31,9 @@
     {
       "label": "observer-max3",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 14923765,
-      "eventCount": 0,
-      "accumulatedEventHash": "",
+      "byteOffset": 15100198,
+      "eventCount": 1515,
+      "accumulatedEventHash": "50ae6f19831fb3498f7f6a332bb37272",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
       "vivo": true
@@ -41,9 +41,9 @@
     {
       "label": "observer-max4",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 14923765,
-      "eventCount": 0,
-      "accumulatedEventHash": "",
+      "byteOffset": 15100198,
+      "eventCount": 1515,
+      "accumulatedEventHash": "50ae6f19831fb3498f7f6a332bb37272",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
       "vivo": true
@@ -51,9 +51,9 @@
     {
       "label": "observer-max5",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 14923765,
-      "eventCount": 0,
-      "accumulatedEventHash": "",
+      "byteOffset": 15100198,
+      "eventCount": 1515,
+      "accumulatedEventHash": "50ae6f19831fb3498f7f6a332bb37272",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
       "vivo": true

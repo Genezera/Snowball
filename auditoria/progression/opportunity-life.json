@@ -3,17 +3,17 @@
   "geradoEm": "2026-08-08T21:48:24.958Z",
   "asOfMs": 1786225704958,
   "item7_funil": {
-    "oportunidadesDistintas": 2925,
-    "modelPositiveEV_holdMax168h": 1074,
-    "modelPositiveEV_queViveramAtePayback": 159,
-    "realmentePositivas_vidaObservada": 159,
+    "oportunidadesDistintas": 2929,
+    "modelPositiveEV_holdMax168h": 1072,
+    "modelPositiveEV_queViveramAtePayback": 158,
+    "realmentePositivas_vidaObservada": 158,
     "abertasPeloChampion_simbolos": 1,
-    "explicacao": "De 2925 oportunidades, 1074 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 159 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~159 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
+    "explicacao": "De 2929 oportunidades, 1072 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 158 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~158 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
   },
   "distribuicao": {
-    "duracaoMedianaH": 27.48,
+    "duracaoMedianaH": 27.56,
     "paybackMedianoH": 160.91,
-    "pctQueViveramAtePayback": 5.44
+    "pctQueViveramAtePayback": 5.39
   },
   "item6_multiHorizonte": {
     "horizontes": [
@@ -104,15 +104,15 @@
       },
       {
         "sym": "COTI/USDT:USDT",
-        "aprMediano": 9.6828,
-        "duracaoH": 64.63,
-        "paybackH": 10.53,
-        "evVidaObservada": 5.9795,
+        "aprMediano": 9.6608,
+        "duracaoH": 64.89,
+        "paybackH": 10.54,
+        "evVidaObservada": 5.9939,
         "evPorHorizonte": {
-          "h1": -1.0537,
+          "h1": -1.052,
           "h8": -0.28,
-          "h24": 1.4885,
-          "h72": 6.7942
+          "h24": 1.4845,
+          "h72": 6.7781
         }
       },
       {

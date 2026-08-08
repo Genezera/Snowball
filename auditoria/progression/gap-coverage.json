@@ -2,46 +2,46 @@
   "schema": "snowball.gap-coverage.v1_6",
   "geradoEm": "2026-08-08T21:48:24.958Z",
   "asOfMs": 1786225704958,
-  "janelaH": 148.38,
+  "janelaH": 149.33,
   "buracosDeCobertura": 14,
   "tempoEmBuracosH": 48.84,
   "limiarBuracoMin": 10,
   "cenarios": [
     {
       "gapMin": 15,
-      "episodios": 28401,
+      "episodios": 28596,
       "atravessamBuraco": 10,
-      "pctAfetadosPorGapOperacional": 0.04,
+      "pctAfetadosPorGapOperacional": 0.03,
       "duracaoMedianaCompletosH_todos": 0.03,
       "duracaoMedianaCompletosH_semBuracos": 0.03,
-      "episodiosLimpos": 28234
+      "episodiosLimpos": 28440
     },
     {
       "gapMin": 30,
-      "episodios": 18694,
+      "episodios": 18821,
       "atravessamBuraco": 17,
       "pctAfetadosPorGapOperacional": 0.09,
       "duracaoMedianaCompletosH_todos": 0.17,
       "duracaoMedianaCompletosH_semBuracos": 0.17,
-      "episodiosLimpos": 18520
+      "episodiosLimpos": 18658
     },
     {
       "gapMin": 45,
-      "episodios": 15248,
+      "episodios": 15357,
       "atravessamBuraco": 25,
       "pctAfetadosPorGapOperacional": 0.16,
       "duracaoMedianaCompletosH_todos": 0.34,
       "duracaoMedianaCompletosH_semBuracos": 0.34,
-      "episodiosLimpos": 15070
+      "episodiosLimpos": 15190
     },
     {
       "gapMin": 60,
-      "episodios": 13543,
+      "episodios": 13645,
       "atravessamBuraco": 28,
       "pctAfetadosPorGapOperacional": 0.21,
       "duracaoMedianaCompletosH_todos": 0.43,
       "duracaoMedianaCompletosH_semBuracos": 0.43,
-      "episodiosLimpos": 13362
+      "episodiosLimpos": 13475
     }
   ],
   "conclusao": "14 buracos de cobertura (48.84h sem obs global). Excluindo episódios que atravessam buracos operacionais, a duração mediana permanece ~0.17h (gap 30min) — praticamente igual à anterior (0.17h). Ou seja: a conclusão (episódio de scanner curto) NÃO era artefato de downtime do coletor; 0.09% dos episódios tocam buracos, mas a mediana dos LIMPOS é a mesma.",

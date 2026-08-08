@@ -1,13 +1,13 @@
 {
   "schema": "snowball.snapshot.v1_3",
-  "snapshotId": "dbda9764e3d23b54",
+  "snapshotId": "a80df90fb1f58da3",
   "tsInicial": 1785758671297,
   "tsInicialISO": "2026-08-03T12:04:31.297Z",
-  "tsFinal": 1786229368205,
-  "tsFinalISO": "2026-08-08T22:49:28.205Z",
-  "ultimoEventId": "1786229368205:leitura:",
-  "ultimoCycleId": "AR/USDT:USDT|bingx|binanceusdm",
-  "commit": "cff9a74e1e236af000ade4ea84b66514e40f6450",
+  "tsFinal": 1786232424297,
+  "tsFinalISO": "2026-08-08T23:40:24.297Z",
+  "ultimoEventId": "1786232424297:leitura:",
+  "ultimoCycleId": "AEON/USDT:USDT|bitget|okx",
+  "commit": "d0673513885fc0924722e382c2b839469839cdff",
   "configEpochId": "epoch-1",
   "capitalNoCorte": 612.9763,
   "fundingNoCorte": 23.7538,
@@ -19,22 +19,22 @@
   ],
   "hashes": {
     "spread/diario.jsonl": {
-      "sha256": "ede9e3b653e299292dc243248e7fdec00d042d9551cc1a0e7873456a4e1b13ba",
-      "bytes": 486990
+      "sha256": "345c66d0aae0540293ade88fe1cb4702e8a0c7f3e42eda6606805c42466a0418",
+      "bytes": 487670
     },
     "spread/estado.json": {
-      "sha256": "b5ffeffa923d10d363336dec1638d9b4fab1b1bdf227f84495df8ebfb4fd89c0",
-      "bytes": 2511
+      "sha256": "2e75403d5733bef67136d9a7553f2b3b853560517e3c3301bd4c137e1a650c1a",
+      "bytes": 2507
     },
     "spread/marcacao.json": {
-      "sha256": "7b8b63c53e28a13b3e28fa56f25c0078eda2458695f1ff8f89fdb9d5070ac9d5",
-      "bytes": 2354
+      "sha256": "c9be6c206d412e44d775fc422ded917b45804308bc7a38c7c9f55347af36859d",
+      "bytes": 2352
     },
     "vigilancia/arquivo-observacoes.jsonl": {
-      "sha256": "ead6291c3e3721f986918b66cbe45e4a484972257c134c299026d8beb42b6ba2",
-      "bytes": 14939753
+      "sha256": "38eb38183ab4ad1a648007ef900646a4e23b7f1c9141afb9cd32c9fd861be442",
+      "bytes": 15115365
     }
   },
-  "eventosNoDiario": 2055,
+  "eventosNoDiario": 2065,
   "nota": "Corte comum congelado. Todas as comparações v1.3 (Control, Trial replay, frontier, vida) usam ESTE snapshotId. Os processos FORWARD (Trial/Control live-paper) partem daqui para a frente."
 }

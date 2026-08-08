@@ -1,0 +1,49 @@
+{
+  "schema": "snowball.soaks-separation.v1_8",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "durabilitySoak": {
+    "arvore": "auditoria/progression/forward",
+    "epoch": "c816ed1a27fbc747",
+    "valida": [
+      "reader",
+      "WAL",
+      "checkpoint",
+      "watermark",
+      "supervisor"
+    ],
+    "status": "CONTINUA",
+    "nota": "Segue rodando (v1.7) — não interrompido pela v1.8. Valida durabilidade, não economia."
+  },
+  "economicSoak": {
+    "arvore": "auditoria/progression/economic",
+    "epoch": "032a0b32782e1e8a",
+    "processos": [
+      "mirror",
+      "policy",
+      "trial",
+      "observer-max3",
+      "observer-max4",
+      "observer-max5"
+    ],
+    "status": "EPOCH_CONGELADA",
+    "identidade": "causal (sourceDecisionId/sourcePositionId)",
+    "closePolicy": "economic_inversion (não fecha por scanner stale)",
+    "nota": "Nova epoch; não reutiliza fechamentos do warmup no gate econômico."
+  },
+  "warmupEconomico": {
+    "marcador": "ECONOMIC_WARMUP_NOT_GATE_ELIGIBLE",
+    "fechamentosWarmupPorLabel": {
+      "trial": 2,
+      "control": 2,
+      "observer-max3": 2,
+      "observer-max4": 2,
+      "observer-max5": 4
+    },
+    "fechamentosWarmupTotal": 12,
+    "dadosPreservados": true,
+    "localArquivado": "auditoria/progression/forward/<label>/archive-v1_6 + estado corrente do durabilitySoak",
+    "nota": "Fechamentos do durabilitySoak (identidade por símbolo+hora / close por scanner-stale) NÃO entram no gate econômico. Dados preservados, não apagados."
+  },
+  "honestidade": "Dois soaks separados: durabilidade (contínua) e economia (nova epoch, identidade causal, close por inversão). Warmup preservado mas não elegível ao gate."
+}
