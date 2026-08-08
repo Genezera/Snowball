@@ -126,6 +126,61 @@ test('EPISÓDIOS: sem observação recente → episódio inativo com episodeEnde
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+// meia-noite UTC de HOJE — a única fronteira de arquivo diário entre o
+// arquivo de "ontem" e o de "hoje" que o serviço lê. Sempre no passado (<=now).
+function meiaNoiteHojeUTC(): number {
+  return new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z').getTime();
+}
+
+test('EPISÓDIOS cruzando MEIA-NOITE (troca de arquivo diário): gap < 30min mantém UM episódio, costurando os dois arquivos', () => {
+  const root = tmpRoot();
+  const meiaNoite = meiaNoiteHojeUTC();
+  // A cai no arquivo de ONTEM (23:45), B no de HOJE (00:05) — gap 20min < 30min
+  const a = meiaNoite - 15 * 60_000;
+  const b = meiaNoite + 5 * 60_000;
+  escreverCiclo(root, a, [candidata()]);
+  escreverCiclo(root, b, [candidata({ score: 4.0 })]);
+  const r = montarOportunidades(root);
+  assert.equal(r.items.length, 1, 'mesma chave, mesma aparição — não vira duas por causa da troca de arquivo');
+  const o = r.items[0];
+  assert.equal(o.observationCount, 2, 'as duas observações contam, mesmo em arquivos diários diferentes');
+  assert.equal(o.persistenceCycles, 2, 'gap < 30min → um único episódio contínuo atravessando a meia-noite');
+  assert.equal(o.firstSeenAt, a, 'firstSeenAt = obs de ontem');
+  assert.equal(o.episodeStartedAt, a, 'episódio começou ANTES da meia-noite e continua o mesmo depois');
+  assert.equal(o.lastSeenAt, b, 'lastSeenAt = obs de hoje');
+  assert.equal(r.coverage.arquivosProcessados.length, 2, 'os DOIS arquivos diários foram atravessados');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('EPISÓDIOS cruzando meia-noite: gap > 30min → episódio novo depois da meia-noite, chave preservada', () => {
+  const root = tmpRoot();
+  const meiaNoite = meiaNoiteHojeUTC();
+  const a = meiaNoite - 40 * 60_000; // ontem 23:20
+  const b = meiaNoite + 5 * 60_000;  // hoje 00:05 — gap 45min > 30min
+  escreverCiclo(root, a, [candidata()]);
+  escreverCiclo(root, b, [candidata({ score: 4.0 })]);
+  const r = montarOportunidades(root);
+  assert.equal(r.items.length, 1, 'ainda UMA opportunityKey');
+  const o = r.items[0];
+  assert.equal(o.observationCount, 2, 'ambas as observações da chave contam');
+  assert.equal(o.persistenceCycles, 1, 'gap > 30min → episódio atual tem só a observação de hoje');
+  assert.equal(o.episodeStartedAt, b, 'novo episódio começa depois da meia-noite');
+  assert.equal(o.firstSeenAt, a, 'firstSeenAt da chave preservado (obs de ontem)');
+  assert.equal(r.coverage.arquivosProcessados.length, 2, 'os dois arquivos diários foram lidos');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('episodeId ESTÁVEL após "restart da API" mesmo cruzando arquivo diário — 100% derivado do dado persistido', () => {
+  const root = tmpRoot();
+  const meiaNoite = meiaNoiteHojeUTC();
+  escreverCiclo(root, meiaNoite - 15 * 60_000, [candidata()]);
+  escreverCiclo(root, meiaNoite + 5 * 60_000, [candidata()]);
+  const id1 = montarOportunidades(root).items[0].episodeId;
+  const id2 = montarOportunidades(root).items[0].episodeId; // nova invocação = restart
+  assert.equal(id1, id2, 'episodeId = `${key}#${episodeStartedAt}` é derivado só do arquivo, idêntico após restart');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('coverage/retenção: expõe arquivos, registros lidos e primeiro/último timestamp', () => {
   const root = tmpRoot();
   const base = Date.now();

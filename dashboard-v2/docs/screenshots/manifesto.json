@@ -1,0 +1,129 @@
+{
+  "geradoEm": "2026-08-08T07:53:31.010Z",
+  "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+  "base": "http://localhost:5183",
+  "total": 15,
+  "ok": 15,
+  "itens": [
+    {
+      "pagina": "Command Center",
+      "resolucao": "1366x768",
+      "arquivo": "command-center-1366x768.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:52:48.005Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Champion",
+      "resolucao": "1366x768",
+      "arquivo": "champion-1366x768.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:52:51.811Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Live Operations",
+      "resolucao": "1366x768",
+      "arquivo": "live-operations-1366x768.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:52:54.399Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Opportunity Map",
+      "resolucao": "1366x768",
+      "arquivo": "opportunity-map-1366x768.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:52:57.031Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Portfolio",
+      "resolucao": "1366x768",
+      "arquivo": "portfolio-1366x768.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:52:59.721Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Command Center",
+      "resolucao": "1920x1080",
+      "arquivo": "command-center-1920x1080.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:02.659Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Champion",
+      "resolucao": "1920x1080",
+      "arquivo": "champion-1920x1080.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:06.422Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Live Operations",
+      "resolucao": "1920x1080",
+      "arquivo": "live-operations-1920x1080.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:08.939Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Opportunity Map",
+      "resolucao": "1920x1080",
+      "arquivo": "opportunity-map-1920x1080.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:11.620Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Portfolio",
+      "resolucao": "1920x1080",
+      "arquivo": "portfolio-1920x1080.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:14.460Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Command Center",
+      "resolucao": "2560x1440",
+      "arquivo": "command-center-2560x1440.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:17.654Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Champion",
+      "resolucao": "2560x1440",
+      "arquivo": "champion-2560x1440.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:21.434Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Live Operations",
+      "resolucao": "2560x1440",
+      "arquivo": "live-operations-2560x1440.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:24.161Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Opportunity Map",
+      "resolucao": "2560x1440",
+      "arquivo": "opportunity-map-2560x1440.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:27.023Z",
+      "resultado": "ok"
+    },
+    {
+      "pagina": "Portfolio",
+      "resolucao": "2560x1440",
+      "arquivo": "portfolio-2560x1440.png",
+      "commit": "96bfe354972a643e72aa39c6b10abba228108bb0",
+      "capturadoEm": "2026-08-08T07:53:30.796Z",
+      "resultado": "ok"
+    }
+  ]
+}

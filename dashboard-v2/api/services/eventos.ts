@@ -35,6 +35,17 @@ export interface EventoV2 {
    * colisão) — nunca reescrever o eventId sem motivo.
    */
   eventIdOriginal: string | null;
+  /**
+   * PROVENIÊNCIA ESTRUTURADA — AUTORITATIVA (Parte "fechamento das 5 páginas",
+   * item 4). Estes três campos vêm DIRETO do servidor (a fonte, a geração do
+   * arquivo lida e o byte offset da linha), nunca do parsing do texto do
+   * `eventId`. O cliente deve preferir estes campos ao regex do eventId —
+   * campos estruturados prevalecem. O parsing do eventId permanece só como
+   * fallback pra respostas legadas/cacheadas que não os trazem.
+   */
+  sourceId: string;
+  generation: number;
+  byteOffset: number;
 }
 
 /** Campo interno, nunca serializado pra fora. */
@@ -164,6 +175,11 @@ function lerNovosDeUmaFonte(
     eventos.push({
       eventId,
       eventIdOriginal: colidiu ? eventIdProduzido : null,
+      // proveniência estruturada autoritativa — o servidor SABE a fonte, a
+      // geração e o byteOffset; nunca precisa que o cliente os extraia do texto.
+      sourceId: f.fonte,
+      generation,
+      byteOffset,
       sequenceNumber: temSequence ? ev.sequenceNumber : null,
       cycleId: ev.cycleId ?? null,
       challengerId: f.ehChampion ? 'funding-arbitrage-champion' : f.fonte,

@@ -1,0 +1,16 @@
+{
+  "suite": "chromium-desktop (autoritativa, apos a ultima alteracao)",
+  "passed": 249,
+  "failed": 0,
+  "skipped": 3,
+  "flaky": 0,
+  "duration_s": 949,
+  "duration_ms": 948971.4090000001,
+  "commitBase": "96bfe354972a643e72aa39c6b10abba228108bb0",
+  "workingTree": "alteracoes five-core-pages aplicadas (nao commitadas no momento da suite)",
+  "startedAt": "2026-08-08T07:53:59.021Z",
+  "finishedAt": "2026-08-08T08:09:47.992Z",
+  "criterioFailedZero": true,
+  "criterioFlakyZero": true,
+  "gatePassaNaSuite": true
+}

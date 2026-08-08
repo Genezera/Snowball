@@ -1,0 +1,51 @@
+{
+  "descricao": "Anti-flakiness (item 2) — retries=0 em toda a suite (playwright.config.ts), nenhuma falha mascarada por retry.",
+  "cost_intelligence_isolado_10x": {
+    "passed": 10,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "dur_s": 33,
+    "observacao": "teste \"sem tendencia temporal fabricada\" repetido 10x, todos passaram, zero retry"
+  },
+  "cost_intelligence_spec_5x": {
+    "passed": 20,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 5,
+    "dur_s": 28,
+    "observacao": "spec completa 5x = 25 execucoes; skips sao condicionais (escopo/fechamento dependentes de dado vivo)"
+  },
+  "consolidada_1": {
+    "passed": 250,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 2,
+    "dur_s": 917,
+    "observacao": "suite consolidada #1 — limpa"
+  },
+  "consolidada_2": {
+    "passed": 249,
+    "failed": 1,
+    "flaky": 0,
+    "skipped": 2,
+    "dur_s": 914,
+    "observacao": "suite consolidada #2 — REVELOU 1 flake real: reduced-motion.spec.ts:67 getByText(\"5min\") casava tambem contador vivo \"55min 14s\" (strict-mode violation). NAO era retry-mascarado; retries=0."
+  },
+  "correcao_aplicada": "getByText(\"5min\",{exact:true}).first() — elimina a colisao por substring",
+  "reduced_motion_5x_pos_correcao": {
+    "passed": 5,
+    "failed": 0,
+    "flaky": 0,
+    "observacao": "settlement flash repetido 5x pos-correcao, estavel"
+  },
+  "consolidada_final_pos_correcao": {
+    "passed": 249,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 3,
+    "dur_s": 949,
+    "observacao": "suite autoritativa apos a ultima alteracao — failed=0 flaky=0"
+  },
+  "veredito": "O processo anti-flaky cumpriu seu proposito: revelou um seletor flaky, que foi corrigido; a suite apos a correcao e 100% verde sem retry."
+}

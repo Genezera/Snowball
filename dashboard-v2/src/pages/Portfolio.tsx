@@ -3,6 +3,7 @@ import { useLiveStore } from '../stores/liveStore';
 import { PageHeader, Section, DataTable, StatusBadge, RankBar, fmt, type Coluna } from '../components/ui/kit';
 import { MetricCard } from '../components/cards/MetricCard';
 import { DataStateBanner } from '../components/feedback/DataState';
+import { reconciliarPnl } from '../lib/reconciliacao';
 
 /**
  * PORTFOLIO — quatro zonas, com SEMÂNTICA AUDITADA (ver
@@ -43,14 +44,9 @@ export function Portfolio() {
   const alavancagem = (notionalBruto != null && saldoTotal) ? notionalBruto / saldoTotal : null;
   const pnlRealizado = est ? est.capital - est.capitalInicial : null;
 
-  // reconciliação: funding − custos vs capital − inicial
-  const recon = est ? (() => {
-    const fundMenosCustos = est.fundingTotal - est.custosTotal;
-    const capMenosInicial = est.capital - est.capitalInicial;
-    const dif = capMenosInicial - fundMenosCustos;
-    const tol = 0.05;
-    return { fundMenosCustos, capMenosInicial, dif, tol, reconciliado: Math.abs(dif) <= tol };
-  })() : null;
+  // reconciliação: funding − custos vs capital − inicial (helper puro e
+  // testável — tolerância absoluta + percentual, ver src/lib/reconciliacao.ts)
+  const recon = est ? reconciliarPnl(est) : null;
 
   const porExchange = useMemo(() => {
     const m = new Map<string, { long: number; short: number }>();
@@ -96,9 +92,9 @@ export function Portfolio() {
             <span className="tabular">funding {fmt.usd(est!.fundingTotal)} − custos {fmt.usd(est!.custosTotal)} = <strong style={{ color: 'var(--ink-0)' }}>{fmt.usd(recon.fundMenosCustos)}</strong></span>
             <span style={{ color: 'var(--ink-3)' }}>vs</span>
             <span className="tabular">capital − inicial = <strong style={{ color: 'var(--ink-0)' }}>{fmt.usd(recon.capMenosInicial)}</strong></span>
-            <StatusBadge label={recon.reconciliado ? `reconciliado (dif ${fmt.usd(recon.dif)})` : `diferença ${fmt.usd(recon.dif)} > tol ${fmt.usd(recon.tol)}`} tom={recon.reconciliado ? 'ok' : 'warn'} />
+            <StatusBadge label={recon.reconciliado ? `reconciliado (dif ${fmt.usd(recon.dif ?? 0)})` : `diferença ${fmt.usd(recon.dif ?? 0)} > tol ${fmt.usd(recon.tolEfetiva ?? 0)}`} tom={recon.reconciliado ? 'ok' : 'warn'} />
           </div>
-          <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', margin: 0 }}>Fonte: estado.json (fundingTotal, custosTotal, capital, capitalInicial). Tolerância {fmt.usd(recon.tol)}.</p>
+          <p style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', margin: 0 }}>Fonte: estado.json (fundingTotal, custosTotal, capital, capitalInicial). Tolerância = máx(abs {fmt.usd(recon.tolAbs)}, {(recon.tolPct * 100).toFixed(1)}% de |capital−inicial|) = <strong>{fmt.usd(recon.tolEfetiva ?? 0)}</strong>. Diferença aplicada {fmt.usd(recon.dif ?? 0)}.</p>
         </Section>
       )}
 

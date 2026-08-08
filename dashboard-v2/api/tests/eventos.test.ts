@@ -81,6 +81,26 @@ test('eventos legados sem sequenceNumber: eventId por geração+byteOffset, marc
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test('proveniência estruturada (item 4): a API emite sourceId/generation/byteOffset autoritativos, coerentes com o eventId sintético', () => {
+  const root = tmpRoot();
+  escreverDiarioChampion(root, [{ ts: 1000, evento: 'abre', symbol: 'BTC' }, { ts: 2000, evento: 'fecha', symbol: 'BTC' }]);
+  const r = buscarEventosIncremental(root, [{ fonte: 'champion', ehChampion: true }], null, 100);
+  for (const ev of r.eventos) {
+    assert.equal(typeof ev.sourceId, 'string', 'sourceId deve vir direto da API');
+    assert.equal(ev.sourceId, 'champion');
+    assert.equal(typeof ev.generation, 'number', 'generation autoritativa');
+    assert.equal(typeof ev.byteOffset, 'number', 'byteOffset autoritativo');
+    // coerência: o eventId sintético legado é fonte:g<gen>:b<byteOffset> — os
+    // campos estruturados têm que bater com o que o texto codifica.
+    const m = /^(.+):g(\d+):b(\d+)$/.exec(ev.eventId);
+    assert.ok(m, 'evento legado do champion tem eventId sintético');
+    assert.equal(ev.sourceId, m[1]);
+    assert.equal(ev.generation, Number(m[2]));
+    assert.equal(ev.byteOffset, Number(m[3]));
+  }
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('cursor incremental: segunda chamada só traz o que é NOVO, nunca repete o que já foi entregue', () => {
   const root = tmpRoot();
   escreverDiarioChallenger(root, 'challenger-teste', [

@@ -10,6 +10,12 @@ export const EventoRecenteSchema = z.object({
   // comprovada (mesmo eventId, cycleId diferente = evento economicamente
   // distinto) — o valor original da fonte, preservado pra auditoria.
   eventIdOriginal: z.string().nullable().optional(),
+  // Proveniência estruturada autoritativa (vem direto do servidor). Opcional
+  // pra tolerar respostas legadas/cacheadas sem estes campos — nesse caso o
+  // cliente cai pro parsing do eventId (ver src/lib/proveniencia.ts).
+  sourceId: z.string().optional(),
+  generation: z.number().optional(),
+  byteOffset: z.number().optional(),
   sequenceNumber: z.number().nullable(),
   cycleId: z.string().nullable(),
   challengerId: z.string(),

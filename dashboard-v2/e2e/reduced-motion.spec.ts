@@ -64,7 +64,11 @@ test.describe('prefers-reduced-motion: reduce', () => {
   test('settlement flash (Settlement Capture) tem alternativa não animada — status legível sem transição', async ({ page }) => {
     await page.goto('/capture');
     await page.waitForTimeout(2000);
-    await expect(page.getByText('5min')).toBeVisible();
+    // exact:true — sem isso, 'min' casa também contadores como "55min 14s"
+    // ou "25min 3s" (o "5min" aparece como substring), causando strict-mode
+    // violation intermitente conforme o valor VIVO do contador. Flaky real
+    // revelado pela suíte consolidada #2; o alvo é o RÓTULO da janela de 5min.
+    await expect(page.getByText('5min', { exact: true }).first()).toBeVisible();
     // o status de cada janela precisa estar como TEXTO, nunca só cor/animação
     const corpo = await page.textContent('body');
     expect(corpo).toMatch(/OBSERVANDO|POSIÇÃO ABERTA|FUNDING PENDENTE|FECHANDO|CONCLUÍDA|ERRO/i);

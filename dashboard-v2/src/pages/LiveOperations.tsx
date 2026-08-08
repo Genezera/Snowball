@@ -3,6 +3,7 @@ import { useEventosRecentes, INTERVALO_POLL_MS } from '../hooks/useEventosRecent
 import { EventTimeline } from '../components/charts/EventTimeline';
 import { DataStateBanner } from '../components/feedback/DataState';
 import { TransportIndicator } from '../components/feedback/TransportIndicator';
+import { derivarProveniencia, NAO_INSTRUMENTADO, type CampoProveniencia } from '../lib/proveniencia';
 
 export function LiveOperations() {
   const {
@@ -116,13 +117,17 @@ export function LiveOperations() {
           if (!ev) return null;
           const anterior = filtrados[idx - 1];
           const proximo = filtrados[idx + 1];
-          // sourceId/generation/byteOffset são derivados do eventId sintético
-          // `fonte:g<geração>:b<byteOffset>` (legado/colisão). Para eventos
-          // modernos, o eventId é o id do produtor — esses campos não são
-          // instrumentados nele, então mostramos "não instrumentado" em vez
-          // de inventar. NADA é declarado sem estar realmente presente.
-          const m = /^(.+):g(\d+):b(\d+)$/.exec(ev.eventId);
-          const NI = 'não instrumentado';
+          // sourceId/generation/byteOffset: campos ESTRUTURADOS da API
+          // prevalecem (derived:false); se ausentes, caem pro parsing do
+          // eventId sintético `fonte:g<geração>:b<byteOffset>`
+          // (derived:true); se nem isso, "não instrumentado". Nunca se
+          // inventa um valor — ver src/lib/proveniencia.ts.
+          const prov = derivarProveniencia(ev as Parameters<typeof derivarProveniencia>[0]);
+          const fmtProv = (cp: CampoProveniencia) =>
+            cp.valor === NAO_INSTRUMENTADO ? cp.valor
+              : cp.derived ? `${cp.valor} · derivado do eventId`
+                : `${cp.valor} · direto da API`;
+          const NI = NAO_INSTRUMENTADO;
           const linhas: [string, string][] = [
             ['Evento', ev.evento],
             ['Origem (challenger)', ev.challengerId],
@@ -130,9 +135,9 @@ export function LiveOperations() {
             ['Motivo', ev.motivo ?? '—'],
             ['eventId', ev.eventId],
             ['eventIdOriginal', (ev as { eventIdOriginal?: string | null }).eventIdOriginal ?? '—'],
-            ['sourceId', m ? m[1] : NI],
-            ['generation', m ? m[2] : NI],
-            ['byteOffset', m ? m[3] : NI],
+            ['sourceId', fmtProv(prov.sourceId)],
+            ['generation', fmtProv(prov.generation)],
+            ['byteOffset', fmtProv(prov.byteOffset)],
             ['sequenceNumber', ev.sequenceNumber != null ? String(ev.sequenceNumber) : NI],
             ['cycleId (correlationId)', ev.cycleId ?? NI],
             ['idLegado', ev.idLegado ? 'sim' : 'não'],
