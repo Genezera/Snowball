@@ -6,3 +6,8 @@
 */heartbeat.json
 */live.log
 */challenger.lock
+supervisor.log
+supervisor.lock
+supervisor.lockdir/
+*/divergencia.jsonl
+*/fidelidade.json

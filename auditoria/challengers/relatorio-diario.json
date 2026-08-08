@@ -1,0 +1,85 @@
+{
+  "geradoEm": "2026-08-08T14:36:01.612Z",
+  "processos": {
+    "control": {
+      "vivo": true,
+      "heartbeatAgeS": 0,
+      "fechados": 20,
+      "abertas": 3,
+      "extensoesFechadas": 0,
+      "pnlIncremental": 9.1697,
+      "liveObservedCounterfactualFunding": 0,
+      "divergenciaLinhas": 0,
+      "eventosInelegiveis": 6,
+      "riscoExits": 0
+    },
+    "closeConfirm": {
+      "vivo": true,
+      "heartbeatAgeS": -1,
+      "fechados": 20,
+      "abertas": 3,
+      "extensoesFechadas": 0,
+      "pnlIncremental": 9.1697,
+      "liveObservedCounterfactualFunding": 0,
+      "divergenciaLinhas": 0,
+      "eventosInelegiveis": 26,
+      "riscoExits": 20
+    },
+    "nextSettlement": {
+      "vivo": true,
+      "heartbeatAgeS": -2,
+      "fechados": 20,
+      "abertas": 3,
+      "extensoesFechadas": 0,
+      "pnlIncremental": 9.1697,
+      "liveObservedCounterfactualFunding": 0,
+      "divergenciaLinhas": 0,
+      "eventosInelegiveis": 26,
+      "riscoExits": 20
+    },
+    "evExit": {
+      "vivo": true,
+      "heartbeatAgeS": -3,
+      "fechados": 20,
+      "abertas": 3,
+      "extensoesFechadas": 0,
+      "pnlIncremental": 9.1697,
+      "liveObservedCounterfactualFunding": 0,
+      "divergenciaLinhas": 0,
+      "eventosInelegiveis": 26,
+      "riscoExits": 20
+    }
+  },
+  "controlFidelity": {
+    "comparisonStatus": "OK",
+    "difAbs": 0.000159
+  },
+  "gate": {
+    "fechadasComparaveisComExtensao": {
+      "valor": 0,
+      "minimo": 30,
+      "atende": false
+    },
+    "divergenciasReaisVsControl": {
+      "valor": 0,
+      "minimo": 15,
+      "atende": false
+    },
+    "janelas": {
+      "minimo": 2,
+      "nota": "medir sobre a amostra viva acumulada"
+    },
+    "regimes": {
+      "minimo": 2,
+      "nota": "detectados no historico; reavaliar na janela viva"
+    },
+    "controlFiel": true,
+    "riscoObservadoComConfianca": "telemetria classifica source/confidence por campo (champion_observed=1.0)",
+    "custos2x": "aplicar sobre a amostra viva",
+    "drawdownNaoPior": "a medir",
+    "distLiqNaoPior": "a medir",
+    "semPosicaoDominante": "a medir",
+    "LIBERADO": false,
+    "veredito": "BLOQUEADO — 0/30 fechamentos com extensão, 0/15 divergências reais. Control OK. Coleta em andamento; NÃO alterar o Champion."
+  }
+}

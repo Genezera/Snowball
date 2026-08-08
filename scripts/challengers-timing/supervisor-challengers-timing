@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# SUPERVISOR ISOLADO DOS 4 CHALLENGERS DE TIMING (item 2). Cuida SÓ de
+# control/closeConfirm/nextSettlement/evExit. ZERO interação com o Champion,
+# motores ou o supervisor do Lab. Cada challenger preserva o próprio cursor no
+# seu estado.json — o restart resume sem perder/duplicar evento.
+set -u
+cd "$(dirname "$0")/../.."
+POLITICAS=(control closeConfirm nextSettlement evExit)
+INTERVALO_CHECK=30
+HEARTBEAT_MAX_S=120        # heartbeat do challenger a cada 5min? não — a cada ciclo (300s). Usa 2× o ciclo + folga.
+CICLO_CHALLENGER=300
+HEARTBEAT_MAX_S=$((CICLO_CHALLENGER * 2 + 60))
+BACKOFF_BASE=5; BACKOFF_MAX=120
+LOCK="challengers-timing/supervisor.lock"; MUTEX="challengers-timing/supervisor.lockdir"
+LOG="challengers-timing/supervisor.log"
+mkdir -p challengers-timing
+ts() { date +%s; }
+log() { echo "[$(date '+%H:%M:%S')] $1" >> "$LOG"; }
+
+# single-instance do supervisor (mkdir atômico)
+if ! mkdir "$MUTEX" 2>/dev/null; then
+  # checa se o lock tem heartbeat fresco
+  if [ -f "$LOCK" ]; then
+    hb=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).heartbeat||0)}catch(e){console.log(0)}' "$LOCK" 2>/dev/null)
+    if [ -n "$hb" ] && [ $(( $(date +%s%3N) - hb )) -lt 90000 ]; then log "outro supervisor vivo — saindo"; exit 0; fi
+  fi
+  rmdir "$MUTEX" 2>/dev/null; mkdir "$MUTEX" 2>/dev/null || { log "mutex ocupado"; exit 1; }
+fi
+echo '{"pid":'$$',"heartbeat":'$(date +%s%3N)'}' > "$LOCK"
+rmdir "$MUTEX" 2>/dev/null
+
+declare -A FALHAS; for p in "${POLITICAS[@]}"; do FALHAS[$p]=0; done
+declare -A PROXIMA; for p in "${POLITICAS[@]}"; do PROXIMA[$p]=0; done
+
+vivo_e_fresco() {
+  local pol="$1" hbf="challengers-timing/$pol/heartbeat.json"
+  [ -f "$hbf" ] || return 1
+  local ultimo; ultimo=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).ultimoCiclo||0)}catch(e){console.log(0)}' "$hbf" 2>/dev/null)
+  [ -n "$ultimo" ] && [ $(( $(date +%s%3N) - ultimo )) -lt $((HEARTBEAT_MAX_S * 1000)) ]
+}
+processo_vivo() {
+  timeout 8 powershell -NoProfile -Command "@(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*challenger-timing-live*' -and \$_.CommandLine -like '*--policy $1*' }).Count" 2>/dev/null | tr -d '\r\n '
+}
+lancar() {
+  local pol="$1"
+  nohup node scripts/challengers-timing/challenger-timing-live.cjs --policy "$pol" --intervalo "$CICLO_CHALLENGER" >> "challengers-timing/$pol/live.log" 2>&1 &
+  disown
+  log "challenger $pol (re)lançado — cursor preservado no estado.json"
+}
+
+trap 'rm -f "$LOCK"; rmdir "$MUTEX" 2>/dev/null; log "supervisor encerrado (limpo)"; exit 0' INT TERM
+log "supervisor-challengers-timing iniciado — 4 challengers, check ${INTERVALO_CHECK}s, ZERO interação com Champion"
+
+while true; do
+  echo '{"pid":'$$',"heartbeat":'$(date +%s%3N)'}' > "$LOCK"
+  for pol in "${POLITICAS[@]}"; do
+    nproc=$(processo_vivo "$pol")
+    if [ "${nproc:-0}" -ge 1 ] 2>/dev/null && vivo_e_fresco "$pol"; then FALHAS[$pol]=0; continue; fi
+    # precisa (re)lançar — respeita backoff
+    agora=$(ts)
+    if [ "$agora" -lt "${PROXIMA[$pol]}" ]; then continue; fi
+    # mata resíduo eventual do MESMO policy (nunca outro processo)
+    if [ "${nproc:-0}" -ge 1 ] 2>/dev/null; then
+      timeout 8 powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*challenger-timing-live*' -and \$_.CommandLine -like '*--policy $pol*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }" >/dev/null 2>&1
+    fi
+    lancar "$pol"
+    FALHAS[$pol]=$(( FALHAS[$pol] + 1 ))
+    bk=$(( BACKOFF_BASE * (1 << (FALHAS[$pol] > 5 ? 5 : FALHAS[$pol]-1 > 0 ? FALHAS[$pol]-1 : 0)) ))
+    [ "$bk" -gt "$BACKOFF_MAX" ] && bk=$BACKOFF_MAX
+    PROXIMA[$pol]=$(( agora + bk ))
+    log "$pol backoff ${bk}s (falha ${FALHAS[$pol]})"
+  done
+  sleep "$INTERVALO_CHECK"
+done
