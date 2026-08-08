@@ -1,0 +1,30 @@
+{
+  "switchValueInCycle": {
+    "bloqueadasAvaliadas": 29,
+    "trocasPositivasShadow": 0,
+    "posicaoFraca": "LA/USDT:USDT",
+    "horizonteH": 6.8,
+    "nota": "nunca executa; recomendação shadow"
+  },
+  "closeReplay": {
+    "fechamentos": 14,
+    "comContrafactualPositivo8h": 6,
+    "nota": "estimativa via historico, não realizado"
+  },
+  "captureSurvival": {
+    "capturasReais": 6,
+    "inversoesReais": 2,
+    "melhorRegra": {
+      "regra": "cobertura>=1.25",
+      "aceitas": 6,
+      "de": 6,
+      "pnlDasAceitas": 0.8228,
+      "inversoesEvitadas": 0
+    }
+  },
+  "crossSectionalContinuo": {
+    "ciclosComEscolha": 11,
+    "coincidenciaTop1": 1,
+    "nota": "coincidência entre escolha real e top-1 shadow (NÃO promover só com base nisso)"
+  }
+}

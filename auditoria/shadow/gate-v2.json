@@ -1,0 +1,32 @@
+{
+  "criterio1_episodiosCompletos": {
+    "valor": 18,
+    "minimo": 50,
+    "atende": false
+  },
+  "criterio2_janelasCronologicas": {
+    "janela1": 4,
+    "janela2": 25,
+    "minimo": 2,
+    "atende": true,
+    "nota": "metades independentes do epoch-1"
+  },
+  "criterio3_regimesMercado": {
+    "detectados": 2,
+    "distribuicao": {
+      "funding-baixo": 11,
+      "funding-alto": 11
+    },
+    "minimo": 2,
+    "atende": true,
+    "metodo": "apr médio do universo em buckets de 6h, split pela mediana"
+  },
+  "criterio4_mesmaConfig": {
+    "epochPrincipal": "epoch-1",
+    "atende": true,
+    "nota": "comparação principal só dentro do epoch-1 (mesma config) — não se provoca mudança de config"
+  },
+  "substituiuCriterioAntigo": "de \"≥2 config epochs\" para \"≥2 janelas cronológicas + ≥2 regimes na MESMA config\" — não exige mudar configuração",
+  "LIBERADO": false,
+  "veredito": "BLOQUEADO — falta principalmente amostra: 18/50 episódios completos (limpos de ambiguidade). Regimes e janelas já OK. Acumular mais aberturas antes de comparar modelos."
+}

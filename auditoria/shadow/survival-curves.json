@@ -1,0 +1,221 @@
+{
+  "totalPosicoes": 15,
+  "abertas": 3,
+  "censura": "posições abertas censuradas no snapshot",
+  "curvas": {
+    "tempoAteInversao": {
+      "n": 15,
+      "eventos": 2,
+      "censurados": 13,
+      "medianaHoras": null
+    },
+    "tempoAtePrimeiroSettlement": {
+      "n": 15,
+      "eventos": 13,
+      "censurados": 2,
+      "medianaHoras": 0.085
+    },
+    "tempoAtePayback": {
+      "n": 15,
+      "eventos": 11,
+      "censurados": 4,
+      "medianaHoras": 0.091
+    },
+    "tempoAteFechamento": {
+      "n": 15,
+      "eventos": 12,
+      "censurados": 3,
+      "medianaHoras": 6.767
+    }
+  },
+  "curvasCompletas": {
+    "tempoAteInversao": {
+      "n": 15,
+      "eventos": 2,
+      "censurados": 13,
+      "medianaHoras": null,
+      "curva": [
+        {
+          "horas": 0.254,
+          "emRisco": 13,
+          "eventos": 1,
+          "S": 0.923
+        },
+        {
+          "horas": 6.767,
+          "emRisco": 6,
+          "eventos": 1,
+          "S": 0.769
+        }
+      ]
+    },
+    "tempoAtePrimeiroSettlement": {
+      "n": 15,
+      "eventos": 13,
+      "censurados": 2,
+      "medianaHoras": 0.085,
+      "curva": [
+        {
+          "horas": 0.084,
+          "emRisco": 15,
+          "eventos": 1,
+          "S": 0.933
+        },
+        {
+          "horas": 0.085,
+          "emRisco": 14,
+          "eventos": 8,
+          "S": 0.4
+        },
+        {
+          "horas": 0.091,
+          "emRisco": 6,
+          "eventos": 1,
+          "S": 0.333
+        },
+        {
+          "horas": 0.105,
+          "emRisco": 5,
+          "eventos": 1,
+          "S": 0.267
+        },
+        {
+          "horas": 0.168,
+          "emRisco": 4,
+          "eventos": 1,
+          "S": 0.2
+        },
+        {
+          "horas": 0.17,
+          "emRisco": 3,
+          "eventos": 1,
+          "S": 0.133
+        }
+      ]
+    },
+    "tempoAtePayback": {
+      "n": 15,
+      "eventos": 11,
+      "censurados": 4,
+      "medianaHoras": 0.091,
+      "curva": [
+        {
+          "horas": 0.084,
+          "emRisco": 15,
+          "eventos": 1,
+          "S": 0.933
+        },
+        {
+          "horas": 0.085,
+          "emRisco": 14,
+          "eventos": 6,
+          "S": 0.533
+        },
+        {
+          "horas": 0.091,
+          "emRisco": 8,
+          "eventos": 1,
+          "S": 0.467
+        },
+        {
+          "horas": 0.105,
+          "emRisco": 7,
+          "eventos": 1,
+          "S": 0.4
+        },
+        {
+          "horas": 0.168,
+          "emRisco": 6,
+          "eventos": 1,
+          "S": 0.333
+        },
+        {
+          "horas": 0.17,
+          "emRisco": 5,
+          "eventos": 1,
+          "S": 0.267
+        }
+      ]
+    },
+    "tempoAteFechamento": {
+      "n": 15,
+      "eventos": 12,
+      "censurados": 3,
+      "medianaHoras": 6.767,
+      "curva": [
+        {
+          "horas": 0.168,
+          "emRisco": 15,
+          "eventos": 1,
+          "S": 0.933
+        },
+        {
+          "horas": 0.17,
+          "emRisco": 14,
+          "eventos": 1,
+          "S": 0.867
+        },
+        {
+          "horas": 0.254,
+          "emRisco": 13,
+          "eventos": 1,
+          "S": 0.8
+        },
+        {
+          "horas": 0.424,
+          "emRisco": 12,
+          "eventos": 1,
+          "S": 0.733
+        },
+        {
+          "horas": 1.932,
+          "emRisco": 11,
+          "eventos": 1,
+          "S": 0.667
+        },
+        {
+          "horas": 2.974,
+          "emRisco": 10,
+          "eventos": 1,
+          "S": 0.6
+        },
+        {
+          "horas": 3.894,
+          "emRisco": 9,
+          "eventos": 1,
+          "S": 0.533
+        },
+        {
+          "horas": 6.767,
+          "emRisco": 6,
+          "eventos": 1,
+          "S": 0.444
+        },
+        {
+          "horas": 7.118,
+          "emRisco": 5,
+          "eventos": 1,
+          "S": 0.356
+        },
+        {
+          "horas": 8.204,
+          "emRisco": 4,
+          "eventos": 1,
+          "S": 0.267
+        },
+        {
+          "horas": 24.792,
+          "emRisco": 2,
+          "eventos": 1,
+          "S": 0.133
+        },
+        {
+          "horas": 29.596,
+          "emRisco": 1,
+          "eventos": 1,
+          "S": 0
+        }
+      ]
+    }
+  }
+}

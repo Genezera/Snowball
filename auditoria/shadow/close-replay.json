@@ -1,0 +1,438 @@
+{
+  "fechamentos": 14,
+  "nota": "Contrafactual de MANTER a posição além do fechamento real, funding estimado do apr no historico (não o realizado — a posição foi fechada). Custo de fechar é o mesmo (adiado). Estimativa, marcada; não é PnL realizado.",
+  "replay": [
+    {
+      "symbol": "WAXP/USDT:USDT",
+      "key": "WAXP/USDT:USDT|binanceusdm|bybit",
+      "fechaTs": 1785832241753,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 350,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": null,
+          "cobertura": 0
+        }
+      }
+    },
+    {
+      "symbol": "HOME/USDT:USDT",
+      "key": "HOME/USDT:USDT|bitget|bybit",
+      "fechaTs": 1785990065314,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 87.12484375000001,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": 0.3292,
+          "aprMedio": 4.1369,
+          "pontos": 22
+        }
+      }
+    },
+    {
+      "symbol": "CAP/USDT:USDT",
+      "key": "CAP/USDT:USDT|bingx|bybit",
+      "fechaTs": 1786010570195,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 82.08774997676286,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": null,
+          "cobertura": 0
+        }
+      }
+    },
+    {
+      "symbol": "BICO/USDT:USDT",
+      "key": "BICO/USDT:USDT|gate|okx",
+      "fechaTs": 1786026173489,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 87.5,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": 0.0031,
+          "aprMedio": 3.714,
+          "pontos": 1
+        },
+        "+2ciclos": {
+          "estimado": 0.0063,
+          "aprMedio": 3.7748,
+          "pontos": 2
+        },
+        "+3ciclos": {
+          "estimado": 0.0094,
+          "aprMedio": 3.7748,
+          "pontos": 2
+        },
+        "+1h": {
+          "estimado": 0.0426,
+          "aprMedio": 4.2651,
+          "pontos": 8
+        },
+        "+8h": {
+          "estimado": 0.3579,
+          "aprMedio": 4.479,
+          "pontos": 82
+        }
+      }
+    },
+    {
+      "symbol": "COTI/USDT:USDT",
+      "key": "COTI/USDT:USDT|bybit|gate",
+      "fechaTs": 1786028517725,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 17.651539347077765,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": 0.0013,
+          "aprMedio": 3.804,
+          "pontos": 1
+        },
+        "+3ciclos": {
+          "estimado": 0.0019,
+          "aprMedio": 3.804,
+          "pontos": 1
+        },
+        "+1h": {
+          "estimado": 0.0075,
+          "aprMedio": 3.734,
+          "pontos": 3
+        },
+        "+8h": {
+          "estimado": 0.0444,
+          "aprMedio": 2.7567,
+          "pontos": 68
+        }
+      }
+    },
+    {
+      "symbol": "BANK/USDT:USDT",
+      "key": "BANK/USDT:USDT|bingx|bybit",
+      "fechaTs": 1786036239666,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 82.08352985338315,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": null,
+          "cobertura": 0
+        }
+      }
+    },
+    {
+      "symbol": "ACE/USDT:USDT",
+      "key": "ACE/USDT:USDT|bitget|bybit",
+      "fechaTs": 1786044716260,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 31.889700214123256,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": 0.01,
+          "aprMedio": 16.4243,
+          "pontos": 1
+        },
+        "+3ciclos": {
+          "estimado": 0.0147,
+          "aprMedio": 16.1605,
+          "pontos": 2
+        },
+        "+1h": {
+          "estimado": 0.0779,
+          "aprMedio": 21.3974,
+          "pontos": 8
+        },
+        "+8h": {
+          "estimado": 0.6281,
+          "aprMedio": 21.5657,
+          "pontos": 19
+        }
+      }
+    },
+    {
+      "symbol": "ZBT/USDT:USDT",
+      "key": "ZBT/USDT:USDT|bybit|okx",
+      "fechaTs": 1786075772911,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 18.809766857762966,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": null,
+          "cobertura": 0
+        }
+      }
+    },
+    {
+      "symbol": "DEXE/USDT:USDT",
+      "key": "DEXE/USDT:USDT|bitget|bybit",
+      "fechaTs": 1786090833271,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 21.840423198940563,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": 0.0551,
+          "aprMedio": 2.7635,
+          "pontos": 24
+        }
+      }
+    },
+    {
+      "symbol": "BICO/USDT:USDT",
+      "key": "BICO/USDT:USDT|gate|okx",
+      "fechaTs": 1786119859410,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 87.599865276532,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": 0.0083,
+          "aprMedio": 4.9663,
+          "pontos": 1
+        },
+        "+3ciclos": {
+          "estimado": 0.0126,
+          "aprMedio": 5.0552,
+          "pontos": 2
+        },
+        "+1h": {
+          "estimado": 0.051,
+          "aprMedio": 5.1036,
+          "pontos": 6
+        },
+        "+8h": {
+          "estimado": 0.3432,
+          "aprMedio": 4.2897,
+          "pontos": 88
+        }
+      }
+    },
+    {
+      "symbol": "RIF/USDT:USDT",
+      "key": "RIF/USDT:USDT|bingx|gate",
+      "fechaTs": 1786130259728,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 1.5275831611736423,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": null,
+          "cobertura": 0
+        }
+      }
+    },
+    {
+      "symbol": "SIREN/USDT:USDT",
+      "key": "SIREN/USDT:USDT|bybit|bitget",
+      "fechaTs": 1786133929110,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 15.203684948857,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": 0.0044,
+          "aprMedio": 2.515,
+          "pontos": 3
+        },
+        "+8h": {
+          "estimado": 0.0344,
+          "aprMedio": 2.477,
+          "pontos": 36
+        }
+      }
+    },
+    {
+      "symbol": "KMNO/USDT:USDT",
+      "key": "KMNO/USDT:USDT|bitget|bybit",
+      "fechaTs": 1786168778314,
+      "motivo": "spread invertido (ausente em 2 ciclos)",
+      "notional": 81.91357909536461,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+2ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+3ciclos": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+1h": {
+          "estimado": null,
+          "cobertura": 0
+        },
+        "+8h": {
+          "estimado": null,
+          "cobertura": 0
+        }
+      }
+    },
+    {
+      "symbol": "BICO/USDT:USDT",
+      "key": "BICO/USDT:USDT|gate|okx",
+      "fechaTs": 1786169105276,
+      "motivo": "EMERGÊNCIA · perna short a 2.5% da liquidação · preço 17.2% desde a entrada",
+      "notional": 87.94750665742997,
+      "contrafactualHold": {
+        "+1ciclo": {
+          "estimado": 0.005,
+          "aprMedio": 5.9445,
+          "pontos": 1
+        },
+        "+2ciclos": {
+          "estimado": 0.01,
+          "aprMedio": 5.9483,
+          "pontos": 2
+        },
+        "+3ciclos": {
+          "estimado": 0.0149,
+          "aprMedio": 5.9445,
+          "pontos": 3
+        },
+        "+1h": {
+          "estimado": 0.0594,
+          "aprMedio": 5.9209,
+          "pontos": 11
+        },
+        "+8h": {
+          "estimado": 0.3848,
+          "aprMedio": 4.7908,
+          "pontos": 73
+        }
+      }
+    }
+  ]
+}

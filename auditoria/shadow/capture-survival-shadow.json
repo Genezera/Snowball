@@ -1,0 +1,122 @@
+{
+  "capturasReais": 6,
+  "inversoesReais": 2,
+  "regras": [
+    {
+      "regra": "controle (todas)",
+      "aceitas": 6,
+      "de": 6,
+      "pnlDasAceitas": 0.8228,
+      "inversoesEvitadas": 0
+    },
+    {
+      "regra": "cobertura>=1.25",
+      "aceitas": 6,
+      "de": 6,
+      "pnlDasAceitas": 0.8228,
+      "inversoesEvitadas": 0
+    },
+    {
+      "regra": "cobertura>=1.50",
+      "aceitas": 6,
+      "de": 6,
+      "pnlDasAceitas": 0.8228,
+      "inversoesEvitadas": 0
+    },
+    {
+      "regra": "faltamMin<=15 (perto do settlement)",
+      "aceitas": 6,
+      "de": 6,
+      "pnlDasAceitas": 0.8228,
+      "inversoesEvitadas": 0
+    },
+    {
+      "regra": "escorregamento<=0.001",
+      "aceitas": 5,
+      "de": 6,
+      "pnlDasAceitas": 0.8107,
+      "inversoesEvitadas": 0
+    }
+  ],
+  "detalhe": [
+    {
+      "symbol": "HFT/USDT:USDT",
+      "spread": 0.0085822,
+      "intervaloHoras": 8,
+      "faltamMin": 8.711333333333334,
+      "cobertura": 2.9675515294907506,
+      "escorregamento": 0.00019800345206412933,
+      "receita": 1.0582101846924548,
+      "custo": 0.3563051601343857,
+      "pnl": 0.7019050245580691,
+      "pagou": true,
+      "inverteu": false
+    },
+    {
+      "symbol": "ACE/USDT:USDT",
+      "spread": 0.10072800000000001,
+      "intervaloHoras": 1,
+      "faltamMin": 10.744233333333334,
+      "cobertura": 5.83337183670058,
+      "escorregamento": 0.000014610723972021461,
+      "receita": 0,
+      "custo": 0.2602008640596543,
+      "pnl": -0.2602008640596543,
+      "pagou": false,
+      "inverteu": true
+    },
+    {
+      "symbol": "ACE/USDT:USDT",
+      "spread": 0.07954064,
+      "intervaloHoras": 1,
+      "faltamMin": 9.1755,
+      "cobertura": 4.209693512034134,
+      "escorregamento": 0.00006545747461052815,
+      "receita": 0.7691702175017825,
+      "custo": 0.18145262210083535,
+      "pnl": 0.5877175954009471,
+      "pagou": true,
+      "inverteu": false
+    },
+    {
+      "symbol": "ACE/USDT:USDT",
+      "spread": 0.05926536,
+      "intervaloHoras": 1,
+      "faltamMin": 11.180966666666666,
+      "cobertura": 3.5277,
+      "escorregamento": 0,
+      "receita": 0.1421664155074375,
+      "custo": 0.13013738337116307,
+      "pnl": 0.012029032136274431,
+      "pagou": true,
+      "inverteu": false
+    },
+    {
+      "symbol": "COTI/USDT:USDT",
+      "spread": 0.00468749,
+      "intervaloHoras": 8,
+      "faltamMin": 8.8902,
+      "cobertura": 1.666815081502682,
+      "escorregamento": 0.00012806089319969608,
+      "receita": 0.7828339446731484,
+      "custo": 0.4712984148493059,
+      "pnl": 0.31153552982384247,
+      "pagou": true,
+      "inverteu": false
+    },
+    {
+      "symbol": "ACE/USDT:USDT",
+      "spread": 0.07544808,
+      "intervaloHoras": 1,
+      "faltamMin": 11.849266666666667,
+      "cobertura": 2.6396390506250373,
+      "escorregamento": 0.0003682101907803305,
+      "receita": 0,
+      "custo": 0.5302250896644712,
+      "pnl": -0.5302250896644712,
+      "pagou": false,
+      "inverteu": true
+    }
+  ],
+  "nota": "Compara regras determinísticas contra as 6 capturas reais. \"cobertura\" = funding esperado / custo. NÃO altera o Champion; só mede qual regra teria evitado as inversões preservando o PnL."
+}
