@@ -1,0 +1,5 @@
+# Cópias imutáveis do snapshot: verificáveis pelos hashes no manifesto.json —
+# não versionadas (reprodutíveis a partir dos originais + hash). Mantidas localmente.
+snapshot-*/copias/
+# Dataset ML bruto: reprodutível por scripts/auditoria/build-ml-dataset.cjs.
+ml/dataset-candidatas.jsonl

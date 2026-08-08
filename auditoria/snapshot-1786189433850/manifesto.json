@@ -1,0 +1,991 @@
+{
+  "snapshotId": "1786189433850",
+  "timestampUTC": "2026-08-08T11:43:53.811Z",
+  "epochMs": 1786189433850,
+  "commit": "4ace181c26185b875b56b8e232cd8734a20d5509",
+  "branch": "checkpoint/dashboard-v2-isolamento-real",
+  "workingTree": "dirty (resiliência do supervisor em andamento; NÃO afeta dados)",
+  "totalArquivos": 115,
+  "presentes": 115,
+  "copiadosImutaveis": 111,
+  "arquivos": [
+    {
+      "path": "spread/estado.json",
+      "existe": true,
+      "bytes": 2490,
+      "mtime": "2026-08-08T11:41:34.774Z",
+      "sha256": "d8c1a35cee5ca8e14f9030deb884fb877c8752b6da8bcbdceb5bfb1153c552ce",
+      "copiaImutavel": "spread__estado.json"
+    },
+    {
+      "path": "spread/diario.jsonl",
+      "existe": true,
+      "bytes": 456131,
+      "mtime": "2026-08-08T11:41:30.671Z",
+      "sha256": "3ab48589b3ccef6085d598b054056b02c173a93b16a0a4917f07149bac28cac9",
+      "linhas": 1891,
+      "copiaImutavel": "spread__diario.jsonl"
+    },
+    {
+      "path": "spread/marcacao.json",
+      "existe": true,
+      "bytes": 2328,
+      "mtime": "2026-08-08T11:41:36.402Z",
+      "sha256": "6d8e2cfb5c1c002a8f00eb39302ce9a3aef5e7da91d454b9c4e269fccc146671",
+      "copiaImutavel": "spread__marcacao.json"
+    },
+    {
+      "path": "vigilancia/ciclos.json",
+      "existe": true,
+      "bytes": 1311556,
+      "mtime": "2026-08-08T11:40:29.013Z",
+      "sha256": "b5ad88c9911ddeb7750ab0f4a40ca0523d8497ca25c9bee75e74987eaf948632",
+      "copiaImutavel": null,
+      "nota": "grande — referenciado por hash, não copiado"
+    },
+    {
+      "path": "vigilancia/historico.jsonl",
+      "existe": true,
+      "bytes": 13275898,
+      "mtime": "2026-08-08T11:40:29.004Z",
+      "sha256": "a3ff219d789fcf3734d7881fd822182da4cc2987591e8e0927cf934d9a62e9bc",
+      "linhas": 113673,
+      "copiaImutavel": null,
+      "nota": "grande — referenciado por hash, não copiado"
+    },
+    {
+      "path": "vigilancia/captura.json",
+      "existe": true,
+      "bytes": 7494,
+      "mtime": "2026-08-08T11:40:29.032Z",
+      "sha256": "f0a8920444dbae4dca61036a36ff8e5d030bf61f620f2d3fd61fcd6bc4325c42",
+      "copiaImutavel": "vigilancia__captura.json"
+    },
+    {
+      "path": "momentum/estado.json",
+      "existe": true,
+      "bytes": 16269,
+      "mtime": "2026-08-08T11:40:06.537Z",
+      "sha256": "a0af515d608a1c0f5ebf55b50cd26be875ad7434c1ffa6578644f3916feab410",
+      "copiaImutavel": "momentum__estado.json"
+    },
+    {
+      "path": "momentum/diario.jsonl",
+      "existe": true,
+      "bytes": 8876,
+      "mtime": "2026-08-08T00:18:03.009Z",
+      "sha256": "fb7a44009ee66819b58e9e862dafd633740ad4bfe57056001056102fc728742e",
+      "linhas": 47,
+      "copiaImutavel": "momentum__diario.jsonl"
+    },
+    {
+      "path": "pares/estado.json",
+      "existe": true,
+      "bytes": 6570,
+      "mtime": "2026-08-08T00:18:47.660Z",
+      "sha256": "dd2d28aab371f18080121010597e194de0f6afcadbed713ff3221c3bd825679e",
+      "copiaImutavel": "pares__estado.json"
+    },
+    {
+      "path": "pares/diario.jsonl",
+      "existe": true,
+      "bytes": 1530,
+      "mtime": "2026-08-06T20:27:20.120Z",
+      "sha256": "034747711dbb7a9504b0c1f51ddf9c6cd8f147363b4e3c8c6d1ab37fed1615ce",
+      "linhas": 3,
+      "copiaImutavel": "pares__diario.jsonl"
+    },
+    {
+      "path": "preenchimento/estado.json",
+      "existe": true,
+      "bytes": 12583,
+      "mtime": "2026-08-08T11:44:28.941Z",
+      "sha256": "503d0366d47ac0b7b7cdc9a2c210f8a220aff2c5c9086e2b7205a663e02fa0ad",
+      "copiaImutavel": "preenchimento__estado.json"
+    },
+    {
+      "path": "preenchimento/diario.jsonl",
+      "existe": true,
+      "bytes": 1432311,
+      "mtime": "2026-08-08T11:44:17.682Z",
+      "sha256": "424f8c12aafa7f8edc832014cb74ec9d43a4bae0c55255393ea086c9757ec0dc",
+      "linhas": 6645,
+      "copiaImutavel": null,
+      "nota": "grande — referenciado por hash, não copiado"
+    },
+    {
+      "path": "inteligencia/oportunidades/2026-08-07.jsonl",
+      "existe": true,
+      "bytes": 10503600,
+      "mtime": "2026-08-07T21:27:49.493Z",
+      "sha256": "bc88e5bf5ceecde504d3cabf22496d1e061ab1a28b030d9c5cc9c243188baa71",
+      "linhas": 144,
+      "copiaImutavel": null,
+      "nota": "grande — referenciado por hash, não copiado"
+    },
+    {
+      "path": "inteligencia/oportunidades/2026-08-08.jsonl",
+      "existe": true,
+      "bytes": 52928,
+      "mtime": "2026-08-08T06:05:28.299Z",
+      "sha256": "1c3ac47169e4cdd62154cf2b4f58b09774c5658815a8e49b71ecbb796c432bc7",
+      "linhas": 2,
+      "copiaImutavel": "inteligencia__oportunidades__2026-08-08.jsonl"
+    },
+    {
+      "path": "docs/RESULTADOS.md",
+      "existe": true,
+      "bytes": 49478,
+      "mtime": "2026-08-05T21:30:15.197Z",
+      "sha256": "ba547272afba020833c03b595fba68da0e57b97be1e07bdb5857b8a9f9a005a6",
+      "copiaImutavel": "docs__RESULTADOS.md"
+    },
+    {
+      "path": "docs/PROTECAO-RUINA.md",
+      "existe": true,
+      "bytes": 17712,
+      "mtime": "2026-08-03T11:12:01.050Z",
+      "sha256": "d566c89e5ca5487f998aac810db0c6c2a2de780bf515d08b9cc6b7752922b0fc",
+      "copiaImutavel": "docs__PROTECAO-RUINA.md"
+    },
+    {
+      "path": "docs/EXECUCAO-REAL.md",
+      "existe": true,
+      "bytes": 17367,
+      "mtime": "2026-08-03T13:46:40.377Z",
+      "sha256": "5fca315fd6b718023121e97c078f326a48d4b2bb2cf1787aa916ea6c08356369",
+      "copiaImutavel": "docs__EXECUCAO-REAL.md"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-10m/estado.json",
+      "existe": true,
+      "bytes": 3064,
+      "mtime": "2026-08-08T11:43:43.416Z",
+      "sha256": "fe08cb75097ce5fc1950fd9c95bea5d44d1bc77440a8882b5fccd34ba61ca2c3",
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-10m__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-10m/diario.jsonl",
+      "existe": true,
+      "bytes": 2135,
+      "mtime": "2026-08-08T08:03:43.652Z",
+      "sha256": "d48091070ca51e1a9db5e40effc9f43f14d946b96f1b1885afab083c7912848a",
+      "linhas": 8,
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-10m__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-20m/estado.json",
+      "existe": true,
+      "bytes": 3065,
+      "mtime": "2026-08-08T11:43:43.418Z",
+      "sha256": "46df1ea088f49e1b425cf1622b4b11f838607137eb3a62beb6cda1ca812467d7",
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-20m__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-20m/diario.jsonl",
+      "existe": true,
+      "bytes": 2148,
+      "mtime": "2026-08-08T08:03:43.655Z",
+      "sha256": "d4899fec21dc0ec0e2f2bf6971ca4a630f6c5f2b82a1170d3c16c1ee3e58aabc",
+      "linhas": 8,
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-20m__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-30m/estado.json",
+      "existe": true,
+      "bytes": 3068,
+      "mtime": "2026-08-08T11:43:43.419Z",
+      "sha256": "ff1a7464147d5418c7ef12464b6585a022722c39f770b33b87a3fd2357cc6d2e",
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-30m__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-30m/diario.jsonl",
+      "existe": true,
+      "bytes": 2011,
+      "mtime": "2026-08-08T08:03:43.660Z",
+      "sha256": "54e09d3a94afe613edb781dc9a6506b82de1debb8a78ba7a9020dab82f2f4c92",
+      "linhas": 8,
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-30m__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-5m/estado.json",
+      "existe": true,
+      "bytes": 2082,
+      "mtime": "2026-08-08T11:43:43.415Z",
+      "sha256": "273f56f88f8d1769de0a83d77ade61f1eaf4584c7c4511dce81c7b2fa4132657",
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-5m__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-5m/diario.jsonl",
+      "existe": true,
+      "bytes": 775,
+      "mtime": "2026-08-08T08:03:43.647Z",
+      "sha256": "23b3afdcc8205de56bb768250a1f2ad677b5e71ec10d00f3c9718b4028139036",
+      "linhas": 3,
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-5m__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-60m/estado.json",
+      "existe": true,
+      "bytes": 3580,
+      "mtime": "2026-08-08T11:43:43.421Z",
+      "sha256": "3b9d19d33a39616b477e556d18c8e5913611cd6f9cc1a5972905767420533dbc",
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-60m__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/capture-isolated-60m/diario.jsonl",
+      "existe": true,
+      "bytes": 2828,
+      "mtime": "2026-08-08T08:03:43.665Z",
+      "sha256": "47741136828ff7aa0f80b5e9b8a2727b370af9fe4d69bf8d0a1af8de2cad669e",
+      "linhas": 11,
+      "copiaImutavel": "inteligencia__challengers__capture-isolated-60m__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-best-2-dynamic/estado.json",
+      "existe": true,
+      "bytes": 13282,
+      "mtime": "2026-08-08T11:43:43.316Z",
+      "sha256": "570d1be2f701a789f905ff98b5f74a2763bf6f6cd273d3616c44ea1587cd9ce3",
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-best-2-dynamic__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-best-2-dynamic/diario.jsonl",
+      "existe": true,
+      "bytes": 19873,
+      "mtime": "2026-08-08T11:43:43.315Z",
+      "sha256": "e14bca267152832c1e08390869eee27cbee544f42aba925695b76acec5122d41",
+      "linhas": 75,
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-best-2-dynamic__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-best-3-dynamic/estado.json",
+      "existe": true,
+      "bytes": 32058,
+      "mtime": "2026-08-08T11:43:43.319Z",
+      "sha256": "8a98d254718916819ee8fdb8dee6e5fab8cd73ab213fc71a2c8419d87cf8ce08",
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-best-3-dynamic__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-best-3-dynamic/diario.jsonl",
+      "existe": true,
+      "bytes": 70823,
+      "mtime": "2026-08-08T11:43:43.317Z",
+      "sha256": "7eeb52afddb601ee93e267e8029572a12d1174a158230fd3a5c00bb71c1e9201",
+      "linhas": 266,
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-best-3-dynamic__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-equal-6/estado.json",
+      "existe": true,
+      "bytes": 32489,
+      "mtime": "2026-08-08T11:43:43.310Z",
+      "sha256": "5cbcb0f0937da1b9e88b265e139d5abe737c7eea88e405f580576cc194aacf5b",
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-equal-6__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-equal-6/diario.jsonl",
+      "existe": true,
+      "bytes": 68257,
+      "mtime": "2026-08-08T11:43:43.308Z",
+      "sha256": "e7cf1f267aeaf83405e64959a83bb3ee5fb634b54ebd7887cc4bc317b92292dc",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-equal-6__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-productive-weighted-6/estado.json",
+      "existe": true,
+      "bytes": 32532,
+      "mtime": "2026-08-08T11:43:43.314Z",
+      "sha256": "643141ff828d24bf06596fe5c294b962f771935daa7d90262a07fbeecafb7200",
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-productive-weighted-6__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-alloc-productive-weighted-6/diario.jsonl",
+      "existe": true,
+      "bytes": 75856,
+      "mtime": "2026-08-08T11:43:43.313Z",
+      "sha256": "0648850b277cf5b15475c630f222a73d32d4213b2b49420016fe4b64ea2fcace",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-alloc-productive-weighted-6__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-agressivo/estado.json",
+      "existe": true,
+      "bytes": 858,
+      "mtime": "2026-08-07T02:44:35.233Z",
+      "sha256": "4ad9474d807d4490260deebaee3c1a7280851090acdff52a6dd7875cad03a17a",
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-agressivo__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-alta-retencao/estado.json",
+      "existe": true,
+      "bytes": 13545,
+      "mtime": "2026-08-08T11:43:43.300Z",
+      "sha256": "e508c120bf0cfd058d667e87d9a5de6d6e6d1a76b1dec3d276ba4bb147b2600f",
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-alta-retencao__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-alta-retencao/diario.jsonl",
+      "existe": true,
+      "bytes": 67321,
+      "mtime": "2026-08-08T11:43:43.299Z",
+      "sha256": "56ca399f8530168086e108dd7defec46c27b0e2c907a14439665a39b59155cc3",
+      "linhas": 267,
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-alta-retencao__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-baixa-retencao/estado.json",
+      "existe": true,
+      "bytes": 13546,
+      "mtime": "2026-08-08T11:43:43.305Z",
+      "sha256": "55911d5a5cc06a4d65f8d84167d239b1c02013531f252a3ab97e5d28f3b6908c",
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-baixa-retencao__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-baixa-retencao/diario.jsonl",
+      "existe": true,
+      "bytes": 67849,
+      "mtime": "2026-08-08T11:43:43.305Z",
+      "sha256": "dfe69fe074ec15e4068938c9390a6c70d5b7fa82bdcc7fce5b84332bc07a4789",
+      "linhas": 267,
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-baixa-retencao__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-conservador/estado.json",
+      "existe": true,
+      "bytes": 860,
+      "mtime": "2026-08-07T02:44:35.231Z",
+      "sha256": "3f7a9c9b28c6bed5adfd3144ac774ea3f9cb9a2aff6abaab8e33cdccac44120c",
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-conservador__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-media-retencao/estado.json",
+      "existe": true,
+      "bytes": 13546,
+      "mtime": "2026-08-08T11:43:43.302Z",
+      "sha256": "828061e2cc0167424b8ae4ea843cb2410dfae294f2a8b522b9f47e521888084a",
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-media-retencao__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-media-retencao/diario.jsonl",
+      "existe": true,
+      "bytes": 67849,
+      "mtime": "2026-08-08T11:43:43.301Z",
+      "sha256": "c3db0a022f00d313e51e6210735d92c3eb8464ae0f187e38a86b5cbb7bdc65f3",
+      "linhas": 267,
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-media-retencao__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-batch-moderado/estado.json",
+      "existe": true,
+      "bytes": 857,
+      "mtime": "2026-08-07T02:44:35.232Z",
+      "sha256": "d7a4839430978aba846ac1db80f61f8fedab1d1c96f164baf254b2a0d9d0f52f",
+      "copiaImutavel": "inteligencia__challengers__challenger-batch-moderado__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-best-pair/estado.json",
+      "existe": true,
+      "bytes": 542,
+      "mtime": "2026-08-07T02:25:00.386Z",
+      "sha256": "8cdf947ee48cb3a912dcebe3a5493b2d7bbc124f8691909512f2c909214028ff",
+      "copiaImutavel": "inteligencia__challengers__challenger-best-pair__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-concentration-aware-ranking/estado.json",
+      "existe": true,
+      "bytes": 13574,
+      "mtime": "2026-08-08T11:43:43.296Z",
+      "sha256": "6e1634e8a5b78939922c4084bf158ab8931c5e73bdc4ae2a8ce2df091c1c31ca",
+      "copiaImutavel": "inteligencia__challengers__challenger-concentration-aware-ranking__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-concentration-aware-ranking/diario.jsonl",
+      "existe": true,
+      "bytes": 71545,
+      "mtime": "2026-08-08T11:43:43.296Z",
+      "sha256": "34cecbe98d792754454c04e4fdcda0d3aef4a2dba06d84e41409f1f1bebc1536",
+      "linhas": 267,
+      "copiaImutavel": "inteligencia__challengers__challenger-concentration-aware-ranking__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-control/estado.json",
+      "existe": true,
+      "bytes": 32504,
+      "mtime": "2026-08-08T11:43:43.291Z",
+      "sha256": "0f0f1650f3bb2e94971558bcba65b6d57cb80fe374836a01bdc7e39d873942d8",
+      "copiaImutavel": "inteligencia__challengers__challenger-control__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-control/diario.jsonl",
+      "existe": true,
+      "bytes": 65029,
+      "mtime": "2026-08-08T11:43:43.290Z",
+      "sha256": "bb3d4bee9f7eff74e0065ab522b412b2e4601f14956590757c12084b44fafdd7",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-control__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-2/estado.json",
+      "existe": true,
+      "bytes": 32641,
+      "mtime": "2026-08-08T11:43:43.396Z",
+      "sha256": "c88077bf4d9087a700a32008a9e235cc0535cca30042db3d4049d2d61e28fdea",
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-2__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-2/diario.jsonl",
+      "existe": true,
+      "bytes": 66716,
+      "mtime": "2026-08-08T11:43:43.394Z",
+      "sha256": "8049fc1614d8036e9dc8648fb2593c08c5b662692dc3e236ef66e2534babc4b8",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-2__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-3/estado.json",
+      "existe": true,
+      "bytes": 32590,
+      "mtime": "2026-08-08T11:43:43.399Z",
+      "sha256": "73a27bf6ddc01a437053420bbbf08e06dfda68d480cdd9f575b4d9c8231adf94",
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-3__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-3/diario.jsonl",
+      "existe": true,
+      "bytes": 66563,
+      "mtime": "2026-08-08T11:43:43.399Z",
+      "sha256": "d010950be4666c27decaf15ea82ef8f2e745151949ce9f0059da03e694c96964",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-3__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-4/estado.json",
+      "existe": true,
+      "bytes": 32595,
+      "mtime": "2026-08-08T11:43:43.402Z",
+      "sha256": "1c559c3908b148a7461783976315c4e48cbfab45ae6f9fe875b40423138d76a0",
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-4__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-4/diario.jsonl",
+      "existe": true,
+      "bytes": 66716,
+      "mtime": "2026-08-08T11:43:43.401Z",
+      "sha256": "ee61c397f12fd8237b92d84b1f7f3bcecafd0e2ef655d14b6c376d4e1e59fa01",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-4__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-5-controle/estado.json",
+      "existe": true,
+      "bytes": 32577,
+      "mtime": "2026-08-08T11:43:43.404Z",
+      "sha256": "92e1a220d7d333fc8aa130ed826af77a280bfff36e56b2af40eddbc681094663",
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-5-controle__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-5-controle/diario.jsonl",
+      "existe": true,
+      "bytes": 71485,
+      "mtime": "2026-08-08T11:43:43.404Z",
+      "sha256": "0ee7c3479e271fc9d0a25ca30fe0a8d8ae7aeb56b2c9e4039ed3dd01b1b157d3",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-5-controle__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-6/estado.json",
+      "existe": true,
+      "bytes": 32843,
+      "mtime": "2026-08-08T11:43:43.407Z",
+      "sha256": "3aeb5fd487424c180550020862fae8dbd3ffc2fb032a2a4363bc1dbad98f8f77",
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-6__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-6/diario.jsonl",
+      "existe": true,
+      "bytes": 68363,
+      "mtime": "2026-08-08T11:43:43.406Z",
+      "sha256": "c42231559b9129f2b8d8dd895edfbee2121602e6ab926eb9b4340c8815628bd7",
+      "linhas": 278,
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-6__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-7/estado.json",
+      "existe": true,
+      "bytes": 32791,
+      "mtime": "2026-08-08T11:43:43.411Z",
+      "sha256": "a24ffd6657f048e5cfae37cca37636be306bb1477437f53fa0e4a610726827bf",
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-7__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-7/diario.jsonl",
+      "existe": true,
+      "bytes": 68271,
+      "mtime": "2026-08-08T11:43:43.410Z",
+      "sha256": "5897ed655f974dcee1fb5f86f48d1bdfb01450d37c1c794105a8066d27bafc21",
+      "linhas": 278,
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-7__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-8/estado.json",
+      "existe": true,
+      "bytes": 32822,
+      "mtime": "2026-08-08T11:43:43.414Z",
+      "sha256": "0f041ed09b459650b8da9a1d443acce6ec08e150b008631f4581e44162c7c3d1",
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-8__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-leverage-8/diario.jsonl",
+      "existe": true,
+      "bytes": 68098,
+      "mtime": "2026-08-08T11:43:43.413Z",
+      "sha256": "613c887c77ec5a2c566ef216313133f9e936b423eb0ab2c31e5d609dd6543e41",
+      "linhas": 277,
+      "copiaImutavel": "inteligencia__challengers__challenger-leverage-8__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-110/estado.json",
+      "existe": true,
+      "bytes": 32755,
+      "mtime": "2026-08-08T11:43:43.322Z",
+      "sha256": "64a6a16cf3cc44a5188c25403f87e1300889d5ce9c92dd1d2edd2aaca16a4c3e",
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-110__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-110/diario.jsonl",
+      "existe": true,
+      "bytes": 66309,
+      "mtime": "2026-08-08T11:43:43.321Z",
+      "sha256": "901cc54cd24f95ea7dec1143a09abf88692f7a51c8d5c3e63ed70012b73b0abd",
+      "linhas": 268,
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-110__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-120/estado.json",
+      "existe": true,
+      "bytes": 32744,
+      "mtime": "2026-08-08T11:43:43.325Z",
+      "sha256": "a3620b06ad19c728a026495a01148881d35942ebf180d5da40be989655153356",
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-120__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-120/diario.jsonl",
+      "existe": true,
+      "bytes": 66404,
+      "mtime": "2026-08-08T11:43:43.324Z",
+      "sha256": "50a948c92689474b9267b23beee10913b1ebf1ae1eace2b2f299ee36409a2691",
+      "linhas": 268,
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-120__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-130/estado.json",
+      "existe": true,
+      "bytes": 32604,
+      "mtime": "2026-08-08T11:43:43.327Z",
+      "sha256": "775bfcb59b7c917483e4055650fdddd00eec5ff8dcc7f0f7b7b7294217538cf4",
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-130__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-130/diario.jsonl",
+      "existe": true,
+      "bytes": 67073,
+      "mtime": "2026-08-08T11:43:43.326Z",
+      "sha256": "e9c6eda22e6ecd147edc27daa9d6fe97143e32838052826cca5c9af5ed741595",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-130__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-140/estado.json",
+      "existe": true,
+      "bytes": 32609,
+      "mtime": "2026-08-08T11:43:43.330Z",
+      "sha256": "a8c407655a09691fc73a89e13f57b3045349a784a192b6cbce47bcfcb0e95ccb",
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-140__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-140/diario.jsonl",
+      "existe": true,
+      "bytes": 67242,
+      "mtime": "2026-08-08T11:43:43.330Z",
+      "sha256": "f1d34e59c1f62cbb815249ba1bb40fbc30399acbb8de0fbbf7bda44171f5ced4",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-140__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-150-controle/estado.json",
+      "existe": true,
+      "bytes": 32611,
+      "mtime": "2026-08-08T11:43:43.333Z",
+      "sha256": "ee781e90dc5cbf706633d5d067821cdf12e59a30d5a9f1d7e0bb05f0146d42a6",
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-150-controle__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-150-controle/diario.jsonl",
+      "existe": true,
+      "bytes": 72023,
+      "mtime": "2026-08-08T11:43:43.332Z",
+      "sha256": "677afc40c05a6b6d70b987cde3177c3f62a968f192eabdd5e352cedb0db87dad",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-150-controle__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-175/estado.json",
+      "existe": true,
+      "bytes": 32629,
+      "mtime": "2026-08-08T11:43:43.335Z",
+      "sha256": "159d7e39bc824270a1d2da60ba710a24007c43354b48e422f8cc4b0cde145ae4",
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-175__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-175/diario.jsonl",
+      "existe": true,
+      "bytes": 67099,
+      "mtime": "2026-08-08T11:43:43.335Z",
+      "sha256": "15d762f6843647f8061f92808b5da7d1e5dba613f32a87f8a0a290b10d9933b4",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-175__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-200/estado.json",
+      "existe": true,
+      "bytes": 32564,
+      "mtime": "2026-08-08T11:43:43.339Z",
+      "sha256": "c346ab4e56557e9a9b5dcd56839aea6434024b8526ac1678a45acdd128e8665a",
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-200__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-payback-200/diario.jsonl",
+      "existe": true,
+      "bytes": 66923,
+      "mtime": "2026-08-08T11:43:43.339Z",
+      "sha256": "f47fef034215fa3575a5476bb255fffd996ea7f9790d05c9dd295a7e50c689f3",
+      "linhas": 271,
+      "copiaImutavel": "inteligencia__challengers__challenger-payback-200__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-1/estado.json",
+      "existe": true,
+      "bytes": 4167,
+      "mtime": "2026-08-08T11:43:43.378Z",
+      "sha256": "d02448b8b336667b47d1b4b06a2634b53abd52eb62f94e438578b68c19eaf200",
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-1__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-1/diario.jsonl",
+      "existe": true,
+      "bytes": 2266,
+      "mtime": "2026-08-08T07:38:42.986Z",
+      "sha256": "077c9d90612e459558ebf112b5c3dbdc66ee44ba86b013b1cd48f6450c45862d",
+      "linhas": 9,
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-1__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-2/estado.json",
+      "existe": true,
+      "bytes": 32581,
+      "mtime": "2026-08-08T11:43:43.381Z",
+      "sha256": "cd2fec9f480443353d414aa1a4d040626957545dc10db36202fa0825928c9e83",
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-2__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-2/diario.jsonl",
+      "existe": true,
+      "bytes": 65687,
+      "mtime": "2026-08-08T11:43:43.380Z",
+      "sha256": "2b52e244544cd0ab74b03ab8ce1609464c629839a5561322f0718a3dbce4b15d",
+      "linhas": 266,
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-2__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-3-controle/estado.json",
+      "existe": true,
+      "bytes": 32578,
+      "mtime": "2026-08-08T11:43:43.384Z",
+      "sha256": "da232a2767da4ce48fa3e01bce8bfc0165df565382e10652345ff7a091beadc5",
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-3-controle__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-3-controle/diario.jsonl",
+      "existe": true,
+      "bytes": 72023,
+      "mtime": "2026-08-08T11:43:43.384Z",
+      "sha256": "5d5373e480eaf5699f01502d6a286b0bb187ab373021edc6467c6b873de2f746",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-3-controle__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-4/estado.json",
+      "existe": true,
+      "bytes": 32671,
+      "mtime": "2026-08-08T11:43:43.387Z",
+      "sha256": "62431fba573d18152ee73fe91b8afd55397e6a1c1127841b51553835d5ee3ce7",
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-4__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-4/diario.jsonl",
+      "existe": true,
+      "bytes": 67181,
+      "mtime": "2026-08-08T11:43:43.386Z",
+      "sha256": "22057f4bf3dccbc6341b027de9b4adb7000221f1acf5f1b4d571cd27b6ad4814",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-4__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-5/estado.json",
+      "existe": true,
+      "bytes": 32584,
+      "mtime": "2026-08-08T11:43:43.390Z",
+      "sha256": "b2b45ca0b94f377dadbb517811d4885c214ea5932486f0c31de46151f104fa5c",
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-5__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-5/diario.jsonl",
+      "existe": true,
+      "bytes": 67181,
+      "mtime": "2026-08-08T11:43:43.389Z",
+      "sha256": "8a0d2ff15b336703efdf78de162e1b2613061359e232ddb295f913285a42c9ad",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-5__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-6/estado.json",
+      "existe": true,
+      "bytes": 32626,
+      "mtime": "2026-08-08T11:43:43.393Z",
+      "sha256": "a345fba337c55753f7065c2e8843c2a894a6d958d1f9ff4e08286f0906738977",
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-6__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-positions-6/diario.jsonl",
+      "existe": true,
+      "bytes": 67181,
+      "mtime": "2026-08-08T11:43:43.392Z",
+      "sha256": "4b9427f05a0c34968c09fd7095ad0b378b0aa8f880d25e8ce9cddd2af1beafca",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-positions-6__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-ranking/estado.json",
+      "existe": true,
+      "bytes": 32504,
+      "mtime": "2026-08-08T11:43:43.294Z",
+      "sha256": "0d9019c8476efaca325760fb0920986fde695face010e307eb13f6f3664d69aa",
+      "copiaImutavel": "inteligencia__challengers__challenger-ranking__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-ranking/diario.jsonl",
+      "existe": true,
+      "bytes": 65029,
+      "mtime": "2026-08-08T11:43:43.293Z",
+      "sha256": "18fff198abf32470754baab6864f6632ac7c833170fd8ebce6093f691f316a93",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-ranking__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-15/estado.json",
+      "existe": true,
+      "bytes": 32619,
+      "mtime": "2026-08-08T11:43:43.363Z",
+      "sha256": "0c1013e14c8e4d7621e48fe7a18a6acddc8ccad667f4e4fa7c4cba7a2599f4a2",
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-15__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-15/diario.jsonl",
+      "existe": true,
+      "bytes": 66711,
+      "mtime": "2026-08-08T11:43:43.362Z",
+      "sha256": "2ec75cdff47eb29338c824f0f71f3c512a6838b21b937bf5de7d1357079bb7d7",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-15__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-20/estado.json",
+      "existe": true,
+      "bytes": 32603,
+      "mtime": "2026-08-08T11:43:43.365Z",
+      "sha256": "8804cedbbd4c5d0bbeb98f02d46ccf5a94ab1f4ca029312700258eae01a46836",
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-20__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-20/diario.jsonl",
+      "existe": true,
+      "bytes": 66660,
+      "mtime": "2026-08-08T11:43:43.364Z",
+      "sha256": "05c02acaaa87e387a48ad7b999b91562eea04553390242e91571dd33a18019ef",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-20__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-25/estado.json",
+      "existe": true,
+      "bytes": 32592,
+      "mtime": "2026-08-08T11:43:43.368Z",
+      "sha256": "2af29bb14f2483e7b25a081aecc509634c4537336727d4593f378187ecb09c86",
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-25__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-25/diario.jsonl",
+      "existe": true,
+      "bytes": 66615,
+      "mtime": "2026-08-08T11:43:43.367Z",
+      "sha256": "a79d9abb4ac6e28811712ea6178dfaf2c6f3797851a3b8fd7d79ca1b8586ce93",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-25__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-30-controle/estado.json",
+      "existe": true,
+      "bytes": 32577,
+      "mtime": "2026-08-08T11:43:43.372Z",
+      "sha256": "d0fc668d8e132f24ff8cf9b66296bd3f0282f71183f99b8130eaae6c9d86c7fa",
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-30-controle__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-30-controle/diario.jsonl",
+      "existe": true,
+      "bytes": 71485,
+      "mtime": "2026-08-08T11:43:43.370Z",
+      "sha256": "f3283daa43f44eee9abdd08759fccdae8ed1925738f3759c8167adc9ba2b386e",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-30-controle__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-35/estado.json",
+      "existe": true,
+      "bytes": 32612,
+      "mtime": "2026-08-08T11:43:43.374Z",
+      "sha256": "6e7908204c171073c77f931ddbba1b678230cd65474425859bd131ba02edf20a",
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-35__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-35/diario.jsonl",
+      "existe": true,
+      "bytes": 66710,
+      "mtime": "2026-08-08T11:43:43.374Z",
+      "sha256": "59e3a7fd139a218ea6f683dc2b06b103876509f1ebab88163fa67e0f3cff7cc1",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-35__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-40/estado.json",
+      "existe": true,
+      "bytes": 32597,
+      "mtime": "2026-08-08T11:43:43.377Z",
+      "sha256": "0dd403623bbe7f134b824460e53eadcba4deb2a70fc1c7518241925320bdbf42",
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-40__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-reserve-40/diario.jsonl",
+      "existe": true,
+      "bytes": 66706,
+      "mtime": "2026-08-08T11:43:43.376Z",
+      "sha256": "afeb0485dc8648e0e40a2e8b0eb6595a225b6369ca0e0e2b01c065e1beb07e0c",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-reserve-40__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-10/estado.json",
+      "existe": true,
+      "bytes": 32583,
+      "mtime": "2026-08-08T11:43:43.342Z",
+      "sha256": "c2a2fd31e5278ed175b698772e98cc08495f38e8ed8679718c404667060149ee",
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-10__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-10/diario.jsonl",
+      "existe": true,
+      "bytes": 65990,
+      "mtime": "2026-08-08T11:43:43.341Z",
+      "sha256": "671c93412a0a21b4793a1c30e75b342d3e72935b5c14802f02e09d6d98da8363",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-10__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-100/estado.json",
+      "existe": true,
+      "bytes": 32708,
+      "mtime": "2026-08-08T11:43:43.359Z",
+      "sha256": "3bedc9f0eebfad2ec8896fd88af1e489f5c0578d02e462ea8f8cc4b5ec636b73",
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-100__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-100/diario.jsonl",
+      "existe": true,
+      "bytes": 67037,
+      "mtime": "2026-08-08T11:43:43.358Z",
+      "sha256": "a146ec069208d352dc10761155c5d168fff5e12116462d2e556919d38f1b569a",
+      "linhas": 268,
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-100__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-25-controle/estado.json",
+      "existe": true,
+      "bytes": 32600,
+      "mtime": "2026-08-08T11:43:43.345Z",
+      "sha256": "512a00c76f3e62c9aab415c8a2352628ca2be480d7ea61ce01e5da00fa4d0d82",
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-25-controle__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-25-controle/diario.jsonl",
+      "existe": true,
+      "bytes": 70409,
+      "mtime": "2026-08-08T11:43:43.344Z",
+      "sha256": "960d5ec9268f1076a923e9c587bb90ddbd09c60174e78b030d683dba4a77bb28",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-25-controle__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-40/estado.json",
+      "existe": true,
+      "bytes": 32622,
+      "mtime": "2026-08-08T11:43:43.348Z",
+      "sha256": "70f6363e60c4c90d922787545c7d359d436f5bd84af1e98e319a7dc649683605",
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-40__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-40/diario.jsonl",
+      "existe": true,
+      "bytes": 65625,
+      "mtime": "2026-08-08T11:43:43.347Z",
+      "sha256": "ebf12a6b0a54278c02baa7527d60ea8b6f690d1825df17dc0fd74865be84c5c7",
+      "linhas": 272,
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-40__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-50/estado.json",
+      "existe": true,
+      "bytes": 32553,
+      "mtime": "2026-08-08T11:43:43.351Z",
+      "sha256": "35cb1941cc874518709dac8e486e4c19fcf01d69d060f239ac6fa4e5bd8b2227",
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-50__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-50/diario.jsonl",
+      "existe": true,
+      "bytes": 65370,
+      "mtime": "2026-08-08T11:43:43.350Z",
+      "sha256": "014b9385d151560c1aa544d0e347e1dadd01b4390cc84d902687bb1f472821e7",
+      "linhas": 271,
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-50__diario.jsonl"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-75/estado.json",
+      "existe": true,
+      "bytes": 32533,
+      "mtime": "2026-08-08T11:43:43.356Z",
+      "sha256": "4f5936affb9a15510d262d437dbab97e3f53097cd410fc08c4cedea2ccf07ad0",
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-75__estado.json"
+    },
+    {
+      "path": "inteligencia/challengers/challenger-stage-75/diario.jsonl",
+      "existe": true,
+      "bytes": 65344,
+      "mtime": "2026-08-08T11:43:43.355Z",
+      "sha256": "746a4209f26e66e9a00e167b2fc1c9285b8591913b7ad2b73d8bbf3144d9d7d7",
+      "linhas": 271,
+      "copiaImutavel": "inteligencia__challengers__challenger-stage-75__diario.jsonl"
+    }
+  ]
+}

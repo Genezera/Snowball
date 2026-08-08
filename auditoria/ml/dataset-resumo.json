@@ -1,0 +1,37 @@
+{
+  "geradoEm": "2026-08-08T11:43:53.850Z",
+  "snapshot": "1786189433850",
+  "fonte": {
+    "oportunidades": "inteligencia/oportunidades",
+    "diario": "auditoria/snapshot-1786189433850/copias/spread__diario.jsonl"
+  },
+  "totalLinhas": 21195,
+  "observacoesTomadas": 1081,
+  "simbolosComOutcome": 15,
+  "pagaramPayback": 845,
+  "inverteramAntesSettlement": 0,
+  "features": [
+    "spread",
+    "consistencia",
+    "duracaoHoras",
+    "valorEsperado",
+    "valorPorHora",
+    "folga",
+    "custo",
+    "escorregamento",
+    "escorregamentoMedido",
+    "capitalNecessario",
+    "saldoDisponivel",
+    "score"
+  ],
+  "labels": [
+    "outcome",
+    "chegouSettlement",
+    "pagouPayback",
+    "inverteuAntesDeSettlement",
+    "pnlLiquido",
+    "tempoAbertoMs"
+  ],
+  "aviso": "Amostra de OUTCOMES é pequena (poucas aberturas). Suficiente para baseline/EDA, NÃO para treinar/validar modelo sem overfit. Rejeitadas = nao_tomada (lacuna contrafactual honesta).",
+  "semLookahead": "features vêm só do ts da decisão; labels são outcomes posteriores anexados e nunca usados como feature."
+}
