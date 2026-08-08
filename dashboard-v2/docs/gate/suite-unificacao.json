@@ -1,0 +1,11 @@
+{
+  "suite": "chromium-desktop (sistema UNIFICADO: 5183 frontend + 5184 API, 8787 desligado)",
+  "passed": 250,
+  "failed": 0,
+  "skipped": 2,
+  "flaky": 0,
+  "duration_s": 824,
+  "startedAt": "2026-08-08T10:51:51.256Z",
+  "finishedAt": "2026-08-08T11:05:35.084Z",
+  "gatePassa": true
+}

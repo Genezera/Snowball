@@ -141,8 +141,11 @@ compensa acima de 90% de preenchimento.
 iniciar.cmd
 ```
 
-Sobe o watchdog, que sobe e supervisiona os 8 processos sozinho. Dashboard em
-`localhost:8787`. Pra parar tudo com segurança, sem perder nada:
+Sobe o watchdog dos 7 processos de trading + os supervisores do **Snowball
+Dashboard** (canônico). O painel abre em `localhost:5183` (API em `:5184`). O
+dashboard legado (`:8787`) foi arquivado e não sobe sozinho (rollback de
+emergência em `docs/dashboard-legacy-rollback.md`). Pra parar tudo com
+segurança, sem perder nada:
 
 ```bash
 parar.cmd

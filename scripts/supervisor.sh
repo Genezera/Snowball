@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Watchdog: verifica os 8 processos do Snowball (motor + dashboard antigo +
-# vigilância + custódia + coletor + momentum + preenchimento + pares) a cada
-# 30s e religa automaticamente qualquer um que tiver caído. Existe porque o
+# Watchdog: verifica os 7 processos do Snowball (motor + vigilância +
+# custódia + coletor + momentum + preenchimento + pares) a cada 30s e religa
+# automaticamente qualquer um que tiver caído. O dashboard LEGADO (8787) foi
+# arquivado na unificação e NÃO é mais supervisionado aqui (ver bloco CMD).
+# O dashboard canônico (V2, :5183/:5184) tem supervisores próprios. Existe porque o
 # motor caiu uma vez (bug de import faltando) e ficou 3h30 sem ninguém
 # religar -- `start` dos .cmd nao funciona neste ambiente sandboxed sem
 # sessao de janela interativa, entao isto substitui o supervisor dos .cmd.
@@ -20,7 +22,13 @@ declare -A CMD=(
   [vigilancia]="node src/cli/vigilancia.ts --equity 100 --intervalo 5"
   [custodia]="node src/cli/custodia.ts --intervalo 15"
   [motor]="node --env-file-if-exists=.env src/cli/spread-live.ts --porExchange 100 --alavancagem 5 --exchanges binanceusdm,bybit,okx,gate,bitget,bingx"
-  [dashboard]="node src/dashboard/server.ts"
+  # UNIFICAÇÃO (Snowball Dashboard): o dashboard LEGADO (src/dashboard/server.ts,
+  # porta 8787) foi ARQUIVADO — não é mais iniciado nem supervisionado
+  # automaticamente. O dashboard canônico é o V2 (frontend :5183 + API :5184),
+  # supervisionado pelos scripts supervisor-dashboard-v2-*. Para subir o legado
+  # em emergência: scripts/dashboard-legacy-start.sh (ver docs/dashboard-legacy-rollback.md).
+  # A entrada do 'dashboard' segue no process-manifest.json só como identidade
+  # para o rollback/detecção — nunca como processo supervisionado aqui.
   [coletor]="node src/cli/coletor.ts --intervalo 5"
   # modo agressivo: ts-momentum multi-ativo, papel -- roda EM PARALELO ao
   # motor delta-neutro acima, nao no lugar dele. Os dois so coletam dado.
@@ -39,7 +47,6 @@ declare -A LOG=(
   [vigilancia]="vigilancia/live.log"
   [custodia]="vigilancia/custodia.log"
   [motor]="spread/live.log"
-  [dashboard]="spread/dashboard.log"
   [coletor]="vigilancia/coletor.log"
   [momentum]="momentum/live.log"
   [preenchimento]="preenchimento/live.log"

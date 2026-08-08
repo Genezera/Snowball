@@ -25,7 +25,7 @@ export function SystemHealth() {
   const chStale = chIdade != null && chIdade > LIMITE_STALE_MS;
   const plStale = plIdade != null && plIdade > LIMITE_STALE_MS;
 
-  const dominios: { titulo: string; itens: { nome: string; sev: Sev; detalhe: string }[] }[] = [
+  const dominios: { titulo: string; itens: { nome: string; sev: Sev; detalhe: string; badge?: { label: string; tom: 'ok' | 'warn' | 'loss' | 'info' | 'neutral' } }[] }[] = [
     {
       titulo: 'Trading',
       itens: [
@@ -52,8 +52,8 @@ export function SystemHealth() {
     {
       titulo: 'Dashboards & Supervisão',
       itens: [
-        { nome: 'Dashboard 2.0 (este)', sev: 'ok', detalhe: 'API V2 read-only · porta 5184' },
-        { nome: 'Dashboard antigo (legacy)', sev: processos.find((p) => p.chave === 'dashboard')?.vivo ? 'ok' : 'warn', detalhe: 'server.ts · porta 8787' },
+        { nome: 'Snowball Dashboard', sev: 'ok', detalhe: 'frontend :5183 · API V2 read-only :5184' },
+        { nome: 'Legado (arquivado)', sev: 'ok', badge: { label: 'ARCHIVED · DISABLED BY DESIGN', tom: 'neutral' }, detalhe: 'porta 8787 desligada por design — rollback manual em docs/dashboard-legacy-rollback.md' },
         { nome: 'Heartbeat do Lab', sev: hb ? 'ok' : 'warn', detalhe: hb ? `pid ${hb.pid} · ${fmt.int(hb.ciclosProcessados)} ciclos` : 'sem heartbeat' },
       ],
     },
@@ -91,7 +91,7 @@ export function SystemHealth() {
                     <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)', color: 'var(--ink-0)' }}>{i.nome}</div>
                     <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>{i.detalhe}</div>
                   </div>
-                  {sevBadge(i.sev, i.sev === 'ok' ? 'ok' : i.sev)}
+                  {i.badge ? <StatusBadge label={i.badge.label} tom={i.badge.tom} /> : sevBadge(i.sev, i.sev === 'ok' ? 'ok' : i.sev)}
                 </div>
               ))}
             </div>

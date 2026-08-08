@@ -40,7 +40,7 @@ export function ExperimentLab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader titulo="Experiment Lab" sub="Paper Profit Lab — laboratório de experimentos com capital 100% virtual. Read-only: nenhum controle de promoção, pausa ou alteração de estratégia (esses continuam no dashboard legado)." />
+      <PageHeader titulo="Experiment Lab" sub="Paper Profit Lab — laboratório de experimentos com capital 100% virtual. Read-only: nenhum controle de promoção, pausa ou alteração de estratégia — são controles de ESCRITA, não migrados ao Snowball Dashboard read-only (auditados em docs/controles-legado.md)." />
       {profitLab?.estado === 'erro' && <DataStateBanner kind="offline" motivo={profitLab.motivo} />}
       {profitLab?.estado === 'corrompido' && <DataStateBanner kind="corrupted" motivo={profitLab.motivo} />}
 

@@ -87,11 +87,16 @@ export function lerVigilanciaChampion(): any {
   };
 }
 
+// UNIFICAÇÃO: o dashboard LEGADO (src/dashboard/server.ts, :8787) foi
+// arquivado e NÃO entra mais na saúde de processos. Além de não ser mais
+// supervisionado, seu padrão 'server.ts' colidia por substring com
+// 'dashboard-v2/api/server.ts' (esta própria API) — o legado aparecia
+// sempre "vivo" porque a V2 estava viva. Removido: sem legado na lista,
+// sem colisão. O status do legado é ARQUIVADO/DESLIGADO POR DESIGN (estático).
 const PROCESSOS_ESPERADOS = [
   { chave: 'vigilancia', nome: 'Vigilância', padrao: 'vigilancia.ts' },
   { chave: 'custodia', nome: 'Custódia', padrao: 'custodia.ts' },
   { chave: 'motor', nome: 'Motor', padrao: 'spread-live.ts' },
-  { chave: 'dashboard', nome: 'Dashboard (antigo)', padrao: 'server.ts' },
   { chave: 'coletor', nome: 'Coletor', padrao: 'coletor.ts' },
   { chave: 'momentum', nome: 'Modo Agressivo', padrao: 'momentum-live.ts' },
   { chave: 'preenchimento', nome: 'Preenchimento', padrao: 'preenchimento-live.ts' },

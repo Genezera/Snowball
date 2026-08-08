@@ -18,7 +18,7 @@ export function Pesquisa() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-        <PageHeader titulo="Pesquisa" sub="A área de pesquisa do dashboard antigo foi fundida em páginas dedicadas — esta rota documenta a fusão e leva a cada uma." />
+        <PageHeader titulo="Pesquisa" sub="A antiga área de pesquisa foi fundida em páginas dedicadas — esta rota documenta a fusão e leva a cada uma." />
         <StatusBadge label="fundida" tom="info" />
       </div>
 

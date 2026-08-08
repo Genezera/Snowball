@@ -108,7 +108,8 @@ outros percebem pela idade do dado em vez de travar.
   🧠 MOTOR             (5 min)   lê o ranking, aplica o portão de valor
         │                        esperado, decide — NUNCA ENVIA ORDEM
         ▼
-  📈 DASHBOARD          live      painel em localhost:8787, SSE em tempo real
+  📈 SNOWBALL DASHBOARD live      painel canônico em localhost:5183 (API :5184)
+                                    — o legado :8787 foi arquivado
 
   🏥 CUSTÓDIA          (15 min)  saúde de cada exchange → o motor evacua
                                     sozinho se uma for sinalizada
@@ -301,7 +302,8 @@ Checa os 8 processos a cada 30s e religa sozinho o que cair.
 node src/cli/vigilancia.ts --equity 100 --intervalo 5   # varre o mercado inteiro
 npm run custodia                                        # saúde das exchanges
 npm run spread                                          # motor normal, US$ 100/exchange, 5x
-node src/dashboard/server.ts                            # painel em :8787
+# Snowball Dashboard (canônico): supervisores V2 sobem em :5183 + :5184
+# node src/dashboard/server.ts                          # LEGADO :8787 — arquivado, só via scripts/dashboard-legacy-start.sh
 node src/cli/coletor.ts --intervalo 5                    # arquivo de longo prazo
 npm run momentum-live                                    # modo agressivo, ts-momentum, US$ 200
 npm run pares-live                                        # pares cointegrados, mercado-neutro, US$ 200
@@ -346,7 +348,7 @@ src/
 ├── ml/               GBDT do zero, meta-labeling, purged CV, treino real sobre o arquivo da vigilância
 ├── risk/             capital mínimo viável, simulador da bola de neve
 ├── live/             modo agressivo (ts-momentum), pares cointegrados, monitor de preenchimento
-├── dashboard/        painel em tempo real (server.ts + pagina.ts)
+├── dashboard/        LEGADO arquivado (server.ts + pagina.ts, :8787) — canônico é dashboard-v2/
 ├── mcp/               servidor MCP próprio
 ├── data/              carregamento e cache de séries históricas
 ├── core/              tipos, indicadores, volatilidade
