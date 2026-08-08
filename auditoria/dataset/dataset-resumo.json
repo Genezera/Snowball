@@ -1,0 +1,36 @@
+{
+  "snapshot": "1786189433850",
+  "epochs": [
+    {
+      "id": "epoch-0",
+      "capitalBase": 200,
+      "exchanges": 2,
+      "inicio": "2026-08-03T12:04:31.297Z",
+      "fim": "2026-08-05T22:09:25.080Z"
+    },
+    {
+      "id": "epoch-1",
+      "capitalBase": 600,
+      "exchanges": 6,
+      "inicio": "2026-08-05T22:09:25.080Z",
+      "fim": "atual"
+    }
+  ],
+  "candidateObservations": 21195,
+  "opportunityEpisodes": 2077,
+  "positionOutcomes": 23,
+  "episodiosPorEpoch": {
+    "epoch-1": 2077
+  },
+  "episodiosComOutcome": 29,
+  "episodiosTreinaveis": 29,
+  "leakageAudit": {
+    "foldPor": "episodeId (todas as obs do mesmo episódio no mesmo fold)",
+    "semFeaturePosDecisao": true,
+    "semImputacao": true,
+    "labelNoEpisodio": "sim — label vive no episódio/posição, nunca replicado por observação",
+    "respeitaConfigEpoch": true,
+    "respeitaTempo": true
+  },
+  "aviso": "episódios treináveis=29. Gate mínimo (item 11) exige ≥50 completos e >1 época/regime — checar antes de qualquer comparação formal."
+}

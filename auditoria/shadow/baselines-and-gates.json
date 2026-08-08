@@ -1,0 +1,186 @@
+{
+  "snapshot": "1786189433850",
+  "gate": {
+    "episodiosCompletos": 29,
+    "minimo": 50,
+    "atende": false,
+    "epocasDistintas": 1,
+    "minimoEpocas": 2,
+    "atendeEpocas": false,
+    "coberturaFeatures": 1,
+    "atendeCobertura": true,
+    "labelsReconciliados": true,
+    "zeroLeakage": true,
+    "holdoutCronologicoReservado": true,
+    "survivalComplexo_min": 100,
+    "outcomesObservados": 20,
+    "LIBERADO_PARA_COMPARACAO_FORMAL": false
+  },
+  "vereditoGate": "BLOQUEADO — amostra insuficiente (29/50 episódios completos, 1/2 épocas). Só EDA/baseline até acumular. NÃO treinar/validar modelo definitivo (seria overfit).",
+  "baselines": {
+    "regraAtual": {
+      "posicoesFechadas": 20,
+      "taxaPagouPayback": 0.8,
+      "taxaInverteuAntesSettlement": 0.15,
+      "pnlLiquidoMedio": 0.4585,
+      "pnlLiquidoTotal": 9.1697
+    },
+    "kaplanMeier_fechamento": {
+      "n": 20,
+      "medianaHoras": 2.61,
+      "curva": [
+        {
+          "horas": 0.17,
+          "sobreviventes": 20,
+          "eventos": 1,
+          "S": 0.95
+        },
+        {
+          "horas": 0.17,
+          "sobreviventes": 19,
+          "eventos": 1,
+          "S": 0.9
+        },
+        {
+          "horas": 0.17,
+          "sobreviventes": 18,
+          "eventos": 1,
+          "S": 0.85
+        },
+        {
+          "horas": 0.25,
+          "sobreviventes": 17,
+          "eventos": 1,
+          "S": 0.8
+        },
+        {
+          "horas": 0.25,
+          "sobreviventes": 16,
+          "eventos": 1,
+          "S": 0.75
+        },
+        {
+          "horas": 0.25,
+          "sobreviventes": 15,
+          "eventos": 1,
+          "S": 0.7
+        },
+        {
+          "horas": 0.25,
+          "sobreviventes": 14,
+          "eventos": 1,
+          "S": 0.65
+        },
+        {
+          "horas": 0.42,
+          "sobreviventes": 13,
+          "eventos": 1,
+          "S": 0.6
+        },
+        {
+          "horas": 1.93,
+          "sobreviventes": 12,
+          "eventos": 1,
+          "S": 0.55
+        },
+        {
+          "horas": 2.61,
+          "sobreviventes": 11,
+          "eventos": 1,
+          "S": 0.5
+        },
+        {
+          "horas": 2.97,
+          "sobreviventes": 10,
+          "eventos": 1,
+          "S": 0.45
+        },
+        {
+          "horas": 3.89,
+          "sobreviventes": 9,
+          "eventos": 1,
+          "S": 0.4
+        },
+        {
+          "horas": 6.77,
+          "sobreviventes": 8,
+          "eventos": 1,
+          "S": 0.35
+        },
+        {
+          "horas": 7.12,
+          "sobreviventes": 7,
+          "eventos": 1,
+          "S": 0.3
+        },
+        {
+          "horas": 8.2,
+          "sobreviventes": 6,
+          "eventos": 1,
+          "S": 0.25
+        },
+        {
+          "horas": 8.62,
+          "sobreviventes": 5,
+          "eventos": 1,
+          "S": 0.2
+        },
+        {
+          "horas": 12.65,
+          "sobreviventes": 4,
+          "eventos": 1,
+          "S": 0.15
+        },
+        {
+          "horas": 21.72,
+          "sobreviventes": 3,
+          "eventos": 1,
+          "S": 0.1
+        },
+        {
+          "horas": 24.79,
+          "sobreviventes": 2,
+          "eventos": 1,
+          "S": 0.05
+        },
+        {
+          "horas": 29.6,
+          "sobreviventes": 1,
+          "eventos": 1,
+          "S": 0
+        }
+      ]
+    },
+    "kaplanMeier_inversao": {
+      "n": 3,
+      "medianaHoras": 0.25,
+      "curva": [
+        {
+          "horas": 0.25,
+          "sobreviventes": 3,
+          "eventos": 1,
+          "S": 0.667
+        },
+        {
+          "horas": 0.25,
+          "sobreviventes": 2,
+          "eventos": 1,
+          "S": 0.333
+        },
+        {
+          "horas": 6.77,
+          "sobreviventes": 1,
+          "eventos": 1,
+          "S": 0
+        }
+      ]
+    },
+    "modelosDeferidos": [
+      "regressão logística",
+      "Cox PH",
+      "árvore pequena"
+    ],
+    "motivoDeferido": "gate mínimo não atendido; baselines determinísticos e KM são EDA lícitos, modelos não."
+  },
+  "restricoes": "Sem NN/RL/LLM. Nenhum modelo promovido. Nada envia ordem, aprova ou bloqueia."
+}

@@ -1,0 +1,35 @@
+{
+  "eventosRebalance": 45,
+  "custoRebalanceTotal": 2.5023,
+  "politicas": {
+    "controle": {
+      "custo": 2.5023,
+      "ops": 45
+    },
+    "batch-15min": {
+      "custo": 2.4575,
+      "ops": 38,
+      "economiaVsControle": 0.0448,
+      "economiaPct": 1.8
+    },
+    "batch-30min": {
+      "custo": 2.4575,
+      "ops": 37,
+      "economiaVsControle": 0.0448,
+      "economiaPct": 1.8
+    },
+    "batch-60min": {
+      "custo": 2.4575,
+      "ops": 34,
+      "economiaVsControle": 0.0448,
+      "economiaPct": 1.8
+    }
+  },
+  "metricasNaoInstrumentadas": [
+    "exposicao",
+    "distanciaLiquidacao",
+    "desbalanceamento",
+    "capitalHoras"
+  ],
+  "nota": "Modelo shadow: taxa implícita por evento × Δ NET coalescido. Economia vem de coalescer adds/trims que se cancelam dentro da janela. Proteção (socorre) NÃO entra no batching. Exposição/dist-liquidação/capital-horas não estão instrumentadas por evento de rebalance no diario — marcadas como não medidas (não fabricadas)."
+}

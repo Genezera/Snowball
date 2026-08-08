@@ -1,0 +1,30 @@
+{
+  "total": 2,
+  "epochs": [
+    {
+      "configEpochId": "epoch-0",
+      "inicioTs": 1785758671297,
+      "fimTs": 1785967765080,
+      "capitalBase": 200,
+      "exchanges": 2,
+      "alavancagem": 5,
+      "reserva": 0.3,
+      "margemPayback": 1.5,
+      "maxPosicoes": 3,
+      "fonte": "init.opcoes (observado)"
+    },
+    {
+      "configEpochId": "epoch-1",
+      "inicioTs": 1785967765080,
+      "fimTs": null,
+      "capitalBase": 600,
+      "exchanges": 6,
+      "alavancagem": 5,
+      "reserva": 0.3,
+      "margemPayback": 1.5,
+      "maxPosicoes": 3,
+      "fonte": "salto de capital-base (observado) + config assumida do init (não re-logada pelo motor)"
+    }
+  ],
+  "nota": "alavancagem/reserva/margemPayback/maxPosicoes não são re-logados pelo motor após o init — assumidos constantes por época; instrumentar um evento de config seria melhoria ADITIVA futura."
+}

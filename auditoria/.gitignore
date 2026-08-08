@@ -3,3 +3,5 @@
 snapshot-*/copias/
 # Dataset ML bruto: reprodutível por scripts/auditoria/build-ml-dataset.cjs.
 ml/dataset-candidatas.jsonl
+# Observações brutas: reprodutíveis por scripts/auditoria/build-epochs-and-dataset.cjs
+dataset/candidate-observations.jsonl

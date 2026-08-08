@@ -1,0 +1,40 @@
+{
+  "estado": {
+    "capital": 200,
+    "capitalInicial": 200,
+    "fechados": 0,
+    "pnlAcumulado": 0,
+    "ultimaCalibracao": "2026-08-06T20:27:20.119Z",
+    "ultimoCiclo": "2026-08-08T00:18:25.413Z"
+  },
+  "diarioLinhas": 3,
+  "eventos": [
+    "init",
+    "recalibra",
+    "recalibra"
+  ],
+  "chavesEstado": [
+    "iniciadoEm",
+    "capital",
+    "capitalInicial",
+    "pico",
+    "pares",
+    "ultimaCalibracao",
+    "posicoes",
+    "fechados",
+    "vitorias",
+    "custosTotal",
+    "pnlAcumulado",
+    "halted",
+    "ultimaBarraGlobal",
+    "ultimoCicloTs"
+  ],
+  "hipoteses": [
+    "ausência real de sinal (nenhum par passou p-value/half-life/threshold na janela)",
+    "calibração recente sem cointegração aprovada (ultimaCalibracao vs ultimoCiclo)",
+    "universo/filtros restritivos demais",
+    "custos acima do edge esperado dos pares"
+  ],
+  "proximoPasso": "Ler pares/live.log e o critério de calibração (read-only) para distinguir \"sem sinal\" de \"filtro apertado\". NÃO afrouxar filtros antes do diagnóstico.",
+  "nota": "Pares NÃO operou (0 fechados, pnl 0). Diagnóstico observacional; nenhuma alteração de filtro/capital."
+}
