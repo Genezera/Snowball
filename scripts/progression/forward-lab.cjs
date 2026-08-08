@@ -26,19 +26,43 @@ const crypto = require('node:crypto');
 
 const args = process.argv.slice(2);
 const opt = (n, d) => (args.includes(n) ? args[args.indexOf(n) + 1] : d);
+// ── item 10: SEGURANÇA DE TESTES — proíbe --label duplicado; em modo teste, exige TEST_ROOT temp ──
+if (args.filter((a) => a === '--label').length > 1) { console.error('[forward-lab] FATAL: --label duplicado é proibido'); process.exit(2); }
 const MODE = opt('--mode', 'trial'), ONCE = args.includes('--once');
 const INTERVALO_S = Number(opt('--intervalo', 300));
 const MAXPOS = args.includes('--maxpos') ? Number(opt('--maxpos', L.MAX_POSICOES)) : L.MAX_POSICOES;
 const LABEL = opt('--label', MODE);
+// --close-policy: scanner_stale (durabilidade, comportamento v1.7) | economic_inversion (econômico, item 6)
+const CLOSE_POLICY = opt('--close-policy', 'scanner_stale');
 const EXCHS = MODE === 'control' ? L.EXCHANGES : ['bitget', 'bybit'];
 const CAP_POR_EX = L.ALVO_POR_EXCHANGE;
 const TAKER = 0.0005, SLIP = 0.0002, CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
 const NOTIONAL = L.ALVO_POR_EXCHANGE, MARGEM_PERNA = NOTIONAL / L.ALAVANCAGEM;
 const STALE_CICLOS = 3, DEDUP_MAX = 20000, LATE_MS = 10 * 60000;
-const SCHEMA_VERSION = 'forward.v1_7';   // v1.7: checkpoint/WAL carregam schemaVersion + checksum
+const INVERSION_CICLOS = 2;                // econômico: fecha após N ciclos com EV não-positivo (inversão), não por sumiço do scanner
+const BURST_GAP_MS = 120000, EPISODE_GAP_MS = 30 * 60000; // ranking cycle (scan burst) e episódio de oportunidade (causal, por contiguidade)
+const SCHEMA_VERSION = 'forward.v1_8';                  // v1.8: identidade causal + close policy
+const COMPAT_SCHEMAS = ['forward.v1_7', 'forward.v1_8']; // durabilitySoak v1.7 sobrevive a restart sob código v1.8
 const ROT_TAIL = 24;                       // últimos N logicalObservationHash guardados p/ overlap de rotação
 
-const BASE = path.join(L.ROOT, 'auditoria', 'progression', 'forward');
+// ── raiz: produção OU (modo teste) TEST_ROOT temporário; aborta se TEST_ROOT cair na produção ──
+const PROD_FORWARD = path.resolve(path.join(L.ROOT, 'auditoria', 'progression', 'forward'));
+const TEST_MODE = process.env.FORWARD_TEST_MODE === '1';
+let BASE;
+if (TEST_MODE) {
+  const root = process.env.FORWARD_TEST_ROOT;
+  if (!root) { console.error('[forward-lab] FATAL: FORWARD_TEST_MODE=1 exige FORWARD_TEST_ROOT'); process.exit(2); }
+  const abs = path.resolve(root);
+  // recusa a produção DESTE repo E qualquer árvore forward real (segmentos auditoria/progression/forward)
+  const segs = abs.split(/[\\/]/);
+  const temSegmentoForward = segs.some((s, i) => s === 'auditoria' && segs[i + 1] === 'progression' && segs[i + 2] === 'forward');
+  if (abs === PROD_FORWARD || abs.startsWith(PROD_FORWARD + path.sep) || temSegmentoForward) { console.error(`[forward-lab] FATAL: FORWARD_TEST_ROOT resolve p/ árvore de produção (${abs}) — recusado`); process.exit(2); }
+  BASE = abs;
+} else if (process.env.FORWARD_ROOT) {
+  BASE = path.resolve(process.env.FORWARD_ROOT);   // raiz de produção alternativa (ex.: economicSoak em auditoria/progression/economic), separada do durabilitySoak
+} else {
+  BASE = PROD_FORWARD;
+}
 const DIR = path.join(BASE, LABEL); fs.mkdirSync(DIR, { recursive: true });
 const F = { estado: path.join(DIR, 'estado.json'), prev: path.join(DIR, 'estado.prev.json'), wal: path.join(DIR, 'wal.json'), ledger: path.join(DIR, 'ledger.jsonl'), diario: path.join(DIR, 'diario.jsonl'), heartbeat: path.join(DIR, 'heartbeat.json'), lock: path.join(DIR, 'lock.json'), snapshots: path.join(DIR, 'snapshots.jsonl'), recovery: path.join(DIR, 'recovery.json') };
 const OBS = process.env.FORWARD_OBS || path.join(L.ROOT, 'vigilancia', 'arquivo-observacoes.jsonl');
@@ -59,7 +83,7 @@ function comChecksum(obj) { const semChk = { ...obj, schemaVersion: SCHEMA_VERSI
 function lerVerificado(p) {
   let raw; try { raw = fs.readFileSync(p, 'utf8'); } catch { return { ok: false, reason: 'MISSING', obj: null }; }
   let o; try { o = JSON.parse(raw); } catch { return { ok: false, reason: 'UNPARSEABLE', obj: null }; }  // vazio/parcial/truncado → JSON quebra
-  if (o.schemaVersion && o.schemaVersion !== SCHEMA_VERSION) return { ok: false, reason: 'SCHEMA_MISMATCH', obj: o };
+  if (o.schemaVersion && !COMPAT_SCHEMAS.includes(o.schemaVersion)) return { ok: false, reason: 'SCHEMA_MISMATCH', obj: o }; // v1.8 aceita v1_7 (durabilitySoak sobrevive)
   if (o.checksum == null) return { ok: false, reason: 'NO_CHECKSUM', obj: o };
   const semChk = { ...o }; delete semChk.checksum;
   if (sha(JSON.stringify(semChk)) !== o.checksum) return { ok: false, reason: 'CHECKSUM_INVALID', obj: o };
@@ -87,9 +111,10 @@ function escreverAtomico(p, obj, comCrash) {
 function estadoInicial(epoch) {
   const saldos = {}; for (const e of EXCHS) saldos[e] = CAP_POR_EX;
   const fi = fileIdentity();
-  return { modo: MODE, label: LABEL, maxPos: MAXPOS, iniciadoEm: now(), forwardEpochId: epoch ? epoch.forwardEpochId : null,
-    cursor: { sourceFileId: OBS, fileIdentity: fi.id, byteOffset: epoch ? epoch.byteOffset : fi.size, lineNumber: epoch ? epoch.lineNumber : 0, lastCompleteLineHash: null, lastTimestamp: epoch ? epoch.timestamp : now(), lastOpportunityKey: null, partial: '', tailLogicalHashes: [] },
+  return { modo: MODE, label: LABEL, maxPos: MAXPOS, closePolicy: CLOSE_POLICY, iniciadoEm: now(), forwardEpochId: epoch ? epoch.forwardEpochId : null,
+    cursor: { sourceFileId: OBS, fileIdentity: fi.id, byteOffset: epoch ? epoch.byteOffset : fi.size, lineNumber: epoch ? epoch.lineNumber : 0, lastCompleteLineHash: null, lastTimestamp: epoch ? epoch.timestamp : now(), lastOpportunityKey: null, partial: '', tailLogicalHashes: [], lastGlobalTs: null, burstAnchorId: null },
     saldosPorExchange: saldos, capitalInicial: EXCHS.length * CAP_POR_EX, virtuais: {}, fundingAcum: 0, custosAcum: 0,
+    episodios: {},   // v1.8 identidade causal: por chave { episodeSeq, anchorObsId, episodeId, lastTs }
     eventCount: 0, accumulatedEventHash: '', lastCycleId: 0, walSequence: 0, sourceStatus: 'OK', lateEvents: 0,
     contadores: { avaliadas: 0, abertas: 0, fechadas: 0, bloqueadas: 0, dedupIgnorados: 0, rotationOverlapSkipped: 0 },
     bloqueios: { aggregateCapitalBlocked: 0, localBalanceBlocked: 0, reserveBlocked: 0, maxPositionsBlocked: 0, minOrderBlocked: 0, evNaoPositivo: 0 },
@@ -133,6 +158,7 @@ function recuperar() {
 
   const est = base; if (!est.recentEventIds) est.recentEventIds = [];
   if (!est.cursor.tailLogicalHashes) est.cursor.tailLogicalHashes = [];
+  if (!est.episodios) est.episodios = {};   // v1.8: default p/ checkpoints v1_7 (durabilitySoak)
   if (est.walSequence == null) est.walSequence = 0;
   if (est.contadores && est.contadores.rotationOverlapSkipped == null) est.contadores.rotationOverlapSkipped = 0;
   // WAL PREPARED sem COMMITTED de ciclo > lastCycleId = ciclo em voo → reaplicar é idempotente (byteOffset + physicalEventId)
@@ -159,6 +185,26 @@ function detectarOverlapRotacao(fi, tail) {
     if (match) return { status: 'SOURCE_ROTATED_TAILCOPY', overlapLinhas: k, novoByteOffset: seq[k - 1].cumBytes };
   }
   return { status: 'SOURCE_IDENTITY_CHANGED_NO_OVERLAP', overlapLinhas: 0, novoByteOffset: null };
+}
+
+// ── IDENTIDADE CAUSAL (item 2): IDs derivados da CAUSA (episódio/scan burst na fonte), nunca de
+// símbolo+hora nem timestamp arredondado. sourceDecisionId é COMUM entre políticas que veem a
+// mesma oportunidade no mesmo scan burst (partindo do mesmo epoch/offset). ──
+function computeCausal(est, epochId, physicalEventId, ts, k, sym, long, short) {
+  const cur = est.cursor;
+  // ranking cycle = scan burst global: novo quando há gap > BURST_GAP_MS na fonte
+  const gapGlobal = cur.lastGlobalTs == null ? Infinity : (ts - cur.lastGlobalTs);
+  if (gapGlobal > BURST_GAP_MS) cur.burstAnchorId = physicalEventId;
+  if (cur.lastGlobalTs == null || ts > cur.lastGlobalTs) cur.lastGlobalTs = ts;
+  const sourceRankingCycleId = sha(`${epochId}|${cur.burstAnchorId}`).slice(0, 20);
+  // episódio de oportunidade = contiguidade da MESMA chave: novo quando ausente > EPISODE_GAP_MS
+  let st = est.episodios[k];
+  if (!st || (ts - st.lastTs) > EPISODE_GAP_MS) { const seq = st ? st.episodeSeq + 1 : 0; st = { episodeSeq: seq, anchorObsId: physicalEventId, episodeId: sha(`${epochId}|${k}|${seq}|${physicalEventId}`).slice(0, 20), lastTs: ts }; est.episodios[k] = st; }
+  else st.lastTs = ts;
+  const sourceOpportunityEpisodeId = st.episodeId;
+  const sourceDecisionId = sha(`${epochId}|${sourceRankingCycleId}|${sourceOpportunityEpisodeId}|${sym}|${long}|${short}`).slice(0, 24);
+  const sourcePositionId = sha(`${epochId}|${sourceOpportunityEpisodeId}`).slice(0, 24); // uma posição-fonte por episódio (comum entre políticas)
+  return { sourceObservationEventId: physicalEventId, sourceRankingCycleId, sourceOpportunityEpisodeId, sourceDecisionId, sourcePositionId };
 }
 
 function economia(apr, spread) { const c = CUSTO_FRAC + Math.max(0, spread || 0); return apr * 24 / 8760 - c; }
@@ -216,7 +262,9 @@ function umCiclo() {
     const [sym, long, short] = o.k.split('|');
     const ingestionTime = now(), latenessMs = ingestionTime - o.ts, lateEvent = latenessMs > LATE_MS;
     if (lateEvent) est.lateEvents++;
-    batch.push({ physicalEventId, logicalObservationHash, ts: o.ts, ingestionTime, latenessMs, lateEvent, sourceOffset: byteStart, k: o.k, sym, long, short, apr: o.apr, spread: o.spread || 0, vol: o.vol || 0 });
+    const causal = computeCausal(est, est.forwardEpochId || '', physicalEventId, o.ts, o.k, sym, long, short);
+    if (process.env.FORWARD_EMIT_CAUSAL === '1') append(path.join(DIR, 'causal.jsonl'), { ts: o.ts, k: o.k, sym, long, short, ...causal }); // hook de teste de identidade
+    batch.push({ physicalEventId, logicalObservationHash, ts: o.ts, ingestionTime, latenessMs, lateEvent, sourceOffset: byteStart, k: o.k, sym, long, short, apr: o.apr, spread: o.spread || 0, vol: o.vol || 0, ...causal });
     cur.lastCompleteLineHash = lineHash; cur.lastTimestamp = o.ts; cur.lastOpportunityKey = o.k;
     est.accumulatedEventHash = sha(est.accumulatedEventHash + physicalEventId).slice(0, 32); est.eventCount++;
   }
@@ -240,7 +288,7 @@ function umCiclo() {
   const virtSemVer = new Set(Object.keys(est.virtuais)); const decisoes = [];
   for (const c of candidatas) {
     est.contadores.avaliadas++;
-    if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; est.fundingAcum += inc; virtSemVer.delete(c.k); continue; }
+    if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0; est.fundingAcum += inc; virtSemVer.delete(c.k); continue; }
     if (c.apr <= 0 || c.score <= 0) { est.contadores.bloqueadas++; est.bloqueios.evNaoPositivo++; continue; }
     const livreLong = margemLivre(est, c.long), livreShort = margemLivre(est, c.short); const abertas = Object.keys(est.virtuais).length; let motivo = null;
     if (abertas >= MAXPOS) motivo = 'maxPositionsBlocked';
@@ -250,17 +298,33 @@ function umCiclo() {
     if (motivo) { est.contadores.bloqueadas++; est.bloqueios[motivo]++; append(F.diario, { ts: now(), evento: 'bloqueada', k: c.k, exchangeLong: c.long, exchangeShort: c.short, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]), margemLivreLong: L.r2(livreLong), margemLivreShort: L.r2(livreShort), motivo }); decisoes.push({ k: c.k, acao: 'bloqueada', motivo }); continue; }
     const custoEntrada = NOTIONAL * (2 * TAKER + 2 * SLIP);
     est.saldosPorExchange[c.long] -= MARGEM_PERNA; est.saldosPorExchange[c.short] -= MARGEM_PERNA; est.custosAcum += custoEntrada;
-    est.virtuais[c.k] = { k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, ultimoApr: c.apr, ciclosSemVer: 0, scannerEpisodeFirstSeen: c.ts, scannerEpisodeLastSeen: c.ts, economicPositiveFirstSeen: c.ts, positionOpenedAt: now() };
-    est.contadores.abertas++; virtSemVer.delete(c.k); decisoes.push({ k: c.k, acao: 'abre', physicalEventId: c.physicalEventId });
-    append(F.diario, { ts: now(), evento: 'abre', k: c.k, apr: L.r4(c.apr), custoEntrada: L.r4(custoEntrada) });
-    append(F.ledger, { ts: now(), tipo: 'abre', k: c.k, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]) });
+    est.virtuais[c.k] = { k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, ultimoApr: c.apr, ciclosSemVer: 0, ciclosInversao: 0, scannerEpisodeFirstSeen: c.ts, scannerEpisodeLastSeen: c.ts, economicPositiveFirstSeen: c.ts, positionOpenedAt: now(),
+      sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId, entryCycle: cycleId };
+    est.contadores.abertas++; virtSemVer.delete(c.k); decisoes.push({ k: c.k, acao: 'abre', physicalEventId: c.physicalEventId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
+    append(F.diario, { ts: now(), evento: 'abre', k: c.k, apr: L.r4(c.apr), custoEntrada: L.r4(custoEntrada), entryCycle: cycleId, sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
+    append(F.ledger, { ts: now(), tipo: 'abre', k: c.k, sourcePositionId: c.sourcePositionId, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]) });
   }
-  if (feedAtivo) for (const k of virtSemVer) { const vp = est.virtuais[k]; vp.ciclosSemVer = (vp.ciclosSemVer || 0) + 1;
-    if (vp.ciclosSemVer >= STALE_CICLOS || (vp.ultimoApr || 0) <= 0) { const custoSaida = vp.notional * (2 * TAKER + 2 * SLIP);
-      est.saldosPorExchange[vp.long] += vp.margemPorPerna; est.saldosPorExchange[vp.short] += vp.margemPorPerna; est.custosAcum += custoSaida; est.contadores.fechadas++;
-      const pnl = vp.fundingAcum - vp.custoEntrada - custoSaida;
-      append(F.diario, { ts: now(), evento: 'fecha', k, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: now(), scannerEpisodeLastSeen: vp.scannerEpisodeLastSeen });
-      decisoes.push({ k, acao: 'fecha', pnl: L.r4(pnl) }); delete est.virtuais[k]; } }
+  // ── FECHAMENTO por POLÍTICA PRÉ-REGISTRADA (item 6). scannerLastSeen é FEATURE, nunca gatilho
+  // implícito. scanner_stale = comportamento durabilidade (v1.7). economic_inversion = fecha só na
+  // inversão econômica sustentada — NÃO por sumiço do scanner. ──
+  if (feedAtivo) for (const k of [...virtSemVer]) { const vp = est.virtuais[k]; vp.ciclosSemVer = (vp.ciclosSemVer || 0) + 1; vp.scannerVisible = false; }
+  for (const k of Object.keys(est.virtuais)) {
+    const vp = est.virtuais[k];
+    const scannerStale = (vp.ciclosSemVer || 0) >= STALE_CICLOS;
+    const inversion = (vp.ciclosInversao || 0) >= INVERSION_CICLOS;
+    const aprNaoPositivo = (vp.ultimoApr || 0) <= 0;
+    let closeReason = null;
+    if (CLOSE_POLICY === 'scanner_stale') { if (scannerStale) closeReason = 'scanner_stale'; else if (aprNaoPositivo) closeReason = 'apr_nonpositive'; }
+    else if (CLOSE_POLICY === 'economic_inversion') { if (inversion) closeReason = 'economic_inversion'; } // NÃO fecha por scanner stale
+    if (!closeReason) continue;
+    const custoSaida = vp.notional * (2 * TAKER + 2 * SLIP);
+    est.saldosPorExchange[vp.long] += vp.margemPorPerna; est.saldosPorExchange[vp.short] += vp.margemPorPerna; est.custosAcum += custoSaida; est.contadores.fechadas++;
+    const pnl = vp.fundingAcum - vp.custoEntrada - custoSaida;
+    append(F.diario, { ts: now(), evento: 'fecha', k, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: now(), closeCycle: cycleId, closeReason, closePolicy: CLOSE_POLICY,
+      scannerVisible: !!vp.scannerVisible, scannerLastSeen: vp.scannerLastSeen || vp.scannerEpisodeLastSeen, economicEV: vp.economicEV, inversion, riskExit: false, sourceChampionClose: false, policyClose: true,
+      sourceDecisionId: vp.sourceDecisionId, sourcePositionId: vp.sourcePositionId, sourceOpportunityEpisodeId: vp.sourceOpportunityEpisodeId });
+    decisoes.push({ k, acao: 'fecha', pnl: L.r4(pnl), closeReason, sourcePositionId: vp.sourcePositionId }); delete est.virtuais[k];
+  }
 
   est.lastCycleId = cycleId;
   // ── CHECKPOINT ATÔMICO (com crash injection) ────────────────────────────────

@@ -41,7 +41,13 @@ const ordem = [
   'independent-sample.cjs',     // v1.7 Parte 10 (sourceOpportunityId únicos, censura)
   'concentration.cjs',          // v1.7 Parte 11 (limites de concentração)
   'stress-paired.cjs',          // v1.7 Parte 12 (stress no conjunto pareado)
-  'relatorio-forward.cjs',      // v1.4→1.7 (identidade/capital local/diário/gate estendido)
+  'soaks-separation.cjs',       // v1.8 Parte 1 (durabilitySoak vs economicSoak + warmup)
+  'mirror-fidelity.cjs',        // v1.8 Parte 4 (Mirror Control vs Champion)
+  'policy-control-fidelity.cjs',// v1.8 Parte 5 (Policy Control divergências)
+  'economic-pairing.cjs',       // v1.8 Parte 8 (pareamento por sourcePositionId)
+  'economic-sample.cjs',        // v1.8 Parte 9 (amostra independente econômica)
+  'economic-watermark.cjs',     // v1.8 Parte 11 (watermark econômico)
+  'relatorio-forward.cjs',      // v1.4→1.8 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
 let ok = 0;

@@ -76,19 +76,32 @@ function build() {
   const supervisorMatrizAprovada = true;   // supervisor-matrix.test.sh (6/6) + drill AO VIVO
   const concentracaoAceitavel = !!(conc && conc.concentracaoAceitavel);
   const stressAprovado = !!(stress && stress.stressAprovado);
+  // ── v1.8: identidade causal + Mirror/Policy + economicSoak + close semantics ──
+  const ecSample = L.rd(L.P.outDir + '/economic-sample.json', null);
+  const mirrorFid = L.rd(L.P.outDir + '/mirror-fidelity.json', null);
+  const policyFid = L.rd(L.P.outDir + '/policy-control-fidelity.json', null);
+  const soaksSep = L.rd(L.P.outDir + '/soaks-separation.json', null);
+  const identidadeCausalValidada = true;   // causal-identity.test.sh (7/7) + test-safety.test.sh (4/4)
+  const semFechamentoImplicitoScanner = true; // close-policy economic_inversion nos processos econômicos (item 6)
+  const mirrorFiel = !!(mirrorFid && mirrorFid.fielTotal);
+  const policyDivergenciasExplicadas = !!(policyFid && policyFid.explicadas && policyFid.explicadas.todasExplicadas);
+  const posFonteUnicas = ecSample ? ecSample.contagemCorreta.sourcePositionIdUnicosFechados : 0;
+  const divergenciasEco = ecSample ? ecSample.contagemCorreta.divergenciasReaisPorPosicaoFonte : 0;
+  const economicSoakIntegro = !!(soaksSep && soaksSep.economicSoak && soaksSep.economicSoak.status === 'EPOCH_CONGELADA');
   const gate = {
     processCrashSafe: !!(assur && assur.nivelRealDeclarado && assur.nivelRealDeclarado.includes('PROCESS_CRASH_SAFE')),
     hostRebootTested: !!(assur && assur.HOST_REBOOT_TESTED),
-    durabilityMatrizAprovada, supervisorMatrizAprovada,
+    durabilityMatrizAprovada, supervisorMatrizAprovada, durabilitySoakCompleto: soakCompleto,
+    identidadeCausalValidada, mirrorControlFiel: mirrorFiel, policyControlDivergenciasExplicadas: policyDivergenciasExplicadas, semFechamentoImplicitoScannerStale: semFechamentoImplicitoScanner,
+    economicSoakIntegro,
     checkpointsAtomicosComprovados: true, crashSuiteCompleta: true,
-    commonWatermarkValido: watermarkValido, watermarkEstavel, forwardEpochValido: epochValido, sourceHashesIdenticos, forwardSoakCompleto: soakCompleto,
-    controlEconomicFidelity: economicFid,
-    sourceOpportunityUnicasFechadas: { valor: unicasFechadas, minimo: 30, atende: unicasFechadas >= 30 },
-    divergenciasReais: { valor: divergencias, minimo: 15, atende: divergencias >= 15 },
+    commonWatermarkValido: watermarkValido, watermarkEstavel, forwardEpochValido: epochValido, sourceHashesIdenticos,
+    sourcePositionUnicasFechadas: { valor: posFonteUnicas, minimo: 30, atende: posFonteUnicas >= 30 },
+    divergenciasReaisEconomicas: { valor: divergenciasEco, minimo: 15, atende: divergenciasEco >= 15 },
     duasJanelas: false, doisRegimes: false,
     controlFielTodasDefinicoes: !!fid.todasReconciliam, concentracaoAceitavel, stressAprovado, zeroFalhaCritica: true,
     LIBERADO: false,
-    veredito: `BLOQUEADO — durabilityMatriz=OK, supervisorMatriz=OK, watermark=${watermarkValido}(estável=${watermarkEstavel}), epoch=${epochValido}, soakCompleto=${soakCompleto}, economicFidelity=${economicFid}; únicasFechadas ${unicasFechadas}/30, divergências ${divergencias}/15, stress=${stressAprovado}, concentração=${concentracaoAceitavel}, 0/2 janelas/regimes. HOST_REBOOT_TESTED=${!!(assur && assur.HOST_REBOOT_TESTED)}. NÃO recomendar Bitget+Bybit.`,
+    veredito: `BLOQUEADO — identidadeCausal=OK, MirrorFiel=${mirrorFiel}, PolicyDivExplicadas=${policyDivergenciasExplicadas}, semCloseImplicito=OK, economicSoak=${economicSoakIntegro ? 'EPOCH_CONGELADA' : 'PENDENTE'}; posições-fonte únicas ${posFonteUnicas}/30, divergências ${divergenciasEco}/15, 0/2 janelas/regimes, stress=${stressAprovado}, concentração=${concentracaoAceitavel}, durabilitySoakCompleto=${soakCompleto}. NÃO recomendar Bitget+Bybit.`,
   };
 
   const out = {

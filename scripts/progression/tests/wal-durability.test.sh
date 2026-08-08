@@ -26,7 +26,7 @@ echo "==== WAL DURABILITY (item 2) ===="
 run   # estado válido + WAL COMMITTED
 EC0=$(field eventCount)
 # 0) propriedades do WAL: schemaVersion + walSequence + checksum + status
-[ "$(walf schemaVersion)" = "forward.v1_7" ] && ok "WAL tem schemaVersion" || bad "WAL sem schemaVersion"
+case "$(walf schemaVersion)" in forward.v1_7|forward.v1_8) ok "WAL tem schemaVersion ($(walf schemaVersion))";; *) bad "WAL sem schemaVersion";; esac
 [ "$(walf walSequence)" != "ERR" ] && [ "$(walf walSequence)" -ge 1 ] && ok "WAL tem walSequence ($(walf walSequence))" || bad "WAL sem walSequence"
 [ "$(walf checksum)" != "ERR" ] && [ -n "$(walf checksum)" ] && ok "WAL tem checksum" || bad "WAL sem checksum"
 [ "$(walf status)" = "COMMITTED" ] && ok "WAL final COMMITTED" || bad "WAL final != COMMITTED"
