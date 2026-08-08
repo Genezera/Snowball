@@ -8,6 +8,7 @@ import { calcularRankingComparavel } from '../components/portfolio/ComparableRan
 import { EquityCurve } from '../components/charts/EquityCurve';
 import type { ChartDataState } from '../components/charts/ChartFrame';
 import { DataStateBanner } from '../components/feedback/DataState';
+import { useT, useLang, localeDe } from '../i18n';
 
 /**
  * COMMAND CENTER — visão EXECUTIVA (item 10). Layout próprio, não uma grade
@@ -19,6 +20,8 @@ import { DataStateBanner } from '../components/feedback/DataState';
 interface PosMarc { symbol: string; notionalShort: number; notionalLong: number; pnlNaoRealizadoTotal: number }
 
 export function CommandCenter() {
+  const t = useT();
+  const loc = localeDe(useLang());
   const champion = useLiveStore((s) => s.champion);
   const profitLab = useLiveStore((s) => s.profitLab);
   const oport = useOportunidades();
@@ -53,10 +56,10 @@ export function CommandCenter() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', margin: 0, fontWeight: 700 }}>Command Center</h1>
-          <p style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)', margin: '4px 0 0' }}>Visão executiva do Champion (paper) e do Paper Profit Lab (virtual) — nunca misturados.</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', margin: 0, fontWeight: 700 }}>{t('Command Center')}</h1>
+          <p style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)', margin: '4px 0 0' }}>{t('Visão executiva do Champion (paper) e do Paper Profit Lab (virtual) — nunca misturados.')}</p>
         </div>
-        <StatusBadge label={saude ? 'sistema saudável' : stale ? 'dado stale' : 'atenção'} tom={saude ? 'ok' : 'warn'} />
+        <StatusBadge label={saude ? t('sistema saudável') : stale ? t('dado stale') : t('atenção')} tom={saude ? 'ok' : 'warn'} />
       </div>
 
       {champion?.estado === 'erro' && <DataStateBanner kind="offline" motivo={champion.motivo} />}
@@ -65,13 +68,13 @@ export function CommandCenter() {
       {/* FAIXA EXECUTIVA — banda contínua, não grade de cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', background: 'linear-gradient(180deg, var(--surface-glass), rgba(12,21,38,0.5))', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {[
-          ['Capital · PAPER', fmt.usd(est?.capital ?? null), 'var(--snow-primary)', true],
-          ['PnL realizado', fmt.usd(pnlReal), fmt.corPnl(pnlReal)],
-          ['Equity mark', fmt.usd(marc?.equityMark ?? null), 'var(--ink-0)'],
-          ['Equity liquidação', fmt.usd(marc?.equityLiquidacao ?? null), 'var(--ink-0)'],
-          ['Margem em uso', fmt.usd(margem), 'var(--warn-500)'],
-          ['Exposição (notional)', fmt.usd(notionalBruto), 'var(--ink-0)'],
-          ['Posições', `${posicoes.length}${emRisco ? ` · ${emRisco} em risco` : ''}`, emRisco ? 'var(--loss-500)' : 'var(--ink-0)'],
+          [t('Capital · PAPER'), fmt.usd(est?.capital ?? null), 'var(--snow-primary)', true],
+          [t('PnL realizado'), fmt.usd(pnlReal), fmt.corPnl(pnlReal)],
+          [t('Equity mark'), fmt.usd(marc?.equityMark ?? null), 'var(--ink-0)'],
+          [t('Equity liquidação'), fmt.usd(marc?.equityLiquidacao ?? null), 'var(--ink-0)'],
+          [t('Margem em uso'), fmt.usd(margem), 'var(--warn-500)'],
+          [t('Exposição (notional)'), fmt.usd(notionalBruto), 'var(--ink-0)'],
+          [t('Posições'), `${posicoes.length}${emRisco ? ` · ${emRisco} ${t('em risco')}` : ''}`, emRisco ? 'var(--loss-500)' : 'var(--ink-0)'],
         ].map(([lbl, val, cor, hero], i) => (
           <div key={lbl as string} style={{ flex: '1 1 160px', minWidth: 150, padding: 'var(--space-4) var(--space-5)', borderLeft: i > 0 ? '1px solid var(--border-hairline)' : 'none' }}>
             <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-3)' }}>{lbl}</div>
@@ -83,16 +86,16 @@ export function CommandCenter() {
       {/* CENTRO + LATERAL */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(300px, 1fr)', gap: 'var(--space-4)', alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <Section titulo="Curva de capital (paper)" sub={`Capital inicial ${fmt.usd(est?.capitalInicial ?? null)} → atual ${fmt.usd(est?.capital ?? null)} · funding ${fmt.usd(est?.fundingTotal ?? null)} − custos ${fmt.usd(est?.custosTotal ?? null)}`}>
+          <Section titulo={t('Curva de capital (paper)')} sub={`${t('Capital inicial')} ${fmt.usd(est?.capitalInicial ?? null)} → ${t('atual')} ${fmt.usd(est?.capital ?? null)} · funding ${fmt.usd(est?.fundingTotal ?? null)} − ${t('custos')} ${fmt.usd(est?.custosTotal ?? null)}`}>
             <div style={{ height: 300 }}><EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" /></div>
           </Section>
-          <Section titulo="Motores" sub="Champion (paper), challengers (paper lab) e experimentos — nunca somados.">
+          <Section titulo={t('Motores')} sub={t('Champion (paper), challengers (paper lab) e experimentos — nunca somados.')}>
             <SnowballCore championCapital={est?.capital ?? 0} challengersCapital={resumo?.capitalVirtualTotal ?? 0} numeroChallengers={resumo?.numeroAtivos ?? 0} />
           </Section>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <Section titulo={`Posições abertas · ${posicoes.length}`} acao={<Link to="/champion" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>ver cockpit →</Link>}>
+          <Section titulo={`${t('Posições abertas')} · ${posicoes.length}`} acao={<Link to="/champion" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>{t('ver cockpit →')}</Link>}>
             {posicoes.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {posicoes.slice(0, 5).map((p) => {
@@ -102,40 +105,40 @@ export function CommandCenter() {
                       <div><div style={{ fontWeight: 700, fontSize: 'var(--text-xs)' }}>{p.symbol.replace('/USDT:USDT', '')}</div><div style={{ fontSize: '0.6rem', color: 'var(--ink-3)' }}>{p.exchangeShort} → {p.exchangeLong}</div></div>
                       <div style={{ textAlign: 'right' }}>
                         <div className="tabular" style={{ fontSize: 'var(--text-xs)', color: mp ? fmt.corPnl(mp.pnlNaoRealizadoTotal) : 'var(--ink-2)' }}>{mp ? fmt.usd(mp.pnlNaoRealizadoTotal) : '—'}</div>
-                        <div style={{ fontSize: '0.6rem', color: 'var(--ink-3)' }}>liq {fmt.pct(p.distanciaMinima * 100)}</div>
+                        <div style={{ fontSize: '0.6rem', color: 'var(--ink-3)' }}>{t('liq')} {fmt.pct(p.distanciaMinima * 100)}</div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>Nenhuma posição aberta.</p>}
+            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>{t('Nenhuma posição aberta.')}</p>}
           </Section>
 
-          <Section titulo="Próximos settlements">
+          <Section titulo={t('Próximos settlements')}>
             {proximosSettlements.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {proximosSettlements.map((c) => (
                   <div key={c.challengerId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '5px 0', borderBottom: '1px solid var(--border-hairline)' }}>
                     <span>{c.symbol?.replace('/USDT:USDT', '') ?? c.challengerId} · {c.janelaMin}m</span>
-                    <span className="tabular" style={{ color: 'var(--ink-3)' }}>{c.proximaLiquidacaoEm ? new Date(c.proximaLiquidacaoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                    <span className="tabular" style={{ color: 'var(--ink-3)' }}>{c.proximaLiquidacaoEm ? new Date(c.proximaLiquidacaoEm).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                   </div>
                 ))}
               </div>
-            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>Nenhum settlement iminente.</p>}
+            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>{t('Nenhum settlement iminente.')}</p>}
           </Section>
 
-          <Section titulo="Oportunidades" acao={<Link to="/opportunities" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>ver mapa →</Link>}>
+          <Section titulo={t('Oportunidades')} acao={<Link to="/opportunities" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>{t('ver mapa →')}</Link>}>
             {oport?.estado === 'sucesso' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>Observadas</span><span className="tabular" style={{ fontWeight: 700 }}>{fmt.int(oport.dado.summary.total)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>Elegíveis</span><span className="tabular" style={{ color: 'var(--gain-500)', fontWeight: 700 }}>{fmt.int(oport.dado.summary.eligible)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ color: 'var(--ink-2)' }}>Coletor</span><StatusBadge label={cs?.estado ?? '—'} tom={cs?.estado === 'live' ? 'ok' : cs?.estado === 'stale' ? 'warn' : 'loss'} /></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>{t('Observadas')}</span><span className="tabular" style={{ fontWeight: 700 }}>{fmt.int(oport.dado.summary.total)}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>{t('Elegíveis')}</span><span className="tabular" style={{ color: 'var(--gain-500)', fontWeight: 700 }}>{fmt.int(oport.dado.summary.eligible)}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ color: 'var(--ink-2)' }}>{t('Coletor')}</span><StatusBadge label={cs?.estado ?? '—'} tom={cs?.estado === 'live' ? 'ok' : cs?.estado === 'stale' ? 'warn' : 'loss'} /></div>
               </div>
-            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>Carregando coletor…</p>}
+            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>{t('Carregando coletor…')}</p>}
           </Section>
 
           {ranking && ranking.comparaveis.length > 0 && (
-            <Section titulo="Melhor / pior motor (janela comum)">
+            <Section titulo={t('Melhor / pior motor (janela comum)')}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--gain-500)' }}>▲ {ranking.melhor?.strategyId}</span><span className="tabular">{ranking.melhor && fmt.usd(ranking.melhor.pnlDesdeOInicio)}</span></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--loss-500)' }}>▼ {ranking.pior?.strategyId}</span><span className="tabular">{ranking.pior && fmt.pct(ranking.pior.pnlPct)}</span></div>
