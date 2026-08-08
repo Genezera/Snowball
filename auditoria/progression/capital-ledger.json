@@ -1,10 +1,10 @@
 {
   "schema": "snowball.capital-ledger.v1",
-  "geradoEm": "2026-08-08T13:59:08.002Z",
-  "asOfMs": 1786197548002,
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
   "reconciliacao": {
-    "calculado": 609.9825,
-    "reportado": 609.9825,
+    "calculado": 612.7762,
+    "reportado": 612.7762,
     "diferenca": 0,
     "reconcilia": true,
     "identidade": "capital = capitalInicial + funding − custos"
@@ -21,140 +21,131 @@
     "total": {
       "value": 600,
       "source": "champion_observed",
-      "observedAt": 1786197548002,
+      "observedAt": 1786219550479,
       "ageMs": 0,
       "confidence": 1
     }
   },
   "capitalRealizado": {
-    "value": 609.9825237670537,
+    "value": 612.7761737790861,
     "source": "champion_observed",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 1
   },
   "equityMarcada": {
-    "value": 609.6060837039486,
+    "value": 613.0508510852092,
     "source": "champion_observed",
-    "observedAt": 1786205195228,
+    "observedAt": 1786219551823,
     "ageMs": 0,
     "confidence": 1
   },
   "equityExecutavel": {
-    "value": 608.541209754261,
+    "value": 611.9521723382003,
     "source": "champion_observed",
-    "observedAt": 1786205195228,
+    "observedAt": 1786219551823,
     "ageMs": 0,
     "confidence": 1
   },
   "lucroAcumulado": {
-    "value": 9.9825,
+    "value": 12.7762,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "custosAcumulados": {
-    "value": 8.660646887441048,
+    "value": 10.5931633173857,
     "source": "champion_observed",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 1
   },
   "fundingAcumulado": {
-    "value": 18.643170654494927,
+    "value": 23.369337096471966,
     "source": "champion_observed",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 1
   },
   "drawdown": {
     "maxObservadoPct": 0.43,
-    "atualPct": 0,
-    "picoTs": 1786197548002,
+    "atualPct": -0.31,
+    "picoTs": 1786219550479,
     "valeTs": 1785832241753,
     "source": "derived"
   },
   "reservaOperacional": {
-    "value": 182.9948,
+    "value": 183.8329,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalLivre": {
-    "value": 239.2225,
+    "value": 254.2798,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalComprometido": {
-    "value": 187.7652,
+    "value": 174.6635,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "notionalExposto": {
-    "value": 429.6955,
+    "value": 396.9411,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalHorasComprometidas": {
-    "value": 2709.132,
+    "value": 1086.0935,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "lucroReinvestivel": {
-    "value": 9.9825,
+    "value": 12.7762,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalExperimentalVirtual": {
     "value": 0,
     "source": "derived",
-    "observedAt": 1786197548002,
+    "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalNecessarioProximoNivel": {
-    "valor": 190.02,
+    "valor": 187.22,
     "nivelAtualPorCapital": 3,
     "proximoNivel": 4,
-    "capitalDeployable": 426.9878,
+    "capitalDeployable": 428.9433,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
   "saldosPorExchange": {
-    "binanceusdm": 99.65708996744678,
-    "bybit": 103.55010272214629,
-    "okx": 101.33272511347201,
-    "gate": 101.6799812891634,
+    "binanceusdm": 100.55104875308373,
+    "bybit": 104.94819047199516,
+    "okx": 101.55028096209945,
+    "gate": 101.53890761530586,
     "bitget": 102.98411959072688,
-    "bingx": 100.7785050840984
+    "bingx": 101.20362638587504
   },
   "posicoesAbertas": [
-    {
-      "symbol": "CXMT/USDT:USDT",
-      "exchangeShort": "gate",
-      "exchangeLong": "bybit",
-      "notionalPorPerna": 279.6219,
-      "margem": 111.8487,
-      "fundingAcumulado": 0.3143,
-      "abertaEm": 1786129651054
-    },
     {
       "symbol": "BICO/USDT:USDT",
       "exchangeShort": "gate",
       "exchangeLong": "okx",
-      "notionalPorPerna": 91.1157,
-      "margem": 52.3333,
+      "notionalPorPerna": 93.6412,
+      "margem": 53.3435,
       "fundingAcumulado": 0.7176,
       "abertaEm": 1786169106062
     },
@@ -166,6 +157,15 @@
       "margem": 23.5832,
       "fundingAcumulado": 0.2587,
       "abertaEm": 1786169128297
+    },
+    {
+      "symbol": "1000CAT/USDT:USDT",
+      "exchangeShort": "binanceusdm",
+      "exchangeLong": "bybit",
+      "notionalPorPerna": 244.342,
+      "margem": 97.7368,
+      "fundingAcumulado": 2.1219,
+      "abertaEm": 1786219244131
     }
   ],
   "politicaComposicao": {
@@ -176,7 +176,7 @@
     "margemPayback": 1.5,
     "nota": "Reinvestir 100% ≠ expor 100%. Reserva/margem livre/capital de segurança pertencem ao Snowball e são capacidade operacional. Não reduzir reserva nem aumentar exposição para acelerar crescimento."
   },
-  "historicoEntradas": 56,
+  "historicoEntradas": 62,
   "fontes": {
     "estado": "spread/estado.json",
     "marcacao": "spread/marcacao.json",

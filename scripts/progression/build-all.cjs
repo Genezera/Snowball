@@ -20,6 +20,9 @@ const ordem = [
   'reinvestment-counterfactual.cjs', // v1.1 Parte 6 (contrafactual real)
   'growth-scenarios.cjs',       // Parte 8/9 (corrigido)
   'engine-diagnostics.cjs',     // Parte 11
+  'opportunity-frontier.cjs',   // v1.2 Partes 1,2 (observer pré-saldo + frontier)
+  'trial-control-window.cjs',   // v1.2 Partes 3,4,5,6 (trial/control/common-window/gate)
+  'unlock-fund.cjs',            // v1.2 Partes 7,8,9 (fundo/ranking/regra)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
 let ok = 0;

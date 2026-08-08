@@ -1,76 +1,76 @@
 {
   "schema": "snowball.growth-scenarios.v1_1",
-  "geradoEm": "2026-08-08T13:59:08.002Z",
-  "asOfMs": 1786197548002,
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
   "politica": "SEM taxa-base de longo prazo; SEM data prometida para níveis futuros. Só trajetória observada + stress mecânico + intervalo enquanto a amostra for insuficiente.",
   "trajetoriaObservada": {
     "tipo": "observed",
     "capitalInicial": 200,
-    "capitalAtual": 609.9825,
-    "pontos": 966,
+    "capitalAtual": 612.7762,
+    "pontos": 993,
     "primeiroTs": "2026-08-03T12:04:31.297Z",
-    "ultimoTs": "2026-08-08T13:59:08.002Z",
-    "diasObservados": 5.17,
-    "fundingObservado": 18.6432,
-    "custosObservado": 8.6606,
-    "netObservado": 9.9825,
+    "ultimoTs": "2026-08-08T20:05:50.479Z",
+    "diasObservados": 5.33,
+    "fundingObservado": 23.3693,
+    "custosObservado": 10.5932,
+    "netObservado": 12.7762,
     "maxDrawdownPct": 0.43,
     "nota": "Trajetória de fato. Inclui 1 aporte de US$400 (4 exchanges) — não é lucro."
   },
   "amostra": {
-    "operacoesFechadas": 20,
+    "operacoesFechadas": 23,
     "janelas": 1,
     "regimes": 1,
     "bootstrapPronto": false,
-    "nota": "INSUFICIENTE p/ bootstrap (precisa ≥30 operações E ≥2 janelas/regimes; tem 20 operações / 1 janela / 1 regime). Nenhuma projeção temporal produzida."
+    "nota": "INSUFICIENTE p/ bootstrap (precisa ≥30 operações E ≥2 janelas/regimes; tem 23 operações / 1 janela / 1 regime). Nenhuma projeção temporal produzida."
   },
   "stressMecanico": [
     {
       "id": "observado",
-      "net": 9.9825,
+      "net": 12.7762,
       "tipo": "observed",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_1_5x",
-      "net": 5.6522,
+      "net": 7.4796,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_2x",
-      "net": 1.3219,
+      "net": 2.183,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "funding_menos25",
-      "net": 5.3217,
+      "net": 6.9338,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "funding_menos50",
-      "net": 0.6609,
+      "net": 1.0915,
       "tipo": "simulated",
       "sobreviveComLucro": true
     },
     {
       "id": "custos_2x_funding_menos25",
-      "net": -3.3389,
+      "net": -3.6593,
       "tipo": "simulated",
       "sobreviveComLucro": false
     }
   ],
   "intervaloCenarios": {
-    "min": -3.3389,
-    "max": 9.9825,
-    "observado": 9.9825
+    "min": -3.6593,
+    "max": 12.7762,
+    "observado": 12.7762
   },
   "projecaoTemporal": null,
   "projecaoTemporalNota": "REMOVIDO: v1.0 usava 0,67%/dia (2,72 dias de amostra) para projetar datas de nível. Isso é extrapolação indevida — nenhuma data é prometida.",
   "contribuicaoPorMotor": {
-    "champion-funding": 9.9825,
+    "champion-funding": 12.7762,
     "outros": 0
   },
   "honestidade": "Só fato observado + stress mecânico. Nenhuma taxa de longo prazo, nenhuma data, nenhum lucro futuro garantido. Bootstrap só quando houver ≥2 janelas/regimes."

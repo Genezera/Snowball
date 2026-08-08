@@ -1,7 +1,7 @@
 {
   "schema": "snowball.exchange-replay-2ex.v1_1",
-  "geradoEm": "2026-08-08T13:59:08.002Z",
-  "asOfMs": 1786197548002,
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
   "parametros": {
     "capitalInicial": 200,
     "porExchange": 100,
@@ -12,8 +12,8 @@
   },
   "commonWindow": {
     "inicio": "2026-08-04T01:44:39.037Z",
-    "fim": "2026-08-08T13:59:08.002Z",
-    "horas": 108.24,
+    "fim": "2026-08-08T20:05:50.479Z",
+    "horas": 114.35,
     "mesmaParaTodas": true
   },
   "reconciliacao": {
@@ -66,8 +66,8 @@
       "posicoesFinanciadas": 4,
       "posicoesPerdidasPorMargem": 0,
       "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 52.38,
-      "capitalOciosoPicoUSD": 87.62,
+      "capitalBloqueadoPicoUSD": 53.34,
+      "capitalOciosoPicoUSD": 86.66,
       "equityMarcada": 202.9358,
       "drawdownPct": 0,
       "reconciliacao": {
@@ -83,26 +83,80 @@
         "bybit",
         "bingx"
       ],
-      "posicoesNoPar": 3,
+      "posicoesNoPar": 4,
       "capitalInicial": 200,
-      "funding": 3.1617,
-      "custos": 1.6481,
-      "pnlRealizado": 1.5136,
+      "funding": 4.7557,
+      "custos": 2.3919,
+      "pnlRealizado": 2.3638,
       "residualRealizado": 0,
-      "capitalFinal": 201.5136,
-      "posicoesFinanciadas": 3,
+      "capitalFinal": 202.3638,
+      "posicoesFinanciadas": 4,
       "posicoesPerdidasPorMargem": 0,
       "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 49.64,
-      "capitalOciosoPicoUSD": 90.36,
-      "equityMarcada": 201.5136,
+      "capitalBloqueadoPicoUSD": 62.36,
+      "capitalOciosoPicoUSD": 77.64,
+      "equityMarcada": 202.3638,
       "drawdownPct": 0,
       "reconciliacao": {
-        "calculado": 201.5136,
-        "reportado": 201.5136,
+        "calculado": 202.3638,
+        "reportado": 202.3638,
         "reconcilia": true
       },
       "rank": 3
+    },
+    {
+      "par": "binanceusdm+bybit",
+      "exchanges": [
+        "binanceusdm",
+        "bybit"
+      ],
+      "posicoesNoPar": 4,
+      "capitalInicial": 200,
+      "funding": 3.1802,
+      "custos": 1.744,
+      "pnlRealizado": 1.4362,
+      "residualRealizado": 0,
+      "capitalFinal": 201.4362,
+      "posicoesFinanciadas": 4,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 97.74,
+      "capitalOciosoPicoUSD": 42.26,
+      "equityMarcada": 201.4362,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 201.4362,
+        "reportado": 201.4362,
+        "reconcilia": true
+      },
+      "rank": 4
+    },
+    {
+      "par": "bybit+okx",
+      "exchanges": [
+        "bybit",
+        "okx"
+      ],
+      "posicoesNoPar": 2,
+      "capitalInicial": 200,
+      "funding": 1.061,
+      "custos": 0.7909,
+      "pnlRealizado": 0.2701,
+      "residualRealizado": 0,
+      "capitalFinal": 200.2701,
+      "posicoesFinanciadas": 2,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 39.85,
+      "capitalOciosoPicoUSD": 100.15,
+      "equityMarcada": 200.2701,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200.2701,
+        "reportado": 200.2701,
+        "reconcilia": true
+      },
+      "rank": 5
     },
     {
       "par": "bybit+gate",
@@ -113,23 +167,23 @@
       "posicoesNoPar": 5,
       "capitalInicial": 200,
       "funding": 1.5494,
-      "custos": 0.7784,
-      "pnlRealizado": 0.771,
+      "custos": 1.3514,
+      "pnlRealizado": 0.198,
       "residualRealizado": 0,
-      "capitalFinal": 200.771,
+      "capitalFinal": 200.198,
       "posicoesFinanciadas": 5,
       "posicoesPerdidasPorMargem": 0,
       "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 111.85,
-      "capitalOciosoPicoUSD": 28.15,
-      "equityMarcada": 200.771,
+      "capitalBloqueadoPicoUSD": 55.92,
+      "capitalOciosoPicoUSD": 84.08,
+      "equityMarcada": 200.198,
       "drawdownPct": 221.85,
       "reconciliacao": {
-        "calculado": 200.771,
-        "reportado": 200.771,
+        "calculado": 200.198,
+        "reportado": 200.198,
         "reconcilia": true
       },
-      "rank": 4
+      "rank": 6
     },
     {
       "par": "bingx+gate",
@@ -156,7 +210,7 @@
         "reportado": 200.0494,
         "reconcilia": true
       },
-      "rank": 5
+      "rank": 7
     },
     {
       "par": "binanceusdm+okx",
@@ -183,7 +237,7 @@
         "reportado": 200,
         "reconcilia": true
       },
-      "rank": 6
+      "rank": 8
     },
     {
       "par": "binanceusdm+gate",
@@ -210,7 +264,7 @@
         "reportado": 200,
         "reconcilia": true
       },
-      "rank": 7
+      "rank": 9
     },
     {
       "par": "binanceusdm+bitget",
@@ -237,7 +291,7 @@
         "reportado": 200,
         "reconcilia": true
       },
-      "rank": 8
+      "rank": 10
     },
     {
       "par": "binanceusdm+bingx",
@@ -264,7 +318,7 @@
         "reportado": 200,
         "reconcilia": true
       },
-      "rank": 9
+      "rank": 11
     },
     {
       "par": "bitget+okx",
@@ -291,7 +345,7 @@
         "reportado": 200,
         "reconcilia": true
       },
-      "rank": 10
+      "rank": 12
     },
     {
       "par": "bingx+okx",
@@ -318,7 +372,7 @@
         "reportado": 200,
         "reconcilia": true
       },
-      "rank": 11
+      "rank": 13
     },
     {
       "par": "bitget+gate",
@@ -345,7 +399,7 @@
         "reportado": 200,
         "reconcilia": true
       },
-      "rank": 12
+      "rank": 14
     },
     {
       "par": "bingx+bitget",
@@ -370,60 +424,6 @@
       "reconciliacao": {
         "calculado": 200,
         "reportado": 200,
-        "reconcilia": true
-      },
-      "rank": 13
-    },
-    {
-      "par": "bybit+okx",
-      "exchanges": [
-        "bybit",
-        "okx"
-      ],
-      "posicoesNoPar": 1,
-      "capitalInicial": 200,
-      "funding": 0.0508,
-      "custos": 0.2183,
-      "pnlRealizado": -0.1675,
-      "residualRealizado": 0,
-      "capitalFinal": 199.8325,
-      "posicoesFinanciadas": 1,
-      "posicoesPerdidasPorMargem": 0,
-      "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 21.21,
-      "capitalOciosoPicoUSD": 118.79,
-      "equityMarcada": 199.8325,
-      "drawdownPct": 0,
-      "reconciliacao": {
-        "calculado": 199.8325,
-        "reportado": 199.8325,
-        "reconcilia": true
-      },
-      "rank": 14
-    },
-    {
-      "par": "binanceusdm+bybit",
-      "exchanges": [
-        "binanceusdm",
-        "bybit"
-      ],
-      "posicoesNoPar": 3,
-      "capitalInicial": 200,
-      "funding": 1.0582,
-      "custos": 1.744,
-      "pnlRealizado": -0.6858,
-      "residualRealizado": 0,
-      "capitalFinal": 199.3142,
-      "posicoesFinanciadas": 3,
-      "posicoesPerdidasPorMargem": 0,
-      "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 33.25,
-      "capitalOciosoPicoUSD": 106.75,
-      "equityMarcada": 199.3142,
-      "drawdownPct": 0,
-      "reconciliacao": {
-        "calculado": 199.3142,
-        "reportado": 199.3142,
         "reconcilia": true
       },
       "rank": 15
@@ -451,7 +451,7 @@
     },
     "seisFinanciadas": {
       "capitalUsado": 600,
-      "pnl": 10.4604,
+      "pnl": 13.2972,
       "nota": "Champion real multi-par: acessa posições de TODOS os pares"
     },
     "duasMaisFundoMigracao": {
@@ -460,8 +460,8 @@
       "custoEstimadoPorTroca": 0.2,
       "nota": "trocar de par custa taxa de saque/depósito + tempo de settlement — corrói ganho de troca frequente"
     },
-    "diferencaFixo2_vs_6financiadas": 4.4166,
-    "conclusao": "6 exchanges financiadas rendem 10.4604 vs 6.0438 do melhor par fixo (US$200): diferença de 4.4166. A troca dinâmica NÃO é comprovável na amostra (1 janela) e o custo/tempo de migração desencoraja troca frequente."
+    "diferencaFixo2_vs_6financiadas": 7.2534,
+    "conclusao": "6 exchanges financiadas rendem 13.2972 vs 6.0438 do melhor par fixo (US$200): diferença de 7.2534. A troca dinâmica NÃO é comprovável na amostra (1 janela) e o custo/tempo de migração desencoraja troca frequente."
   },
   "honestidade": "Todas as 15 combinações reconciliam exatamente."
 }

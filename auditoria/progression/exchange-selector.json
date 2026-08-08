@@ -1,7 +1,7 @@
 {
   "schema": "snowball.exchange-selector.v1",
-  "geradoEm": "2026-08-08T13:59:08.002Z",
-  "asOfMs": 1786197548002,
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
   "metodo": "replay cronológico; sem seleção retrospectiva de vencedores; common-window por construção (scans varrem todas as exchanges no mesmo ciclo).",
   "exchangesOperacionais": [
     "binanceusdm",
@@ -13,10 +13,10 @@
   ],
   "combinacoes": 15,
   "janelaLandscape": {
-    "inicio": "2026-08-07T04:10:29.441Z",
-    "fim": "2026-08-08T06:05:28.298Z",
-    "horas": 25.92,
-    "candidatosForaDos6Operacionais": 19
+    "inicio": null,
+    "fim": null,
+    "horas": 0,
+    "candidatosForaDos6Operacionais": 0
   },
   "margemLivreCom100PorPerna": 140,
   "respostas": {
@@ -26,38 +26,38 @@
     },
     "maisOportunidadesEVpositivo": [
       {
-        "par": "bybit+gate",
-        "evPos": 5
-      },
-      {
         "par": "bitget+bybit",
-        "evPos": 3
+        "evPos": 0
       },
       {
         "par": "gate+okx",
-        "evPos": 2
+        "evPos": 0
+      },
+      {
+        "par": "bingx+bybit",
+        "evPos": 0
       }
     ],
     "maisBloqueadasPorOrdemMinima": [
       {
-        "par": "binanceusdm+bybit",
-        "bloqueadas": 1133
+        "par": "bitget+bybit",
+        "bloqueadas": 0
+      },
+      {
+        "par": "gate+okx",
+        "bloqueadas": 0
       },
       {
         "par": "bingx+bybit",
-        "bloqueadas": 811
-      },
-      {
-        "par": "binanceusdm+bingx",
-        "bloqueadas": 711
+        "bloqueadas": 0
       }
     ],
-    "lucroPerdidoAoRestringirA2Exchanges": 4.4165,
+    "lucroPerdidoAoRestringirA2Exchanges": 7.2533,
     "duasExchangesSaoSuficientes": null
   },
   "veredito": {
     "suficienteParaEscolher2": false,
-    "motivo": "INSUFICIENTE: só 13 oportunidades de EV positivo numa janela de 25.92h (1 janela). A regra do Snowball proíbe escolher 2 exchanges por uma única janela / lucro histórico bruto.",
+    "motivo": "INSUFICIENTE: só 0 oportunidades de EV positivo numa janela de 0h (1 janela). A regra do Snowball proíbe escolher 2 exchanges por uma única janela / lucro histórico bruto.",
     "recomendacao": "Continuar coletando o landscape em ≥2 janelas e ≥2 regimes antes de fixar as 2 exchanges operacionais. O ranking abaixo é DIRECIONAL, não decisão."
   },
   "honestidade": "O capitalNecessario/saldoDisponivel dos candidatos reflete a config viva (US$600/6 exchanges), não um cenário hipotético de US$200/2 exchanges — a coluna fundavelCom100PorPerna é aproximação. Realizado é enviesado para os pares que o Champion escolheu (ele só abre o melhor).",
@@ -69,16 +69,16 @@
         "bitget"
       ],
       "landscape": {
-        "obs": 2037,
-        "oportunidadesEVpositivo": 3,
-        "aprovadas": 3,
-        "somaEVpositivo": 0.031,
-        "somaCusto": 643.5364,
-        "spreadMedio": 0.0009,
-        "consistenciaMedia": 0.7034,
-        "symbolsDistintos": 85,
-        "fundavelCom100PorPerna": 1846,
-        "bloqueadasPorOrdemMinima": 191
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 6,
@@ -95,16 +95,16 @@
         "gate"
       ],
       "landscape": {
-        "obs": 989,
-        "oportunidadesEVpositivo": 2,
-        "aprovadas": 2,
-        "somaEVpositivo": 0.3822,
-        "somaCusto": 143.5914,
-        "spreadMedio": 0.0005,
-        "consistenciaMedia": 0.6674,
-        "symbolsDistintos": 54,
-        "fundavelCom100PorPerna": 46,
-        "bloqueadasPorOrdemMinima": 168
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 4,
@@ -121,24 +121,76 @@
         "bingx"
       ],
       "landscape": {
-        "obs": 2474,
-        "oportunidadesEVpositivo": 1,
-        "aprovadas": 1,
-        "somaEVpositivo": 0.3143,
-        "somaCusto": 1247.7279,
-        "spreadMedio": 0.0004,
-        "consistenciaMedia": 0.7231,
-        "symbolsDistintos": 100,
-        "fundavelCom100PorPerna": 1357,
-        "bloqueadasPorOrdemMinima": 811
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
-        "posicoes": 3,
-        "funding": 3.1617,
-        "custo": 1.6481,
-        "pnlLiquido": 1.5136
+        "posicoes": 4,
+        "funding": 4.7557,
+        "custo": 2.3919,
+        "pnlLiquido": 2.3638
       },
       "rank": 3
+    },
+    {
+      "par": "binanceusdm+bybit",
+      "exchanges": [
+        "binanceusdm",
+        "bybit"
+      ],
+      "landscape": {
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
+      },
+      "realizado": {
+        "posicoes": 4,
+        "funding": 3.1802,
+        "custo": 1.744,
+        "pnlLiquido": 1.4361
+      },
+      "rank": 4
+    },
+    {
+      "par": "bybit+okx",
+      "exchanges": [
+        "bybit",
+        "okx"
+      ],
+      "landscape": {
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
+      },
+      "realizado": {
+        "posicoes": 2,
+        "funding": 1.061,
+        "custo": 0.7909,
+        "pnlLiquido": 0.2702
+      },
+      "rank": 5
     },
     {
       "par": "bybit+gate",
@@ -147,24 +199,24 @@
         "gate"
       ],
       "landscape": {
-        "obs": 2940,
-        "oportunidadesEVpositivo": 5,
-        "aprovadas": 4,
-        "somaEVpositivo": 2.1773,
-        "somaCusto": 879.1223,
-        "spreadMedio": 0.0005,
-        "consistenciaMedia": 0.7383,
-        "symbolsDistintos": 89,
-        "fundavelCom100PorPerna": 1517,
-        "bloqueadasPorOrdemMinima": 598
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 5,
         "funding": 1.5494,
-        "custo": 0.7784,
-        "pnlLiquido": 0.7711
+        "custo": 1.3514,
+        "pnlLiquido": 0.198
       },
-      "rank": 4
+      "rank": 6
     },
     {
       "par": "bingx+gate",
@@ -173,16 +225,16 @@
         "bingx"
       ],
       "landscape": {
-        "obs": 537,
-        "oportunidadesEVpositivo": 1,
-        "aprovadas": 1,
-        "somaEVpositivo": 0.0053,
-        "somaCusto": 551.5016,
-        "spreadMedio": 0.001,
-        "consistenciaMedia": 0.711,
-        "symbolsDistintos": 37,
-        "fundavelCom100PorPerna": 235,
-        "bloqueadasPorOrdemMinima": 118
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 1,
@@ -190,7 +242,7 @@
         "custo": 0.7414,
         "pnlLiquido": 0.0494
       },
-      "rank": 5
+      "rank": 7
     },
     {
       "par": "binanceusdm+okx",
@@ -199,68 +251,16 @@
         "okx"
       ],
       "landscape": {
-        "obs": 944,
+        "obs": 0,
         "oportunidadesEVpositivo": 0,
         "aprovadas": 0,
         "somaEVpositivo": 0,
-        "somaCusto": 287.5435,
-        "spreadMedio": 0.0002,
-        "consistenciaMedia": 0.7161,
-        "symbolsDistintos": 58,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
         "fundavelCom100PorPerna": 0,
-        "bloqueadasPorOrdemMinima": 305
-      },
-      "realizado": {
-        "posicoes": 0,
-        "funding": 0,
-        "custo": 0,
-        "pnlLiquido": 0
-      },
-      "rank": 6
-    },
-    {
-      "par": "binanceusdm+gate",
-      "exchanges": [
-        "binanceusdm",
-        "gate"
-      ],
-      "landscape": {
-        "obs": 1090,
-        "oportunidadesEVpositivo": 0,
-        "aprovadas": 0,
-        "somaEVpositivo": 0,
-        "somaCusto": 779.0549,
-        "spreadMedio": 0.0011,
-        "consistenciaMedia": 0.7249,
-        "symbolsDistintos": 67,
-        "fundavelCom100PorPerna": 541,
-        "bloqueadasPorOrdemMinima": 266
-      },
-      "realizado": {
-        "posicoes": 0,
-        "funding": 0,
-        "custo": 0,
-        "pnlLiquido": 0
-      },
-      "rank": 7
-    },
-    {
-      "par": "binanceusdm+bitget",
-      "exchanges": [
-        "binanceusdm",
-        "bitget"
-      ],
-      "landscape": {
-        "obs": 1282,
-        "oportunidadesEVpositivo": 0,
-        "aprovadas": 0,
-        "somaEVpositivo": 0,
-        "somaCusto": 351.7458,
-        "spreadMedio": 0.0005,
-        "consistenciaMedia": 0.7543,
-        "symbolsDistintos": 58,
-        "fundavelCom100PorPerna": 1127,
-        "bloqueadasPorOrdemMinima": 155
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 0,
@@ -271,22 +271,22 @@
       "rank": 8
     },
     {
-      "par": "binanceusdm+bingx",
+      "par": "binanceusdm+gate",
       "exchanges": [
         "binanceusdm",
-        "bingx"
+        "gate"
       ],
       "landscape": {
-        "obs": 833,
+        "obs": 0,
         "oportunidadesEVpositivo": 0,
         "aprovadas": 0,
         "somaEVpositivo": 0,
-        "somaCusto": 892.5529,
-        "spreadMedio": 0.0009,
-        "consistenciaMedia": 0.598,
-        "symbolsDistintos": 59,
-        "fundavelCom100PorPerna": 49,
-        "bloqueadasPorOrdemMinima": 711
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 0,
@@ -297,22 +297,22 @@
       "rank": 9
     },
     {
-      "par": "bitget+okx",
+      "par": "binanceusdm+bitget",
       "exchanges": [
-        "okx",
+        "binanceusdm",
         "bitget"
       ],
       "landscape": {
-        "obs": 1021,
+        "obs": 0,
         "oportunidadesEVpositivo": 0,
         "aprovadas": 0,
         "somaEVpositivo": 0,
-        "somaCusto": 58.7347,
-        "spreadMedio": 0.0003,
-        "consistenciaMedia": 0.7306,
-        "symbolsDistintos": 49,
-        "fundavelCom100PorPerna": 307,
-        "bloqueadasPorOrdemMinima": 5
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 0,
@@ -323,22 +323,22 @@
       "rank": 10
     },
     {
-      "par": "bingx+okx",
+      "par": "binanceusdm+bingx",
       "exchanges": [
-        "okx",
+        "binanceusdm",
         "bingx"
       ],
       "landscape": {
-        "obs": 1891,
+        "obs": 0,
         "oportunidadesEVpositivo": 0,
         "aprovadas": 0,
         "somaEVpositivo": 0,
-        "somaCusto": 320.212,
-        "spreadMedio": 0.0001,
-        "consistenciaMedia": 0.7275,
-        "symbolsDistintos": 61,
-        "fundavelCom100PorPerna": 226,
-        "bloqueadasPorOrdemMinima": 243
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 0,
@@ -349,22 +349,22 @@
       "rank": 11
     },
     {
-      "par": "bitget+gate",
+      "par": "bitget+okx",
       "exchanges": [
-        "gate",
+        "okx",
         "bitget"
       ],
       "landscape": {
-        "obs": 1334,
+        "obs": 0,
         "oportunidadesEVpositivo": 0,
         "aprovadas": 0,
         "somaEVpositivo": 0,
-        "somaCusto": 432.0634,
-        "spreadMedio": 0.0006,
-        "consistenciaMedia": 0.6217,
-        "symbolsDistintos": 79,
-        "fundavelCom100PorPerna": 951,
-        "bloqueadasPorOrdemMinima": 56
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 0,
@@ -375,22 +375,22 @@
       "rank": 12
     },
     {
-      "par": "bingx+bitget",
+      "par": "bingx+okx",
       "exchanges": [
-        "bitget",
+        "okx",
         "bingx"
       ],
       "landscape": {
-        "obs": 264,
+        "obs": 0,
         "oportunidadesEVpositivo": 0,
         "aprovadas": 0,
         "somaEVpositivo": 0,
-        "somaCusto": 90.3621,
-        "spreadMedio": 0.0001,
-        "consistenciaMedia": 0.6909,
-        "symbolsDistintos": 17,
-        "fundavelCom100PorPerna": 209,
-        "bloqueadasPorOrdemMinima": 45
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
         "posicoes": 0,
@@ -401,54 +401,54 @@
       "rank": 13
     },
     {
-      "par": "bybit+okx",
+      "par": "bitget+gate",
       "exchanges": [
-        "bybit",
-        "okx"
+        "gate",
+        "bitget"
       ],
       "landscape": {
-        "obs": 1379,
+        "obs": 0,
         "oportunidadesEVpositivo": 0,
         "aprovadas": 0,
         "somaEVpositivo": 0,
-        "somaCusto": 241.8719,
-        "spreadMedio": 0.0004,
-        "consistenciaMedia": 0.7342,
-        "symbolsDistintos": 64,
-        "fundavelCom100PorPerna": 2,
-        "bloqueadasPorOrdemMinima": 527
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
-        "posicoes": 1,
-        "funding": 0.0508,
-        "custo": 0.2183,
-        "pnlLiquido": -0.1675
+        "posicoes": 0,
+        "funding": 0,
+        "custo": 0,
+        "pnlLiquido": 0
       },
       "rank": 14
     },
     {
-      "par": "binanceusdm+bybit",
+      "par": "bingx+bitget",
       "exchanges": [
-        "binanceusdm",
-        "bybit"
+        "bitget",
+        "bingx"
       ],
       "landscape": {
-        "obs": 2161,
-        "oportunidadesEVpositivo": 1,
-        "aprovadas": 1,
-        "somaEVpositivo": 0.8694,
-        "somaCusto": 1132.9657,
-        "spreadMedio": 0.0008,
-        "consistenciaMedia": 0.7128,
-        "symbolsDistintos": 115,
-        "fundavelCom100PorPerna": 1028,
-        "bloqueadasPorOrdemMinima": 1133
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
-        "posicoes": 3,
-        "funding": 1.0582,
-        "custo": 1.744,
-        "pnlLiquido": -0.6858
+        "posicoes": 0,
+        "funding": 0,
+        "custo": 0,
+        "pnlLiquido": 0
       },
       "rank": 15
     }

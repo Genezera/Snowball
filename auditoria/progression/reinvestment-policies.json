@@ -1,9 +1,9 @@
 {
   "schema": "snowball.reinvestment-policies.v1",
-  "geradoEm": "2026-08-08T13:59:08.002Z",
-  "asOfMs": 1786197548002,
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
   "invariante": {
-    "capitalFinal": 609.9825,
+    "capitalFinal": 612.7762,
     "tempoParaNivelIdenticoEntrePoliticas": true,
     "explicacao": "Com 100% do lucro retido, A/B/C atingem o mesmo capital no mesmo tempo. A escolha NÃO acelera o crescimento — muda apenas exposição/ocioso/risco."
   },
@@ -12,14 +12,14 @@
     "drawdownObservadoPct": 0.43,
     "tempoParaDesbloquear": "idêntico (função do capital total, não da política)",
     "utilizacao": {
-      "A": "57.58%",
-      "B": "56.95%",
-      "C": "57.26%"
+      "A": "57.65%",
+      "B": "57%",
+      "C": "57.33%"
     },
     "capitalParado": {
       "A": 0,
-      "B": 3.83,
-      "C": 1.91
+      "B": 4.01,
+      "C": 2.01
     },
     "risco": {
       "A": "maior exposição",
@@ -34,26 +34,26 @@
     "A": {
       "nome": "Reinvestimento contínuo",
       "descricao": "Todo lucro líquido aumenta imediatamente a base operacional, respeitando reserva/limites/ordem mínima.",
-      "utilizacaoMediaUSD": 351.22,
-      "utilizacaoMediaPct": 57.58,
+      "utilizacaoMediaUSD": 353.29,
+      "utilizacaoMediaPct": 57.65,
       "capitalOciosoMedioUSD": 0,
-      "exposicaoMaxUSD": 426.99
+      "exposicaoMaxUSD": 428.95
     },
     "B": {
       "nome": "Reinvestimento por degraus",
       "descricao": "A base operacional só sobe ao atingir um degrau economicamente útil (min notional, 2ª posição, novo motor, nova exchange).",
-      "utilizacaoMediaUSD": 347.39,
-      "utilizacaoMediaPct": 56.95,
-      "capitalOciosoMedioUSD": 3.83,
+      "utilizacaoMediaUSD": 349.28,
+      "utilizacaoMediaPct": 57,
+      "capitalOciosoMedioUSD": 4.01,
       "exposicaoMaxUSD": 419.97
     },
     "C": {
       "nome": "Fundo de desbloqueio",
       "descricao": "Parte do lucro fica em reserva interna até atingir o capital mínimo de um novo módulo. Todo o dinheiro permanece no Snowball.",
-      "utilizacaoMediaUSD": 349.3,
-      "utilizacaoMediaPct": 57.26,
-      "capitalOciosoMedioUSD": 1.91,
-      "exposicaoMaxUSD": 422
+      "utilizacaoMediaUSD": 351.28,
+      "utilizacaoMediaPct": 57.33,
+      "capitalOciosoMedioUSD": 2.01,
+      "exposicaoMaxUSD": 422.56
     }
   },
   "limitacao": "Sem um modelo de capacidade por oportunidade, NÃO se afirma que qualquer política aumenta o lucro. O landscape mostra oportunidades de EV positivo ESCASSAS (13 na janela) — o crescimento é limitado pela OFERTA de oportunidades, não pela política de reinvestimento. Escolha por risco/utilização, não por promessa de lucro.",

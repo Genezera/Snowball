@@ -1,7 +1,7 @@
 {
   "schema": "snowball.bosses.v1",
-  "geradoEm": "2026-08-08T13:59:08.002Z",
-  "asOfMs": 1786197548002,
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
   "maquinaEstados": {
     "estados": [
       "UNTESTED",
@@ -15,12 +15,12 @@
     "notaDefeated": "DEFEATED exige ≥2 janelas E ≥2 regimes — inatingível com 1 janela. Máximo atual: PROVISIONALLY_DEFEATED."
   },
   "resumo": {
-    "PASSED_CURRENT_WINDOW": [
-      "custos",
-      "sobrevivencia"
-    ],
     "PROVISIONALLY_DEFEATED": [
+      "custos",
       "concentracao"
+    ],
+    "PASSED_CURRENT_WINDOW": [
+      "sobrevivencia"
     ],
     "ACTIVE": [
       "capacidade",
@@ -32,36 +32,35 @@
       "id": "custos",
       "nome": "Chefe dos Custos",
       "metricas": {
-        "feeToGross": 0.4645,
+        "feeToGross": 0.4533,
         "limiteFeeToGross": 0.6,
-        "netObservado": 9.9825,
-        "netComCustos2x": 1.3219,
-        "funding": 18.6432,
-        "custos": 8.6606
+        "netObservado": 12.7762,
+        "netComCustos2x": 2.183,
+        "funding": 23.3693,
+        "custos": 10.5932
       },
       "criterios": {
         "feeToGrossAbaixoLimite": true,
         "lucroPositivoComCustos2x": true,
         "custosNaoConsomemMaioria": true
       },
-      "status": "PASSED_CURRENT_WINDOW",
-      "nota": "Sobrevive a custos 2×, porém com folga PEQUENA (+1.3219). Margem fina."
+      "status": "PROVISIONALLY_DEFEATED"
     },
     "sobrevivencia": {
       "id": "sobrevivencia",
       "nome": "Chefe da Sobrevivência",
       "metricas": {
         "drawdownMaxPct": 0.43,
-        "distanciaLiquidacaoMin": 0.17986489420358015,
+        "distanciaLiquidacaoMin": 0.16802237068506304,
         "distMinInfo": {
           "symbol": "LA/USDT:USDT",
           "leg": "long",
-          "distancia": 0.1799
+          "distancia": 0.168
         },
         "capitalFloor": 600,
-        "capitalAtual": 609.9825,
+        "capitalAtual": 612.7762,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 608.541209754261
+        "equityExecutavel": 611.9521723382003
       },
       "criterios": {
         "drawdownControlado": true,
@@ -80,14 +79,15 @@
           "symbol": "KMNO/USDT:USDT",
           "funding": 4.5199
         },
-        "top1Share": 0.2424,
-        "herfindahl": 0.1528,
-        "nSimbolosComFunding": 14,
+        "top1Share": 0.1934,
+        "herfindahl": 0.1179,
+        "nSimbolosComFunding": 16,
         "usoPorExchange": {
-          "gate": 2,
-          "bybit": 2,
+          "gate": 1,
           "okx": 1,
-          "bitget": 1
+          "bitget": 1,
+          "bybit": 2,
+          "binanceusdm": 1
         }
       },
       "criterios": {
@@ -102,10 +102,10 @@
       "id": "capacidade",
       "nome": "Chefe da Capacidade",
       "metricas": {
-        "rejeicoesPorSaldo": 6422,
-        "rejeicoesPorSaldoSemAvaliacaoEconomica": 6422,
+        "rejeicoesPorSaldo": 0,
+        "rejeicoesPorSaldoSemAvaliacaoEconomica": 0,
         "oportunidadesEVpositivoBloqueadasSoPorCapital": 0,
-        "saturacaoUSD": 400,
+        "saturacaoUSD": 300,
         "temSegundoMotorAbsorvente": false
       },
       "criterios": {
@@ -113,7 +113,7 @@
         "existeSegundoMotorParaAbsorver": false
       },
       "status": "ACTIVE",
-      "nota": "CORREÇÃO v1.1: das 6422 rejeições por saldo, 6422 ocorreram ANTES da avaliação econômica (EV desconhecido). ZERO oportunidades de EV positivo foram bloqueadas por capital. O motor SATURA ~US$400. Não há capacidade produtiva de capital adicional; o gargalo é oferta de oportunidade + falta de 2º motor."
+      "nota": "CORREÇÃO v1.1: das 0 rejeições por saldo, 0 ocorreram ANTES da avaliação econômica (EV desconhecido). ZERO oportunidades de EV positivo foram bloqueadas por capital. O motor SATURA ~US$300. Não há capacidade produtiva de capital adicional; o gargalo é oferta de oportunidade + falta de 2º motor."
     },
     "diversificacao": {
       "id": "diversificacao",
@@ -122,8 +122,8 @@
         "fontesLucrativas": [
           {
             "motor": "champion-funding",
-            "pnlLiquido": 9.9825,
-            "amostra": 34
+            "pnlLiquido": 12.7762,
+            "amostra": 37
           },
           {
             "motor": "settlement-capture",

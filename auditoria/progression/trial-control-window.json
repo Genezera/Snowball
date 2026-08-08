@@ -1,0 +1,163 @@
+{
+  "schema": "snowball.trial-control-window.v1_2",
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
+  "parametros": {
+    "trial": {
+      "exchanges": [
+        "bitget",
+        "bybit"
+      ],
+      "capital": 200
+    },
+    "control": {
+      "exchanges": [
+        "binanceusdm",
+        "bybit",
+        "okx",
+        "gate",
+        "bitget",
+        "bingx"
+      ],
+      "capital": 600
+    },
+    "reserva": 0.3,
+    "alavancagem": 5,
+    "maxPosicoes": 3
+  },
+  "natureza": "paper/shadow — contabilidade própria, nenhuma ordem, nenhum saldo movido. Roda em paralelo ao Champion de 6 exchanges (observador).",
+  "item3_trialBitgetBybit": {
+    "capitalInicial": 200,
+    "funding": 7.5726,
+    "custos": 1.5288,
+    "pnlLiquido": 6.0438,
+    "capitalFinal": 206.0438,
+    "retornoPct": 3.02,
+    "posicoes": 6,
+    "perdidas": 0,
+    "minOrder": 0,
+    "drawdownPct": 0,
+    "feeToGross": 0.2019,
+    "capitalBloqueadoPicoUSD": 57.12,
+    "capitalOciosoUSD": 82.88,
+    "concentracaoTop1": 0.6528,
+    "capitalHoras": 1883.33,
+    "reconciliacao": {
+      "calculado": 206.0438,
+      "identidade": "capitalInicial + funding − custos",
+      "reconcilia": true
+    }
+  },
+  "item4_controle6ex": {
+    "capitalInicial": 600,
+    "funding": 23.3693,
+    "custos": 10.0722,
+    "pnlLiquido": 13.2971,
+    "capitalFinal": 613.2971,
+    "retornoPct": 2.22,
+    "posicoes": 26,
+    "perdidas": 0,
+    "minOrder": 0,
+    "drawdownPct": 8.93,
+    "feeToGross": 0.431,
+    "capitalBloqueadoPicoUSD": 176.9,
+    "capitalOciosoUSD": 243.1,
+    "concentracaoTop1": 0.2487,
+    "capitalHoras": 7218.03,
+    "reconciliacao": {
+      "calculado": 613.2971,
+      "identidade": "capitalInicial + funding − custos",
+      "reconcilia": true
+    },
+    "reconciliacaoComChampion": {
+      "championNet": 12.7762,
+      "controlePnl": 13.2971,
+      "diferenca": 0.5209,
+      "tolerancia": 1,
+      "reconcilia": true,
+      "nota": "Diferença vem do funding acumulado das posições abertas ainda não líquido do custo de fechamento."
+    }
+  },
+  "item5_commonWindow": {
+    "janela": {
+      "inicio": "2026-08-04T01:44:39.037Z",
+      "fim": "2026-08-08T20:05:50.479Z",
+      "mesma": true
+    },
+    "comparacao": {
+      "pnlAbsolutoUSD": {
+        "trial": 6.0438,
+        "control": 13.2971
+      },
+      "retornoPct": {
+        "trial": 3.02,
+        "control": 2.22
+      },
+      "drawdownPct": {
+        "trial": 0,
+        "control": 8.93
+      },
+      "feeToGross": {
+        "trial": 0.2019,
+        "control": 0.431
+      },
+      "oportunidades": {
+        "trial": 6,
+        "control": 26
+      },
+      "capitalHoras": {
+        "trial": 1883.33,
+        "control": 7218.03
+      },
+      "capitalOciosoUSD": {
+        "trial": 82.88,
+        "control": 243.1
+      },
+      "concentracaoTop1": {
+        "trial": 0.6528,
+        "control": 0.2487
+      },
+      "ordensMinimasBloqueadas": {
+        "trial": 0,
+        "control": 0
+      },
+      "funding": {
+        "trial": 7.5726,
+        "control": 23.3693
+      },
+      "custos": {
+        "trial": 1.5288,
+        "control": 10.0722
+      },
+      "estabilidade": {
+        "falhasDeExchangeObservadas": 0,
+        "nota": "sem falhas de exchange registradas na janela (custódia)"
+      },
+      "retornoMarginal2exVs6ex": 7.2533
+    }
+  },
+  "item6_gateJanelasRegimes": {
+    "duasJanelasCronologicas": false,
+    "doisRegimes": false,
+    "controlFielAoChampion": true,
+    "custos2xPositivo": {
+      "trial": true,
+      "control": true,
+      "valores": {
+        "trial": 4.515,
+        "control": 3.2249
+      }
+    },
+    "nenhumaOperacaoDominante": false,
+    "semFalhaDeExchange": true,
+    "amostraMinima": {
+      "minimo": 30,
+      "trial": 6,
+      "control": 26,
+      "atende": false
+    },
+    "LIBERADO": false,
+    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.5209, tol 1)."
+  },
+  "honestidade": "observed (posições/funding/custos do Champion) + replay (sandbox reconciliado). Trial enviesado p/ o par que o Champion escolheu; 1 janela/1 regime → decisão NÃO liberada."
+}

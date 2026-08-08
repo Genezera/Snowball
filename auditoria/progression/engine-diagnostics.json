@@ -1,7 +1,7 @@
 {
   "schema": "snowball.engine-diagnostics.v1",
-  "geradoEm": "2026-08-08T13:59:08.002Z",
-  "asOfMs": 1786197548002,
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
   "momentum": {
     "estado": "DATA_COLLECTION (live-paper)",
     "capital": 198.8203,
