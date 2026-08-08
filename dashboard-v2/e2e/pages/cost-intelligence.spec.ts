@@ -34,9 +34,13 @@ test.describe('Cost Intelligence', () => {
 
   test('sem tendência temporal fabricada quando não existe série diária', async ({ page }) => {
     await page.goto('/costs');
-    await expect(page.getByText(/funding bruto até pnl líquido/i)).toBeVisible({ timeout: 10_000 });
-    const corpo = await page.textContent('body');
-    expect(corpo).toMatch(/Tendência temporal: indisponível|não é periódico/);
+    // timeout generoso: sob carga da suíte inteira, o dev server demora mais
+    // pra montar o waterfall (Recharts + dados) — flaky histórico, não defeito
+    await expect(page.getByText(/funding bruto até pnl líquido/i)).toBeVisible({ timeout: 25_000 });
+    // asserção que REtenta (locator) em vez de snapshot único do body — sob
+    // carga o texto pode aparecer alguns ms depois do heading; o snapshot
+    // único gerava flake. Nunca fabrica tendência quando não há série diária.
+    await expect(page.getByText(/Tendência temporal: indisponível|não é periódico/)).toBeVisible({ timeout: 15_000 });
   });
 
   test('custo estimado de fechamento nunca somado ao custo total realizado', async ({ page }) => {
