@@ -3,30 +3,30 @@
   "geradoEm": "2026-08-08T21:02:36.233Z",
   "asOfMs": 1786222956233,
   "item1_identidadeCommonWindow": {
-    "snapshotId": "108d18978feeeaa3",
-    "lastEventId": "1786223562961:leitura:",
-    "lastCycleId": "CRO/USDT:USDT|bybit|bitget",
+    "snapshotId": "6bdf09ecef10054f",
+    "lastEventId": "1786224785605:leitura:",
+    "lastCycleId": "CATI/USDT:USDT|bybit|bingx",
     "configEpochId": "epoch-1",
     "porProcesso": [
       {
         "label": "trial",
-        "startObservationTs": 1786223370001
+        "startObservationTs": 1786224648034
       },
       {
         "label": "control",
-        "startObservationTs": 1786223370677
+        "startObservationTs": 1786224648587
       },
       {
         "label": "observer-max3",
-        "startObservationTs": 1786223371389
+        "startObservationTs": 1786224649161
       },
       {
         "label": "observer-max4",
-        "startObservationTs": 1786223371928
+        "startObservationTs": 1786224649728
       },
       {
         "label": "observer-max5",
-        "startObservationTs": 1786223372505
+        "startObservationTs": 1786224650291
       }
     ],
     "fontesIniciaisIguais": true,
@@ -42,19 +42,19 @@
       "label": "trial",
       "vivo": true,
       "maxPos": 3,
-      "heartbeatAgeS": 103,
-      "restarts": 2,
+      "heartbeatAgeS": 105,
+      "restarts": 3,
       "uptimeMin": 7,
-      "startObservationTs": 1786223370001,
-      "eventosAvaliados": 9,
-      "posicoesAbertas": 2,
+      "startObservationTs": 1786224648034,
+      "eventosAvaliados": 4,
+      "posicoesAbertas": 1,
       "posicoesFechadas": 0,
-      "pnlLiquido": -0.28,
+      "pnlLiquido": -0.14,
       "funding": 0,
-      "custos": 0.28,
+      "custos": 0.14,
       "saldosPorExchange": {
-        "bitget": 60,
-        "bybit": 60
+        "bitget": 80,
+        "bybit": 80
       },
       "bloqueiosLocais": {
         "aggregateCapitalBlocked": 0,
@@ -62,19 +62,19 @@
         "reserveBlocked": 0,
         "maxPositionsBlocked": 0,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 7
+        "evNaoPositivo": 3
       },
-      "diarioLinhas": 6,
-      "ledgerLinhas": 6
+      "diarioLinhas": 7,
+      "ledgerLinhas": 7
     },
     {
       "label": "control",
       "vivo": true,
       "maxPos": 3,
-      "heartbeatAgeS": 103,
-      "restarts": 2,
+      "heartbeatAgeS": 105,
+      "restarts": 3,
       "uptimeMin": 7,
-      "startObservationTs": 1786223370677,
+      "startObservationTs": 1786224648587,
       "eventosAvaliados": 135,
       "posicoesAbertas": 3,
       "posicoesFechadas": 0,
@@ -93,21 +93,21 @@
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 10,
+        "maxPositionsBlocked": 9,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 122
+        "evNaoPositivo": 123
       },
-      "diarioLinhas": 60,
-      "ledgerLinhas": 8
+      "diarioLinhas": 99,
+      "ledgerLinhas": 11
     },
     {
       "label": "observer-max3",
       "vivo": true,
       "maxPos": 3,
-      "heartbeatAgeS": 102,
-      "restarts": 2,
+      "heartbeatAgeS": 104,
+      "restarts": 3,
       "uptimeMin": 7,
-      "startObservationTs": 1786223371389,
+      "startObservationTs": 1786224649161,
       "eventosAvaliados": 135,
       "posicoesAbertas": 3,
       "posicoesFechadas": 0,
@@ -126,21 +126,21 @@
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 10,
+        "maxPositionsBlocked": 9,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 122
+        "evNaoPositivo": 123
       },
-      "diarioLinhas": 36,
-      "ledgerLinhas": 6
+      "diarioLinhas": 75,
+      "ledgerLinhas": 9
     },
     {
       "label": "observer-max4",
       "vivo": true,
       "maxPos": 4,
-      "heartbeatAgeS": 101,
-      "restarts": 2,
+      "heartbeatAgeS": 103,
+      "restarts": 3,
       "uptimeMin": 7,
-      "startObservationTs": 1786223371928,
+      "startObservationTs": 1786224649728,
       "eventosAvaliados": 135,
       "posicoesAbertas": 4,
       "posicoesFechadas": 0,
@@ -159,21 +159,21 @@
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 9,
+        "maxPositionsBlocked": 8,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 122
+        "evNaoPositivo": 123
       },
-      "diarioLinhas": 36,
-      "ledgerLinhas": 8
+      "diarioLinhas": 74,
+      "ledgerLinhas": 12
     },
     {
       "label": "observer-max5",
       "vivo": true,
       "maxPos": 5,
-      "heartbeatAgeS": 101,
-      "restarts": 2,
+      "heartbeatAgeS": 141,
+      "restarts": 4,
       "uptimeMin": 7,
-      "startObservationTs": 1786223372505,
+      "startObservationTs": 1786224650291,
       "eventosAvaliados": 135,
       "posicoesAbertas": 5,
       "posicoesFechadas": 0,
@@ -181,10 +181,10 @@
       "funding": 0,
       "custos": 0.7,
       "saldosPorExchange": {
-        "binanceusdm": 80,
+        "binanceusdm": 60,
         "bybit": 20,
         "okx": 100,
-        "gate": 80,
+        "gate": 100,
         "bitget": 80,
         "bingx": 40
       },
@@ -192,12 +192,12 @@
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 2,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 6,
+        "maxPositionsBlocked": 5,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 122
+        "evNaoPositivo": 123
       },
-      "diarioLinhas": 35,
-      "ledgerLinhas": 10
+      "diarioLinhas": 71,
+      "ledgerLinhas": 15
     }
   ],
   "integridade": {
@@ -247,14 +247,18 @@
     ]
   },
   "episodios": {
-    "allEpisodes": 18458,
-    "completeEpisodes": 18293,
+    "allEpisodes": 18476,
+    "completeEpisodes": 18319,
     "survivedPayback": 0
   },
   "item12_gate": {
+    "checkpointsAtomicosComprovados": true,
+    "crashSuiteCompleta": true,
+    "commonWatermarkValido": true,
     "forwardEpochValido": true,
     "sourceHashesIdenticos": true,
     "forwardSoakCompleto": false,
+    "controlEconomicFidelity": false,
     "posicoesForwardFechadas": {
       "valor": 0,
       "minimo": 30,
@@ -267,7 +271,7 @@
     "concentracaoAceitavel": "a medir",
     "zeroFalhaCritica": true,
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — epochValido=true, sourceHashesIdenticos=true, soakCompleto=false, 0/30 fechadas, 0/2 janelas, 0/2 regimes. Control fiel: true. NÃO recomendar Bitget+Bybit."
+    "veredito": "BLOQUEADO — checkpointsAtomicos=OK, crashSuite=OK(7/7), watermark=true, epoch=true, hashes=true, soakCompleto=false, economicFidelity=false (0/30 fechadas), 0/2 janelas/regimes. NÃO recomendar Bitget+Bybit."
   },
   "honestidade": "live-paper forward. Números mínimos no início (processos recém-supervisionados). Nenhuma ordem; nenhum saldo real."
 }

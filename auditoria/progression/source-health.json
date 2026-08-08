@@ -1,0 +1,35 @@
+{
+  "schema": "snowball.source-health.v1_6",
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
+  "arquivo": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
+  "arquivoBytes": 14720921,
+  "lastModifiedISO": "2026-08-08T21:29:11.873Z",
+  "idadeArquivoS": 294,
+  "scanIntervalEsperadoS": 300,
+  "coletorHeartbeat": {
+    "ok": true,
+    "chaves": [
+      "ultimoTsHistorico",
+      "ciclosArquivados",
+      "ultimaCustodiaArquivadaEm",
+      "totalObservacoes",
+      "totalCiclos",
+      "totalCustodia"
+    ]
+  },
+  "classificacaoGlobal": "NO_NEW_DATA_YET",
+  "classesPossiveis": [
+    "NO_NEW_DATA_YET",
+    "COLLECTOR_DOWNTIME",
+    "EXCHANGE_UNAVAILABLE",
+    "OPPORTUNITY_ABSENT",
+    "SCANNER_FILTERED"
+  ],
+  "porEpisodio": {
+    "OPPORTUNITY_ABSENT": "feed ativo mas a chave sumiu (detectado no forward-lab por ciclo)",
+    "SCANNER_FILTERED": "obs presente mas filtrada por EV/payback antes do saldo",
+    "EXCHANGE_UNAVAILABLE": "saúde por exchange via captura/custódia (framework); parcial nesta fase"
+  },
+  "nota": "Batch vazio num ciclo NÃO prova indisponibilidade — só COLLECTOR_DOWNTIME quando o arquivo não é modificado por > 4× o scan interval. Distingue-se ausência global (fonte) de ausência de oportunidade (episódio)."
+}

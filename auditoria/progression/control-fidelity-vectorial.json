@@ -8,29 +8,29 @@
     "identidadesInternas": [
       {
         "identidade": "capital = capitalInicial + funding − custos",
-        "valor": 612.8255,
-        "esperado": 612.8255,
+        "valor": 612.7528,
+        "esperado": 612.7528,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "Σ saldosPorExchange = capital",
-        "valor": 612.8255,
-        "esperado": 612.8255,
+        "valor": 612.7528,
+        "esperado": 612.7528,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "equityMark = capitalRealizado + pnlMark",
-        "valor": 613.8305,
-        "esperado": 613.8305,
+        "valor": 614.1803,
+        "esperado": 614.1803,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "equityLiquidacao = capitalRealizado + pnlExec − custoFecho",
-        "valor": 612.879,
-        "esperado": 612.879,
+        "valor": 612.8673,
+        "esperado": 612.8673,
         "diferenca": 0,
         "ok": true
       }
@@ -40,6 +40,26 @@
   },
   "controlForwardFidelity": {
     "nota": "Reconstrução do Control (por instância/positionId) vs Champion, evento a evento, cada definição na SUA base ≤US$0,01."
+  },
+  "fidelidade3Camadas": {
+    "ChampionAccountingConsistency": {
+      "camada": 1,
+      "ok": true,
+      "nota": "identidades internas do Champion"
+    },
+    "ControlSourceFidelity": {
+      "camada": 2,
+      "ok": false,
+      "watermarkStatus": null,
+      "nota": "mesmos eventos + hash de fonte (via common-watermark)"
+    },
+    "ControlEconomicFidelity": {
+      "camada": 3,
+      "definicoesReconciliamAgora": true,
+      "aprovadoAposEventosForwardReais": false,
+      "fechadasForward": 0,
+      "nota": "entradas/positionIds/exchanges/notional/custos/funding/fechamentos/saldos/realized/marked/executable PnL ≤US$0,01. APROVAÇÃO só após ≥30 eventos econômicos FORWARD reais (hoje 0)."
+    }
   },
   "nota": "Cada definição reconcilia na SUA base (realized vs realized, marked vs marked, executable vs executable). NÃO se usa resíduo p/ compensar bases diferentes: marked e realized são coisas distintas e cada uma bate com a sua fonte no Champion.",
   "dimensoesMonetarias": [
@@ -54,48 +74,48 @@
     {
       "definicao": "custos",
       "base": "soma de custos de eventos",
-      "control": 10.7043,
-      "champion": 10.7043,
+      "control": 10.777,
+      "champion": 10.777,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "capital",
       "base": "capitalInicial + funding − custos",
-      "control": 612.8255,
-      "champion": 612.8255,
+      "control": 612.7528,
+      "champion": 612.7528,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "realized PnL",
       "base": "capital − capitalInicial",
-      "control": 12.8255,
-      "champion": 12.8255,
+      "control": 12.7528,
+      "champion": 12.7528,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "marked PnL",
       "base": "equityMark − capitalRealizado",
-      "control": 1.005,
-      "champion": 1.005,
+      "control": 1.4275,
+      "champion": 1.4275,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "executable PnL",
       "base": "equityLiquidacao − capitalRealizado + custoEstimadoFechamentoTotal",
-      "control": 0.9646,
-      "champion": 0.9646,
+      "control": 1.1868,
+      "champion": 1.1868,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "saldos por exchange",
       "base": "soma dos saldos por exchange = capital",
-      "control": 612.8255,
-      "champion": 612.8255,
+      "control": 612.7528,
+      "champion": 612.7528,
       "diferenca": 0,
       "reconcilia": true
     }

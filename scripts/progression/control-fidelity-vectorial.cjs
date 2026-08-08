@@ -65,6 +65,17 @@ function build() {
     toleranciaUSD: 0.01, semCategoriaResidual: true,
     championAccountingConsistency: { identidadesInternas: cc, consistente: championConsistente, nota: 'Identidades INTERNAS do Champion (não comparação com o Control) — a base contábil do Champion fecha consigo mesma.' },
     controlForwardFidelity: { nota: 'Reconstrução do Control (por instância/positionId) vs Champion, evento a evento, cada definição na SUA base ≤US$0,01.' },
+    // v1.6 item 11: TRÊS camadas explícitas
+    fidelidade3Camadas: (() => {
+      const wm = L.rd(L.P.outDir + '/common-watermark.json', null);
+      const forwardControl = L.rd(L.ROOT + '/auditoria/progression/forward/control/estado.json', null);
+      const fechadasForward = forwardControl && forwardControl.contadores ? forwardControl.contadores.fechadas : 0;
+      return {
+        ChampionAccountingConsistency: { camada: 1, ok: championConsistente, nota: 'identidades internas do Champion' },
+        ControlSourceFidelity: { camada: 2, ok: !!(wm && (wm.status === 'OK_COMMON_WATERMARK' || wm.status === 'PROCESS_LAGGING')), watermarkStatus: wm ? wm.status : null, nota: 'mesmos eventos + hash de fonte (via common-watermark)' },
+        ControlEconomicFidelity: { camada: 3, definicoesReconciliamAgora: todasMonetariasOk, aprovadoAposEventosForwardReais: fechadasForward >= 30, fechadasForward, nota: 'entradas/positionIds/exchanges/notional/custos/funding/fechamentos/saldos/realized/marked/executable PnL ≤US$0,01. APROVAÇÃO só após ≥30 eventos econômicos FORWARD reais (hoje ' + fechadasForward + ').' },
+      };
+    })(),
     nota: 'Cada definição reconcilia na SUA base (realized vs realized, marked vs marked, executable vs executable). NÃO se usa resíduo p/ compensar bases diferentes: marked e realized são coisas distintas e cada uma bate com a sua fonte no Champion.',
     dimensoesMonetarias: dim, dimensoesNaoMonetarias: dimNaoMonetarias,
     fundingPosicoesAbertas: L.r4(fundingAbertas),

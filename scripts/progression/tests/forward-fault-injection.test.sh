@@ -43,17 +43,16 @@ rm -f "$OBS"; sleep 1; echo "{\"ts\":$((T+2)),\"k\":\"EEE/USDT:USDT|okx|gate\",\
 run; st4=$(g sourceStatus)
 { [ "$st4" = "SOURCE_IDENTITY_CHANGED" ] || [ "$st4" = "SOURCE_TRUNCATED" ]; } && ok "rotação/identidade detectada ($st4), suspende (não reinicia do zero)" || bad "não detectou rotação ($st4)"
 
-# T5: DETERMINISMO do hash final — repetir a mesma sequência do zero dá o MESMO hash
-D2="auditoria/progression/forward/test-fault2"; OBS2="$TMP/o2.jsonl"; rm -rf "$D2"; mkdir -p "$D2"
-printf '%s\n%s\n%s\n' \
+# T5: DETERMINISMO — o hash é FÍSICO (sourceFileId+byteStart+byteEnd+lineHash), então o
+# MESMO arquivo processado 2x (estado fresco) dá o MESMO hash.
+OBS3="$TMP/o3.jsonl"; printf '%s\n%s\n' \
  "{\"ts\":$T,\"k\":\"AAA/USDT:USDT|bitget|bybit\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1000}" \
- "{\"ts\":$T,\"k\":\"BBB/USDT:USDT|okx|gate\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1000}" \
- "{\"ts\":$((T-30000)),\"k\":\"CCC/USDT:USDT|bybit|okx\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1000}" > "$OBS2"
-rm -f "$D2/lock.json"; FORWARD_OBS="$OBS2" FORWARD_EPOCH="$EP" node "$PROC" --mode control --label test-fault2 --once >/dev/null 2>&1
-hash2=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).accumulatedEventHash)}catch(e){console.log("ERR")}' "$D2/estado.json")
-[ -n "$hashApos3" ] && [ "$hash2" = "$hashApos3" ] && ok "hash final DETERMINÍSTICO (mesma sequência => mesmo hash)" || bad "hash não-determinístico ($hashApos3 vs $hash2)"
+ "{\"ts\":$((T+1)),\"k\":\"BBB/USDT:USDT|okx|gate\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1000}" > "$OBS3"
+hh(){ local d="auditoria/progression/forward/$1"; rm -rf "$d"; mkdir -p "$d"; rm -f "$d/lock.json"; FORWARD_OBS="$OBS3" FORWARD_EPOCH="$EP" node "$PROC" --mode control --label "$1" --once >/dev/null 2>&1; node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).accumulatedEventHash)}catch(e){console.log("ERR")}' "$d/estado.json"; }
+h1=$(hh det1); h2=$(hh det2)
+[ -n "$h1" ] && [ "$h1" = "$h2" ] && ok "hash DETERMINÍSTICO (mesmo arquivo => mesmo hash físico: $h1)" || bad "hash não-determinístico ($h1 vs $h2)"
 
-rm -rf "$TMP" "$D" "$D2"
+rm -rf "$TMP" "$D" auditoria/progression/forward/det1 auditoria/progression/forward/det2
 echo "===================================="
 echo "RESULTADO fault injection: $PASS passaram, $FAIL falharam"
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1

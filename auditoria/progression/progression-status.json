@@ -13,12 +13,12 @@
     ]
   },
   "proximoDesbloqueio": "N2 Eficiência — BLOCKED",
-  "capitalAtual": 612.8255,
+  "capitalAtual": 612.7528,
   "capitalNecessarioProximoNivelEvidencia": 0,
   "capitalNecessarioNota": "Capital do próximo nível JÁ atingido — o bloqueio é EVIDÊNCIA (gate/amostra), não dinheiro.",
   "fronteiraCapital": {
     "proximoNivelPorCapital": 4,
-    "gapUSD": 187.17,
+    "gapUSD": 187.25,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
   "niveisTriplos": {
@@ -27,12 +27,12 @@
     "operationalLevel": 1
   },
   "chefesPorEstado": {
-    "PROVISIONALLY_DEFEATED": [
-      "custos",
-      "concentracao"
-    ],
     "PASSED_CURRENT_WINDOW": [
+      "custos",
       "sobrevivencia"
+    ],
+    "PROVISIONALLY_DEFEATED": [
+      "concentracao"
     ],
     "ACTIVE": [
       "capacidade",
@@ -44,8 +44,8 @@
     "diversificacao"
   ],
   "chefesProvisorios": [
-    "sobrevivencia",
     "custos",
+    "sobrevivencia",
     "concentracao"
   ],
   "chefesDerrotados": [],
@@ -72,7 +72,7 @@
     "champion-funding"
   ],
   "contribuicaoPnL": {
-    "champion-funding": 12.8255,
+    "champion-funding": 12.7528,
     "outros": 0,
     "nota": "100% do lucro vem do funding; nenhum 2º motor comprovado."
   },
@@ -83,7 +83,7 @@
   },
   "progressoGates": {
     "reconciliacao": true,
-    "chefeCustos": "PROVISIONALLY_DEFEATED",
+    "chefeCustos": "PASSED_CURRENT_WINDOW",
     "chefeSobrevivencia": "PASSED_CURRENT_WINDOW",
     "chefeConcentracao": "PROVISIONALLY_DEFEATED",
     "chefeCapacidade": "ACTIVE",
@@ -100,7 +100,7 @@
   "capacidade": {
     "veredito": "CAPACIDADE PRODUTIVA NÃO COMPROVADA",
     "saturacaoUSD": 300,
-    "picoMargemUSD": 176.9
+    "picoMargemUSD": 190.13
   },
   "exchangeReplay2ex": {
     "melhorPar": {
@@ -116,15 +116,15 @@
   },
   "crescimento": {
     "trajetoriaObservada": {
-      "netObservado": 12.8255,
-      "diasObservados": 5.38,
+      "netObservado": 12.7528,
+      "diasObservados": 5.39,
       "maxDrawdownPct": 0.43
     },
     "bootstrapPronto": false,
     "intervaloCenarios": {
-      "min": -3.7612,
-      "max": 12.8255,
-      "observado": 12.8255
+      "min": -3.9066,
+      "max": 12.7528,
+      "observado": 12.7528
     },
     "projecaoTemporal": null
   },

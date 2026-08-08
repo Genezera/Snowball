@@ -15,12 +15,12 @@
     "notaDefeated": "DEFEATED exige ≥2 janelas E ≥2 regimes — inatingível com 1 janela. Máximo atual: PROVISIONALLY_DEFEATED."
   },
   "resumo": {
-    "PROVISIONALLY_DEFEATED": [
-      "custos",
-      "concentracao"
-    ],
     "PASSED_CURRENT_WINDOW": [
+      "custos",
       "sobrevivencia"
+    ],
+    "PROVISIONALLY_DEFEATED": [
+      "concentracao"
     ],
     "ACTIVE": [
       "capacidade",
@@ -32,35 +32,36 @@
       "id": "custos",
       "nome": "Chefe dos Custos",
       "metricas": {
-        "feeToGross": 0.4549,
+        "feeToGross": 0.458,
         "limiteFeeToGross": 0.6,
-        "netObservado": 12.8255,
-        "netComCustos2x": 2.1213,
+        "netObservado": 12.7528,
+        "netComCustos2x": 1.9758,
         "funding": 23.5298,
-        "custos": 10.7043
+        "custos": 10.777
       },
       "criterios": {
         "feeToGrossAbaixoLimite": true,
         "lucroPositivoComCustos2x": true,
         "custosNaoConsomemMaioria": true
       },
-      "status": "PROVISIONALLY_DEFEATED"
+      "status": "PASSED_CURRENT_WINDOW",
+      "nota": "Sobrevive a custos 2×, porém com folga PEQUENA (+1.9758). Margem fina."
     },
     "sobrevivencia": {
       "id": "sobrevivencia",
       "nome": "Chefe da Sobrevivência",
       "metricas": {
         "drawdownMaxPct": 0.43,
-        "distanciaLiquidacaoMin": 0.17886341474753864,
+        "distanciaLiquidacaoMin": 0.17552033225845928,
         "distMinInfo": {
           "symbol": "1000CAT/USDT:USDT",
-          "leg": "long",
-          "distancia": 0.1789
+          "leg": "short",
+          "distancia": 0.1755
         },
         "capitalFloor": 600,
-        "capitalAtual": 612.8255,
+        "capitalAtual": 612.7528,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 612.8790450093637
+        "equityExecutavel": 612.8673213032944
       },
       "criterios": {
         "drawdownControlado": true,
@@ -122,7 +123,7 @@
         "fontesLucrativas": [
           {
             "motor": "champion-funding",
-            "pnlLiquido": 12.8255,
+            "pnlLiquido": 12.7528,
             "amostra": 38
           },
           {

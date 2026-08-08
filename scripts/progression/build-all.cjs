@@ -31,8 +31,11 @@ const ordem = [
   'opportunity-episodes.cjs',   // v1.4 Partes 2,3,4,5 (episódios/censura/no-lookahead/funil)
   'control-fidelity-vectorial.cjs', // v1.4/1.5 (fidelidade por definição + consistência interna)
   'gap-sensitivity.cjs',        // v1.5 Parte 9 (sensibilidade do gap 15/30/45/60)
+  'gap-coverage.cjs',           // v1.6 Parte 12 (gap sensitivity corrigida por cobertura)
   'common-window-validator.cjs', // v1.5 Parte 7 (validator dos 5 processos)
-  'relatorio-forward.cjs',      // v1.4/1.5 (identidade/capital local/diário/gate estendido)
+  'common-watermark.cjs',       // v1.6 Partes 5,6 (watermark comum + snapshots)
+  'source-health.cjs',          // v1.6 Parte 7 (modelo de saúde da fonte)
+  'relatorio-forward.cjs',      // v1.4/1.5/1.6 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
 let ok = 0;

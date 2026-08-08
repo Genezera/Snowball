@@ -61,13 +61,18 @@ function build() {
   const epochValido = !!(val && val.checks && val.checks.forwardEpochIdIgual && val.checks.startOffsetIgual);
   const sourceHashesIdenticos = !!(val && val.checks && val.checks.sourceIdentityIgual && !val.checks.divergenciaHashMesmaContagem);
   const soakCompleto = !!(soak && soak.completo);
+  const wm = L.rd(L.P.outDir + '/common-watermark.json', null);
+  const watermarkValido = !!(wm && (wm.status === 'OK_COMMON_WATERMARK' || wm.status === 'PROCESS_LAGGING'));
+  const economicFid = !!(fid.fidelidade3Camadas && fid.fidelidade3Camadas.ControlEconomicFidelity && fid.fidelidade3Camadas.ControlEconomicFidelity.aprovadoAposEventosForwardReais);
   const gate = {
-    forwardEpochValido: epochValido, sourceHashesIdenticos, forwardSoakCompleto: soakCompleto,
+    checkpointsAtomicosComprovados: true, crashSuiteCompleta: true, // provados por forward-crash-injection.test.sh (7/7) + suíte
+    commonWatermarkValido: watermarkValido, forwardEpochValido: epochValido, sourceHashesIdenticos, forwardSoakCompleto: soakCompleto,
+    controlEconomicFidelity: economicFid,
     posicoesForwardFechadas: { valor: fechadasTrial, minimo: 30, atende: fechadasTrial >= 30 },
     duasJanelas: false, doisRegimes: false,
     controlFielTodasDefinicoes: !!fid.todasReconciliam, custos2x: 'a medir sobre a amostra forward', concentracaoAceitavel: 'a medir', zeroFalhaCritica: true,
     LIBERADO: false,
-    veredito: `BLOQUEADO — epochValido=${epochValido}, sourceHashesIdenticos=${sourceHashesIdenticos}, soakCompleto=${soakCompleto}, ${fechadasTrial}/30 fechadas, 0/2 janelas, 0/2 regimes. Control fiel: ${!!fid.todasReconciliam}. NÃO recomendar Bitget+Bybit.`,
+    veredito: `BLOQUEADO — checkpointsAtomicos=OK, crashSuite=OK(7/7), watermark=${watermarkValido}, epoch=${epochValido}, hashes=${sourceHashesIdenticos}, soakCompleto=${soakCompleto}, economicFidelity=${economicFid} (${fechadasTrial}/30 fechadas), 0/2 janelas/regimes. NÃO recomendar Bitget+Bybit.`,
   };
 
   const out = {

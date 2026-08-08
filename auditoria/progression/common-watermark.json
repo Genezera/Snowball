@@ -1,0 +1,103 @@
+{
+  "schema": "snowball.common-watermark.v1_6",
+  "geradoEm": "2026-08-08T21:02:36.233Z",
+  "asOfMs": 1786222956233,
+  "minimumCommittedOffset": 14720921,
+  "minimumCommittedEventCount": 0,
+  "commonAccumulatedHash": "",
+  "commonLastEventIdHashPrefix": "",
+  "hashesConcordamNoWatermark": true,
+  "spreadEventCount": 0,
+  "status": "OK_COMMON_WATERMARK",
+  "economiaNoWatermark": [
+    {
+      "label": "trial",
+      "eventCount": 0,
+      "capital": 200,
+      "pnl": 0,
+      "funding": 0,
+      "custos": 0,
+      "posicoes": 0,
+      "stateHash": "1b941cf881bc2c37220bf819",
+      "saldos": {
+        "bitget": 100,
+        "bybit": 100
+      }
+    },
+    {
+      "label": "control",
+      "eventCount": 0,
+      "capital": 600,
+      "pnl": 0,
+      "funding": 0,
+      "custos": 0,
+      "posicoes": 0,
+      "stateHash": "71e55c5df559f3cbf1583a24",
+      "saldos": {
+        "binanceusdm": 100,
+        "bybit": 100,
+        "okx": 100,
+        "gate": 100,
+        "bitget": 100,
+        "bingx": 100
+      }
+    },
+    {
+      "label": "observer-max3",
+      "eventCount": 0,
+      "capital": 600,
+      "pnl": 0,
+      "funding": 0,
+      "custos": 0,
+      "posicoes": 0,
+      "stateHash": "71e55c5df559f3cbf1583a24",
+      "saldos": {
+        "binanceusdm": 100,
+        "bybit": 100,
+        "okx": 100,
+        "gate": 100,
+        "bitget": 100,
+        "bingx": 100
+      }
+    },
+    {
+      "label": "observer-max4",
+      "eventCount": 0,
+      "capital": 600,
+      "pnl": 0,
+      "funding": 0,
+      "custos": 0,
+      "posicoes": 0,
+      "stateHash": "71e55c5df559f3cbf1583a24",
+      "saldos": {
+        "binanceusdm": 100,
+        "bybit": 100,
+        "okx": 100,
+        "gate": 100,
+        "bitget": 100,
+        "bingx": 100
+      }
+    },
+    {
+      "label": "observer-max5",
+      "eventCount": 0,
+      "capital": 600,
+      "pnl": 0,
+      "funding": 0,
+      "custos": 0,
+      "posicoes": 0,
+      "stateHash": "71e55c5df559f3cbf1583a24",
+      "saldos": {
+        "binanceusdm": 100,
+        "bybit": 100,
+        "okx": 100,
+        "gate": 100,
+        "bitget": 100,
+        "bingx": 100
+      }
+    }
+  ],
+  "controlVsObserverMax3Identico": true,
+  "nota": "Todos no mesmo watermark; hashes concordam.",
+  "honestidade": "A comparação econômica dos 5 usa SOMENTE o estado materializado no watermark comum, não o último estado de cada um."
+}

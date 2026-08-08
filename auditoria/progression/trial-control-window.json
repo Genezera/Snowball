@@ -60,19 +60,19 @@
     "minOrder": 0,
     "drawdownPct": 8.93,
     "feeToGross": 0.4336,
-    "capitalBloqueadoPicoUSD": 176.9,
-    "capitalOciosoUSD": 243.1,
+    "capitalBloqueadoPicoUSD": 190.13,
+    "capitalOciosoUSD": 229.87,
     "concentracaoTop1": 0.2533,
-    "capitalHoras": 7199.97,
+    "capitalHoras": 7202.12,
     "reconciliacao": {
       "calculado": 613.3265,
       "identidade": "capitalInicial + funding − custos",
       "reconcilia": true
     },
     "reconciliacaoComChampion": {
-      "championNet": 12.8255,
+      "championNet": 12.7528,
       "controlePnl": 13.3265,
-      "diferenca": 0.501,
+      "diferenca": 0.5737,
       "tolerancia": 1,
       "reconcilia": true,
       "nota": "Diferença vem do funding acumulado das posições abertas ainda não líquido do custo de fechamento."
@@ -107,11 +107,11 @@
       },
       "capitalHoras": {
         "trial": 1721.18,
-        "control": 7199.97
+        "control": 7202.12
       },
       "capitalOciosoUSD": {
         "trial": 82.88,
-        "control": 243.1
+        "control": 229.87
       },
       "concentracaoTop1": {
         "trial": 0.6672,
@@ -157,7 +157,7 @@
       "atende": false
     },
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.501, tol 1)."
+    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.5737, tol 1)."
   },
   "honestidade": "observed (posições/funding/custos do Champion) + replay (sandbox reconciliado). Trial enviesado p/ o par que o Champion escolheu; 1 janela/1 regime → decisão NÃO liberada."
 }

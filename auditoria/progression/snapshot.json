@@ -1,17 +1,17 @@
 {
   "schema": "snowball.snapshot.v1_3",
-  "snapshotId": "108d18978feeeaa3",
+  "snapshotId": "6bdf09ecef10054f",
   "tsInicial": 1785758671297,
   "tsInicialISO": "2026-08-03T12:04:31.297Z",
-  "tsFinal": 1786223562961,
-  "tsFinalISO": "2026-08-08T21:12:42.961Z",
-  "ultimoEventId": "1786223562961:leitura:",
-  "ultimoCycleId": "CRO/USDT:USDT|bybit|bitget",
-  "commit": "6277ab279dc1e6d7c157eebfb59011581b8ba129",
+  "tsFinal": 1786224785605,
+  "tsFinalISO": "2026-08-08T21:33:05.605Z",
+  "ultimoEventId": "1786224785605:leitura:",
+  "ultimoCycleId": "CATI/USDT:USDT|bybit|bingx",
+  "commit": "cce39677c75e2f47a694f9ee24a1b8581059b233",
   "configEpochId": "epoch-1",
-  "capitalNoCorte": 612.8255,
+  "capitalNoCorte": 612.7528,
   "fundingNoCorte": 23.5298,
-  "custosNoCorte": 10.7043,
+  "custosNoCorte": 10.777,
   "posicoesAbertasNoCorte": [
     "BICO/USDT:USDT",
     "1000CAT/USDT:USDT",
@@ -19,22 +19,22 @@
   ],
   "hashes": {
     "spread/diario.jsonl": {
-      "sha256": "5f528b8734e74c39b4d6a806bed7d2c5f70a0da349023791c209c8d7571cad8a",
-      "bytes": 484598
+      "sha256": "9bebdc97a2f7748036420e47f4d2bb932ddb5a96f51da80380cc82cbee67ea3f",
+      "bytes": 485252
     },
     "spread/estado.json": {
-      "sha256": "e8ce5e86d52ff3c7aaf8ff51a0b03163de3e7de061f23f8095bdd426c8088b97",
-      "bytes": 2505
+      "sha256": "81571628c9a9487ba28594d6225da5ea40cb7269d2c4d9522893eb50897d0e57",
+      "bytes": 2508
     },
     "spread/marcacao.json": {
-      "sha256": "6c0c7a99b8dc9deb9dc61aa9716bc321a875fe1e7756eae95878d12b23ae190e",
-      "bytes": 2348
+      "sha256": "2eed84163b236245df5f17ab5de3e5c5210a220fd37080c17442cd961bcbf643",
+      "bytes": 2352
     },
     "vigilancia/arquivo-observacoes.jsonl": {
-      "sha256": "446c607a835319997079732e8989f4c8c7ba0149877c28a38ea027e8747a213c",
-      "bytes": 14674707
+      "sha256": "b1c5bda9cdeeb85be6b23f7afc5b408938fd12403c066d5fb3b4040e3c007bf9",
+      "bytes": 14720921
     }
   },
-  "eventosNoDiario": 2033,
+  "eventosNoDiario": 2038,
   "nota": "Corte comum congelado. Todas as comparações v1.3 (Control, Trial replay, frontier, vida) usam ESTE snapshotId. Os processos FORWARD (Trial/Control live-paper) partem daqui para a frente."
 }

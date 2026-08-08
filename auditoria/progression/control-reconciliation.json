@@ -4,25 +4,25 @@
   "asOfMs": 1786222956233,
   "toleranciaUSD": 0.01,
   "champion": {
-    "capital": 612.8255,
+    "capital": 612.7528,
     "capitalInicial": 600,
     "funding": 23.5298,
-    "custos": 10.7043,
-    "net": 12.8255,
+    "custos": 10.777,
+    "net": 12.7528,
     "reconciliacaoInterna": 0,
     "reconcilia": true
   },
   "decomposicaoCustosPorCategoria": {
     "abre": 2.2329,
     "fecha": 4.5257,
-    "escalona": 2.452,
+    "escalona": 2.5247,
     "apara": 0.1838,
     "socorre": 0,
     "reinveste": 0.0588,
     "abre-captura": 1.2511
   },
   "fundingPorEvento": 23.5298,
-  "custoTotalEventos": 10.7043,
+  "custoTotalEventos": 10.777,
   "reconciliacaoPorDimensao": [
     {
       "dimensao": "funding (soma eventos vs Champion.fundingTotal)",
@@ -33,15 +33,15 @@
     },
     {
       "dimensao": "custos (soma eventos vs Champion.custosTotal)",
-      "control": 10.7043,
-      "champion": 10.7043,
+      "control": 10.777,
+      "champion": 10.777,
       "diferenca": 0,
       "dentro001": true
     },
     {
       "dimensao": "capital (inicial+funding−custos vs Champion.capital)",
-      "control": 612.8255,
-      "champion": 612.8255,
+      "control": 612.7528,
+      "champion": 612.7528,
       "diferenca": 0,
       "dentro001": true
     },
@@ -56,14 +56,14 @@
   "todasDimensoesDentro001": true,
   "pnlControleVsNet": {
     "controlPnl": 13.3265,
-    "championNet": 12.8255,
-    "diferenca": 0.501,
+    "championNet": 12.7528,
+    "diferenca": 0.5737,
     "dentro001": false,
     "categoriasDiferenca": [
       {
         "categoria": "funding_acumulado_de_posicoes_abertas_sem_custo_de_fechamento",
         "valor": 2.9999,
-        "explicacao": "O Control conta o funding já acumulado das posições ABERTAS como PnL; o custo de fechá-las (~US$0.9111, marcacao.custoEstimadoFechamentoTotal) ainda NÃO foi incorrido. Diferença esperada e documentada.",
+        "explicacao": "O Control conta o funding já acumulado das posições ABERTAS como PnL; o custo de fechá-las (~US$1.0723, marcacao.custoEstimadoFechamentoTotal) ainda NÃO foi incorrido. Diferença esperada e documentada.",
         "posicoesAbertas": [
           {
             "symbol": "BICO/USDT:USDT",
@@ -81,6 +81,6 @@
       }
     ]
   },
-  "veredito": "Control reconcilia com o Champion em TODAS as dimensões contábeis (funding/custos/capital/abertas) dentro de US$0,01. A única diferença de PnL (US$0.501) é 100% atribuída a categoria documentada: funding acumulado das posições abertas ainda sem custo de fechamento.",
+  "veredito": "Control reconcilia com o Champion em TODAS as dimensões contábeis (funding/custos/capital/abertas) dentro de US$0,01. A única diferença de PnL (US$0.5737) é 100% atribuída a categoria documentada: funding acumulado das posições abertas ainda sem custo de fechamento.",
   "honestidade": "A tolerância de US$1 da v1.2 foi substituída por ≤US$0,01 por dimensão contábil. A diferença de PnL residual é categorizada, não tolerada às cegas."
 }

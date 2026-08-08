@@ -12,7 +12,8 @@ bad(){ echo "  [FALHA] $1"; FAIL=$((FAIL+1)); }
 TMP=$(mktemp -d); OBS="$TMP/obs.jsonl"
 rm -rf "$DIR"; mkdir -p "$DIR"
 f(){ node -e 'try{const j=JSON.parse(require("fs").readFileSync(process.argv[1]));let v=j;for(const k of process.argv[2].split("."))v=v&&v[k];console.log(v==null?"":typeof v==="object"?JSON.stringify(v):v)}catch(e){console.log("ERR")}' "$DIR/estado.json" "$1"; }
-run(){ rm -f "$DIR/lock.json"; FORWARD_OBS="$OBS" node "$PROC" --mode control --label "$LABEL" --once >/dev/null 2>&1; }
+NOEPOCH="$TMP/noepoch.json"   # inexistente => epoch=null => cursor parte do EOF (forward isolado)
+run(){ rm -f "$DIR/lock.json"; FORWARD_OBS="$OBS" FORWARD_EPOCH="$NOEPOCH" node "$PROC" --mode control --label "$LABEL" --once >/dev/null 2>&1; }
 
 echo "==== TESTES forward restart/integridade ===="
 # ts base (agora) — obs precisam ter ts > cursor inicial (=último ts do OBS no start)
@@ -22,26 +23,29 @@ echo '{"ts":'$((T0-600000))',"k":"AAA/USDT:USDT|bitget|bybit","apr":2.0,"spread"
 
 # T1: primeira passada abre virtual; cursor e saldo registrados
 run
-cur1=$(f cursorTs); aval1=$(f contadores.avaliadas); ab1=$(f contadores.abertas)
+cur1=$(f cursor.byteOffset); aval1=$(f contadores.avaliadas); ab1=$(f contadores.abertas)
 # adiciona obs NOVA (ts > cursor) de outra chave com APR alto (deve abrir)
 echo '{"ts":'$((T0+60000))',"k":"BBB/USDT:USDT|bitget|bybit","apr":3.0,"spread":0.0003,"vol":2000000}' >> "$OBS"
 run
-cur2=$(f cursorTs); aval2=$(f contadores.avaliadas); ab2=$(f contadores.abertas)
+cur2=$(f cursor.byteOffset); aval2=$(f contadores.avaliadas); ab2=$(f contadores.abertas)
 [ "$aval2" -gt "$aval1" ] && ok "evento novo processado incrementalmente (avaliadas $aval1->$aval2, zero perda)" || bad "não processou novo evento ($aval1->$aval2)"
 node -e "process.exit(Number('${cur2:-0}')>=Number('${cur1:-0}')?0:1)" && ok "cursor monotônico ($cur1 -> $cur2)" || bad "cursor recuou"
 
 # T2: restart SEM obs novas => cursor/estado/saldo preservados, zero duplicação
-saldoAntes=$(f saldosPorExchange); abAntes=$(f contadores.abertas); curAntes=$(f cursorTs)
+saldoAntes=$(f saldosPorExchange); abAntes=$(f contadores.abertas); curAntes=$(f cursor.byteOffset)
 run
-[ "$(f cursorTs)" = "$curAntes" ] && ok "cursor preservado no restart ($curAntes)" || bad "cursor mudou no restart"
+[ "$(f cursor.byteOffset)" = "$curAntes" ] && ok "cursor preservado no restart ($curAntes)" || bad "cursor mudou no restart"
 [ "$(f contadores.abertas)" = "$abAntes" ] && ok "zero duplicação de abertura no restart ($abAntes)" || bad "duplicou abertura"
 [ "$(f saldosPorExchange)" = "$saldoAntes" ] && ok "saldo por exchange preservado" || bad "saldo mudou"
 
-# T3: EVENTO DUPLICADO (mesma obs com ts <= cursor) => ignorado
+# T3: dedup FÍSICO — reler os MESMOS bytes (sem append) NÃO reprocessa; conteúdo igual em
+# NOVO offset É processado (item 3: não deduplicar 2 linhas físicas por conteúdo igual).
 avalD=$(f contadores.avaliadas)
-echo '{"ts":'$((T0+60000))',"k":"BBB/USDT:USDT|bitget|bybit","apr":3.0,"spread":0.0003,"vol":2000000}' >> "$OBS"
+run   # sem append: mesmos bytes => nada novo (dedup por byteOffset)
+[ "$(f contadores.avaliadas)" = "$avalD" ] && ok "reler mesmos bytes NÃO reprocessa (avaliadas $avalD)" || bad "reprocessou os mesmos bytes"
+echo '{"ts":'$((T0+60000))',"k":"BBB/USDT:USDT|bitget|bybit","apr":3.0,"spread":0.0003,"vol":2000000}' >> "$OBS"  # conteúdo igual, NOVO offset
 run
-[ "$(f contadores.avaliadas)" = "$avalD" ] && ok "evento duplicado (ts<=cursor) ignorado (avaliadas $avalD)" || bad "reprocessou duplicado"
+[ "$(f contadores.avaliadas)" -gt "$avalD" ] && ok "conteúdo igual em novo offset É processado (dedup FÍSICO, não por conteúdo)" || bad "não processou linha física nova"
 
 # T4: LINHA PARCIAL/TRUNCADA no OBS => robusto, sem crash, sem contar
 printf '%s' '{"ts":'$((T0+120000))',"k":"CCC/USDT:USDT|bitget|byb' >> "$OBS"   # linha truncada, sem \n
