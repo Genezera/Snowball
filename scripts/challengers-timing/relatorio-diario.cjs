@@ -21,42 +21,46 @@ for (const pol of POLS) {
   const est = rd(path.join(D, 'estado.json'), { fechados: [], virtuais: {}, contadores: {} });
   const div = linhas(path.join(D, 'divergencia.jsonl'));
   const tel = linhas(path.join(D, 'telemetria.jsonl'));
-  const inelegiveis = tel.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter((t) => t && t.extensionEligible === false).length;
-  // EXTENSÃO REAL = segurou ao menos 1 settlement extra (settlementsExtras>0).
-  // O flag seguralemChampion é enganoso no replay batch (now() >> fecha histórico),
-  // então NÃO conta pro gate — só settlementsExtras>0 conta.
-  const extensoes = est.fechados.filter((f) => (f.settlementsExtras || 0) > 0);
-  if (pol !== 'control') fechadasComExtensao += extensoes.length;
+  const telObj = tel.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+  const inelegiveis = telObj.filter((t) => t && t.extensionEligible === false).length;
+  const inelegiveisPorMotivo = {}; for (const t of telObj) { if (t.eligibility && !t.eligibility.eligible && t.eligibility.ineligibleReason) inelegiveisPorMotivo[t.eligibility.ineligibleReason] = (inelegiveisPorMotivo[t.eligibility.ineligibleReason] || 0) + 1; }
+  // DEFINIÇÕES SEPARADAS (item 1): decisão divergente vs extensão real vs settlement extra
+  const decisionDiv = est.fechados.filter((f) => f.decisionDivergence).length;
+  const realExt = est.fechados.filter((f) => f.realExtension).length;
+  const settlExt = est.fechados.filter((f) => f.settlementExtension).length;
+  if (pol !== 'control') fechadasComExtensao += realExt;
   const hbAge = hb && hb.ultimoCiclo ? Math.round((agoraMs() - hb.ultimoCiclo) / 1000) : null;
   rel.processos[pol] = {
-    vivo: hb != null, heartbeatAgeS: hbAge,
+    vivo: hb != null, heartbeatAgeS: hbAge, pid: hb ? hb.pid : null,
+    cursorDiario: est.cursorDiario || 0, eventosConsumidos: est.eventosConsumidos || 0, lastEventId: est.lastEventId || null,
     fechados: est.fechados.length, abertas: Object.keys(est.virtuais).length,
-    extensoesFechadas: extensoes.length,
+    decisionDivergences: decisionDiv, realExtensions: realExt, settlementExtensions: settlExt,
     pnlIncremental: +est.fechados.reduce((s, f) => s + (f.pnlLiquido || 0), 0).toFixed(4),
-    liveObservedCounterfactualFunding: +est.fechados.reduce((s, f) => s + (f.liveObservedCounterfactualFunding || 0), 0).toFixed(4),
-    divergenciaLinhas: div.length,
-    eventosInelegiveis: inelegiveis,
+    expectedCounterfactualFunding: +est.fechados.reduce((s, f) => s + (f.expectedCounterfactualFunding || 0), 0).toFixed(4),
+    settledCounterfactualFunding: +est.fechados.reduce((s, f) => s + (f.settledCounterfactualFunding || 0), 0).toFixed(4),
+    divergenciaLinhas: div.length, eventosInelegiveis: inelegiveis, inelegiveisPorMotivo,
     riscoExits: est.contadores.riscoExits || 0,
   };
 }
 const fid = rd(path.join(BASE, 'control', 'fidelidade.json'), null);
-rel.controlFidelity = fid ? { comparisonStatus: fid.comparisonStatus, difAbs: fid.difAbs } : { comparisonStatus: 'DESCONHECIDO' };
+rel.controlFidelity = fid ? { comparisonStatus: fid.comparisonStatus, divergenciasMateriais: fid.divergenciasMateriais || [], vetor: fid.vetor } : { comparisonStatus: 'DESCONHECIDO' };
 
-// GATE atualizado (item 9)
-const closedComparaveis = fechadasComExtensao; // fechamentos com extensão real
-const divergenciasReais = POLS.filter((p) => p !== 'control').reduce((s, p) => s + (rel.processos[p].extensoesFechadas || 0), 0);
+// GATE atualizado (item 7): realExtensions vs decisionDivergences separados
+const realExtensionsFechadas = fechadasComExtensao;
+const decisionDivergences = POLS.filter((p) => p !== 'control').reduce((s, p) => s + (rel.processos[p].decisionDivergences || 0), 0);
+const settlementExtensions = POLS.filter((p) => p !== 'control').reduce((s, p) => s + (rel.processos[p].settlementExtensions || 0), 0);
 rel.gate = {
-  fechadasComparaveisComExtensao: { valor: closedComparaveis, minimo: 30, atende: closedComparaveis >= 30 },
-  divergenciasReaisVsControl: { valor: divergenciasReais, minimo: 15, atende: divergenciasReais >= 15 },
+  realExtensionsFechadas: { valor: realExtensionsFechadas, minimo: 30, atende: realExtensionsFechadas >= 30 },
+  decisionDivergences: { valor: decisionDivergences, minimo: 15, atende: decisionDivergences >= 15 },
+  extensoesQueCapturaramSettlement: settlementExtensions, // mostrado separadamente (item 7)
   janelas: { minimo: 2, nota: 'medir sobre a amostra viva acumulada' },
   regimes: { minimo: 2, nota: 'detectados no historico; reavaliar na janela viva' },
-  controlFiel: rel.controlFidelity.comparisonStatus === 'OK',
-  riscoObservadoComConfianca: 'telemetria classifica source/confidence por campo (champion_observed=1.0)',
-  custos2x: 'aplicar sobre a amostra viva',
-  drawdownNaoPior: 'a medir', distLiqNaoPior: 'a medir', semPosicaoDominante: 'a medir',
+  controlFielVetorial: rel.controlFidelity.comparisonStatus === 'OK',
+  telemetriaElegivelDuranteExtensao: 'checada por ciclo (eligibility.bothLegs + confidenceMin)',
+  custos2x: 'aplicar sobre a amostra viva', drawdownNaoPior: 'a medir', distLiqNaoPior: 'a medir', semPosicaoDominante: 'a medir',
 };
-rel.gate.LIBERADO = rel.gate.fechadasComparaveisComExtensao.atende && rel.gate.divergenciasReaisVsControl.atende && rel.gate.controlFiel;
-rel.gate.veredito = rel.gate.LIBERADO ? 'LIBERADO' : `BLOQUEADO — ${closedComparaveis}/30 fechamentos com extensão, ${divergenciasReais}/15 divergências reais. Control ${rel.controlFidelity.comparisonStatus}. Coleta em andamento; NÃO alterar o Champion.`;
+rel.gate.LIBERADO = rel.gate.realExtensionsFechadas.atende && rel.gate.decisionDivergences.atende && rel.gate.controlFielVetorial;
+rel.gate.veredito = rel.gate.LIBERADO ? 'LIBERADO' : `BLOQUEADO — ${realExtensionsFechadas}/30 realExtensions, ${decisionDivergences}/15 decisionDivergences (${settlementExtensions} capturaram settlement). Control vetorial ${rel.controlFidelity.comparisonStatus}. NÃO alterar o Champion.`;
 
 fs.mkdirSync(path.join(ROOT, 'auditoria', 'challengers'), { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'auditoria', 'challengers', 'relatorio-diario.json'), JSON.stringify(rel, null, 2));

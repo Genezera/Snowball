@@ -1,70 +1,140 @@
 {
-  "geradoEm": "2026-08-08T14:36:01.612Z",
+  "geradoEm": "2026-08-08T14:59:47.511Z",
   "processos": {
     "control": {
       "vivo": true,
       "heartbeatAgeS": 0,
+      "pid": 18692,
+      "cursorDiario": 461219,
+      "eventosConsumidos": 1936,
+      "lastEventId": "1786200914270:leitura:",
       "fechados": 20,
       "abertas": 3,
-      "extensoesFechadas": 0,
+      "decisionDivergences": 0,
+      "realExtensions": 0,
+      "settlementExtensions": 0,
       "pnlIncremental": 9.1697,
-      "liveObservedCounterfactualFunding": 0,
+      "expectedCounterfactualFunding": 0,
+      "settledCounterfactualFunding": 0,
       "divergenciaLinhas": 0,
-      "eventosInelegiveis": 6,
+      "eventosInelegiveis": 12,
+      "inelegiveisPorMotivo": {
+        "dado_stale": 12
+      },
       "riscoExits": 0
     },
     "closeConfirm": {
       "vivo": true,
-      "heartbeatAgeS": -1,
+      "heartbeatAgeS": -34,
+      "pid": 14600,
+      "cursorDiario": 461287,
+      "eventosConsumidos": 1937,
+      "lastEventId": "1786201219448:leitura:",
       "fechados": 20,
       "abertas": 3,
-      "extensoesFechadas": 0,
+      "decisionDivergences": 0,
+      "realExtensions": 0,
+      "settlementExtensions": 0,
       "pnlIncremental": 9.1697,
-      "liveObservedCounterfactualFunding": 0,
+      "expectedCounterfactualFunding": 0,
+      "settledCounterfactualFunding": 0,
       "divergenciaLinhas": 0,
-      "eventosInelegiveis": 26,
+      "eventosInelegiveis": 29,
+      "inelegiveisPorMotivo": {
+        "dado_stale": 28,
+        "distancia_liquidacao_indisponivel": 1
+      },
       "riscoExits": 20
     },
     "nextSettlement": {
       "vivo": true,
-      "heartbeatAgeS": -2,
+      "heartbeatAgeS": -69,
+      "pid": 15688,
+      "cursorDiario": 461287,
+      "eventosConsumidos": 1937,
+      "lastEventId": "1786201219448:leitura:",
       "fechados": 20,
       "abertas": 3,
-      "extensoesFechadas": 0,
+      "decisionDivergences": 0,
+      "realExtensions": 0,
+      "settlementExtensions": 0,
       "pnlIncremental": 9.1697,
-      "liveObservedCounterfactualFunding": 0,
+      "expectedCounterfactualFunding": 0,
+      "settledCounterfactualFunding": 0,
       "divergenciaLinhas": 0,
-      "eventosInelegiveis": 26,
+      "eventosInelegiveis": 29,
+      "inelegiveisPorMotivo": {
+        "dado_stale": 28,
+        "distancia_liquidacao_indisponivel": 1
+      },
       "riscoExits": 20
     },
     "evExit": {
       "vivo": true,
-      "heartbeatAgeS": -3,
+      "heartbeatAgeS": -102,
+      "pid": 22448,
+      "cursorDiario": 461287,
+      "eventosConsumidos": 1937,
+      "lastEventId": "1786201219448:leitura:",
       "fechados": 20,
       "abertas": 3,
-      "extensoesFechadas": 0,
+      "decisionDivergences": 0,
+      "realExtensions": 0,
+      "settlementExtensions": 0,
       "pnlIncremental": 9.1697,
-      "liveObservedCounterfactualFunding": 0,
+      "expectedCounterfactualFunding": 0,
+      "settledCounterfactualFunding": 0,
       "divergenciaLinhas": 0,
-      "eventosInelegiveis": 26,
+      "eventosInelegiveis": 29,
+      "inelegiveisPorMotivo": {
+        "dado_stale": 28,
+        "distancia_liquidacao_indisponivel": 1
+      },
       "riscoExits": 20
     }
   },
   "controlFidelity": {
     "comparisonStatus": "OK",
-    "difAbs": 0.000159
+    "divergenciasMateriais": [],
+    "vetor": {
+      "cursorByteOffset": 461219,
+      "lastEventId": "1786200914270:leitura:",
+      "eventosConsumidos": 1936,
+      "fechados": {
+        "real": 20,
+        "control": 20
+      },
+      "abertas": {
+        "real": 3,
+        "control": 3
+      },
+      "funding": {
+        "real": 17.3526,
+        "control": 17.3527
+      },
+      "custos": {
+        "real": 8.1828,
+        "control": 8.1828
+      },
+      "pnl": {
+        "real": 9.1699,
+        "control": 9.1697
+      },
+      "capital": 609.1697
+    }
   },
   "gate": {
-    "fechadasComparaveisComExtensao": {
+    "realExtensionsFechadas": {
       "valor": 0,
       "minimo": 30,
       "atende": false
     },
-    "divergenciasReaisVsControl": {
+    "decisionDivergences": {
       "valor": 0,
       "minimo": 15,
       "atende": false
     },
+    "extensoesQueCapturaramSettlement": 0,
     "janelas": {
       "minimo": 2,
       "nota": "medir sobre a amostra viva acumulada"
@@ -73,13 +143,13 @@
       "minimo": 2,
       "nota": "detectados no historico; reavaliar na janela viva"
     },
-    "controlFiel": true,
-    "riscoObservadoComConfianca": "telemetria classifica source/confidence por campo (champion_observed=1.0)",
+    "controlFielVetorial": true,
+    "telemetriaElegivelDuranteExtensao": "checada por ciclo (eligibility.bothLegs + confidenceMin)",
     "custos2x": "aplicar sobre a amostra viva",
     "drawdownNaoPior": "a medir",
     "distLiqNaoPior": "a medir",
     "semPosicaoDominante": "a medir",
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — 0/30 fechamentos com extensão, 0/15 divergências reais. Control OK. Coleta em andamento; NÃO alterar o Champion."
+    "veredito": "BLOQUEADO — 0/30 realExtensions, 0/15 decisionDivergences (0 capturaram settlement). Control vetorial OK. NÃO alterar o Champion."
   }
 }

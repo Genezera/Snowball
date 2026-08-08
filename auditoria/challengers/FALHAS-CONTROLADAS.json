@@ -1,0 +1,121 @@
+{
+  "geradoEm": "2026-08-08T14:58:48.311Z",
+  "tipo": "falhas-controladas-item6",
+  "veredito": "FALHOU",
+  "passaram": 27,
+  "falharam": 1,
+  "checks": [
+    {
+      "status": "OK",
+      "check": "supervisor subiu os 4 challengers"
+    },
+    {
+      "status": "OK",
+      "check": "control: restart único (1 processo vivo, sem duplicar)"
+    },
+    {
+      "status": "OK",
+      "check": "control: processo realmente reiniciado (1700 -> 18692)"
+    },
+    {
+      "status": "OK",
+      "check": "control: cursor preservado/avançado (461151 -> 461151, nunca reset a 0)"
+    },
+    {
+      "status": "OK",
+      "check": "control: eventosConsumidos monotônico (1935 -> 1935, zero reprocessamento)"
+    },
+    {
+      "status": "OK",
+      "check": "control: fechamentos preservados (20 -> 20)"
+    },
+    {
+      "status": "OK",
+      "check": "control: PnL preservado (9.1697 -> 9.1697)"
+    },
+    {
+      "status": "OK",
+      "check": "closeConfirm: restart único (1 processo vivo, sem duplicar)"
+    },
+    {
+      "status": "OK",
+      "check": "closeConfirm: processo realmente reiniciado (19328 -> 14600)"
+    },
+    {
+      "status": "OK",
+      "check": "closeConfirm: cursor preservado/avançado (461151 -> 461219, nunca reset a 0)"
+    },
+    {
+      "status": "OK",
+      "check": "closeConfirm: eventosConsumidos monotônico (1935 -> 1936, zero reprocessamento)"
+    },
+    {
+      "status": "OK",
+      "check": "closeConfirm: fechamentos preservados (20 -> 20)"
+    },
+    {
+      "status": "OK",
+      "check": "closeConfirm: PnL preservado (9.1697 -> 9.1697)"
+    },
+    {
+      "status": "OK",
+      "check": "nextSettlement: restart único (1 processo vivo, sem duplicar)"
+    },
+    {
+      "status": "OK",
+      "check": "nextSettlement: processo realmente reiniciado (21992 -> 15688)"
+    },
+    {
+      "status": "OK",
+      "check": "nextSettlement: cursor preservado/avançado (461151 -> 461219, nunca reset a 0)"
+    },
+    {
+      "status": "OK",
+      "check": "nextSettlement: eventosConsumidos monotônico (1935 -> 1936, zero reprocessamento)"
+    },
+    {
+      "status": "OK",
+      "check": "nextSettlement: fechamentos preservados (20 -> 20)"
+    },
+    {
+      "status": "OK",
+      "check": "nextSettlement: PnL preservado (9.1697 -> 9.1697)"
+    },
+    {
+      "status": "OK",
+      "check": "evExit: restart único (1 processo vivo, sem duplicar)"
+    },
+    {
+      "status": "OK",
+      "check": "evExit: processo realmente reiniciado (20512 -> 22448)"
+    },
+    {
+      "status": "OK",
+      "check": "evExit: cursor preservado/avançado (461151 -> 461219, nunca reset a 0)"
+    },
+    {
+      "status": "OK",
+      "check": "evExit: eventosConsumidos monotônico (1935 -> 1936, zero reprocessamento)"
+    },
+    {
+      "status": "OK",
+      "check": "evExit: fechamentos preservados (20 -> 20)"
+    },
+    {
+      "status": "OK",
+      "check": "evExit: PnL preservado (9.1697 -> 9.1697)"
+    },
+    {
+      "status": "OK",
+      "check": "supervisor morto: 4 challengers sobreviveram (observadores órfãos)"
+    },
+    {
+      "status": "FALHA",
+      "check": "supervisor não recuperou single-instance (fresco=1, 300165 -> 300165)"
+    },
+    {
+      "status": "OK",
+      "check": "restart do supervisor NÃO duplicou nenhum challenger (0 políticas com >1 processo)"
+    }
+  ]
+}

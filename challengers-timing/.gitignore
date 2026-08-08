@@ -11,3 +11,8 @@ supervisor.lock
 supervisor.lockdir/
 */divergencia.jsonl
 */fidelidade.json
+# monitor prolongado + drill de falhas (runtime volátil)
+monitor-24h.jsonl
+monitor.out
+failure-drill.log
+failure-drill.out

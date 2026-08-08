@@ -108,7 +108,8 @@ function telemetriaPosicao(vp, cycleId, marcMap, estMap) {
     pnlResidual: campo(m ? m.pnlNaoRealizadoExecutavelTotal : null, src, mktObs),
     // funding REAL enquanto o Champion segura vs contrafactual observado ao vivo na extensão
     fundingAcumulado: campo(vp.fundingAcumulado, 'champion_observed', vp.abreTs),
-    liveObservedCounterfactualFunding: campo(espelhadaNoChampion ? null : (vp.liveCounterfactualFunding ?? 0), espelhadaNoChampion ? 'unavailable' : 'market_observed', mktObs),
+    expectedCounterfactualFunding: campo(espelhadaNoChampion ? null : (vp.expectedCounterfactualFunding ?? 0), espelhadaNoChampion ? 'unavailable' : 'market_observed', mktObs),
+    settledCounterfactualFunding: campo(espelhadaNoChampion ? null : (vp.settledCounterfactualFunding ?? 0), espelhadaNoChampion ? 'unavailable' : 'market_observed', mktObs),
     spreadAtual: campo(mkt ? mkt.spread : null, 'market_observed', mktObs), spreadEntrada: campo(vp.spreadEntrada, 'champion_observed', vp.abreTs),
     custoEstimadoFechamento: campo(m ? m.custoEstimadoFechamento : null, m ? 'champion_observed' : 'unavailable', mktObs),
     margemUsada: campo(e ? (e.margemShort + e.margemLong) : null, src, mktObs),
@@ -121,14 +122,26 @@ function telemetriaPosicao(vp, cycleId, marcMap, estMap) {
   // flags derivadas para as regras (a partir dos campos classificados)
   t.riscoCritico = distMin != null && distMin <= 0.06;
   t.dadoStale = !(mkt && (now() - (mktObs || 0) <= STALE_MS));
-  // ELEGIBILIDADE DE EXTENSÃO (item 6): inelegível se qualquer fonte crítica falta
+  // ELEGIBILIDADE PÓS-FECHAMENTO (item 4): exige telemetria VÁLIDA das DUAS pernas.
+  // Registra eligible/ineligibleReason/missingFields/oldestDataAgeMs/confidenceMin.
+  const criticos = { markShort: t.markShort, markLong: t.markLong, distanciaLiqShort: t.distanciaLiqShort, distanciaLiqLong: t.distanciaLiqLong, spreadAtual: t.spreadAtual, proximoSettlement: t.proximoSettlement };
+  const missingFields = Object.entries(criticos).filter(([, c]) => c.value == null).map(([k]) => k);
+  const idades = Object.values(criticos).map((c) => c.ageMs).filter((a) => a != null);
+  const confs = Object.values(criticos).map((c) => c.confidence);
   const motivos = [];
   if (t.dadoStale) motivos.push('dado_stale');
   if (t.markShort.value == null && t.spreadAtual.value == null) motivos.push('mark_indisponivel');
-  if (t.distanciaMinima.value == null) motivos.push('distancia_liquidacao_indisponivel');
+  if (t.distanciaMinima.value == null && !espelhadaNoChampion) motivos.push('distancia_liquidacao_indisponivel');
   if (t.proximoSettlement.value == null) motivos.push('settlement_desconhecido');
-  if (t.distanciaLiqShort.value == null || t.distanciaLiqLong.value == null) { if (!espelhadaNoChampion) motivos.push('telemetria_de_perna_ausente'); }
-  t.extensionEligible = motivos.length === 0;
+  // AS DUAS PERNAS: só exigido na extensão (fora do espelho do Champion)
+  if (!espelhadaNoChampion && (t.distanciaLiqShort.value == null || t.distanciaLiqLong.value == null)) motivos.push('telemetria_de_perna_ausente');
+  if (!espelhadaNoChampion && (t.markShort.value == null || t.markLong.value == null) && t.spreadAtual.value == null) motivos.push('mark_de_perna_ausente');
+  t.eligibility = {
+    eligible: motivos.length === 0, ineligibleReason: motivos[0] || null, allReasons: motivos,
+    missingFields, oldestDataAgeMs: idades.length ? Math.max(...idades) : null, confidenceMin: confs.length ? Math.min(...confs) : 0,
+    bothLegs: t.markShort.value != null && t.markLong.value != null && t.distanciaLiqShort.value != null && t.distanciaLiqLong.value != null,
+  };
+  t.extensionEligible = t.eligibility.eligible;
   t.ineligibilityReasons = motivos;
   try { fs.appendFileSync(F.telemetria, JSON.stringify(t) + '\n'); } catch {}
   return t;
@@ -145,10 +158,21 @@ function saidaDeRiscoObrigatoria(tel) {
 
 function fecharVirtual(vp, motivo, cycleId) {
   if (!vp.fechaSimTs) vp.fechaSimTs = now();
-  const cf = vp.liveCounterfactualFunding || 0; // funding contrafactual observado ao vivo na extensão (NUNCA "realizado")
-  const pnl = vp.fundingAcumulado + cf - vp.custoAcumulado;
-  const seguralem = !!(vp.championFechaTs && vp.fechaSimTs > vp.championFechaTs);
-  estado.fechados.push({ positionId: vp.positionId, symbol: vp.symbol, modo: vp.modo, abreTs: vp.abreTs, fechaTs: now(), championFechaTs: vp.championFechaTs, motivo, fundingChampionObservado: +vp.fundingAcumulado.toFixed(4), liveObservedCounterfactualFunding: +cf.toFixed(4), custo: +vp.custoAcumulado.toFixed(4), pnlLiquido: +pnl.toFixed(4), settlementsExtras: vp.settlementsExtras || 0, seguralemChampion: seguralem });
+  // PnL usa o funding contrafactual ASSENTADO (settled), não o esperado — só o
+  // que de fato cruzou um settlement real conta no PnL.
+  const settled = vp.settledCounterfactualFunding || 0;
+  const pnl = vp.fundingAcumulado + settled - vp.custoAcumulado;
+  const extensionDurationMs = (vp.decisionDivergence && vp.primeiroHoldTs) ? (vp.fechaSimTs - vp.championFechaTs) : 0;
+  estado.fechados.push({
+    positionId: vp.positionId, symbol: vp.symbol, modo: vp.modo, abreTs: vp.abreTs, fechaTs: now(), championFechaTs: vp.championFechaTs, motivo,
+    fundingChampionObservado: +vp.fundingAcumulado.toFixed(4),
+    expectedCounterfactualFunding: +(vp.expectedCounterfactualFunding || 0).toFixed(4),
+    settledCounterfactualFunding: +settled.toFixed(4),
+    custo: +vp.custoAcumulado.toFixed(4), pnlLiquido: +pnl.toFixed(4),
+    // definições de extensão SEPARADAS (item 1)
+    decisionDivergence: !!vp.decisionDivergence, realExtension: !!vp.realExtension, settlementExtension: !!vp.settlementExtension,
+    extensionDurationMs, settlementsExtras: vp.settlementsExtras || 0,
+  });
   estado.contadores.fechamentos++;
   fs.appendFileSync(F.diario, JSON.stringify({ ts: now(), evento: 'fecha-virtual', cycleId, symbol: vp.symbol, positionId: vp.positionId, motivo, pnl: +pnl.toFixed(4) }) + '\n');
   delete estado.virtuais[vp.positionId];
@@ -174,6 +198,7 @@ function umCiclo() {
     fs.closeSync(fd);
     estado.cursorDiario = stat.size;
     novos = buf.toString('utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    if (novos.length) { estado.eventosConsumidos = (estado.eventosConsumidos || 0) + novos.length; const le = novos[novos.length - 1]; estado.lastEventId = `${le.ts}:${le.evento}:${le.symbol || ''}`; }
   } catch (e) { logLine('erro lendo diario: ' + e.message); }
 
   // 2) processa eventos do Champion (replica entradas; contabiliza funding real; trata fecha por política)
@@ -191,7 +216,8 @@ function umCiclo() {
       estado.symbolAtual[sym] = pid; estado.contadores.entradas++;
       fs.appendFileSync(F.diario, JSON.stringify({ ts: now(), evento: 'abre-virtual', symbol: sym, positionId: pid, notional: ev.notional, replicadoDoChampion: true }) + '\n');
     } else if (['reinveste', 'escalona', 'apara'].includes(ev.evento) && ev.symbol && atual(ev.symbol)) {
-      atual(ev.symbol).custoAcumulado += ev.custo || 0; // replica gestão do Champion
+      const vp2 = atual(ev.symbol); vp2.custoAcumulado += ev.custo || 0; // replica gestão do Champion
+      if (typeof ev.notionalNovo === 'number') { vp2.notionalLong = ev.notionalNovo; vp2.notionalShort = ev.notionalNovo; } // replica SIZING (escalona/apara/reinveste mudam o notional)
     } else if (ev.evento === 'funding' && atual(ev.symbol)) {
       atual(ev.symbol).fundingAcumulado += ev.ganho || 0; // funding REAL observado enquanto o Champion segura
     } else if (ev.evento === 'fecha' && atual(ev.symbol)) {
@@ -237,14 +263,22 @@ function umCiclo() {
       motivo = segurar ? 'ev-positivo' : 'ev<=0';
     }
     vp.motivoDecisaoUlt = motivo;
-    // registro de divergência por ciclo (item 8) — decisão/EV/motivo/risco
-    try { fs.appendFileSync(F.divergencia, JSON.stringify({ ts: now(), cycleId, positionId: vp.positionId, symbol: vp.symbol, decisao: segurar ? 'segurar' : 'fechar', evContinuar: vp.evContinuarUlt, fundingEsperado: +fundingEsperado.toFixed(6), distanciaMinima: tel.distanciaMinima.value, distanciaMinimaSource: tel.distanciaMinima.source, invertido, motivo, extensionEligible: tel.extensionEligible }) + '\n'); } catch {}
-    // crédito contrafactual ao vivo: se segura E cruzou um settlement, credita o funding observado e avança
-    if (segurar && now() >= vp.proximoSettlementTs && tel.extensionEligible) {
-      vp.liveCounterfactualFunding = (vp.liveCounterfactualFunding || 0) + fundingEsperado;
+    // DEFINIÇÕES DE EXTENSÃO (item 1) — separadas e independentes:
+    //  decisionDivergence  = decidiu segurar quando o Control fecharia (≥1 ciclo)
+    //  realExtension       = segurou com telemetria ELEGÍVEL (≥1 ciclo válido)
+    //  settlementExtension = capturou ≥1 settlement extra
+    if (segurar) { vp.decisionDivergence = true; if (!vp.primeiroHoldTs) vp.primeiroHoldTs = now(); if (tel.extensionEligible) vp.realExtension = true; }
+    // EXPECTED vs SETTLED counterfactual funding (item 3):
+    //  expected = estimativa corrente enquanto segura (rate observado × notional)
+    //  settled  = creditado SÓ após o ts REAL do settlement passar, com rate observado (spread = diferencial das 2 pernas)
+    if (segurar && tel.extensionEligible) vp.expectedCounterfactualFunding = fundingEsperado; // estimativa do próximo settlement
+    if (segurar && now() >= vp.proximoSettlementTs && tel.extensionEligible && tel.eligibility.bothLegs) {
+      vp.settledCounterfactualFunding = (vp.settledCounterfactualFunding || 0) + fundingEsperado; // assentado (ts do settlement passou, 2 pernas)
       vp.settlementsExtras = (vp.settlementsExtras || 0) + 1; estado.contadores.settlementsExtras++;
-      vp.proximoSettlementTs += intMs;
+      vp.settlementExtension = true; vp.proximoSettlementTs += intMs;
     }
+    // registro de divergência por ciclo (item 8)
+    try { fs.appendFileSync(F.divergencia, JSON.stringify({ ts: now(), cycleId, positionId: vp.positionId, symbol: vp.symbol, decisao: segurar ? 'segurar' : 'fechar', decisionDivergence: !!vp.decisionDivergence, realExtension: !!vp.realExtension, settlementExtension: !!vp.settlementExtension, evContinuar: vp.evContinuarUlt, expectedCounterfactualFunding: +(vp.expectedCounterfactualFunding || 0).toFixed(6), settledCounterfactualFunding: +(vp.settledCounterfactualFunding || 0).toFixed(6), distanciaMinima: tel.distanciaMinima.value, invertido, motivo, extensionEligible: tel.extensionEligible, confidenceMin: tel.eligibility.confidenceMin }) + '\n'); } catch {}
     if (invertido && !segurar) estado.contadores.inversoesSofridas++;
     if (!segurar) fecharVirtual(vp, motivo, cycleId);
   }
@@ -253,19 +287,41 @@ function umCiclo() {
   // com o PnL real do Champion (por instância) a cada ciclo. Se divergir além da
   // tolerância → comparisonStatus=SUSPENDED_CONTROL_DIVERGENCE (a coleta NÃO para).
   if (POLICY === 'control') {
+    // reconstrói o real do Champion por INSTÂNCIA + posições abertas correntes
     const chEv = (() => { try { return fs.readFileSync(CH.diario, 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; } })();
-    const ab = {}; let pnlRealFechadas = 0;
+    const ab = {}; let pnlRealFechadas = 0, fundReal = 0, custReal = 0, fechRealN = 0;
     for (const e of chEv) {
-      if (e.evento === 'abre' || e.evento === 'abre-captura') ab[e.symbol] = { f: 0, c: e.custo || 0 };
-      else if (e.evento === 'funding' && ab[e.symbol]) ab[e.symbol].f += e.ganho || 0;
+      if (e.evento === 'abre' || e.evento === 'abre-captura') ab[e.symbol] = { f: 0, c: e.custo || 0, notional: e.notional };
+      else if (e.evento === 'funding' && ab[e.symbol]) { ab[e.symbol].f += e.ganho || 0; }
       else if (['reinveste', 'escalona', 'apara'].includes(e.evento) && e.symbol && ab[e.symbol]) ab[e.symbol].c += e.custo || 0;
-      else if (e.evento === 'fecha' && ab[e.symbol]) { ab[e.symbol].c += e.custo || 0; pnlRealFechadas += ab[e.symbol].f - ab[e.symbol].c; delete ab[e.symbol]; }
+      else if (e.evento === 'fecha' && ab[e.symbol]) { ab[e.symbol].c += e.custo || 0; pnlRealFechadas += ab[e.symbol].f - ab[e.symbol].c; fundReal += ab[e.symbol].f; custReal += ab[e.symbol].c; fechRealN++; delete ab[e.symbol]; }
     }
+    const abertasReais = Object.keys(ab).sort();
+    // vetor do Control
     const pnlControl = estado.fechados.reduce((s, f) => s + f.pnlLiquido, 0);
-    const difAbs = Math.abs(pnlRealFechadas - pnlControl);
-    const status = difAbs <= 0.01 ? 'OK' : 'SUSPENDED_CONTROL_DIVERGENCE';
-    fs.writeFileSync(F.fidelidade, JSON.stringify({ ts: now(), pnlRealFechadas: +pnlRealFechadas.toFixed(4), pnlControl: +pnlControl.toFixed(4), difAbs: +difAbs.toFixed(6), tolerancia: 0.01, comparisonStatus: status }, null, 2));
-    if (status !== 'OK') logLine(`FIDELIDADE ROMPIDA: dif ${difAbs.toFixed(4)} > 0.01 — comparações econômicas SUSPENSAS (coleta continua)`);
+    const fundControl = estado.fechados.reduce((s, f) => s + (f.fundingChampionObservado || 0), 0);
+    const custControl = estado.fechados.reduce((s, f) => s + (f.custo || 0), 0);
+    const abertasControl = Object.values(estado.virtuais).map((v) => v.symbol).sort();
+    // comparação VETORIAL (item 2) — qualquer divergência material suspende
+    const dif = [];
+    if (Math.abs(pnlRealFechadas - pnlControl) > 0.01) dif.push(`pnl ${pnlRealFechadas.toFixed(4)}!=${pnlControl.toFixed(4)}`);
+    if (Math.abs(fundReal - fundControl) > 0.01) dif.push(`funding ${fundReal.toFixed(4)}!=${fundControl.toFixed(4)}`);
+    if (Math.abs(custReal - custControl) > 0.01) dif.push(`custos ${custReal.toFixed(4)}!=${custControl.toFixed(4)}`);
+    if (fechRealN !== estado.fechados.length) dif.push(`fechados ${fechRealN}!=${estado.fechados.length}`);
+    if (JSON.stringify(abertasReais) !== JSON.stringify(abertasControl)) dif.push(`abertas [${abertasReais}]!=[${abertasControl}]`);
+    // notional por perna das posições abertas correntes
+    for (const sym of abertasReais) { const est2 = estMap[sym]; const vc = Object.values(estado.virtuais).find((v) => v.symbol === sym); if (est2 && vc && Math.abs((est2.notionalPorPerna || 0) - (vc.notionalLong || 0)) > Math.max(1, 0.02 * (est2.notionalPorPerna || 1))) dif.push(`notional ${sym} ${est2.notionalPorPerna}!=${vc.notionalLong}`); }
+    const status = dif.length === 0 ? 'OK' : 'SUSPENDED_CONTROL_DIVERGENCE';
+    fs.writeFileSync(F.fidelidade, JSON.stringify({
+      ts: now(), comparisonStatus: status, divergenciasMateriais: dif,
+      vetor: {
+        cursorByteOffset: estado.cursorDiario, lastEventId: estado.lastEventId || null, eventosConsumidos: estado.eventosConsumidos || 0,
+        fechados: { real: fechRealN, control: estado.fechados.length }, abertas: { real: abertasReais.length, control: abertasControl.length },
+        funding: { real: +fundReal.toFixed(4), control: +fundControl.toFixed(4) }, custos: { real: +custReal.toFixed(4), control: +custControl.toFixed(4) },
+        pnl: { real: +pnlRealFechadas.toFixed(4), control: +pnlControl.toFixed(4) }, capital: +estado.capital.toFixed(4),
+      }, tolerancia: 0.01,
+    }, null, 2));
+    if (status !== 'OK') logLine(`FIDELIDADE VETORIAL ROMPIDA: ${dif.join('; ')} — comparações SUSPENSAS (coleta continua)`);
   }
 
   // 4) heartbeat + persiste estado
