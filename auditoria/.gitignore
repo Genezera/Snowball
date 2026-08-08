@@ -5,3 +5,5 @@ snapshot-*/copias/
 ml/dataset-candidatas.jsonl
 # Observações brutas: reprodutíveis por scripts/auditoria/build-epochs-and-dataset.cjs
 dataset/candidate-observations.jsonl
+# forward live-paper (runtime volátil: estado/ledger/diário/heartbeat/lock)
+progression/forward/

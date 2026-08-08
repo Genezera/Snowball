@@ -1,0 +1,43 @@
+{
+  "schema": "snowball.maxpositions-test.v1_3",
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
+  "positivasQueViveram": 151,
+  "concorrenciaMaximaObservada": 86,
+  "cenarios": [
+    {
+      "maxPositions": 3,
+      "oportunidadesCapturadas": 15,
+      "pnlPotencialUSD": 23.921,
+      "capitalNecessarioUSD": 171.43,
+      "picoMargemUSD": 120,
+      "usoSimultaneoExchanges": 5,
+      "concentracaoTop1": 0.3931,
+      "retornoMarginalPorDolar": null
+    },
+    {
+      "maxPositions": 4,
+      "oportunidadesCapturadas": 19,
+      "pnlPotencialUSD": 26.6461,
+      "capitalNecessarioUSD": 228.57,
+      "picoMargemUSD": 160,
+      "usoSimultaneoExchanges": 5,
+      "concentracaoTop1": 0.3259,
+      "retornoMarginalPorDolar": 0.0477
+    },
+    {
+      "maxPositions": 5,
+      "oportunidadesCapturadas": 23,
+      "pnlPotencialUSD": 34.5313,
+      "capitalNecessarioUSD": 285.71,
+      "picoMargemUSD": 200,
+      "usoSimultaneoExchanges": 5,
+      "concentracaoTop1": 0.2937,
+      "retornoMarginalPorDolar": 0.138
+    }
+  ],
+  "gargalo": "LIMITE DE POSIÇÕES *pelo modelo leniente* (até 86 janelas de payback sobrepostas). MAS este modelo superconta (151 vs ~13 do motor): janelas de payback de ~160h se sobrepõem em excesso, e o motor exige best-ranked + payback-dentro-da-vida. O gargalo REAL só o TESTE FORWARD (itens 3/4) resolve.",
+  "determinacao": "Modelos OFFLINE discordam: v1.1/v1.2 (posições REAIS do Champion, capadas em 3) → capital satura em 3; este teste (fluxo de oportunidades, modelo leniente) → subir maxPositions captura mais (15→19→23, marginal 0.048→0.144/US$). A discordância vem do modelo de viabilidade (leniente superconta). NÃO se decide o gargalo offline — o TESTE FORWARD live-paper (Trial/Control) é que resolve, medindo oportunidades boas REAIS simultâneas ao vivo. Não alterar o Champion sem esse dado forward.",
+  "riscoLiquidacao": "inalterado: cada perna mantém margem/notional = 1/alavancagem; mais posições concorrentes não muda a distância de liquidação individual, mas aumenta a concentração agregada.",
+  "honestidade": "observed (janelas de vida) + simulated (captura greedy por EV). Censura: o Champion capou em 3, então a captura de 4/5 é inferida da sobreposição de oportunidades, não de posições reais."
+}

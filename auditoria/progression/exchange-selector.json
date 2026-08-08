@@ -22,7 +22,7 @@
   "respostas": {
     "maiorPnlLiquidoRealizado": {
       "par": "bitget+bybit",
-      "pnl": 6.0439
+      "pnl": 5.9127
     },
     "maisOportunidadesEVpositivo": [
       {
@@ -52,7 +52,7 @@
         "bloqueadas": 0
       }
     ],
-    "lucroPerdidoAoRestringirA2Exchanges": 7.2533,
+    "lucroPerdidoAoRestringirA2Exchanges": 7.2534,
     "duasExchangesSaoSuficientes": null
   },
   "veredito": {
@@ -83,8 +83,8 @@
       "realizado": {
         "posicoes": 6,
         "funding": 7.5726,
-        "custo": 1.5288,
-        "pnlLiquido": 6.0439
+        "custo": 1.6599,
+        "pnlLiquido": 5.9127
       },
       "rank": 1
     },

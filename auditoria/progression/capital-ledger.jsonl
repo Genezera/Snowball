@@ -60,3 +60,4 @@
 {"timestamp":1786219207510,"eventId":"funding-1786219207510-989","origem":"funding","tipo":"funding","valor":1.0102,"saldoAnterior":610.2669,"saldoPosterior":611.2771,"configEpochId":"epoch-1","source":"champion_observed","confidence":1}
 {"timestamp":1786219207511,"eventId":"fecha-1786219207511-990","origem":"fecha","tipo":"fecha","valor":-0.2863,"saldoAnterior":611.2771,"saldoPosterior":610.9908,"configEpochId":"epoch-1","source":"champion_observed","confidence":1}
 {"timestamp":1786219550479,"eventId":"funding-1786219550479-992","origem":"funding","tipo":"funding","valor":1.9406,"saldoAnterior":610.8409,"saldoPosterior":612.7815,"configEpochId":"epoch-1","source":"champion_observed","confidence":1}
+{"timestamp":1786220466431,"eventId":"fecha-1786220466431-996","origem":"fecha","tipo":"fecha","valor":-0.059,"saldoAnterior":612.7762,"saldoPosterior":612.7172,"configEpochId":"epoch-1","source":"champion_observed","confidence":1}

@@ -1,0 +1,134 @@
+{
+  "schema": "snowball.opportunity-life.v1_3",
+  "geradoEm": "2026-08-08T20:05:50.479Z",
+  "asOfMs": 1786219550479,
+  "item7_funil": {
+    "oportunidadesDistintas": 2910,
+    "modelPositiveEV_holdMax168h": 1071,
+    "modelPositiveEV_queViveramAtePayback": 151,
+    "realmentePositivas_vidaObservada": 151,
+    "abertasPeloChampion_simbolos": 1,
+    "explicacao": "De 2910 oportunidades, 1071 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 151 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~151 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
+  },
+  "distribuicao": {
+    "duracaoMedianaH": 27.15,
+    "paybackMedianoH": 160.38,
+    "pctQueViveramAtePayback": 5.19
+  },
+  "item6_multiHorizonte": {
+    "horizontes": [
+      1,
+      8,
+      24,
+      72
+    ],
+    "nota": "EV calculado por posição de US$100/perna em 1h/8h/24h/72h + vida observada. Horizontes curtos raramente pagam o round-trip (0,28%); só APR alto + vida longa fecha a conta.",
+    "exemplosTop": [
+      {
+        "sym": "ACE/USDT:USDT",
+        "aprMediano": 29.1051,
+        "duracaoH": 39.55,
+        "paybackH": 8.84,
+        "evVidaObservada": 10.2008,
+        "evPorHorizonte": {
+          "h1": -2.6057,
+          "h8": -0.28,
+          "h24": 5.036,
+          "h72": 20.984
+        }
+      },
+      {
+        "sym": "SNXX/USDT:USDT",
+        "aprMediano": 11.5621,
+        "duracaoH": 79.77,
+        "paybackH": 10.12,
+        "evVidaObservada": 9.1929,
+        "evPorHorizonte": {
+          "h1": -1.2039,
+          "h8": -0.28,
+          "h24": 1.8318,
+          "h72": 8.1672
+        }
+      },
+      {
+        "sym": "CYS/USDT:USDT",
+        "aprMediano": 11.158,
+        "duracaoH": 75.93,
+        "paybackH": 10.2,
+        "evVidaObservada": 8.3731,
+        "evPorHorizonte": {
+          "h1": -1.1716,
+          "h8": -0.28,
+          "h24": 1.758,
+          "h72": 7.872
+        }
+      },
+      {
+        "sym": "ACE/USDT:USDT",
+        "aprMediano": 15.6269,
+        "duracaoH": 50.45,
+        "paybackH": 9.57,
+        "evVidaObservada": 7.2919,
+        "evPorHorizonte": {
+          "h1": -1.5287,
+          "h8": -0.28,
+          "h24": 2.5742,
+          "h72": 11.1369
+        }
+      },
+      {
+        "sym": "ACE/USDT:USDT",
+        "aprMediano": 9.0737,
+        "duracaoH": 79.95,
+        "paybackH": 10.7,
+        "evVidaObservada": 7.173,
+        "evPorHorizonte": {
+          "h1": -1.0051,
+          "h8": -0.28,
+          "h24": 1.3773,
+          "h72": 6.3492
+        }
+      },
+      {
+        "sym": "COTI/USDT:USDT",
+        "aprMediano": 11.6631,
+        "duracaoH": 62.27,
+        "paybackH": 10.1,
+        "evVidaObservada": 6.9461,
+        "evPorHorizonte": {
+          "h1": -1.212,
+          "h8": -0.28,
+          "h24": 1.8502,
+          "h72": 8.241
+        }
+      },
+      {
+        "sym": "ACE/USDT:USDT",
+        "aprMediano": 16.5636,
+        "duracaoH": 41.06,
+        "paybackH": 9.48,
+        "evVidaObservada": 5.9711,
+        "evPorHorizonte": {
+          "h1": -1.6036,
+          "h8": -0.28,
+          "h24": 2.7453,
+          "h72": 11.8213
+        }
+      },
+      {
+        "sym": "ACE/USDT:USDT",
+        "aprMediano": 10.4649,
+        "duracaoH": 60.11,
+        "paybackH": 10.34,
+        "evVidaObservada": 5.9456,
+        "evPorHorizonte": {
+          "h1": -1.1162,
+          "h8": -0.28,
+          "h24": 1.6314,
+          "h72": 7.3656
+        }
+      }
+    ]
+  },
+  "honestidade": "observed (ts/apr/spread por opportunityId) + simulated (EV por horizonte). A vida observada é limitada pela janela do arquivo de observações (poda de 7 dias)."
+}

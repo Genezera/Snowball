@@ -32,12 +32,12 @@
       "id": "custos",
       "nome": "Chefe dos Custos",
       "metricas": {
-        "feeToGross": 0.4533,
+        "feeToGross": 0.4558,
         "limiteFeeToGross": 0.6,
-        "netObservado": 12.7762,
-        "netComCustos2x": 2.183,
+        "netObservado": 12.7172,
+        "netComCustos2x": 2.0651,
         "funding": 23.3693,
-        "custos": 10.5932
+        "custos": 10.6521
       },
       "criterios": {
         "feeToGrossAbaixoLimite": true,
@@ -51,16 +51,16 @@
       "nome": "Chefe da Sobrevivência",
       "metricas": {
         "drawdownMaxPct": 0.43,
-        "distanciaLiquidacaoMin": 0.16802237068506304,
+        "distanciaLiquidacaoMin": 0.18937224932964092,
         "distMinInfo": {
-          "symbol": "LA/USDT:USDT",
+          "symbol": "1000CAT/USDT:USDT",
           "leg": "long",
-          "distancia": 0.168
+          "distancia": 0.1894
         },
         "capitalFloor": 600,
-        "capitalAtual": 612.7762,
+        "capitalAtual": 612.7172,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 611.9521723382003
+        "equityExecutavel": 612.8115751545266
       },
       "criterios": {
         "drawdownControlado": true,
@@ -85,9 +85,8 @@
         "usoPorExchange": {
           "gate": 1,
           "okx": 1,
-          "bitget": 1,
-          "bybit": 2,
-          "binanceusdm": 1
+          "binanceusdm": 1,
+          "bybit": 1
         }
       },
       "criterios": {
@@ -122,7 +121,7 @@
         "fontesLucrativas": [
           {
             "motor": "champion-funding",
-            "pnlLiquido": 12.7762,
+            "pnlLiquido": 12.7172,
             "amostra": 37
           },
           {

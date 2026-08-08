@@ -14,7 +14,7 @@
 {"par":"bitget+bybit","ts":1786035335050,"symbol":"ACE/USDT:USDT","acao":"financia","notional":102.86,"margem":20.57,"funding":1.2829,"custo":0.2261,"pnl":1.0568,"aberta":false}
 {"par":"bitget+bybit","ts":1786079527191,"symbol":"KMNO/USDT:USDT","acao":"financia","notional":251.82,"margem":50.36,"funding":4.5199,"custo":0.5747,"pnl":3.9452,"aberta":false}
 {"par":"bitget+bybit","ts":1786132401386,"symbol":"SIREN/USDT:USDT","acao":"financia","notional":15.32,"margem":3.06,"funding":0.0459,"custo":0.0329,"pnl":0.0129,"aberta":false}
-{"par":"bitget+bybit","ts":1786169128297,"symbol":"LA/USDT:USDT","acao":"financia","notional":58.96,"margem":23.58,"funding":0.2587,"custo":0,"pnl":0.2587,"aberta":true}
+{"par":"bitget+bybit","ts":1786169128297,"symbol":"LA/USDT:USDT","acao":"financia","notional":58.96,"margem":11.79,"funding":0.2587,"custo":0.1311,"pnl":0.1276,"aberta":false}
 {"par":"bingx+bybit","ts":1785996552509,"symbol":"CAP/USDT:USDT","acao":"financia","notional":248.21,"margem":49.64,"funding":0.6844,"custo":0.5659,"pnl":0.1186,"aberta":false}
 {"par":"bingx+bybit","ts":1786010614510,"symbol":"BANK/USDT:USDT","acao":"financia","notional":239.85,"margem":47.97,"funding":1.6944,"custo":0.611,"pnl":1.0835,"aberta":false}
 {"par":"bingx+bybit","ts":1786117867708,"symbol":"COTI/USDT:USDT","acao":"financia","notional":167.59,"margem":33.52,"funding":0.7828,"custo":0.4713,"pnl":0.3115,"aberta":false}

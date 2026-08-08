@@ -29,21 +29,21 @@
   "item3_trialBitgetBybit": {
     "capitalInicial": 200,
     "funding": 7.5726,
-    "custos": 1.5288,
-    "pnlLiquido": 6.0438,
-    "capitalFinal": 206.0438,
-    "retornoPct": 3.02,
+    "custos": 1.6599,
+    "pnlLiquido": 5.9127,
+    "capitalFinal": 205.9127,
+    "retornoPct": 2.96,
     "posicoes": 6,
     "perdidas": 0,
     "minOrder": 0,
     "drawdownPct": 0,
-    "feeToGross": 0.2019,
+    "feeToGross": 0.2192,
     "capitalBloqueadoPicoUSD": 57.12,
     "capitalOciosoUSD": 82.88,
-    "concentracaoTop1": 0.6528,
-    "capitalHoras": 1883.33,
+    "concentracaoTop1": 0.6672,
+    "capitalHoras": 1721.18,
     "reconciliacao": {
-      "calculado": 206.0438,
+      "calculado": 205.9127,
       "identidade": "capitalInicial + funding − custos",
       "reconcilia": true
     }
@@ -51,28 +51,28 @@
   "item4_controle6ex": {
     "capitalInicial": 600,
     "funding": 23.3693,
-    "custos": 10.0722,
-    "pnlLiquido": 13.2971,
-    "capitalFinal": 613.2971,
-    "retornoPct": 2.22,
+    "custos": 10.2033,
+    "pnlLiquido": 13.166,
+    "capitalFinal": 613.166,
+    "retornoPct": 2.19,
     "posicoes": 26,
     "perdidas": 0,
     "minOrder": 0,
     "drawdownPct": 8.93,
-    "feeToGross": 0.431,
+    "feeToGross": 0.4366,
     "capitalBloqueadoPicoUSD": 176.9,
     "capitalOciosoUSD": 243.1,
-    "concentracaoTop1": 0.2487,
-    "capitalHoras": 7218.03,
+    "concentracaoTop1": 0.2508,
+    "capitalHoras": 7055.87,
     "reconciliacao": {
-      "calculado": 613.2971,
+      "calculado": 613.166,
       "identidade": "capitalInicial + funding − custos",
       "reconcilia": true
     },
     "reconciliacaoComChampion": {
-      "championNet": 12.7762,
-      "controlePnl": 13.2971,
-      "diferenca": 0.5209,
+      "championNet": 12.7172,
+      "controlePnl": 13.166,
+      "diferenca": 0.4488,
       "tolerancia": 1,
       "reconcilia": true,
       "nota": "Diferença vem do funding acumulado das posições abertas ainda não líquido do custo de fechamento."
@@ -86,36 +86,36 @@
     },
     "comparacao": {
       "pnlAbsolutoUSD": {
-        "trial": 6.0438,
-        "control": 13.2971
+        "trial": 5.9127,
+        "control": 13.166
       },
       "retornoPct": {
-        "trial": 3.02,
-        "control": 2.22
+        "trial": 2.96,
+        "control": 2.19
       },
       "drawdownPct": {
         "trial": 0,
         "control": 8.93
       },
       "feeToGross": {
-        "trial": 0.2019,
-        "control": 0.431
+        "trial": 0.2192,
+        "control": 0.4366
       },
       "oportunidades": {
         "trial": 6,
         "control": 26
       },
       "capitalHoras": {
-        "trial": 1883.33,
-        "control": 7218.03
+        "trial": 1721.18,
+        "control": 7055.87
       },
       "capitalOciosoUSD": {
         "trial": 82.88,
         "control": 243.1
       },
       "concentracaoTop1": {
-        "trial": 0.6528,
-        "control": 0.2487
+        "trial": 0.6672,
+        "control": 0.2508
       },
       "ordensMinimasBloqueadas": {
         "trial": 0,
@@ -126,8 +126,8 @@
         "control": 23.3693
       },
       "custos": {
-        "trial": 1.5288,
-        "control": 10.0722
+        "trial": 1.6599,
+        "control": 10.2033
       },
       "estabilidade": {
         "falhasDeExchangeObservadas": 0,
@@ -144,8 +144,8 @@
       "trial": true,
       "control": true,
       "valores": {
-        "trial": 4.515,
-        "control": 3.2249
+        "trial": 4.2528,
+        "control": 2.9627
       }
     },
     "nenhumaOperacaoDominante": false,
@@ -157,7 +157,7 @@
       "atende": false
     },
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.5209, tol 1)."
+    "veredito": "BLOQUEADO — 1/2 janelas, 1/2 regimes, amostra do trial 6/30. NÃO escolher Bitget+Bybit ainda. Controle reconcilia com o Champion (dif 0.4488, tol 1)."
   },
   "honestidade": "observed (posições/funding/custos do Champion) + replay (sandbox reconciliado). Trial enviesado p/ o par que o Champion escolheu; 1 janela/1 regime → decisão NÃO liberada."
 }

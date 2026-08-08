@@ -3,8 +3,8 @@
   "geradoEm": "2026-08-08T20:05:50.479Z",
   "asOfMs": 1786219550479,
   "reconciliacao": {
-    "calculado": 612.7762,
-    "reportado": 612.7762,
+    "calculado": 612.7172,
+    "reportado": 612.7172,
     "diferenca": 0,
     "reconcilia": true,
     "identidade": "capital = capitalInicial + funding − custos"
@@ -27,35 +27,35 @@
     }
   },
   "capitalRealizado": {
-    "value": 612.7761737790861,
+    "value": 612.7172158039554,
     "source": "champion_observed",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 1
   },
   "equityMarcada": {
-    "value": 613.0508510852092,
+    "value": 613.6852534772925,
     "source": "champion_observed",
-    "observedAt": 1786219551823,
+    "observedAt": 1786221939956,
     "ageMs": 0,
     "confidence": 1
   },
   "equityExecutavel": {
-    "value": 611.9521723382003,
+    "value": 612.8115751545266,
     "source": "champion_observed",
-    "observedAt": 1786219551823,
+    "observedAt": 1786221939956,
     "ageMs": 0,
     "confidence": 1
   },
   "lucroAcumulado": {
-    "value": 12.7762,
+    "value": 12.7172,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "custosAcumulados": {
-    "value": 10.5931633173857,
+    "value": 10.652121292516412,
     "source": "champion_observed",
     "observedAt": 1786219550479,
     "ageMs": 0,
@@ -70,48 +70,48 @@
   },
   "drawdown": {
     "maxObservadoPct": 0.43,
-    "atualPct": -0.31,
+    "atualPct": 0.01,
     "picoTs": 1786219550479,
     "valeTs": 1785832241753,
     "source": "derived"
   },
   "reservaOperacional": {
-    "value": 183.8329,
+    "value": 183.8152,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalLivre": {
-    "value": 254.2798,
+    "value": 277.8217,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalComprometido": {
-    "value": 174.6635,
+    "value": 151.0803,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "notionalExposto": {
-    "value": 396.9411,
+    "value": 337.9832,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalHorasComprometidas": {
-    "value": 1086.0935,
+    "value": 755.7836,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
     "confidence": 0.7
   },
   "lucroReinvestivel": {
-    "value": 12.7762,
+    "value": 12.7172,
     "source": "derived",
     "observedAt": 1786219550479,
     "ageMs": 0,
@@ -125,18 +125,18 @@
     "confidence": 0.7
   },
   "capitalNecessarioProximoNivel": {
-    "valor": 187.22,
+    "valor": 187.28,
     "nivelAtualPorCapital": 3,
     "proximoNivel": 4,
-    "capitalDeployable": 428.9433,
+    "capitalDeployable": 428.9021,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
   "saldosPorExchange": {
     "binanceusdm": 100.55104875308373,
-    "bybit": 104.94819047199516,
+    "bybit": 104.9187114844298,
     "okx": 101.55028096209945,
     "gate": 101.53890761530586,
-    "bitget": 102.98411959072688,
+    "bitget": 102.95464060316152,
     "bingx": 101.20362638587504
   },
   "posicoesAbertas": [
@@ -148,15 +148,6 @@
       "margem": 53.3435,
       "fundingAcumulado": 0.7176,
       "abertaEm": 1786169106062
-    },
-    {
-      "symbol": "LA/USDT:USDT",
-      "exchangeShort": "bitget",
-      "exchangeLong": "bybit",
-      "notionalPorPerna": 58.958,
-      "margem": 23.5832,
-      "fundingAcumulado": 0.2587,
-      "abertaEm": 1786169128297
     },
     {
       "symbol": "1000CAT/USDT:USDT",
@@ -176,7 +167,7 @@
     "margemPayback": 1.5,
     "nota": "Reinvestir 100% ≠ expor 100%. Reserva/margem livre/capital de segurança pertencem ao Snowball e são capacidade operacional. Não reduzir reserva nem aumentar exposição para acelerar crescimento."
   },
-  "historicoEntradas": 62,
+  "historicoEntradas": 63,
   "fontes": {
     "estado": "spread/estado.json",
     "marcacao": "spread/marcacao.json",

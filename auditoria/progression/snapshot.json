@@ -1,0 +1,39 @@
+{
+  "schema": "snowball.snapshot.v1_3",
+  "snapshotId": "078177b68a4fabd3",
+  "tsInicial": 1785758671297,
+  "tsInicialISO": "2026-08-03T12:04:31.297Z",
+  "tsFinal": 1786221939115,
+  "tsFinalISO": "2026-08-08T20:45:39.115Z",
+  "ultimoEventId": "1786221939115:bloqueado:MERL/USDT:USDT",
+  "ultimoCycleId": "ADA/USDT:USDT|bitget|binanceusdm",
+  "commit": "b899d468d67bc8534edb85e9e218a4a272dca3fc",
+  "configEpochId": "epoch-1",
+  "capitalNoCorte": 612.7172,
+  "fundingNoCorte": 23.3693,
+  "custosNoCorte": 10.6521,
+  "posicoesAbertasNoCorte": [
+    "BICO/USDT:USDT",
+    "1000CAT/USDT:USDT"
+  ],
+  "hashes": {
+    "spread/diario.jsonl": {
+      "sha256": "087e10cd640cd649a8eb317cbf50caaf92103c515e2ab1828105fbd9a75ca77e",
+      "bytes": 481961
+    },
+    "spread/estado.json": {
+      "sha256": "495d761cb630de978bbab0ba319d635ea30183be900cfdf39850bcad2bfa12f5",
+      "bytes": 1975
+    },
+    "spread/marcacao.json": {
+      "sha256": "1908a715bf5ba61efe0d75fe47375d4a2532faece5865ed68120a7cd47ec580e",
+      "bytes": 1673
+    },
+    "vigilancia/arquivo-observacoes.jsonl": {
+      "sha256": "9ab05f156902237a1d1a5ab1ddbe2643fdd75acb42d5f637ed9764ac5b175b45",
+      "bytes": 14585918
+    }
+  },
+  "eventosNoDiario": 2022,
+  "nota": "Corte comum congelado. Todas as comparações v1.3 (Control, Trial replay, frontier, vida) usam ESTE snapshotId. Os processos FORWARD (Trial/Control live-paper) partem daqui para a frente."
+}

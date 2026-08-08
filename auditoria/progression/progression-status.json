@@ -13,12 +13,12 @@
     ]
   },
   "proximoDesbloqueio": "N2 Eficiência — BLOCKED",
-  "capitalAtual": 612.7762,
+  "capitalAtual": 612.7172,
   "capitalNecessarioProximoNivelEvidencia": 0,
   "capitalNecessarioNota": "Capital do próximo nível JÁ atingido — o bloqueio é EVIDÊNCIA (gate/amostra), não dinheiro.",
   "fronteiraCapital": {
     "proximoNivelPorCapital": 4,
-    "gapUSD": 187.22,
+    "gapUSD": 187.28,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
   "niveisTriplos": {
@@ -72,7 +72,7 @@
     "champion-funding"
   ],
   "contribuicaoPnL": {
-    "champion-funding": 12.7762,
+    "champion-funding": 12.7172,
     "outros": 0,
     "nota": "100% do lucro vem do funding; nenhum 2º motor comprovado."
   },
@@ -92,10 +92,10 @@
   "exchangeSelector": {
     "melhorParRealizado": {
       "par": "bitget+bybit",
-      "pnl": 6.0439
+      "pnl": 5.9127
     },
     "suficienteParaEscolher2": false,
-    "lucroPerdidoAoRestringir": 7.2533
+    "lucroPerdidoAoRestringir": 7.2534
   },
   "capacidade": {
     "veredito": "CAPACIDADE PRODUTIVA NÃO COMPROVADA",
@@ -105,26 +105,26 @@
   "exchangeReplay2ex": {
     "melhorPar": {
       "par": "bitget+bybit",
-      "pnl": 6.0438
+      "pnl": 5.9127
     },
     "todasReconciliam": true,
     "diferencaFixo2vs6": 7.2534
   },
   "reinvestimentoContrafactual": {
     "conclusao": "Nesta janela (~6 dias) as políticas A/B/C geram o MESMO PnL de motor em ambas as bases — o lucro compõe devagar demais p/ relaxar restrição de capital, então a política de reinvestimento NÃO muda o lucro do motor. A única diferença econômica REAL é que a Política C acumula um fundo de 2º motor (US$6,14 a US$600) sem custo de PnL medido. Como o motor satura ~US$400, reinvestir MAIS nele é ocioso; desviar o excedente p/ diversificação (C) é a política superior no estado atual — mas o ganho é DIVERSIFICAÇÃO futura, não lucro garantido, e precisa de ≥2 janelas/regimes p/ confirmar.",
-    "fundoC600": 7.6857
+    "fundoC600": 7.6201
   },
   "crescimento": {
     "trajetoriaObservada": {
-      "netObservado": 12.7762,
-      "diasObservados": 5.33,
+      "netObservado": 12.7172,
+      "diasObservados": 5.36,
       "maxDrawdownPct": 0.43
     },
     "bootstrapPronto": false,
     "intervaloCenarios": {
-      "min": -3.6593,
-      "max": 12.7762,
-      "observado": 12.7762
+      "min": -3.7772,
+      "max": 12.7172,
+      "observado": 12.7172
     },
     "projecaoTemporal": null
   },

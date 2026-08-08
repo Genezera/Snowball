@@ -23,6 +23,11 @@ const ordem = [
   'opportunity-frontier.cjs',   // v1.2 Partes 1,2 (observer pré-saldo + frontier)
   'trial-control-window.cjs',   // v1.2 Partes 3,4,5,6 (trial/control/common-window/gate)
   'unlock-fund.cjs',            // v1.2 Partes 7,8,9 (fundo/ranking/regra)
+  'snapshot-freeze.cjs',        // v1.3 Parte 1 (corte comum)
+  'reconcile-control.cjs',      // v1.3 Parte 2 (Control ≤US$0,01)
+  'opportunity-life.cjs',       // v1.3 Partes 6,7 (vida + multi-horizonte)
+  'maxpositions-test.cjs',      // v1.3 Parte 8 (maxPos 3/4/5)
+  'forward-status.cjs',         // v1.3 Partes 9,10 (common-window forward + gate)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
 let ok = 0;

@@ -4,14 +4,14 @@
   "asOfMs": 1786219550479,
   "item7_fundoDesbloqueio": {
     "natureza": "contabilidade SHADOW — o fundo NÃO financia nenhum motor real.",
-    "lucroTotal": 12.7762,
-    "parcelaOperacional": 5.0905,
-    "parcelaReservada": 7.6857,
-    "saldoDoFundo": 7.6857,
+    "lucroTotal": 12.7172,
+    "parcelaOperacional": 5.0971,
+    "parcelaReservada": 7.6201,
+    "saldoDoFundo": 7.6201,
     "capitalMinimoProximoMotor": 200,
-    "progressoPct": 3.84,
+    "progressoPct": 3.81,
     "motorCandidatoAoDesbloqueio": "settlement-capture",
-    "nota": "Política C acumula 7.6857 (3.84% de US$200) a custo ZERO de PnL do motor saturado. Nada é financiado de verdade."
+    "nota": "Política C acumula 7.6201 (3.81% de US$200) a custo ZERO de PnL do motor saturado. Nada é financiado de verdade."
   },
   "item8_rankingSegundoMotor": [
     {
