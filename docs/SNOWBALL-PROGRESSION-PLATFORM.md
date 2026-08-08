@@ -11,6 +11,13 @@ interface. Branch isolada: `feature/snowball-progression-lab` (a partir de
 > observados do Champion e dos datasets shadow; cada artefato é reprodutível por
 > `node scripts/progression/build-all.cjs` e reconcilia com `spread/estado.json`.
 
+> ⚠️ **Corrigido na v1.1** ([SNOWBALL-PROGRESSION-V1.1.md](SNOWBALL-PROGRESSION-V1.1.md)):
+> a capacidade produtiva NÃO está comprovada (0 oportunidades EV+ bloqueadas por
+> capital; motor satura ~US$400 — as "6.422 rejeições por saldo" **não** provam
+> capacidade); os chefes usam uma máquina de 5 estados (nada DEFEATED com 1 janela);
+> growth não usa mais 0,67%/dia nem promete datas; e há um replay de US$200 por
+> combinação que reconcilia exato. Onde este doc e o v1.1 divergirem, **vale o v1.1**.
+
 ## As 10 perguntas — respostas de hoje (dados reais)
 
 | # | Pergunta | Resposta (asOf último ciclo do Champion) |

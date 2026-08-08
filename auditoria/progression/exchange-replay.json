@@ -1,0 +1,467 @@
+{
+  "schema": "snowball.exchange-replay-2ex.v1_1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "parametros": {
+    "capitalInicial": 200,
+    "porExchange": 100,
+    "reserva": 0.3,
+    "alavancagem": 5,
+    "maxPosicoes": 3,
+    "minNotional": 5
+  },
+  "commonWindow": {
+    "inicio": "2026-08-04T01:44:39.037Z",
+    "fim": "2026-08-08T13:59:08.002Z",
+    "horas": 108.24,
+    "mesmaParaTodas": true
+  },
+  "reconciliacao": {
+    "identidade": "capitalFinal = capitalInicial + funding − custos + residual",
+    "todasReconciliam": true
+  },
+  "metodo": "sandbox US$200 por par sobre TODAS as posições reais do par (funding/custo observados), aplicando o orçamento — sem cereja de vencedores. Oportunidades nunca abertas não têm outcome e não entram.",
+  "limitacao": "Só há outcome realizado para posições que o Champion abriu. Un-taken opportunities não são creditadas. Portanto este replay mede o desempenho de cada par SOB orçamento US$200 nas posições observadas, não um universo hipotético completo.",
+  "ranking": [
+    {
+      "par": "bitget+bybit",
+      "exchanges": [
+        "bybit",
+        "bitget"
+      ],
+      "posicoesNoPar": 6,
+      "capitalInicial": 200,
+      "funding": 7.5726,
+      "custos": 1.5288,
+      "pnlRealizado": 6.0438,
+      "residualRealizado": 0,
+      "capitalFinal": 206.0438,
+      "posicoesFinanciadas": 6,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 57.12,
+      "capitalOciosoPicoUSD": 82.88,
+      "equityMarcada": 206.0438,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 206.0438,
+        "reportado": 206.0438,
+        "reconcilia": true
+      },
+      "rank": 1
+    },
+    {
+      "par": "gate+okx",
+      "exchanges": [
+        "okx",
+        "gate"
+      ],
+      "posicoesNoPar": 4,
+      "capitalInicial": 200,
+      "funding": 4.4595,
+      "custos": 1.5237,
+      "pnlRealizado": 2.9358,
+      "residualRealizado": 0,
+      "capitalFinal": 202.9358,
+      "posicoesFinanciadas": 4,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 52.38,
+      "capitalOciosoPicoUSD": 87.62,
+      "equityMarcada": 202.9358,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 202.9358,
+        "reportado": 202.9358,
+        "reconcilia": true
+      },
+      "rank": 2
+    },
+    {
+      "par": "bingx+bybit",
+      "exchanges": [
+        "bybit",
+        "bingx"
+      ],
+      "posicoesNoPar": 3,
+      "capitalInicial": 200,
+      "funding": 3.1617,
+      "custos": 1.6481,
+      "pnlRealizado": 1.5136,
+      "residualRealizado": 0,
+      "capitalFinal": 201.5136,
+      "posicoesFinanciadas": 3,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 49.64,
+      "capitalOciosoPicoUSD": 90.36,
+      "equityMarcada": 201.5136,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 201.5136,
+        "reportado": 201.5136,
+        "reconcilia": true
+      },
+      "rank": 3
+    },
+    {
+      "par": "bybit+gate",
+      "exchanges": [
+        "bybit",
+        "gate"
+      ],
+      "posicoesNoPar": 5,
+      "capitalInicial": 200,
+      "funding": 1.5494,
+      "custos": 0.7784,
+      "pnlRealizado": 0.771,
+      "residualRealizado": 0,
+      "capitalFinal": 200.771,
+      "posicoesFinanciadas": 5,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 111.85,
+      "capitalOciosoPicoUSD": 28.15,
+      "equityMarcada": 200.771,
+      "drawdownPct": 221.85,
+      "reconciliacao": {
+        "calculado": 200.771,
+        "reportado": 200.771,
+        "reconcilia": true
+      },
+      "rank": 4
+    },
+    {
+      "par": "bingx+gate",
+      "exchanges": [
+        "gate",
+        "bingx"
+      ],
+      "posicoesNoPar": 1,
+      "capitalInicial": 200,
+      "funding": 0.7908,
+      "custos": 0.7414,
+      "pnlRealizado": 0.0494,
+      "residualRealizado": 0,
+      "capitalFinal": 200.0494,
+      "posicoesFinanciadas": 1,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 70.61,
+      "capitalOciosoPicoUSD": 69.39,
+      "equityMarcada": 200.0494,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200.0494,
+        "reportado": 200.0494,
+        "reconcilia": true
+      },
+      "rank": 5
+    },
+    {
+      "par": "binanceusdm+okx",
+      "exchanges": [
+        "binanceusdm",
+        "okx"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 6
+    },
+    {
+      "par": "binanceusdm+gate",
+      "exchanges": [
+        "binanceusdm",
+        "gate"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 7
+    },
+    {
+      "par": "binanceusdm+bitget",
+      "exchanges": [
+        "binanceusdm",
+        "bitget"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 8
+    },
+    {
+      "par": "binanceusdm+bingx",
+      "exchanges": [
+        "binanceusdm",
+        "bingx"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 9
+    },
+    {
+      "par": "bitget+okx",
+      "exchanges": [
+        "okx",
+        "bitget"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 10
+    },
+    {
+      "par": "bingx+okx",
+      "exchanges": [
+        "okx",
+        "bingx"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 11
+    },
+    {
+      "par": "bitget+gate",
+      "exchanges": [
+        "gate",
+        "bitget"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 12
+    },
+    {
+      "par": "bingx+bitget",
+      "exchanges": [
+        "bitget",
+        "bingx"
+      ],
+      "posicoesNoPar": 0,
+      "capitalInicial": 200,
+      "funding": 0,
+      "custos": 0,
+      "pnlRealizado": 0,
+      "residualRealizado": 0,
+      "capitalFinal": 200,
+      "posicoesFinanciadas": 0,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 0,
+      "capitalOciosoPicoUSD": 140,
+      "equityMarcada": 200,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 200,
+        "reportado": 200,
+        "reconcilia": true
+      },
+      "rank": 13
+    },
+    {
+      "par": "bybit+okx",
+      "exchanges": [
+        "bybit",
+        "okx"
+      ],
+      "posicoesNoPar": 1,
+      "capitalInicial": 200,
+      "funding": 0.0508,
+      "custos": 0.2183,
+      "pnlRealizado": -0.1675,
+      "residualRealizado": 0,
+      "capitalFinal": 199.8325,
+      "posicoesFinanciadas": 1,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 21.21,
+      "capitalOciosoPicoUSD": 118.79,
+      "equityMarcada": 199.8325,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 199.8325,
+        "reportado": 199.8325,
+        "reconcilia": true
+      },
+      "rank": 14
+    },
+    {
+      "par": "binanceusdm+bybit",
+      "exchanges": [
+        "binanceusdm",
+        "bybit"
+      ],
+      "posicoesNoPar": 3,
+      "capitalInicial": 200,
+      "funding": 1.0582,
+      "custos": 1.744,
+      "pnlRealizado": -0.6858,
+      "residualRealizado": 0,
+      "capitalFinal": 199.3142,
+      "posicoesFinanciadas": 3,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 33.25,
+      "capitalOciosoPicoUSD": 106.75,
+      "equityMarcada": 199.3142,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 199.3142,
+        "reportado": 199.3142,
+        "reconcilia": true
+      },
+      "rank": 15
+    }
+  ],
+  "dinamicoVsFixo": {
+    "melhorParFixo": {
+      "par": "bitget+bybit",
+      "capitalFinal": 206.0438,
+      "pnl": 6.0438
+    },
+    "parEscolhidoSemanalmente": {
+      "nota": "janela = 1 semana(s) — curta demais p/ troca semanal provar valor; ver caveat",
+      "aplicavel": false
+    },
+    "parEscolhidoPorJanela": {
+      "nota": "trocar por janela exige ≥2 janelas/regimes; indisponível na amostra atual",
+      "aplicavel": false
+    },
+    "seisMonitoradas2Financiadas": {
+      "par": "bitget+bybit",
+      "capitalUsado": 200,
+      "pnl": 6.0438,
+      "nota": "monitora 6 (shadow), financia só o melhor par com US$200"
+    },
+    "seisFinanciadas": {
+      "capitalUsado": 600,
+      "pnl": 10.4604,
+      "nota": "Champion real multi-par: acessa posições de TODOS os pares"
+    },
+    "duasMaisFundoMigracao": {
+      "custoMovimentacaoPct": 0.001,
+      "tempoMovimentacaoH": 2,
+      "custoEstimadoPorTroca": 0.2,
+      "nota": "trocar de par custa taxa de saque/depósito + tempo de settlement — corrói ganho de troca frequente"
+    },
+    "diferencaFixo2_vs_6financiadas": 4.4166,
+    "conclusao": "6 exchanges financiadas rendem 10.4604 vs 6.0438 do melhor par fixo (US$200): diferença de 4.4166. A troca dinâmica NÃO é comprovável na amostra (1 janela) e o custo/tempo de migração desencoraja troca frequente."
+  },
+  "honestidade": "Todas as 15 combinações reconciliam exatamente."
+}

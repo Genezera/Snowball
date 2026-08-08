@@ -1,0 +1,129 @@
+{
+  "schema": "snowball.capacity-analysis.v1_1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "item1_chefeCapacidade": {
+    "rejeicoesClassificadas": {
+      "aprovada": 12,
+      "saldo_semEconomia": 6422,
+      "saldo_comEconomia": 0,
+      "payback_EVneg": 14741,
+      "payback_EVzero": 0,
+      "payback_EVpos": 0,
+      "cobertura": 20,
+      "outro": 0
+    },
+    "interpretacao": {
+      "saldoRejeicoesSemAvaliacaoEconomica": 6422,
+      "nota_saldo": "Rejeições por saldo ocorrem ANTES da avaliação econômica (features zeradas) → o EV dessas oportunidades é DESCONHECIDO. O número bruto de rejeições por saldo NÃO é prova de capacidade produtiva.",
+      "paybackTodosEVnegativo": 14741,
+      "nota_payback": "Todas as rejeições por payback têm EV<0 — recusadas corretamente, independentemente de capital.",
+      "oportunidadesEVpositivo": 13,
+      "oportunidadesEVpositivoBloqueadasSoPorCapital": 0
+    },
+    "veredito": "CAPACIDADE PRODUTIVA NÃO COMPROVADA",
+    "conclusao": "ZERO oportunidades de EV positivo foram bloqueadas por capital. Toda oportunidade avaliada como positiva foi financiada. O gargalo é a OFERTA de oportunidades (EV≤0 ou não-avaliadas), não o capital. Correção da v1: as 6422 rejeições por saldo NÃO comprovam capacidade."
+  },
+  "item5_capacidadeMarginal": {
+    "modelo": "concorrência sobre posições REAIS do Champion (funding/custo OBSERVADOS): a capital C, financia uma posição se cabe na margem livre (C×0,7) e sob maxPosições; PnL usa outcome realizado.",
+    "curva": [
+      {
+        "capital": 200,
+        "pnlLiquido": 10.0968,
+        "retornoPct": 5.05,
+        "oportunidadesPositivasFinanciadas": 17,
+        "posicoesFinanciadas": 21,
+        "posicoesPerdidas": 2,
+        "utilizacaoPicoPct": 68.13,
+        "capitalOciosoPicoUSD": 3.74,
+        "feeToGross": 0.4243,
+        "drawdownPct": 6.04,
+        "capitalHoras": 5295.33,
+        "picoMargemUSD": 136.26,
+        "marginalReturnPorDolar": null
+      },
+      {
+        "capital": 300,
+        "pnlLiquido": 10.1462,
+        "retornoPct": 3.38,
+        "oportunidadesPositivasFinanciadas": 18,
+        "posicoesFinanciadas": 22,
+        "posicoesPerdidas": 1,
+        "utilizacaoPicoPct": 57.79,
+        "capitalOciosoPicoUSD": 36.64,
+        "feeToGross": 0.4464,
+        "drawdownPct": 6,
+        "capitalHoras": 5505.3,
+        "picoMargemUSD": 173.36,
+        "marginalReturnPorDolar": 0.0005
+      },
+      {
+        "capital": 400,
+        "pnlLiquido": 10.4604,
+        "retornoPct": 2.62,
+        "oportunidadesPositivasFinanciadas": 19,
+        "posicoesFinanciadas": 23,
+        "posicoesPerdidas": 0,
+        "utilizacaoPicoPct": 58.21,
+        "capitalOciosoPicoUSD": 47.17,
+        "feeToGross": 0.4389,
+        "drawdownPct": 6,
+        "capitalHoras": 7614.8,
+        "picoMargemUSD": 232.83,
+        "marginalReturnPorDolar": 0.0031
+      },
+      {
+        "capital": 600,
+        "pnlLiquido": 10.4604,
+        "retornoPct": 1.74,
+        "oportunidadesPositivasFinanciadas": 19,
+        "posicoesFinanciadas": 23,
+        "posicoesPerdidas": 0,
+        "utilizacaoPicoPct": 38.8,
+        "capitalOciosoPicoUSD": 187.17,
+        "feeToGross": 0.4389,
+        "drawdownPct": 6,
+        "capitalHoras": 7614.8,
+        "picoMargemUSD": 232.83,
+        "marginalReturnPorDolar": 0
+      },
+      {
+        "capital": 800,
+        "pnlLiquido": 10.4604,
+        "retornoPct": 1.31,
+        "oportunidadesPositivasFinanciadas": 19,
+        "posicoesFinanciadas": 23,
+        "posicoesPerdidas": 0,
+        "utilizacaoPicoPct": 29.1,
+        "capitalOciosoPicoUSD": 327.17,
+        "feeToGross": 0.4389,
+        "drawdownPct": 6,
+        "capitalHoras": 7614.8,
+        "picoMargemUSD": 232.83,
+        "marginalReturnPorDolar": 0
+      },
+      {
+        "capital": 1000,
+        "pnlLiquido": 10.4604,
+        "retornoPct": 1.05,
+        "oportunidadesPositivasFinanciadas": 19,
+        "posicoesFinanciadas": 23,
+        "posicoesPerdidas": 0,
+        "utilizacaoPicoPct": 23.28,
+        "capitalOciosoPicoUSD": 467.17,
+        "feeToGross": 0.4389,
+        "drawdownPct": 6,
+        "capitalHoras": 7614.8,
+        "picoMargemUSD": 232.83,
+        "marginalReturnPorDolar": 0
+      }
+    ],
+    "saturacaoUSD": 400,
+    "picoMargemComprometidaUSD": 232.83,
+    "capitalMinimoParaTudo": 332.61,
+    "lucroMarginalAcimaDaSaturacao": 0,
+    "conclusao": "O Champion nunca comprometeu mais que US$232.83 de margem. Capital acima de ~US$332.61 fica OCIOSO — o lucro satura (marginalReturn→0). Dobrar capital NÃO dobra lucro; a oferta de oportunidades EV+ é o teto.",
+    "caveat": "Modelo de concorrência (financia-ou-perde). Com menos capital o Champion também poderia REDUZIR o sizing (funding proporcionalmente menor + ordens mínimas mordendo) — efeito não isolado aqui. Ambos apontam saturação por falta de oportunidade, não por capital."
+  },
+  "honestidade": "observed (rejeições, outcomes) + shadow (simulação de concorrência). Nenhuma promessa de que mais capital = mais lucro."
+}

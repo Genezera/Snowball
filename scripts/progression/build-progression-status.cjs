@@ -32,7 +32,11 @@ function build() {
     capitalNecessarioProximoNivelEvidencia: gapEvidencia,
     capitalNecessarioNota: gapEvidencia === 0 ? 'Capital do próximo nível JÁ atingido — o bloqueio é EVIDÊNCIA (gate/amostra), não dinheiro.' : 'faltam US$ para o próximo nível por evidência.',
     fronteiraCapital: proxCap ? { proximoNivelPorCapital: proxCap.proximoNivel, gapUSD: proxCap.valor, nota: proxCap.nota } : null,
-    chefesAtivos: bosses ? bosses.resumo.ativos : [], chefesDerrotados: bosses ? bosses.resumo.derrotados : [],
+    niveisTriplos: levels ? { capitalLevel: levels.capitalLevel, evidenceLevel: levels.evidenceLevel, operationalLevel: levels.operationalLevel } : null,
+    chefesPorEstado: bosses ? bosses.resumo : {},
+    chefesAtivos: bosses ? [...(bosses.resumo.ACTIVE || []), ...(bosses.resumo.UNTESTED || [])] : [],
+    chefesProvisorios: bosses ? [...(bosses.resumo.PASSED_CURRENT_WINDOW || []), ...(bosses.resumo.PROVISIONALLY_DEFEATED || [])] : [],
+    chefesDerrotados: bosses ? (bosses.resumo.DEFEATED || []) : [],
     motoresPorEstado: registry ? registry.porEstado : {},
     motoresBloqueados: motores.filter((m) => ['LOCKED', 'ARCHITECTURE_ONLY'].includes(m.estado)).map((m) => m.engineId),
     motoresEmPesquisa: motores.filter((m) => ['RESEARCH', 'DATA_COLLECTION', 'SHADOW'].includes(m.estado)).map((m) => m.engineId),
@@ -51,7 +55,11 @@ function build() {
       chefeDiversificacao: chefes.diversificacao ? chefes.diversificacao.status : null,
     },
     exchangeSelector: selector ? { melhorParRealizado: selector.respostas.maiorPnlLiquidoRealizado, suficienteParaEscolher2: selector.veredito.suficienteParaEscolher2, lucroPerdidoAoRestringir: selector.respostas.lucroPerdidoAoRestringirA2Exchanges } : null,
-    crescimento: growth ? { retornoDiarioObsPct: growth.baseObservada.epoch1.retornoDiarioPct, avisoAmostra: growth.avisoAmostra } : null,
+    // v1.1: capacidade corrigida, replay reconciliado, reinvestimento contrafactual
+    capacidade: (() => { const c = g('capacity-analysis.json'); return c ? { veredito: c.item1_chefeCapacidade.veredito, saturacaoUSD: c.item5_capacidadeMarginal.saturacaoUSD, picoMargemUSD: c.item5_capacidadeMarginal.picoMargemComprometidaUSD } : null; })(),
+    exchangeReplay2ex: (() => { const r = g('exchange-replay.json'); return r ? { melhorPar: r.ranking[0] ? { par: r.ranking[0].par, pnl: r.ranking[0].pnlRealizado } : null, todasReconciliam: r.reconciliacao.todasReconciliam, diferencaFixo2vs6: r.dinamicoVsFixo.diferencaFixo2_vs_6financiadas } : null; })(),
+    reinvestimentoContrafactual: (() => { const rc = g('reinvestment-counterfactual.json'); return rc ? { conclusao: rc.conclusao, fundoC600: rc.resultados.base_600 ? rc.resultados.base_600.C.fundoDesbloqueio : null } : null; })(),
+    crescimento: growth ? { trajetoriaObservada: { netObservado: growth.trajetoriaObservada.netObservado, diasObservados: growth.trajetoriaObservada.diasObservados, maxDrawdownPct: growth.trajetoriaObservada.maxDrawdownPct }, bootstrapPronto: growth.amostra.bootstrapPronto, intervaloCenarios: growth.intervaloCenarios, projecaoTemporal: growth.projecaoTemporal } : null,
     // schema para futura exibição (NÃO cria dashboard)
     displaySchemaDashboardV2: {
       destino: 'Dashboard V2 canônico (futuro; nenhuma interface criada nesta fase)',

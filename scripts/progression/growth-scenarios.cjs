@@ -1,80 +1,65 @@
 #!/usr/bin/env node
 'use strict';
 /**
- * PARTE 8 — Simulação de crescimento (Snowball). USA SÓ dados observados; nenhuma
- * taxa fixa inventada. Distingue explicitamente fato observado / replay / simulado /
- * hipótese / projeção. NÃO extrapola dias como se fossem meses garantidos: cada
- * projeção carrega a ressalva de amostra insuficiente. Emite growth-scenarios.json.
+ * v1.1 — PARTE 9 (corrigido). Growth scenarios SEM taxa-base de longo prazo.
+ * NÃO usa 0,67%/dia como base; NÃO promete data para níveis futuros. Enquanto a
+ * amostra for insuficiente, produz apenas: (a) trajetória observada, (b) stress
+ * MECÂNICO, (c) intervalo de cenários. Bootstrap por operações/janelas só quando
+ * a amostra for suficiente (≥30 operações E ≥2 janelas/regimes). Emite growth-scenarios.json.
  */
 const L = require('./lib-progression.cjs');
 
 function build() {
-  const { estado, asOf, epochs } = L.loadChampion();
+  const { estado, asOf } = L.loadChampion();
   const { capSeries } = L.serieEconomica();
-  const capital = estado.capital || 0;
-  const niveis = L.derivarNiveis();
+  const pos = L.reconstruirPosicoes(estado).filter((p) => !p.aberta); // operações fechadas p/ amostra
+  const fund = estado.fundingTotal || 0, cus = estado.custosTotal || 0, netObs = L.r4(fund - cus);
 
-  // ── taxa observada (epoch-1: pós-injeção, US$600/6 exchanges) ────────────────
-  const ep1 = epochs.find((e) => e.configEpochId === 'epoch-1');
-  const serieEp1 = capSeries.filter((e) => e.ts >= (ep1 ? ep1.inicioTs : 0));
-  const capIniEp1 = serieEp1.length ? serieEp1[0].capital : capital; // ~599.14 (pós-injeção)
-  const capFimEp1 = serieEp1.length ? serieEp1[serieEp1.length - 1].capital : capital;
-  const diasEp1 = serieEp1.length ? Math.max(0.01, (serieEp1[serieEp1.length - 1].ts - serieEp1[0].ts) / 8.64e7) : 0;
-  const ganhoEp1 = capFimEp1 - capIniEp1;
-  const retornoDiarioObs = capIniEp1 > 0 ? ganhoEp1 / capIniEp1 / diasEp1 : 0; // fração/dia (OBSERVADO)
+  // ── (a) trajetória OBSERVADA (fatos, sem extrapolação) ──────────────────────
+  const serie = capSeries.map((e) => ({ ts: e.ts, capital: e.capital }));
   const mdd = L.maxDrawdown(capSeries);
+  const trajetoria = {
+    tipo: 'observed',
+    capitalInicial: serie.length ? L.r4(serie[0].capital) : null, capitalAtual: L.r4(estado.capital),
+    pontos: serie.length, primeiroTs: serie.length ? new Date(serie[0].ts).toISOString() : null, ultimoTs: new Date(asOf || 0).toISOString(),
+    diasObservados: serie.length ? L.r2((serie[serie.length - 1].ts - serie[0].ts) / 8.64e7) : 0,
+    fundingObservado: L.r4(fund), custosObservado: L.r4(cus), netObservado: netObs, maxDrawdownPct: mdd.pct,
+    nota: 'Trajetória de fato. Inclui 1 aporte de US$400 (4 exchanges) — não é lucro.',
+  };
 
-  const amostraFragil = diasEp1 < 14; // < 2 semanas => projeções são hipóteses frágeis
-  const fund = estado.fundingTotal || 0, cus = estado.custosTotal || 0;
+  // ── amostra p/ bootstrap ────────────────────────────────────────────────────
+  const nOperacoes = pos.length, JANELAS = 1, REGIMES = 1;
+  const bootstrapPronto = nOperacoes >= 30 && JANELAS >= 2 && REGIMES >= 2;
 
-  // ── cenários (ajustam o retorno diário observado) ───────────────────────────
-  const cenarios = [
-    { id: 'observado', label: 'observado', mult: 1, tipo: 'observed', nota: 'taxa diária observada no epoch-1 (US$600/6ex).' },
-    { id: 'custos_1_5x', label: 'custos 1,5×', tipo: 'simulated', net: fund - 1.5 * cus },
-    { id: 'custos_2x', label: 'custos 2×', tipo: 'simulated', net: fund - 2 * cus },
-    { id: 'funding_menos25', label: 'funding −25%', tipo: 'simulated', net: 0.75 * fund - cus },
-    { id: 'funding_menos50', label: 'funding −50%', tipo: 'simulated', net: 0.5 * fund - cus },
-    { id: 'menos_oportunidades', label: 'redução de oportunidades (−50%)', mult: 0.5, tipo: 'hypothetical', nota: 'metade das aberturas; escala linear (hipótese).' },
-    { id: 'drawdown', label: 'drawdown observado aplicado', tipo: 'simulated', net: (fund - cus) * (1 - mdd.fracao), nota: 'retorno líquido reduzido pelo maxDD observado.' },
-    { id: 'perde_exchange', label: 'perda de uma exchange', mult: 5 / 6, tipo: 'hypothetical', nota: 'capacidade ∝ nº de exchanges (6→5); hipótese linear.' },
-    { id: 'saturacao_motor', label: 'saturação do motor', mult: 0.0, tipo: 'hypothetical', nota: 'motor não absorve capital novo: retorno incremental ≈ 0 (poucas oportunidades EV+).' },
-    { id: 'segundo_motor', label: '2º motor desbloqueado', tipo: 'hypothetical', nota: 'requer motor ELIGIBLE — inexistente hoje; projeção condicional, NÃO garantida.' },
-  ];
+  // ── (b) stress MECÂNICO (sobre o net observado; SEM taxa diária, SEM datas) ──
+  const stress = [
+    { id: 'observado', net: netObs, tipo: 'observed' },
+    { id: 'custos_1_5x', net: L.r4(fund - 1.5 * cus), tipo: 'simulated' },
+    { id: 'custos_2x', net: L.r4(fund - 2 * cus), tipo: 'simulated' },
+    { id: 'funding_menos25', net: L.r4(0.75 * fund - cus), tipo: 'simulated' },
+    { id: 'funding_menos50', net: L.r4(0.5 * fund - cus), tipo: 'simulated' },
+    { id: 'custos_2x_funding_menos25', net: L.r4(0.75 * fund - 2 * cus), tipo: 'simulated' },
+  ].map((s) => ({ ...s, sobreviveComLucro: s.net > 0 }));
 
-  const netObs = fund - cus; // 9.98 observado
-  function taxaCenario(c) {
-    if (c.mult != null) return retornoDiarioObs * c.mult;
-    if (c.net != null) return retornoDiarioObs * (netObs !== 0 ? c.net / netObs : 0); // escala pelo net relativo
-    return retornoDiarioObs;
-  }
-  const proximoNivelCap = (niveis.find((n) => n.capitalMinimo > capital) || {}).capitalMinimo || null;
-
-  const resultados = cenarios.map((c) => {
-    const taxa = taxaCenario(c);
-    const niveisTempo = niveis.filter((n) => n.capitalMinimo > capital).map((n) => {
-      const dias = taxa > 0 ? Math.log(n.capitalMinimo / capital) / Math.log(1 + taxa) : null;
-      return { nivel: n.levelId, capitalMinimo: n.capitalMinimo, diasEstimados: dias == null || !isFinite(dias) || dias < 0 ? null : Math.round(dias), classificacao: 'projeção (hipótese)' };
-    });
-    return { id: c.id, label: c.label, tipo: c.tipo, retornoDiarioPct: L.r4(taxa * 100), netCenario: c.net != null ? L.r4(c.net) : (c.mult != null ? L.r4(netObs * c.mult) : L.r4(netObs)), tempoParaNiveis: niveisTempo, nota: c.nota };
-  });
+  // ── (c) intervalo de cenários ───────────────────────────────────────────────
+  const nets = stress.map((s) => s.net);
+  const intervalo = { min: L.r4(Math.min(...nets)), max: L.r4(Math.max(...nets)), observado: netObs };
 
   const out = {
-    schema: 'snowball.growth-scenarios.v1', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
-    baseObservada: {
-      tipo: 'observed', capitalAtual: L.r4(capital), fundingObservado: L.r4(fund), custosObservado: L.r4(cus), netObservado: L.r4(netObs),
-      epoch1: { capitalInicial: L.r4(capIniEp1), capitalFinal: L.r4(capFimEp1), dias: L.r2(diasEp1), retornoDiarioPct: L.r4(retornoDiarioObs * 100) },
-      maxDrawdownPct: mdd.pct,
-    },
-    avisoAmostra: amostraFragil ? `AMOSTRA INSUFICIENTE: só ${L.r2(diasEp1)} dias de epoch-1. TODA projeção abaixo é HIPÓTESE frágil — não é lucro futuro garantido. Não extrapolar dias como meses.` : 'amostra ainda modesta; tratar projeções como hipóteses.',
-    contribuicaoPorMotor: { 'champion-funding': L.r4(netObs), outros: 0, nota: '100% do lucro vem do funding; nenhum 2º motor comprovado contribui.' },
-    dependenciaDasMelhoresOperacoes: 'ver bosses.json (concentração top-1 ~24%).',
-    proximoNivelCapital: proximoNivelCap,
-    legenda: { observed: 'fato medido', replay: 'reexecução determinística', simulated: 'ajuste de parâmetro sobre observado', hypothetical: 'suposição estrutural', projecao: 'extrapolação temporal (não garantida)' },
-    cenarios: resultados,
-    honestidade: 'Nenhum lucro futuro é garantido. Projeções de tempo-para-nível são extrapolações mecânicas do retorno diário observado (amostra de poucos dias) e servem só para ordenar cenários, não para prometer datas.',
+    schema: 'snowball.growth-scenarios.v1_1', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
+    politica: 'SEM taxa-base de longo prazo; SEM data prometida para níveis futuros. Só trajetória observada + stress mecânico + intervalo enquanto a amostra for insuficiente.',
+    trajetoriaObservada: trajetoria,
+    amostra: { operacoesFechadas: nOperacoes, janelas: JANELAS, regimes: REGIMES, bootstrapPronto,
+      nota: bootstrapPronto ? 'amostra suficiente p/ bootstrap' : `INSUFICIENTE p/ bootstrap (precisa ≥30 operações E ≥2 janelas/regimes; tem ${nOperacoes} operações / ${JANELAS} janela / ${REGIMES} regime). Nenhuma projeção temporal produzida.` },
+    stressMecanico: stress,
+    intervaloCenarios: intervalo,
+    projecaoTemporal: null,
+    projecaoTemporalNota: 'REMOVIDO: v1.0 usava 0,67%/dia (2,72 dias de amostra) para projetar datas de nível. Isso é extrapolação indevida — nenhuma data é prometida.',
+    contribuicaoPorMotor: { 'champion-funding': netObs, outros: 0 },
+    honestidade: 'Só fato observado + stress mecânico. Nenhuma taxa de longo prazo, nenhuma data, nenhum lucro futuro garantido. Bootstrap só quando houver ≥2 janelas/regimes.',
   };
   const p = L.writeJSON('growth-scenarios.json', out);
-  console.log(JSON.stringify({ saida: p, retornoDiarioObsPct: L.r4(retornoDiarioObs * 100), diasEp1: L.r2(diasEp1), amostraFragil,
-    cenarios: resultados.map((r) => `${r.label}: ${r.retornoDiarioPct}%/dia`) }, null, 2));
+  console.log(JSON.stringify({ saida: p, netObservado: netObs, bootstrapPronto, operacoes: nOperacoes,
+    intervalo, stress: stress.map((s) => `${s.id}: net ${s.net} (${s.sobreviveComLucro ? 'lucro' : 'PREJUÍZO'})`) }, null, 2));
 }
 build();

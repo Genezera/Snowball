@@ -1,8 +1,17 @@
 {
-  "schema": "snowball.levels.v1",
+  "schema": "snowball.levels.v1_1",
   "geradoEm": "2026-08-08T13:59:08.002Z",
   "asOfMs": 1786197548002,
   "capitalRealizado": 609.9825,
+  "capitalLevel": 3,
+  "evidenceLevel": 1,
+  "operationalLevel": 1,
+  "niveisTriplos": {
+    "capitalLevel": "N3 (capital suporta)",
+    "evidenceLevel": "N1 (prova provisória — 1 janela)",
+    "operationalLevel": "N1 (operar ≤ prova)",
+    "nota": "capitalLevel ≥ evidenceLevel; a diferença é capacidade não comprovada. operationalLevel = min(capital, evidência). Unlocks são PROVISÓRIOS até DEFEATED (≥2 janelas/regimes)."
+  },
   "nivelAtual": 1,
   "nivelAtualNome": "Motor principal",
   "proximoNivel": {

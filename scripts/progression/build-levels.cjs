@@ -20,7 +20,11 @@ function build() {
   const chDiario = L.rd(L.P.challengersRel, null);
   const chGate = chDiario && chDiario.gate ? String(chDiario.gate.veredito) : '';
   const chFidelidadeOK = chDiario && chDiario.controlFidelity && chDiario.controlFidelity.comparisonStatus === 'OK';
-  const derrotado = (id) => bosses[id] && bosses[id].status === 'DERROTADO';
+  // v1.1: chefes usam máquina de 5 estados. "passou a janela" = provisoriamente vencido
+  // (PASSED_CURRENT_WINDOW/PROVISIONALLY_DEFEATED/DEFEATED). Unlock TOTAL exige DEFEATED
+  // (≥2 janelas/regimes) — nada está DEFEATED ainda, então os unlocks são PROVISÓRIOS.
+  const passouJanela = (id) => bosses[id] && ['PASSED_CURRENT_WINDOW', 'PROVISIONALLY_DEFEATED', 'DEFEATED'].includes(bosses[id].status);
+  const derrotado = passouJanela; // compat com o bloco de evidência abaixo
   const estadoMotor = (id) => (registry.find((m) => m.engineId === id) || {}).estado;
   const nEligible = registry.filter((m) => m.estado === 'ELIGIBLE' || m.estado === 'LIVE').length;
   const netPositivo = (estado.fundingTotal || 0) - (estado.custosTotal || 0) > 0;
@@ -52,11 +56,17 @@ function build() {
     };
   });
 
-  const nivelAtual = levels.filter((l) => l.unlockStatus === 'UNLOCKED').reduce((m, l) => Math.max(m, l.levelId), 0);
+  const evidenceLevel = levels.filter((l) => l.unlockStatus === 'UNLOCKED').reduce((m, l) => Math.max(m, l.levelId), 0);
+  const capitalLevel = L.posicaoNiveis(estado, niveis).nivelAtualPorCapital;
+  const operationalLevel = Math.min(capitalLevel, evidenceLevel); // nunca operar acima da prova
+  const nivelAtual = evidenceLevel;
   const proximo = levels.find((l) => l.levelId === nivelAtual + 1) || null;
   const out = {
-    schema: 'snowball.levels.v1', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
+    schema: 'snowball.levels.v1_1', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
     capitalRealizado: L.r4(capital),
+    // item 7: três níveis distintos — NÃO chamar desbloqueado só porque o saldo atingiu o mínimo
+    capitalLevel, evidenceLevel, operationalLevel,
+    niveisTriplos: { capitalLevel: `N${capitalLevel} (capital suporta)`, evidenceLevel: `N${evidenceLevel} (prova provisória — 1 janela)`, operationalLevel: `N${operationalLevel} (operar ≤ prova)`, nota: 'capitalLevel ≥ evidenceLevel; a diferença é capacidade não comprovada. operationalLevel = min(capital, evidência). Unlocks são PROVISÓRIOS até DEFEATED (≥2 janelas/regimes).' },
     nivelAtual, nivelAtualNome: (levels.find((l) => l.levelId === nivelAtual) || {}).nome,
     proximoNivel: proximo ? { levelId: proximo.levelId, nome: proximo.nome, unlockStatus: proximo.unlockStatus, blockedReasons: proximo.blockedReasons } : null,
     principio: 'Capital sozinho não desbloqueia. Um lucro isolado ou uma moeda que subiu muito NÃO desbloqueia um motor. Exige capital + amostra + 2 janelas + 2 regimes + custos estressados + drawdown aceitável + concentração + estabilidade + dados íntegros + rollback + aprovação humana.',

@@ -184,6 +184,25 @@ function posicaoNiveis(estado, niveis) {
   return { capitalDeployable: capitalDeployable(estado), nivelAtualPorCapital: atual, proximoNivel: prox ? prox.levelId : null, capitalNecessarioProximoNivel: gap };
 }
 
+/**
+ * reconstruirPosicoes — reconstrói as posições REAIS do Champion a partir do diário
+ * (abre/funding/escalona/apara/fecha) + posições abertas do estado. Cada posição:
+ * {symbol, long, short, par, notional, margem, abreTs, fechaTs, funding, custo, pnl, aberta}.
+ * margem = notional / alavancagem. Funding/custo OBSERVADOS. Base honesta (não filtra nada).
+ */
+function reconstruirPosicoes(estado) {
+  const L = jsonl(P.diario).filter((e) => typeof e.ts === 'number').sort((a, b) => a.ts - b.ts);
+  const ab = {}; const pos = [];
+  for (const e of L) {
+    if (e.evento === 'abre' || e.evento === 'abre-captura') ab[e.symbol] = { symbol: e.symbol, long: e.long, short: e.short, notional: e.notional || 0, abreTs: e.ts, funding: 0, custo: e.custo || 0 };
+    else if (e.evento === 'funding' && ab[e.symbol]) ab[e.symbol].funding += e.ganho || 0;
+    else if ((e.evento === 'escalona' || e.evento === 'apara' || e.evento === 'socorre' || e.evento === 'reinveste') && ab[e.symbol]) { if (typeof e.notionalNovo === 'number') ab[e.symbol].notional = e.notionalNovo; ab[e.symbol].custo += e.custo || 0; }
+    else if (e.evento === 'fecha' && ab[e.symbol]) { const o = ab[e.symbol]; o.custo += e.custo || 0; o.fechaTs = e.ts; o.margem = o.notional / ALAVANCAGEM; o.pnl = o.funding - o.custo; o.aberta = false; pos.push(o); delete ab[e.symbol]; }
+  }
+  for (const p of (estado.posicoes || [])) pos.push({ symbol: p.symbol, long: p.exchangeLong, short: p.exchangeShort, notional: p.notionalPorPerna, abreTs: p.abertaEm, fechaTs: null, funding: p.fundingAcumulado || 0, custo: 0, pnl: p.fundingAcumulado || 0, margem: (p.margemShort || 0) + (p.margemLong || 0), aberta: true });
+  return pos.map((p) => ({ ...p, par: (EXCHANGES.includes(p.long) && EXCHANGES.includes(p.short)) ? [p.long, p.short].sort().join('+') : null }));
+}
+
 function ensureOut() { try { fs.mkdirSync(P.outDir, { recursive: true }); } catch {} }
 function writeJSON(nome, obj) { ensureOut(); fs.writeFileSync(path.join(P.outDir, nome), JSON.stringify(obj, null, 2)); return path.join('auditoria', 'progression', nome); }
 function writeJSONL(nome, arr) { ensureOut(); fs.writeFileSync(path.join(P.outDir, nome), arr.map((x) => JSON.stringify(x)).join('\n') + (arr.length ? '\n' : '')); return path.join('auditoria', 'progression', nome); }
@@ -191,5 +210,5 @@ function writeJSONL(nome, arr) { ensureOut(); fs.writeFileSync(path.join(P.outDi
 module.exports = {
   ROOT, P, RESERVA, ALAVANCAGEM, MAX_POSICOES, MARGEM_PAYBACK, MIN_NOTIONAL, ALVO_POR_EXCHANGE, EXCHANGES, STALE_MS,
   rd, linhas, jsonl, r2, r4, loadChampion, campo, epochDe, serieEconomica, reconciliar, comprometido, maxDrawdown,
-  derivarNiveis, capitalDeployable, posicaoNiveis, writeJSON, writeJSONL, ensureOut,
+  derivarNiveis, capitalDeployable, posicaoNiveis, reconstruirPosicoes, writeJSON, writeJSONL, ensureOut,
 };

@@ -40,6 +40,19 @@ function build() {
   const netObservado = L.r4(funding - custos);
   const netCustos2x = L.r4(funding - 2 * custos);
 
+  // ── item 8: máquina de estados dos chefes (v1.1) ────────────────────────────
+  // UNTESTED / ACTIVE / PASSED_CURRENT_WINDOW / PROVISIONALLY_DEFEATED / DEFEATED.
+  // DEFEATED exige múltiplas janelas E regimes. Amostra atual = 1 janela contínua,
+  // 1 regime observável → nenhum chefe pode ser DEFEATED ainda.
+  const JANELAS = 1, REGIMES = 1;
+  function estadoChefe(criterios, opts) {
+    opts = opts || {};
+    if (opts.naoAvaliavel) return 'UNTESTED';
+    if (!Object.values(criterios).every(Boolean)) return 'ACTIVE';
+    if (JANELAS >= 2 && REGIMES >= 2) return 'DEFEATED';
+    return opts.borderline ? 'PASSED_CURRENT_WINDOW' : 'PROVISIONALLY_DEFEATED';
+  }
+
   const LIM_FEE_TO_GROSS = 0.60; // limite: custos não podem passar de 60% do funding bruto
   const chefeCustos = {
     id: 'custos', nome: 'Chefe dos Custos',
@@ -51,7 +64,7 @@ function build() {
     },
     status: null, nota: netCustos2x > 0 && netCustos2x < 2 ? 'Sobrevive a custos 2×, porém com folga PEQUENA (+' + netCustos2x + '). Margem fina.' : undefined,
   };
-  chefeCustos.status = Object.values(chefeCustos.criterios).every(Boolean) ? 'DERROTADO' : 'ATIVO';
+  chefeCustos.status = estadoChefe(chefeCustos.criterios, { borderline: netCustos2x > 0 && netCustos2x < 2 });
 
   const drawdownMaxPct = L.maxDrawdown(L.serieEconomica().capSeries).pct;
   const chefeSobrevivencia = {
@@ -65,7 +78,7 @@ function build() {
     },
     status: null, nota: (estado.fechamentosEmergencia || 0) > 0 ? `Houve ${estado.fechamentosEmergencia} fechamento(s) de emergência no histórico — monitorar.` : undefined,
   };
-  chefeSobrevivencia.status = Object.values(chefeSobrevivencia.criterios).every(Boolean) ? 'DERROTADO' : 'ATIVO';
+  chefeSobrevivencia.status = estadoChefe(chefeSobrevivencia.criterios, { borderline: (estado.fechamentosEmergencia || 0) > 0 });
 
   const chefeConcentracao = {
     id: 'concentracao', nome: 'Chefe da Concentração',
@@ -78,22 +91,26 @@ function build() {
     },
     status: null,
   };
-  chefeConcentracao.status = Object.values(chefeConcentracao.criterios).every(Boolean) ? 'DERROTADO' : 'ATIVO';
+  chefeConcentracao.status = estadoChefe(chefeConcentracao.criterios);
 
-  // ── capacidade: oportunidades rejeitadas por saldo (capital-constrained?) ────
+  // ── capacidade (CORRIGIDO v1.1): só produtiva se capital extra libera EV+ real ──
   const cand = L.jsonl(L.P.candidatos);
   const rejeitPorSaldo = cand.filter((c) => c.motivoRejeicao && /saldo_insuficiente/.test(c.motivoRejeicao)).length;
+  const saldoSemEconomia = cand.filter((c) => /saldo_insuficiente/.test(c.motivoRejeicao || '') && !(c.features && (c.features.custo > 0 || c.features.capitalNecessario > 0))).length;
+  const evPosBloqSaldo = cand.filter((c) => c.features && c.features.valorEsperado > 0 && /saldo_insuficiente/.test(c.motivoRejeicao || '')).length;
+  const capAnalise = L.rd(L.P.outDir + '/capacity-analysis.json', null);
+  const saturacaoUSD = capAnalise && capAnalise.item5_capacidadeMarginal ? capAnalise.item5_capacidadeMarginal.saturacaoUSD : null;
   const chefeCapacidade = {
     id: 'capacidade', nome: 'Chefe da Capacidade',
-    metricas: { oportunidadesRejeitadasPorSaldo: rejeitPorSaldo, totalCandidatos: cand.length, temSegundoMotorAbsorvente: false },
+    metricas: { rejeicoesPorSaldo: rejeitPorSaldo, rejeicoesPorSaldoSemAvaliacaoEconomica: saldoSemEconomia, oportunidadesEVpositivoBloqueadasSoPorCapital: evPosBloqSaldo, saturacaoUSD, temSegundoMotorAbsorvente: false },
     criterios: {
-      motorSaturaCapital: rejeitPorSaldo === 0, // se NUNCA rejeita por saldo, o motor está saturado de capital
-      evidenciaDeSaturacao: false,
+      capitalExtraLiberaEVpositivoReal: evPosBloqSaldo > 0, // corrigido: número bruto de rejeições NÃO conta
       existeSegundoMotorParaAbsorver: false,
     },
-    status: 'ATIVO',
-    nota: rejeitPorSaldo > 0 ? `${rejeitPorSaldo} oportunidades rejeitadas por saldo insuficiente: o motor é CONSTRANGIDO POR CAPITAL, não saturado — há headroom de capacidade e falta um 2º motor para absorver.` : 'Motor não rejeita por saldo: possível saturação — avaliar 2º motor.',
+    status: null,
+    nota: `CORREÇÃO v1.1: das ${rejeitPorSaldo} rejeições por saldo, ${saldoSemEconomia} ocorreram ANTES da avaliação econômica (EV desconhecido). ZERO oportunidades de EV positivo foram bloqueadas por capital. O motor SATURA ~US$${saturacaoUSD}. Não há capacidade produtiva de capital adicional; o gargalo é oferta de oportunidade + falta de 2º motor.`,
   };
+  chefeCapacidade.status = estadoChefe(chefeCapacidade.criterios); // critérios falham → ACTIVE
 
   // ── diversificação: ≥2 fontes independentes lucrativas ──────────────────────
   const captura = L.rd(L.P.captura, { pnlLiquido: 0, totalCapturas: 0, concluidas: 0 });
@@ -108,15 +125,17 @@ function build() {
       correlacaoConhecida: false,
       naoDependemDoMesmoEvento: false,
     },
-    status: 'ATIVO',
+    status: null,
     nota: 'Só o funding tem amostra suficiente e lucro; captura é positiva (+' + L.r4(captura.pnlLiquido || 0) + ') mas com amostra pequena (' + (captura.concluidas || 0) + '). Falta uma 2ª fonte comprovada e independente.',
   };
+  chefeDiversificacao.status = estadoChefe(chefeDiversificacao.criterios);
 
   const bosses = {
     schema: 'snowball.bosses.v1', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
-    resumo: { derrotados: [chefeCustos, chefeSobrevivencia, chefeConcentracao, chefeCapacidade, chefeDiversificacao].filter((b) => b.status === 'DERROTADO').map((b) => b.id), ativos: [chefeCustos, chefeSobrevivencia, chefeConcentracao, chefeCapacidade, chefeDiversificacao].filter((b) => b.status !== 'DERROTADO').map((b) => b.id) },
+    maquinaEstados: { estados: ['UNTESTED', 'ACTIVE', 'PASSED_CURRENT_WINDOW', 'PROVISIONALLY_DEFEATED', 'DEFEATED'], janelas: JANELAS, regimes: REGIMES, notaDefeated: 'DEFEATED exige ≥2 janelas E ≥2 regimes — inatingível com 1 janela. Máximo atual: PROVISIONALLY_DEFEATED.' },
+    resumo: (() => { const todos = [chefeCustos, chefeSobrevivencia, chefeConcentracao, chefeCapacidade, chefeDiversificacao]; const g = {}; for (const b of todos) (g[b.status] = g[b.status] || []).push(b.id); return g; })(),
     chefes: { custos: chefeCustos, sobrevivencia: chefeSobrevivencia, concentracao: chefeConcentracao, capacidade: chefeCapacidade, diversificacao: chefeDiversificacao },
-    honestidade: 'Status derivado de dados observados do Champion. Amostra pequena para captura/diversificação. Custos 2× deixa folga pequena.',
+    honestidade: 'Estados de 5 níveis; DEFEATED exige múltiplas janelas/regimes. Amostra atual = 1 janela → nada DEFEATED. Capacidade CORRIGIDA (v1.1): rejeições brutas por saldo não provam capacidade.',
   };
   const p = L.writeJSON('bosses.json', bosses);
   console.log(JSON.stringify({ saida: p, feeToGross, netObservado, netCustos2x, top1Share, herfindahl, distLiqMin: distMin, drawdownMaxPct, rejeitPorSaldo,

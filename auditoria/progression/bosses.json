@@ -2,13 +2,27 @@
   "schema": "snowball.bosses.v1",
   "geradoEm": "2026-08-08T13:59:08.002Z",
   "asOfMs": 1786197548002,
+  "maquinaEstados": {
+    "estados": [
+      "UNTESTED",
+      "ACTIVE",
+      "PASSED_CURRENT_WINDOW",
+      "PROVISIONALLY_DEFEATED",
+      "DEFEATED"
+    ],
+    "janelas": 1,
+    "regimes": 1,
+    "notaDefeated": "DEFEATED exige ≥2 janelas E ≥2 regimes — inatingível com 1 janela. Máximo atual: PROVISIONALLY_DEFEATED."
+  },
   "resumo": {
-    "derrotados": [
+    "PASSED_CURRENT_WINDOW": [
       "custos",
-      "sobrevivencia",
+      "sobrevivencia"
+    ],
+    "PROVISIONALLY_DEFEATED": [
       "concentracao"
     ],
-    "ativos": [
+    "ACTIVE": [
       "capacidade",
       "diversificacao"
     ]
@@ -30,7 +44,7 @@
         "lucroPositivoComCustos2x": true,
         "custosNaoConsomemMaioria": true
       },
-      "status": "DERROTADO",
+      "status": "PASSED_CURRENT_WINDOW",
       "nota": "Sobrevive a custos 2×, porém com folga PEQUENA (+1.3219). Margem fina."
     },
     "sobrevivencia": {
@@ -38,16 +52,16 @@
       "nome": "Chefe da Sobrevivência",
       "metricas": {
         "drawdownMaxPct": 0.43,
-        "distanciaLiquidacaoMin": 0.17982537573523708,
+        "distanciaLiquidacaoMin": 0.17986489420358015,
         "distMinInfo": {
           "symbol": "LA/USDT:USDT",
           "leg": "long",
-          "distancia": 0.1798
+          "distancia": 0.1799
         },
         "capitalFloor": 600,
         "capitalAtual": 609.9825,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 608.6735756368391
+        "equityExecutavel": 608.541209754261
       },
       "criterios": {
         "drawdownControlado": true,
@@ -55,7 +69,7 @@
         "distanciaLiquidacaoSegura": true,
         "pisoCapitalRespeitado": true
       },
-      "status": "DERROTADO",
+      "status": "PASSED_CURRENT_WINDOW",
       "nota": "Houve 1 fechamento(s) de emergência no histórico — monitorar."
     },
     "concentracao": {
@@ -82,23 +96,24 @@
         "nenhumaExchangeConcentraExcesso": true,
         "umaOperacaoNaoExplicaMaioria": true
       },
-      "status": "DERROTADO"
+      "status": "PROVISIONALLY_DEFEATED"
     },
     "capacidade": {
       "id": "capacidade",
       "nome": "Chefe da Capacidade",
       "metricas": {
-        "oportunidadesRejeitadasPorSaldo": 6422,
-        "totalCandidatos": 21195,
+        "rejeicoesPorSaldo": 6422,
+        "rejeicoesPorSaldoSemAvaliacaoEconomica": 6422,
+        "oportunidadesEVpositivoBloqueadasSoPorCapital": 0,
+        "saturacaoUSD": 400,
         "temSegundoMotorAbsorvente": false
       },
       "criterios": {
-        "motorSaturaCapital": false,
-        "evidenciaDeSaturacao": false,
+        "capitalExtraLiberaEVpositivoReal": false,
         "existeSegundoMotorParaAbsorver": false
       },
-      "status": "ATIVO",
-      "nota": "6422 oportunidades rejeitadas por saldo insuficiente: o motor é CONSTRANGIDO POR CAPITAL, não saturado — há headroom de capacidade e falta um 2º motor para absorver."
+      "status": "ACTIVE",
+      "nota": "CORREÇÃO v1.1: das 6422 rejeições por saldo, 6422 ocorreram ANTES da avaliação econômica (EV desconhecido). ZERO oportunidades de EV positivo foram bloqueadas por capital. O motor SATURA ~US$400. Não há capacidade produtiva de capital adicional; o gargalo é oferta de oportunidade + falta de 2º motor."
     },
     "diversificacao": {
       "id": "diversificacao",
@@ -125,9 +140,9 @@
         "correlacaoConhecida": false,
         "naoDependemDoMesmoEvento": false
       },
-      "status": "ATIVO",
+      "status": "ACTIVE",
       "nota": "Só o funding tem amostra suficiente e lucro; captura é positiva (+0.8228) mas com amostra pequena (4). Falta uma 2ª fonte comprovada e independente."
     }
   },
-  "honestidade": "Status derivado de dados observados do Champion. Amostra pequena para captura/diversificação. Custos 2× deixa folga pequena."
+  "honestidade": "Estados de 5 níveis; DEFEATED exige múltiplas janelas/regimes. Amostra atual = 1 janela → nada DEFEATED. Capacidade CORRIGIDA (v1.1): rejeições brutas por saldo não provam capacidade."
 }

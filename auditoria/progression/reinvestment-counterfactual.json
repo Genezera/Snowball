@@ -1,0 +1,126 @@
+{
+  "schema": "snowball.reinvestment-counterfactual.v1_1",
+  "geradoEm": "2026-08-08T13:59:08.002Z",
+  "asOfMs": 1786197548002,
+  "metodo": "Cada política financia só o que seu capital disponível permite naquele instante, sobre as posições reais (funding/custo observados). PnL NÃO é uma sequência fixa compartilhada.",
+  "politicas": {
+    "A": "contínua (lucro vira base na hora)",
+    "B": "degraus úteis [0,50,100,200,400]",
+    "C": "50% do lucro → fundo de 2º motor (min US$200)"
+  },
+  "saturacaoRef": "capacity-analysis.json: saturação ~US$400",
+  "resultados": {
+    "base_200": {
+      "A": {
+        "politica": "A",
+        "base": 200,
+        "pnlGerado": 10.0968,
+        "capitalFinalOperacional": 210.0968,
+        "fundoDesbloqueio": 0,
+        "capitalFinalTotal": 210.0968,
+        "posicoesFinanciadas": 21,
+        "posicoesPerdidas": 2,
+        "capitalOciosoMedioUSD": 56.87,
+        "fundo2oMotorAtingido": false,
+        "tempoAte2oMotor": null,
+        "drawdownPct": 0
+      },
+      "B": {
+        "politica": "B",
+        "base": 200,
+        "pnlGerado": 10.0968,
+        "capitalFinalOperacional": 210.0968,
+        "fundoDesbloqueio": 0,
+        "capitalFinalTotal": 210.0968,
+        "posicoesFinanciadas": 21,
+        "posicoesPerdidas": 2,
+        "capitalOciosoMedioUSD": 53.53,
+        "fundo2oMotorAtingido": false,
+        "tempoAte2oMotor": null,
+        "drawdownPct": 0
+      },
+      "C": {
+        "politica": "C",
+        "base": 200,
+        "pnlGerado": 10.0968,
+        "capitalFinalOperacional": 204.1407,
+        "fundoDesbloqueio": 5.9561,
+        "capitalFinalTotal": 210.0968,
+        "posicoesFinanciadas": 21,
+        "posicoesPerdidas": 2,
+        "capitalOciosoMedioUSD": 55.2,
+        "fundo2oMotorAtingido": false,
+        "tempoAte2oMotor": null,
+        "drawdownPct": 0
+      }
+    },
+    "base_600": {
+      "A": {
+        "politica": "A",
+        "base": 600,
+        "pnlGerado": 10.4604,
+        "capitalFinalOperacional": 610.4604,
+        "fundoDesbloqueio": 0,
+        "capitalFinalTotal": 610.4604,
+        "posicoesFinanciadas": 23,
+        "posicoesPerdidas": 0,
+        "capitalOciosoMedioUSD": 303.39,
+        "fundo2oMotorAtingido": false,
+        "tempoAte2oMotor": null,
+        "drawdownPct": 0
+      },
+      "B": {
+        "politica": "B",
+        "base": 600,
+        "pnlGerado": 10.4604,
+        "capitalFinalOperacional": 610.4604,
+        "fundoDesbloqueio": 0,
+        "capitalFinalTotal": 610.4604,
+        "posicoesFinanciadas": 23,
+        "posicoesPerdidas": 0,
+        "capitalOciosoMedioUSD": 300,
+        "fundo2oMotorAtingido": false,
+        "tempoAte2oMotor": null,
+        "drawdownPct": 0
+      },
+      "C": {
+        "politica": "C",
+        "base": 600,
+        "pnlGerado": 10.4604,
+        "capitalFinalOperacional": 604.3225,
+        "fundoDesbloqueio": 6.1379,
+        "capitalFinalTotal": 610.4604,
+        "posicoesFinanciadas": 23,
+        "posicoesPerdidas": 0,
+        "capitalOciosoMedioUSD": 301.7,
+        "fundo2oMotorAtingido": false,
+        "tempoAte2oMotor": null,
+        "drawdownPct": 0
+      }
+    }
+  },
+  "analise": {
+    "base_200": {
+      "pnlGeradoA": 10.0968,
+      "pnlGeradoB": 10.0968,
+      "pnlGeradoC": 10.0968,
+      "pnlConverge": true,
+      "capitalBindou": true,
+      "fundoC": 5.9561,
+      "fundoCatinge2oMotor": false,
+      "interpretacao": "Base US$200 ABAIXO da saturação: capital binda (perdas 2), mas IGUAL p/ A/B/C — o lucro compõe devagar demais na janela (~6 dias) p/ relaxar a restrição, então a política NÃO muda o PnL de motor. C ainda constrói o fundo (US$5.9561) sem custo de PnL MEDIDO."
+    },
+    "base_600": {
+      "pnlGeradoA": 10.4604,
+      "pnlGeradoB": 10.4604,
+      "pnlGeradoC": 10.4604,
+      "pnlConverge": true,
+      "capitalBindou": false,
+      "fundoC": 6.1379,
+      "fundoCatinge2oMotor": false,
+      "interpretacao": "Base US$600 ACIMA da saturação (~US$400): capital nunca binda; A/B/C geram o MESMO PnL de motor. C acumula US$6.1379 p/ um 2º motor a custo ZERO de PnL — C DOMINA."
+    }
+  },
+  "conclusao": "Nesta janela (~6 dias) as políticas A/B/C geram o MESMO PnL de motor em ambas as bases — o lucro compõe devagar demais p/ relaxar restrição de capital, então a política de reinvestimento NÃO muda o lucro do motor. A única diferença econômica REAL é que a Política C acumula um fundo de 2º motor (US$6,14 a US$600) sem custo de PnL medido. Como o motor satura ~US$400, reinvestir MAIS nele é ocioso; desviar o excedente p/ diversificação (C) é a política superior no estado atual — mas o ganho é DIVERSIFICAÇÃO futura, não lucro garantido, e precisa de ≥2 janelas/regimes p/ confirmar.",
+  "honestidade": "observed (posições/outcomes) + shadow (gating por política). Nenhuma promessa de lucro; o ganho de C é DIVERSIFICAÇÃO futura, não lucro garantido."
+}

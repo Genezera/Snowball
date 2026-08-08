@@ -21,15 +21,34 @@
     "gapUSD": 190.02,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
+  "niveisTriplos": {
+    "capitalLevel": 3,
+    "evidenceLevel": 1,
+    "operationalLevel": 1
+  },
+  "chefesPorEstado": {
+    "PASSED_CURRENT_WINDOW": [
+      "custos",
+      "sobrevivencia"
+    ],
+    "PROVISIONALLY_DEFEATED": [
+      "concentracao"
+    ],
+    "ACTIVE": [
+      "capacidade",
+      "diversificacao"
+    ]
+  },
   "chefesAtivos": [
     "capacidade",
     "diversificacao"
   ],
-  "chefesDerrotados": [
+  "chefesProvisorios": [
     "custos",
     "sobrevivencia",
     "concentracao"
   ],
+  "chefesDerrotados": [],
   "motoresPorEstado": {
     "LIVE": 1,
     "DATA_COLLECTION": 4,
@@ -64,11 +83,11 @@
   },
   "progressoGates": {
     "reconciliacao": true,
-    "chefeCustos": "DERROTADO",
-    "chefeSobrevivencia": "DERROTADO",
-    "chefeConcentracao": "DERROTADO",
-    "chefeCapacidade": "ATIVO",
-    "chefeDiversificacao": "ATIVO"
+    "chefeCustos": "PASSED_CURRENT_WINDOW",
+    "chefeSobrevivencia": "PASSED_CURRENT_WINDOW",
+    "chefeConcentracao": "PROVISIONALLY_DEFEATED",
+    "chefeCapacidade": "ACTIVE",
+    "chefeDiversificacao": "ACTIVE"
   },
   "exchangeSelector": {
     "melhorParRealizado": {
@@ -78,9 +97,36 @@
     "suficienteParaEscolher2": false,
     "lucroPerdidoAoRestringir": 4.4165
   },
+  "capacidade": {
+    "veredito": "CAPACIDADE PRODUTIVA NÃO COMPROVADA",
+    "saturacaoUSD": 400,
+    "picoMargemUSD": 232.83
+  },
+  "exchangeReplay2ex": {
+    "melhorPar": {
+      "par": "bitget+bybit",
+      "pnl": 6.0438
+    },
+    "todasReconciliam": true,
+    "diferencaFixo2vs6": 4.4166
+  },
+  "reinvestimentoContrafactual": {
+    "conclusao": "Nesta janela (~6 dias) as políticas A/B/C geram o MESMO PnL de motor em ambas as bases — o lucro compõe devagar demais p/ relaxar restrição de capital, então a política de reinvestimento NÃO muda o lucro do motor. A única diferença econômica REAL é que a Política C acumula um fundo de 2º motor (US$6,14 a US$600) sem custo de PnL medido. Como o motor satura ~US$400, reinvestir MAIS nele é ocioso; desviar o excedente p/ diversificação (C) é a política superior no estado atual — mas o ganho é DIVERSIFICAÇÃO futura, não lucro garantido, e precisa de ≥2 janelas/regimes p/ confirmar.",
+    "fundoC600": 6.1379
+  },
   "crescimento": {
-    "retornoDiarioObsPct": 0.6652,
-    "avisoAmostra": "AMOSTRA INSUFICIENTE: só 2.72 dias de epoch-1. TODA projeção abaixo é HIPÓTESE frágil — não é lucro futuro garantido. Não extrapolar dias como meses."
+    "trajetoriaObservada": {
+      "netObservado": 9.9825,
+      "diasObservados": 5.17,
+      "maxDrawdownPct": 0.43
+    },
+    "bootstrapPronto": false,
+    "intervaloCenarios": {
+      "min": -3.3389,
+      "max": 9.9825,
+      "observado": 9.9825
+    },
+    "projecaoTemporal": null
   },
   "displaySchemaDashboardV2": {
     "destino": "Dashboard V2 canônico (futuro; nenhuma interface criada nesta fase)",

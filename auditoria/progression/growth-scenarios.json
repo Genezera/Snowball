@@ -1,313 +1,77 @@
 {
-  "schema": "snowball.growth-scenarios.v1",
+  "schema": "snowball.growth-scenarios.v1_1",
   "geradoEm": "2026-08-08T13:59:08.002Z",
   "asOfMs": 1786197548002,
-  "baseObservada": {
+  "politica": "SEM taxa-base de longo prazo; SEM data prometida para níveis futuros. Só trajetória observada + stress mecânico + intervalo enquanto a amostra for insuficiente.",
+  "trajetoriaObservada": {
     "tipo": "observed",
+    "capitalInicial": 200,
     "capitalAtual": 609.9825,
+    "pontos": 966,
+    "primeiroTs": "2026-08-03T12:04:31.297Z",
+    "ultimoTs": "2026-08-08T13:59:08.002Z",
+    "diasObservados": 5.17,
     "fundingObservado": 18.6432,
     "custosObservado": 8.6606,
     "netObservado": 9.9825,
-    "epoch1": {
-      "capitalInicial": 599.1425,
-      "capitalFinal": 609.9825,
-      "dias": 2.72,
-      "retornoDiarioPct": 0.6652
-    },
-    "maxDrawdownPct": 0.43
+    "maxDrawdownPct": 0.43,
+    "nota": "Trajetória de fato. Inclui 1 aporte de US$400 (4 exchanges) — não é lucro."
   },
-  "avisoAmostra": "AMOSTRA INSUFICIENTE: só 2.72 dias de epoch-1. TODA projeção abaixo é HIPÓTESE frágil — não é lucro futuro garantido. Não extrapolar dias como meses.",
-  "contribuicaoPorMotor": {
-    "champion-funding": 9.9825,
-    "outros": 0,
-    "nota": "100% do lucro vem do funding; nenhum 2º motor comprovado contribui."
+  "amostra": {
+    "operacoesFechadas": 20,
+    "janelas": 1,
+    "regimes": 1,
+    "bootstrapPronto": false,
+    "nota": "INSUFICIENTE p/ bootstrap (precisa ≥30 operações E ≥2 janelas/regimes; tem 20 operações / 1 janela / 1 regime). Nenhuma projeção temporal produzida."
   },
-  "dependenciaDasMelhoresOperacoes": "ver bosses.json (concentração top-1 ~24%).",
-  "proximoNivelCapital": 800,
-  "legenda": {
-    "observed": "fato medido",
-    "replay": "reexecução determinística",
-    "simulated": "ajuste de parâmetro sobre observado",
-    "hypothetical": "suposição estrutural",
-    "projecao": "extrapolação temporal (não garantida)"
-  },
-  "cenarios": [
+  "stressMecanico": [
     {
       "id": "observado",
-      "label": "observado",
+      "net": 9.9825,
       "tipo": "observed",
-      "retornoDiarioPct": 0.6652,
-      "netCenario": 9.9825,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 41,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 102,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 179,
-          "classificacao": "projeção (hipótese)"
-        }
-      ],
-      "nota": "taxa diária observada no epoch-1 (US$600/6ex)."
+      "sobreviveComLucro": true
     },
     {
       "id": "custos_1_5x",
-      "label": "custos 1,5×",
+      "net": 5.6522,
       "tipo": "simulated",
-      "retornoDiarioPct": 0.3767,
-      "netCenario": 5.6522,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 72,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 180,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 316,
-          "classificacao": "projeção (hipótese)"
-        }
-      ]
+      "sobreviveComLucro": true
     },
     {
       "id": "custos_2x",
-      "label": "custos 2×",
+      "net": 1.3219,
       "tipo": "simulated",
-      "retornoDiarioPct": 0.0881,
-      "netCenario": 1.3219,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 308,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 768,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 1349,
-          "classificacao": "projeção (hipótese)"
-        }
-      ]
+      "sobreviveComLucro": true
     },
     {
       "id": "funding_menos25",
-      "label": "funding −25%",
+      "net": 5.3217,
       "tipo": "simulated",
-      "retornoDiarioPct": 0.3546,
-      "netCenario": 5.3217,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 77,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 191,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 335,
-          "classificacao": "projeção (hipótese)"
-        }
-      ]
+      "sobreviveComLucro": true
     },
     {
       "id": "funding_menos50",
-      "label": "funding −50%",
+      "net": 0.6609,
       "tipo": "simulated",
-      "retornoDiarioPct": 0.044,
-      "netCenario": 0.6609,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 616,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 1537,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 2697,
-          "classificacao": "projeção (hipótese)"
-        }
-      ]
+      "sobreviveComLucro": true
     },
     {
-      "id": "menos_oportunidades",
-      "label": "redução de oportunidades (−50%)",
-      "tipo": "hypothetical",
-      "retornoDiarioPct": 0.3326,
-      "netCenario": 4.9913,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 82,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 204,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 358,
-          "classificacao": "projeção (hipótese)"
-        }
-      ],
-      "nota": "metade das aberturas; escala linear (hipótese)."
-    },
-    {
-      "id": "drawdown",
-      "label": "drawdown observado aplicado",
+      "id": "custos_2x_funding_menos25",
+      "net": -3.3389,
       "tipo": "simulated",
-      "retornoDiarioPct": 0.6624,
-      "netCenario": 9.9396,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 41,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 102,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 180,
-          "classificacao": "projeção (hipótese)"
-        }
-      ],
-      "nota": "retorno líquido reduzido pelo maxDD observado."
-    },
-    {
-      "id": "perde_exchange",
-      "label": "perda de uma exchange",
-      "tipo": "hypothetical",
-      "retornoDiarioPct": 0.5544,
-      "netCenario": 8.3188,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 49,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 122,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 215,
-          "classificacao": "projeção (hipótese)"
-        }
-      ],
-      "nota": "capacidade ∝ nº de exchanges (6→5); hipótese linear."
-    },
-    {
-      "id": "saturacao_motor",
-      "label": "saturação do motor",
-      "tipo": "hypothetical",
-      "retornoDiarioPct": 0,
-      "netCenario": 0,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": null,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": null,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": null,
-          "classificacao": "projeção (hipótese)"
-        }
-      ],
-      "nota": "motor não absorve capital novo: retorno incremental ≈ 0 (poucas oportunidades EV+)."
-    },
-    {
-      "id": "segundo_motor",
-      "label": "2º motor desbloqueado",
-      "tipo": "hypothetical",
-      "retornoDiarioPct": 0.6652,
-      "netCenario": 9.9825,
-      "tempoParaNiveis": [
-        {
-          "nivel": 4,
-          "capitalMinimo": 800,
-          "diasEstimados": 41,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 5,
-          "capitalMinimo": 1200,
-          "diasEstimados": 102,
-          "classificacao": "projeção (hipótese)"
-        },
-        {
-          "nivel": 6,
-          "capitalMinimo": 2000,
-          "diasEstimados": 179,
-          "classificacao": "projeção (hipótese)"
-        }
-      ],
-      "nota": "requer motor ELIGIBLE — inexistente hoje; projeção condicional, NÃO garantida."
+      "sobreviveComLucro": false
     }
   ],
-  "honestidade": "Nenhum lucro futuro é garantido. Projeções de tempo-para-nível são extrapolações mecânicas do retorno diário observado (amostra de poucos dias) e servem só para ordenar cenários, não para prometer datas."
+  "intervaloCenarios": {
+    "min": -3.3389,
+    "max": 9.9825,
+    "observado": 9.9825
+  },
+  "projecaoTemporal": null,
+  "projecaoTemporalNota": "REMOVIDO: v1.0 usava 0,67%/dia (2,72 dias de amostra) para projetar datas de nível. Isso é extrapolação indevida — nenhuma data é prometida.",
+  "contribuicaoPorMotor": {
+    "champion-funding": 9.9825,
+    "outros": 0
+  },
+  "honestidade": "Só fato observado + stress mecânico. Nenhuma taxa de longo prazo, nenhuma data, nenhum lucro futuro garantido. Bootstrap só quando houver ≥2 janelas/regimes."
 }
