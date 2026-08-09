@@ -49,7 +49,10 @@ const ordem = [
   'economic-pairing.cjs',       // v1.8 Parte 8 (pareamento por sourcePositionId)
   'economic-sample.cjs',        // v1.8 Parte 9 (amostra independente econômica)
   'economic-watermark.cjs',     // v1.8 Parte 11 (watermark econômico)
-  'economic-gate.cjs',          // v1.8-close (gate econômico + profitGameLayerReadiness)
+  'economic-source-validation.cjs', // v1.8-coleta Parte 2 (validação de fonte)
+  'economic-gate.cjs',          // v1.8-close/coleta (gate + readiness 5 estados)
+  'economic-daily-report.cjs',  // v1.8-coleta Parte 8 (relatório diário + close-exit + shadow)
+  'game-layer-data.cjs',        // v1.8-coleta Parte 11 (dados da game layer)
   'relatorio-forward.cjs',      // v1.4→1.8 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];
