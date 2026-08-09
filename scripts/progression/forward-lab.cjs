@@ -34,7 +34,11 @@ const MAXPOS = args.includes('--maxpos') ? Number(opt('--maxpos', L.MAX_POSICOES
 const LABEL = opt('--label', MODE);
 // --close-policy: scanner_stale (durabilidade, comportamento v1.7) | economic_inversion (econômico, item 6)
 const CLOSE_POLICY = opt('--close-policy', 'scanner_stale');
-const EXCHS = MODE === 'control' ? L.EXCHANGES : ['bitget', 'bybit'];
+// --exchanges bybit,bitget : override do par de exchanges (competidores 2-ex). Ausente = comportamento original.
+const EXCHS_OVERRIDE = args.includes('--exchanges') ? String(opt('--exchanges', '')).split(',').map((s) => s.trim()).filter(Boolean) : null;
+const EXCHS = (EXCHS_OVERRIDE && EXCHS_OVERRIDE.length) ? EXCHS_OVERRIDE : (MODE === 'control' ? L.EXCHANGES : ['bitget', 'bybit']);
+// --persist-min N : só entra após a oportunidade ficar positive-EV por N min (filtro de persistência). 0 = desligado (default, comportamento original inalterado).
+const PERSIST_MIN = args.includes('--persist-min') ? Number(opt('--persist-min', 0)) : 0;
 const CAP_POR_EX = L.ALVO_POR_EXCHANGE;
 const TAKER = 0.0005, SLIP = 0.0002, CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
 const NOTIONAL = L.ALVO_POR_EXCHANGE, MARGEM_PERNA = NOTIONAL / L.ALAVANCAGEM;
@@ -301,7 +305,13 @@ function umCiclo() {
     est.contadores.avaliadas++;
     if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.latestEconomicEvaluationTs = now(); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0;
       vp.ciclosFundingDeteriorado = (c.apr < (vp.aprEntrada || c.apr) * FUNDING_DETERIORATION_FRAC) ? (vp.ciclosFundingDeteriorado || 0) + 1 : 0; est.fundingAcum += inc; virtSemVer.delete(c.k); continue; }
-    if (c.apr <= 0 || c.score <= 0) { est.contadores.bloqueadas++; est.bloqueios.evNaoPositivo++; continue; }
+    if (c.apr <= 0 || c.score <= 0) { est.contadores.bloqueadas++; est.bloqueios.evNaoPositivo++; if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; continue; }
+    // filtro de persistência (só quando ligado): exige N min de EV positivo contínuo antes de entrar.
+    if (PERSIST_MIN > 0) { est.candidatoPositivoDesde = est.candidatoPositivoDesde || {};
+      if (!est.candidatoPositivoDesde[c.k]) est.candidatoPositivoDesde[c.k] = c.ts;
+      if ((c.ts - est.candidatoPositivoDesde[c.k]) < PERSIST_MIN * 60000) { est.contadores.bloqueadas++; est.bloqueios.persistencePending = (est.bloqueios.persistencePending || 0) + 1;
+        append(F.diario, { ts: now(), evento: 'bloqueada', k: c.k, exchangeLong: c.long, exchangeShort: c.short, motivo: 'persistencePending', persistidoMs: c.ts - est.candidatoPositivoDesde[c.k] });
+        decisoes.push({ k: c.k, acao: 'bloqueada', motivo: 'persistencePending' }); continue; } }
     const livreLong = margemLivre(est, c.long), livreShort = margemLivre(est, c.short); const abertas = Object.keys(est.virtuais).length; let motivo = null;
     if (abertas >= MAXPOS) motivo = 'maxPositionsBlocked';
     else if (MARGEM_PERNA > livreLong || MARGEM_PERNA > livreShort) motivo = 'localBalanceBlocked';
@@ -312,7 +322,7 @@ function umCiclo() {
     est.saldosPorExchange[c.long] -= MARGEM_PERNA; est.saldosPorExchange[c.short] -= MARGEM_PERNA; est.custosAcum += custoEntrada;
     est.virtuais[c.k] = { k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, aprEntrada: c.apr, ultimoApr: c.apr, ciclosSemVer: 0, ciclosInversao: 0, ciclosFundingDeteriorado: 0, economicEV: L.r4(c.score), latestEconomicEvaluationTs: now(), scannerVisible: true, scannerLastSeen: c.ts, scannerEpisodeFirstSeen: c.ts, scannerEpisodeLastSeen: c.ts, economicPositiveFirstSeen: c.ts, positionOpenedAt: now(),
       sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId, entryCycle: cycleId };
-    est.contadores.abertas++; virtSemVer.delete(c.k); decisoes.push({ k: c.k, acao: 'abre', physicalEventId: c.physicalEventId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
+    est.contadores.abertas++; virtSemVer.delete(c.k); if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; decisoes.push({ k: c.k, acao: 'abre', physicalEventId: c.physicalEventId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
     append(F.diario, { ts: now(), evento: 'abre', k: c.k, apr: L.r4(c.apr), custoEntrada: L.r4(custoEntrada), entryCycle: cycleId, sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
     append(F.ledger, { ts: now(), tipo: 'abre', k: c.k, sourcePositionId: c.sourcePositionId, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]) });
   }
