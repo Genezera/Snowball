@@ -52,6 +52,8 @@ const ordem = [
   'economic-source-validation.cjs', // v1.8-coleta Parte 2 (validação de fonte)
   'economic-recovery-check.cjs', // v1.8-op Parte 4 (não-regressão pós-restart)
   'risk-guardian.cjs',          // v1.8-op Parte 6 (guardian paper) — roda --once no pipeline
+  'risk-alert-tracker.cjs',     // v1.8-exec Parte 4 (ciclo de vida dos alertas, nativa vs estimada)
+  'operational-soak-audit.cjs', // v1.8-exec Partes 2,3,6,7 (métricas/recovery-full/financeiro exato)
   'bico-incident.cjs',          // v1.8-op Parte 7 (registro OPERATIONAL_RISK_NEAR_MISS)
   'economic-gate.cjs',          // v1.8-close/coleta/op (gate + readiness + supervisor matrix)
   'economic-daily-report.cjs',  // v1.8-coleta Parte 8 (relatório diário + close-exit + shadow)
