@@ -1,0 +1,49 @@
+{
+  "schema": "snowball.economic-soak.v1_8",
+  "geradoEm": "2026-08-09T01:06:33.500Z",
+  "iniciadoEm": 1786237353461,
+  "separadoDoDurabilitySoak": true,
+  "uptimeMin": 4,
+  "economicForwardEpochId": "032a0b32782e1e8a",
+  "commonWatermark": {
+    "status": "OK_COMMON_WATERMARK",
+    "eventCount": 0,
+    "comparablePositions": 0,
+    "excludedDueToLag": 0
+  },
+  "eventosRecebidos": 0,
+  "sourceDecisionIdsUnicos": 0,
+  "sourcePositionIdsUnicos": 0,
+  "posicoesAbertas": 0,
+  "posicoesFechadas": 0,
+  "censuradasRightCensored": 0,
+  "divergencias": 0,
+  "perdas": 0,
+  "duplicacoes": 0,
+  "mirrorFidelity": {
+    "mode": "SNAPSHOT_MIRROR_INCOMPLETE",
+    "snapshotGranular": true
+  },
+  "policyFidelity": {
+    "divergencias": {
+      "ENTRY_DIVERGENCE": 3,
+      "SIZING_DIVERGENCE": 0,
+      "RANKING_DIVERGENCE": 0,
+      "BALANCE_DIVERGENCE": 0,
+      "CLOSE_DIVERGENCE": 0,
+      "DATA_DIVERGENCE": 0
+    },
+    "todasExplicadas": true
+  },
+  "processosVivos": {
+    "mirror": true,
+    "policy": true,
+    "trial": true,
+    "observer-max3": true,
+    "observer-max4": true,
+    "observer-max5": true
+  },
+  "processosVivosN": 6,
+  "completo": false,
+  "nota": "economicSoak separado do durabilitySoak. Coleta contínua; gate econômico permanece BLOQUEADO."
+}

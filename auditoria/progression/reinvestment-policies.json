@@ -12,14 +12,14 @@
     "drawdownObservadoPct": 0.43,
     "tempoParaDesbloquear": "idêntico (função do capital total, não da política)",
     "utilizacao": {
-      "A": "58.16%",
-      "B": "57.44%",
-      "C": "57.8%"
+      "A": "58.17%",
+      "B": "57.45%",
+      "C": "57.81%"
     },
     "capitalParado": {
       "A": 0,
-      "B": 4.39,
-      "C": 2.19
+      "B": 4.4,
+      "C": 2.2
     },
     "risco": {
       "A": "maior exposição",
@@ -34,25 +34,25 @@
     "A": {
       "nome": "Reinvestimento contínuo",
       "descricao": "Todo lucro líquido aumenta imediatamente a base operacional, respeitando reserva/limites/ordem mínima.",
-      "utilizacaoMediaUSD": 356.5,
-      "utilizacaoMediaPct": 58.16,
+      "utilizacaoMediaUSD": 356.57,
+      "utilizacaoMediaPct": 58.17,
       "capitalOciosoMedioUSD": 0,
       "exposicaoMaxUSD": 429.08
     },
     "B": {
       "nome": "Reinvestimento por degraus",
       "descricao": "A base operacional só sobe ao atingir um degrau economicamente útil (min notional, 2ª posição, novo motor, nova exchange).",
-      "utilizacaoMediaUSD": 352.11,
-      "utilizacaoMediaPct": 57.44,
-      "capitalOciosoMedioUSD": 4.39,
+      "utilizacaoMediaUSD": 352.18,
+      "utilizacaoMediaPct": 57.45,
+      "capitalOciosoMedioUSD": 4.4,
       "exposicaoMaxUSD": 419.97
     },
     "C": {
       "nome": "Fundo de desbloqueio",
       "descricao": "Parte do lucro fica em reserva interna até atingir o capital mínimo de um novo módulo. Todo o dinheiro permanece no Snowball.",
-      "utilizacaoMediaUSD": 354.31,
-      "utilizacaoMediaPct": 57.8,
-      "capitalOciosoMedioUSD": 2.19,
+      "utilizacaoMediaUSD": 354.37,
+      "utilizacaoMediaPct": 57.81,
+      "capitalOciosoMedioUSD": 2.2,
       "exposicaoMaxUSD": 422.6
     }
   },

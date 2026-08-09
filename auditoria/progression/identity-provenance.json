@@ -1,0 +1,35 @@
+{
+  "schema": "snowball.identity-provenance.v1_8",
+  "geradoEm": "2026-08-08T21:48:24.958Z",
+  "asOfMs": 1786225704958,
+  "idNativoPresente": false,
+  "classificacao": "INFERRED_FROM_SOURCE_TIMING",
+  "chavesDoFeed": [
+    "ts",
+    "k",
+    "spread",
+    "apr",
+    "vol"
+  ],
+  "prefixoDeInferencia": "inf_",
+  "nota": "Feed SEM collectorCycleId/scanCycleId nativo. sourceRankingCycleId é INFERIDO do timing (gap de burst) e prefixado inf_ para NUNCA ser confundido com ID nativo. sourceOpportunityEpisodeId e sourcePositionId também são inferidos por contiguidade.",
+  "gapUsadoMs": {
+    "rankingCycleBurstGapMs": 120000,
+    "opportunityEpisodeGapMs": 1800000
+  },
+  "distribuicaoGaps": {
+    "amostraGaps": 18065,
+    "intraBurst": 17934,
+    "interBurst": 131,
+    "ambiguosNaZonaLimiar": 0,
+    "fracaoAmbigua": 0
+  },
+  "confianca": {
+    "valor": 1,
+    "nivel": "ALTA",
+    "metodo": "fração de gaps na zona ambígua [0.5x,2x]*BURST_GAP; quanto menor, mais limpa a separação bimodal (scan interno vs entre scans)"
+  },
+  "recomendacaoColetor": "PREFERENCIAL (não feito nesta fase p/ não tocar o coletor de produção durante a rigor-closure): adicionar collectorCycleId append-only por scan no coletor (vigilancia), sem alterar lógica econômica nem o Champion — elevaria a identidade a NATIVE_COLLECTOR_CYCLE_ID.",
+  "impedeConfusao": "O valor de sourceRankingCycleId começa com inf_; qualquer join que espere ID nativo falha explicitamente em vez de casar por engano.",
+  "honestidade": "Não se declara identidade causal PERFEITA. O que existe é identidade causal INFERIDA com confiança medida sobre a distribuição real de gaps do feed."
+}

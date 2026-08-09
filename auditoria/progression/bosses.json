@@ -60,7 +60,7 @@
         "capitalFloor": 600,
         "capitalAtual": 612.9763,
         "fechamentosEmergencia": 1,
-        "equityExecutavel": 613.0026702258214
+        "equityExecutavel": 613.3998657546819
       },
       "criterios": {
         "drawdownControlado": true,

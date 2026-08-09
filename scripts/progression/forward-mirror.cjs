@@ -71,6 +71,8 @@ function umCiclo() {
       emit('OPEN', ck, championPositionId, { exchanges: exch, notional, estagio: m.estagio, championAbertaEm: p.abertaEm });
       est.custosRealizados = L.r4(est.custosRealizados + custoEntrada);
       emit('COST_APPLIED', ck, championPositionId, { fase: 'entry', custo: custoEntrada });
+      // catch-up de funding acumulado (snapshot): warmup pode já ter fundingAcumulado>0 no Champion
+      if (fundingAtual !== m.fundingMirror) { emit('FUNDING_SETTLED', ck, championPositionId, { deltaFunding: fundingAtual, fundingCumulativo: fundingAtual, catchUp: true }); m.fundingMirror = fundingAtual; }
     } else {
       if ((p.estagio || 1) !== m.estagio) { emit('SCALE', ck, championPositionId, { deEstagio: m.estagio, paraEstagio: p.estagio || 1, notional }); m.estagio = p.estagio || 1; }
       if (fundingAtual !== m.fundingMirror) { const delta = L.r4(fundingAtual - m.fundingMirror); emit('FUNDING_SETTLED', ck, championPositionId, { deltaFunding: delta, fundingCumulativo: fundingAtual }); m.fundingMirror = fundingAtual; }

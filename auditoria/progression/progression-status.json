@@ -117,7 +117,7 @@
   "crescimento": {
     "trajetoriaObservada": {
       "netObservado": 12.9763,
-      "diasObservados": 5.48,
+      "diasObservados": 5.49,
       "maxDrawdownPct": 0.43
     },
     "bootstrapPronto": false,

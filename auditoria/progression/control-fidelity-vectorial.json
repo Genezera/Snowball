@@ -22,15 +22,15 @@
       },
       {
         "identidade": "equityMark = capitalRealizado + pnlMark",
-        "valor": 614.437,
-        "esperado": 614.437,
+        "valor": 614.516,
+        "esperado": 614.516,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "equityLiquidacao = capitalRealizado + pnlExec − custoFecho",
-        "valor": 613.0027,
-        "esperado": 613.0027,
+        "valor": 613.3999,
+        "esperado": 613.3999,
         "diferenca": 0,
         "ok": true
       }
@@ -98,16 +98,16 @@
     {
       "definicao": "marked PnL",
       "base": "equityMark − capitalRealizado",
-      "control": 1.4608,
-      "champion": 1.4608,
+      "control": 1.5398,
+      "champion": 1.5398,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "executable PnL",
       "base": "equityLiquidacao − capitalRealizado + custoEstimadoFechamentoTotal",
-      "control": 1.1001,
-      "champion": 1.1001,
+      "control": 1.4973,
+      "champion": 1.4973,
       "diferenca": 0,
       "reconcilia": true
     },

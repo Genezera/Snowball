@@ -5,7 +5,7 @@
   "arquivo": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
   "arquivoBytes": 15115365,
   "lastModifiedISO": "2026-08-08T23:44:12.001Z",
-  "idadeArquivoS": 71,
+  "idadeArquivoS": 4837,
   "scanIntervalEsperadoS": 300,
   "coletorHeartbeat": {
     "ok": true,
@@ -18,44 +18,44 @@
       "totalCustodia"
     ]
   },
-  "classificacaoGlobal": "NO_NEW_DATA_YET",
+  "classificacaoGlobal": "COLLECTOR_DOWNTIME",
   "ultimoCicloCompletoISO": "2026-08-08T23:41:40.278Z",
   "saudePorExchange": {
     "binanceusdm": {
       "ultimaObsTs": 1786232500278,
       "ocorrencias": 2628,
-      "idadeUltimaObsS": 222,
-      "classe": "HEALTHY"
+      "idadeUltimaObsS": 4988,
+      "classe": "EXCHANGE_UNAVAILABLE"
     },
     "bybit": {
       "ultimaObsTs": 1786232500278,
       "ocorrencias": 4187,
-      "idadeUltimaObsS": 222,
-      "classe": "HEALTHY"
+      "idadeUltimaObsS": 4988,
+      "classe": "EXCHANGE_UNAVAILABLE"
     },
     "okx": {
       "ultimaObsTs": 1786232500278,
       "ocorrencias": 2566,
-      "idadeUltimaObsS": 222,
-      "classe": "HEALTHY"
+      "idadeUltimaObsS": 4988,
+      "classe": "EXCHANGE_UNAVAILABLE"
     },
     "gate": {
       "ultimaObsTs": 1786232500278,
       "ocorrencias": 3050,
-      "idadeUltimaObsS": 222,
-      "classe": "HEALTHY"
+      "idadeUltimaObsS": 4988,
+      "classe": "EXCHANGE_UNAVAILABLE"
     },
     "bitget": {
       "ultimaObsTs": 1786232500278,
       "ocorrencias": 1908,
-      "idadeUltimaObsS": 222,
-      "classe": "HEALTHY"
+      "idadeUltimaObsS": 4988,
+      "classe": "EXCHANGE_UNAVAILABLE"
     },
     "bingx": {
       "ultimaObsTs": 1786232500278,
       "ocorrencias": 3739,
-      "idadeUltimaObsS": 222,
-      "classe": "HEALTHY"
+      "idadeUltimaObsS": 4988,
+      "classe": "EXCHANGE_UNAVAILABLE"
     }
   },
   "classesPossiveis": [

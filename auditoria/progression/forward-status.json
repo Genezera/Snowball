@@ -5,15 +5,15 @@
   "processos": {
     "trial": {
       "modo": "trial",
-      "vivo": true,
+      "vivo": false,
       "iniciadoEm": "2026-08-08T22:47:16.011Z",
       "capitalInicial": 200,
-      "capitalAtual": 199.3116,
-      "funding": 0.0116,
+      "capitalAtual": 199.3173,
+      "funding": 0.0173,
       "custos": 0.7,
-      "pnlLiquido": -0.6884,
+      "pnlLiquido": -0.6827,
       "abertas": 1,
-      "avaliadas": 67,
+      "avaliadas": 74,
       "abertasTotal": 3,
       "fechadas": 2,
       "bloqueios": {
@@ -22,7 +22,7 @@
         "reserveBlocked": 0,
         "maxPositionsBlocked": 0,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 62
+        "evNaoPositivo": 68
       },
       "saldosPorExchange": {
         "bitget": 80,
@@ -32,24 +32,24 @@
     },
     "control": {
       "modo": "control",
-      "vivo": true,
+      "vivo": false,
       "iniciadoEm": "2026-08-08T22:47:16.529Z",
       "capitalInicial": 600,
-      "capitalAtual": 599.312,
-      "funding": 0.292,
+      "capitalAtual": 599.3473,
+      "funding": 0.3273,
       "custos": 0.98,
-      "pnlLiquido": -0.688,
+      "pnlLiquido": -0.6527,
       "abertas": 3,
-      "avaliadas": 1515,
+      "avaliadas": 1646,
       "abertasTotal": 5,
       "fechadas": 2,
       "bloqueios": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 101,
+        "maxPositionsBlocked": 109,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 1387
+        "evNaoPositivo": 1507
       },
       "saldosPorExchange": {
         "binanceusdm": 80,
@@ -64,24 +64,24 @@
   },
   "item9_commonWindowForward": {
     "pnlAbsolutoUSD": {
-      "trial": -0.6884,
-      "control": -0.688
+      "trial": -0.6827,
+      "control": -0.6527
     },
     "retornoPct": {
       "trial": -0.34,
       "control": -0.11
     },
     "funding": {
-      "trial": 0.0116,
-      "control": 0.292
+      "trial": 0.0173,
+      "control": 0.3273
     },
     "custos": {
       "trial": 0.7,
       "control": 0.98
     },
     "oportunidadesAvaliadas": {
-      "trial": 67,
-      "control": 1515
+      "trial": 74,
+      "control": 1646
     },
     "posicoesAbertas": {
       "trial": 3,
@@ -98,15 +98,15 @@
         "reserveBlocked": 0,
         "maxPositionsBlocked": 0,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 62
+        "evNaoPositivo": 68
       },
       "control": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 101,
+        "maxPositionsBlocked": 109,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 1387
+        "evNaoPositivo": 1507
       }
     },
     "saldosPorExchange": {
