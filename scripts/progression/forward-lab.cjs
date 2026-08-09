@@ -231,6 +231,40 @@ function economia(apr, spread) { const c = CUSTO_FRAC + Math.max(0, spread || 0)
 function margemLivre(est, ex) { return (est.saldosPorExchange[ex] || 0) * (1 - L.RESERVA); }
 function stateHash(est) { return sha(JSON.stringify({ so: est.cursor.byteOffset, ec: est.eventCount, aeh: est.accumulatedEventHash, sal: est.saldosPorExchange, vi: Object.keys(est.virtuais).sort(), fu: L.r4(est.fundingAcum), cu: L.r4(est.custosAcum) })).slice(0, 24); }
 
+// ── TELEGRAM (opcional) ──────────────────────────────────────────────────────
+// Avisa o usuário quando ESTE competidor abre/fecha posição. Mensagens amigáveis,
+// rotuladas pelo par de exchanges. Token/chat vêm SÓ do .env (nunca commitados).
+// Anti-replay: o ciclo de LARGADA (catch-up do feed no start/restart) é silencioso;
+// só ciclos ao vivo notificam. NUNCA emite ordem — só manda texto.
+const _envTG = {};
+try { fs.readFileSync(path.join(L.ROOT, '.env'), 'utf8').split('\n').forEach((l) => { const m = l.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/); if (m) _envTG[m[1]] = m[2].replace(/^["']|["']$/g, ''); }); } catch {}
+const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || _envTG.TELEGRAM_BOT_TOKEN;
+const TG_CHAT = process.env.TELEGRAM_CHAT_ID || _envTG.TELEGRAM_CHAT_ID;
+const TG_ON = !!(TG_TOKEN && TG_CHAT);
+const TG_LINHA = '━━━━━━━━━━━━━━━━━━━';
+const TG_TAG = `🤖 <b>${EXCHS.join(' + ')}</b> <i>(competidor · paper)</i>`;
+let tgLargadaFeita = false; // primeiro ciclo (catch-up) fica silencioso
+const tgUsd = (n, c = 2) => 'US$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: c, maximumFractionDigits: c });
+const tgSym = (k, sym) => String(sym || k || '').replace('/USDT:USDT', '').replace(/\|.*$/, '');
+const TG_MOTIVOS = { economic_inversion: 'a taxa virou contra (não valia mais a pena)', funding_deterioration: 'o funding caiu demais', scanner_stale: 'a oportunidade sumiu do mercado', apr_nonpositive: 'a taxa zerou / ficou negativa', max_holding_exit: 'tempo máximo de posição atingido (segurança)', exchange_failure: 'instabilidade na exchange (segurança)' };
+async function tgEnviar(texto) {
+  if (!TG_ON) return;
+  try { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TG_CHAT, text: texto, parse_mode: 'HTML' }), signal: AbortSignal.timeout(8000) }); } catch {}
+}
+function tgAbre(d, capital) {
+  return tgEnviar(`🟢 <b>NOVA OPERAÇÃO ABERTA</b>\n${TG_TAG}\n${TG_LINHA}\n` +
+    `🪙 <b>Moeda:</b> ${tgSym(d.k, d.sym)}\n🔄 <b>Comprado em:</b> ${d.long}\n🔄 <b>Vendido em:</b> ${d.short}\n` +
+    `💵 <b>Valor operado:</b> ${tgUsd(NOTIONAL, 0)}\n📊 <b>Taxa (APR):</b> ${(d.apr * 100).toFixed(1)}%\n💼 <b>Capital do competidor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
+    `ℹ️ Operação <b>neutra</b>: compra numa corretora e vende na outra ao mesmo tempo. O lucro vem da <b>taxa de funding</b> — sem apostar se o preço sobe ou cai. 🛡️`);
+}
+function tgFecha(d, capital) {
+  const lucro = d.pnl >= 0;
+  return tgEnviar(`${lucro ? '✅' : '⚠️'} <b>OPERAÇÃO FECHADA — ${lucro ? 'LUCRO' : 'PREJUÍZO'}</b>\n${TG_TAG}\n${TG_LINHA}\n` +
+    `🪙 <b>Moeda:</b> ${tgSym(d.k, d.sym)}\n💰 <b>Recebido (funding):</b> +${tgUsd(d.funding, 4)}\n💸 <b>Custo (taxas):</b> −${tgUsd(d.custo, 4)}\n` +
+    `${lucro ? '📈' : '📉'} <b>Resultado:</b> ${lucro ? '+' : ''}${tgUsd(d.pnl, 4)}\n📝 <b>Por que fechou:</b> ${TG_MOTIVOS[d.closeReason] || d.closeReason || 'critério de saída'}\n💼 <b>Capital do competidor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
+    `ℹ️ Tudo automático e em <b>paper</b> (sem dinheiro real). O robô segue operando sozinho. 😴`);
+}
+
 function umCiclo() {
   const r = recuperar();
   if (r.suspenso) { registrarRecovery(r); append(F.diario, { ts: now(), evento: 'recovery', recoveryState: r.recoveryState, detalhe: r.detalhe }); console.log(`[forward-lab ${LABEL}] ${r.recoveryState} — SUSPENSO (não processa; não zera)`); return; }
@@ -327,7 +361,7 @@ function umCiclo() {
     est.saldosPorExchange[c.long] -= MARGEM_PERNA; est.saldosPorExchange[c.short] -= MARGEM_PERNA; est.custosAcum += custoEntrada;
     est.virtuais[c.k] = { k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, aprEntrada: c.apr, ultimoApr: c.apr, ciclosSemVer: 0, ciclosInversao: 0, ciclosFundingDeteriorado: 0, economicEV: L.r4(c.score), latestEconomicEvaluationTs: now(), scannerVisible: true, scannerLastSeen: c.ts, scannerEpisodeFirstSeen: c.ts, scannerEpisodeLastSeen: c.ts, economicPositiveFirstSeen: c.ts, positionOpenedAt: now(),
       sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId, entryCycle: cycleId };
-    est.contadores.abertas++; virtSemVer.delete(c.k); if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; decisoes.push({ k: c.k, acao: 'abre', physicalEventId: c.physicalEventId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
+    est.contadores.abertas++; virtSemVer.delete(c.k); if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; decisoes.push({ k: c.k, acao: 'abre', sym: c.sym, long: c.long, short: c.short, apr: L.r4(c.apr), physicalEventId: c.physicalEventId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
     append(F.diario, { ts: now(), evento: 'abre', k: c.k, apr: L.r4(c.apr), custoEntrada: L.r4(custoEntrada), entryCycle: cycleId, sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
     append(F.ledger, { ts: now(), tipo: 'abre', k: c.k, sourcePositionId: c.sourcePositionId, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]) });
   }
@@ -367,7 +401,7 @@ function umCiclo() {
       latestEconomicEvaluation: vp.economicEV, latestEconomicEvaluationAgeMs, evalStale: latestEconomicEvaluationAgeMs > EVAL_STALE_MS,
       inversion, riskExit, maxHoldingExit, fundingDeterioration, exchangeFailure, sourceChampionClose: false, policyClose: true, policyCloseReason: closeReason,
       sourceDecisionId: vp.sourceDecisionId, sourcePositionId: vp.sourcePositionId, sourceOpportunityEpisodeId: vp.sourceOpportunityEpisodeId });
-    decisoes.push({ k, acao: 'fecha', pnl: L.r4(pnl), closeReason, sourcePositionId: vp.sourcePositionId }); delete est.virtuais[k];
+    decisoes.push({ k, acao: 'fecha', sym: vp.sym, long: vp.long, short: vp.short, funding: L.r4(vp.fundingAcum), custo: L.r4(vp.custoEntrada + custoSaida), pnl: L.r4(pnl), closeReason, sourcePositionId: vp.sourcePositionId }); delete est.virtuais[k];
   }
 
   est.lastCycleId = cycleId;
@@ -378,6 +412,12 @@ function umCiclo() {
   wal.status = 'COMMITTED'; wal.stateHashAfter = stateHash(est); wal.decisoes = decisoes; escreverAtomico(F.wal, wal);
   // ── snapshot por watermark ──────────────────────────────────────────────────
   append(F.snapshots, { committedOffset: cur.byteOffset, eventCount: est.eventCount, accumulatedHash: est.accumulatedEventHash, capital: L.r4(est.capitalInicial + est.fundingAcum - est.custosAcum), saldos: est.saldosPorExchange, posicoes: Object.keys(est.virtuais).length, pnl: L.r4(est.fundingAcum - est.custosAcum), custos: L.r4(est.custosAcum), funding: L.r4(est.fundingAcum), stateHash: stateHash(est) });
+  // ── avisos ao Telegram (só ciclos ao vivo; largada é silenciosa) ──
+  if (TG_ON && tgLargadaFeita) {
+    const capital = est.capitalInicial + est.fundingAcum - est.custosAcum;
+    for (const d of decisoes) { if (d.acao === 'abre') tgAbre(d, capital); else if (d.acao === 'fecha') tgFecha(d, capital); }
+  }
+  tgLargadaFeita = true;
 }
 
 function persistir(est, comCrash) {
