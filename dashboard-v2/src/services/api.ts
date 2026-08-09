@@ -68,6 +68,10 @@ export function buscarMaximizacao(): Promise<Resultado<{ dados: any } | null>> {
 export function buscarCompetidores(): Promise<Resultado<{ competidores: any[] } | null>> {
   return buscarValidado('/api/v2/competidores', { parse: (v: unknown) => v as { competidores: any[] } | null });
 }
+// Oportunidades spot-perp (cash-and-carry no perp) do coletor — dado real, leitura.
+export function buscarSpotperp(): Promise<Resultado<{ total: number; porExchange: Record<string, number>; geradoEm: number | null; top: any[] } | null>> {
+  return buscarValidado('/api/v2/spotperp', { parse: (v: unknown) => v as any });
+}
 export function buscarEventosIncremental(cursor: string | null, limit: number): Promise<Resultado<EventosRecentesResposta>> {
   const qs = new URLSearchParams({ limit: String(limit) });
   if (cursor) qs.set('after', cursor);

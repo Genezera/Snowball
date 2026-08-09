@@ -1,152 +1,159 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useLiveStore, idadeDoDado, LIMITE_STALE_MS } from '../stores/liveStore';
-import { useOportunidades } from '../hooks/useOportunidades';
-import { Section, StatusBadge, fmt } from '../components/ui/kit';
-import { SnowballCore } from '../components/portfolio/SnowballCore';
-import { calcularRankingComparavel } from '../components/portfolio/ComparableRanking';
+import { useCompetidores } from '../hooks/useCompetidores';
+import { useSpotperp } from '../hooks/useSpotperp';
+import { PageHeader, Section, StatusBadge, fmt } from '../components/ui/kit';
 import { EquityCurve } from '../components/charts/EquityCurve';
-import type { ChartDataState } from '../components/charts/ChartFrame';
 import { DataStateBanner } from '../components/feedback/DataState';
-import { useT, useLang, localeDe } from '../i18n';
 
 /**
- * COMMAND CENTER — visão EXECUTIVA (item 10). Layout próprio, não uma grade
- * uniforme de cards: uma faixa executiva no topo que responde "saúde /
- * capital / PnL / uso / exposição / risco" em segundos, um centro com a
- * curva de capital, e uma coluna lateral com posições, settlements,
- * oportunidades e o coletor. Nada de dinheiro real: tudo PAPER.
+ * COMMAND CENTER — refeito do zero para a ideia ATUAL: o Motor Real 2-Exchange
+ * (`snowball-2ex`), combinando funding cross-exchange + spot-perp, num único
+ * contador de capital. Mostra, de forma organizada e para leigo: o dinheiro do
+ * motor, a curva, o que ele está pensando, as posições e o histórico, e o RADAR
+ * spot-perp (oportunidades reais do coletor). Tudo paper, só leitura.
  */
-interface PosMarc { symbol: string; notionalShort: number; notionalLong: number; pnlNaoRealizadoTotal: number }
+
+function BandaDinheiro({ m, posicoes }: { m: any; posicoes: number }) {
+  const cards: [string, string, string, boolean?][] = [
+    ['Capital · PAPER', fmt.usd(m?.capital ?? null), 'var(--snow-primary)', true],
+    ['Lucro total', (m?.net >= 0 ? '+' : '') + fmt.usd(m?.net ?? null), fmt.corPnl(m?.net ?? 0)],
+    ['%/dia', `${m?.pctDia ?? 0}%`, fmt.corPnl(m?.pctDia ?? 0)],
+    ['Funding recebido', '+' + fmt.usd(m?.funding ?? null), 'var(--engine-funding)'],
+    ['Rendimento reserva', '+' + fmt.usd(m?.rendimento ?? 0), 'var(--gain-500)'],
+    ['Custos (taxas)', '−' + fmt.usd(m?.custos ?? null), 'var(--loss-500)'],
+    ['Posições abertas', String(posicoes), posicoes > 0 ? 'var(--ink-0)' : 'var(--ink-3)'],
+  ];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', background: 'linear-gradient(180deg, var(--surface-glass), rgba(12,21,38,0.5))', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      {cards.map(([lbl, val, cor, hero], i) => (
+        <div key={lbl} style={{ flex: '1 1 150px', minWidth: 140, padding: 'var(--space-4) var(--space-5)', borderLeft: i > 0 ? '1px solid var(--border-hairline)' : 'none' }}>
+          <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-3)' }}>{lbl}</div>
+          <div className="tabular" style={{ fontSize: hero ? 'var(--text-2xl)' : 'var(--text-xl)', fontWeight: 800, marginTop: 4, color: cor as string }}>{val}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RadarSpotPerp() {
+  const sp = useSpotperp();
+  const d = sp?.estado === 'sucesso' ? sp.dado : null;
+  const top = d?.top ?? [];
+  return (
+    <Section titulo="📡 Radar spot-perp (oportunidades reais)" sub={d ? `${d.total} oportunidades agora · atualiza a cada 10min` : 'carregando coletor…'}
+      acao={d?.porExchange ? <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>{Object.entries(d.porExchange).map(([e, n]) => `${e}: ${n}`).join(' · ')}</span> : undefined}>
+      {top.length === 0 ? (
+        <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>Sem oportunidades no último ciclo (ou coletor iniciando).</p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-2xs)' }}>
+            <thead>
+              <tr style={{ color: 'var(--ink-3)', textAlign: 'left' }}>
+                <th style={{ padding: '4px 6px', fontWeight: 700 }}>Moeda</th>
+                <th style={{ padding: '4px 6px', fontWeight: 700 }}>Exchange</th>
+                <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'right' }}>Ganho/dia</th>
+                <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'right' }}>Paga em</th>
+                <th style={{ padding: '4px 6px', fontWeight: 700, textAlign: 'right' }}>Liquidez</th>
+              </tr>
+            </thead>
+            <tbody>
+              {top.slice(0, 10).map((o: any, i: number) => (
+                <tr key={o.sym + o.exchange + i} style={{ borderTop: '1px solid var(--border-hairline)' }}>
+                  <td style={{ padding: '5px 6px', fontWeight: 700 }}>{o.sym}</td>
+                  <td style={{ padding: '5px 6px', color: 'var(--ink-2)' }}>{o.exchange}</td>
+                  <td className="tabular" style={{ padding: '5px 6px', textAlign: 'right', color: 'var(--gain-500)', fontWeight: 700 }}>{o.pctDia}%</td>
+                  <td className="tabular" style={{ padding: '5px 6px', textAlign: 'right', color: 'var(--ink-3)' }}>{o.paybackDias}d</td>
+                  <td className="tabular" style={{ padding: '5px 6px', textAlign: 'right', color: 'var(--ink-3)' }}>${(o.vol / 1e6).toFixed(1)}M</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p style={{ marginTop: 8, fontSize: '0.6rem', color: 'var(--ink-3)' }}>
+        ℹ️ Spot-perp = comprar spot + shortar perp na MESMA exchange. Captura o funding <b>absoluto</b> (neutro, sem aposta em preço). "Ganho/dia" já é líquido das taxas do spot.
+      </p>
+    </Section>
+  );
+}
 
 export function CommandCenter() {
-  const t = useT();
-  const loc = localeDe(useLang());
-  const champion = useLiveStore((s) => s.champion);
-  const profitLab = useLiveStore((s) => s.profitLab);
-  const oport = useOportunidades();
-
-  const est = champion?.estado === 'sucesso' ? champion.dado.estado : null;
-  const marc = champion?.estado === 'sucesso' ? (champion.dado.marcacao as { equityMark?: number; equityLiquidacao?: number; pnlNaoRealizadoMark?: number; posicoes?: PosMarc[] } | null) : null;
-  const posicoes = champion?.estado === 'sucesso' ? champion.dado.posicoes ?? [] : [];
-  const curva = champion?.estado === 'sucesso' ? champion.dado.curva ?? [] : [];
-  const resumo = profitLab?.estado === 'sucesso' ? profitLab.dado.resumo : null;
-  const multi = profitLab?.estado === 'sucesso' ? profitLab.dado.leaderboardMulti : null;
-  const capturas = profitLab?.estado === 'sucesso' ? profitLab.dado.capturaStatus ?? [] : [];
-  const ranking = multi ? calcularRankingComparavel(multi.linhas) : null;
-
-  const championIdade = idadeDoDado(champion);
-  const stale = championIdade != null && championIdade > LIMITE_STALE_MS;
-  const chartState: ChartDataState = champion?.estado === 'sucesso' ? (stale ? 'stale' : 'success') : champion?.estado === 'corrompido' ? 'corrupted' : champion?.estado === 'erro' ? 'error' : 'loading';
-
-  const pnlReal = est ? est.capital - est.capitalInicial : null;
-  const notionalBruto = (marc?.posicoes ?? []).reduce((s, p) => s + p.notionalShort + p.notionalLong, 0);
-  const margem = posicoes.reduce((s, p) => s + (p.margemShort ?? 0) + (p.margemLong ?? 0), 0);
-  const emRisco = posicoes.filter((p) => p.distanciaMinima < 0.15).length;
-  const cs = oport?.estado === 'sucesso' ? oport.dado.collectorStatus : null;
-  const saude = champion?.estado === 'sucesso' && !stale && profitLab?.estado === 'sucesso';
-
-  const proximosSettlements = useMemo(() => capturas
-    .filter((c) => c.proximaLiquidacaoEm != null && c.status === 'posicao_aberta')
-    .sort((a, b) => (a.proximaLiquidacaoEm ?? 0) - (b.proximaLiquidacaoEm ?? 0)).slice(0, 4), [capturas]);
-
-  const pontos = curva.map((p) => ({ ts: p.ts, valor: p.capital }));
+  const res = useCompetidores();
+  const motor = res?.estado === 'sucesso' ? (res.dado?.competidores ?? [])[0] : null;
+  const m = motor?.dinheiro;
+  const abertas = motor?.abertas ?? [];
+  const operacoes = motor?.operacoes ?? [];
+  const p = motor?.pensando;
+  const pontos = (motor?.curva ?? []).map((c: any) => ({ ts: c.ts, valor: c.capital }));
+  const vivo = !!motor?.vivo;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', margin: 0, fontWeight: 700 }}>{t('Command Center')}</h1>
-          <p style={{ color: 'var(--ink-2)', fontSize: 'var(--text-sm)', margin: '4px 0 0' }}>{t('Visão executiva do Champion (paper) e do Paper Profit Lab (virtual) — nunca misturados.')}</p>
-        </div>
-        <StatusBadge label={saude ? t('sistema saudável') : stale ? t('dado stale') : t('atenção')} tom={saude ? 'ok' : 'warn'} />
+        <PageHeader titulo="Command Center" sub="O Motor Real 2-Exchange (bybit + bitget) — funding cross-exchange + spot-perp, um capital só. Tudo paper por enquanto." />
+        <StatusBadge label={vivo ? '🟢 rodando' : '⏸ iniciando'} tom={vivo ? 'info' : 'neutral'} />
       </div>
 
-      {champion?.estado === 'erro' && <DataStateBanner kind="offline" motivo={champion.motivo} />}
-      {stale && <DataStateBanner kind="stale" idadeMs={championIdade} origem="/api/v2/champion" />}
+      {res?.estado === 'erro' && <DataStateBanner kind="offline" motivo={res.motivo} />}
+      {!motor && res?.estado !== 'erro' && <Section><p style={{ color: 'var(--ink-3)' }}>Carregando o motor…</p></Section>}
 
-      {/* FAIXA EXECUTIVA — banda contínua, não grade de cards */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', background: 'linear-gradient(180deg, var(--surface-glass), rgba(12,21,38,0.5))', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-        {[
-          [t('Capital · PAPER'), fmt.usd(est?.capital ?? null), 'var(--snow-primary)', true],
-          [t('PnL realizado'), fmt.usd(pnlReal), fmt.corPnl(pnlReal)],
-          [t('Equity mark'), fmt.usd(marc?.equityMark ?? null), 'var(--ink-0)'],
-          [t('Equity liquidação'), fmt.usd(marc?.equityLiquidacao ?? null), 'var(--ink-0)'],
-          [t('Margem em uso'), fmt.usd(margem), 'var(--warn-500)'],
-          [t('Exposição (notional)'), fmt.usd(notionalBruto), 'var(--ink-0)'],
-          [t('Posições'), `${posicoes.length}${emRisco ? ` · ${emRisco} ${t('em risco')}` : ''}`, emRisco ? 'var(--loss-500)' : 'var(--ink-0)'],
-        ].map(([lbl, val, cor, hero], i) => (
-          <div key={lbl as string} style={{ flex: '1 1 160px', minWidth: 150, padding: 'var(--space-4) var(--space-5)', borderLeft: i > 0 ? '1px solid var(--border-hairline)' : 'none' }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-3)' }}>{lbl}</div>
-            <div className="tabular" style={{ fontSize: hero ? 'var(--text-2xl)' : 'var(--text-xl)', fontWeight: 800, marginTop: 4, color: cor as string }}>{val}</div>
-          </div>
-        ))}
-      </div>
+      {motor && (
+        <>
+          <BandaDinheiro m={m} posicoes={abertas.length} />
 
-      {/* CENTRO + LATERAL */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(300px, 1fr)', gap: 'var(--space-4)', alignItems: 'start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <Section titulo={t('Curva de capital (paper)')} sub={`${t('Capital inicial')} ${fmt.usd(est?.capitalInicial ?? null)} → ${t('atual')} ${fmt.usd(est?.capital ?? null)} · funding ${fmt.usd(est?.fundingTotal ?? null)} − ${t('custos')} ${fmt.usd(est?.custosTotal ?? null)}`}>
-            <EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" height={260} />
-          </Section>
-          <Section titulo={t('Motores')} sub={t('Champion (paper), challengers (paper lab) e experimentos — nunca somados.')}>
-            <SnowballCore championCapital={est?.capital ?? 0} challengersCapital={resumo?.capitalVirtualTotal ?? 0} numeroChallengers={resumo?.numeroAtivos ?? 0} />
-          </Section>
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(300px, 1fr)', gap: 'var(--space-4)', alignItems: 'start' }}>
+            {/* coluna principal */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <Section titulo="📈 Curva de capital" sub={`Início ${fmt.usd(m?.capitalInicial ?? 200)} · ${m?.dias ?? 0} dias · paper`}>
+                <EquityCurve titulo="" pontos={pontos.length >= 2 ? pontos : null} state={pontos.length >= 2 ? 'success' : 'empty'} cor="var(--snow-primary)" height={230} />
+              </Section>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <Section titulo={`${t('Posições abertas')} · ${posicoes.length}`} acao={<Link to="/champion" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>{t('ver cockpit →')}</Link>}>
-            {posicoes.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {posicoes.slice(0, 5).map((p) => {
-                  const mp = (marc?.posicoes ?? []).find((x) => x.symbol === p.symbol);
-                  return (
-                    <div key={p.symbol + p.abertaEm} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '7px 10px', background: 'var(--surface-1)', borderRadius: 'var(--radius-sm)', borderLeft: `2px solid ${p.distanciaMinima < 0.15 ? 'var(--loss-500)' : 'var(--gain-500)'}` }}>
-                      <div><div style={{ fontWeight: 700, fontSize: 'var(--text-xs)' }}>{p.symbol.replace('/USDT:USDT', '')}</div><div style={{ fontSize: '0.6rem', color: 'var(--ink-3)' }}>{p.exchangeShort} → {p.exchangeLong}</div></div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div className="tabular" style={{ fontSize: 'var(--text-xs)', color: mp ? fmt.corPnl(mp.pnlNaoRealizadoTotal) : 'var(--ink-2)' }}>{mp ? fmt.usd(mp.pnlNaoRealizadoTotal) : '—'}</div>
-                        <div style={{ fontSize: '0.6rem', color: 'var(--ink-3)' }}>{t('liq')} {fmt.pct(p.distanciaMinima * 100)}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>{t('Nenhuma posição aberta.')}</p>}
-          </Section>
+              <Section titulo="🧠 O que o robô está pensando" sub="Decisões em tempo real — por que entra ou espera.">
+                {p ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, fontSize: 'var(--text-2xs)' }}>
+                    <div>🔎 Avaliadas: <b>{p.avaliadas}</b></div>
+                    <div>✅ Abertas: <b>{p.abertas}</b></div>
+                    <div>⏳ Aguardando (30min): <b>{p.aguardandoPersistencia}</b></div>
+                    <div>➖ Sem lucro: <b>{p.rejeitadasSemEV}</b></div>
+                    <div>🔒 Fechadas: <b>{p.fechadas}</b></div>
+                    <div>🚧 Sem capacidade: <b>{p.semCapacidade}</b></div>
+                  </div>
+                ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>—</p>}
+              </Section>
 
-          <Section titulo={t('Próximos settlements')}>
-            {proximosSettlements.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {proximosSettlements.map((c) => (
-                  <div key={c.challengerId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', padding: '5px 0', borderBottom: '1px solid var(--border-hairline)' }}>
-                    <span>{c.symbol?.replace('/USDT:USDT', '') ?? c.challengerId} · {c.janelaMin}m</span>
-                    <span className="tabular" style={{ color: 'var(--ink-3)' }}>{c.proximaLiquidacaoEm ? new Date(c.proximaLiquidacaoEm).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+              <RadarSpotPerp />
+            </div>
+
+            {/* coluna lateral */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <Section titulo={`🔓 Posições abertas · ${abertas.length}`}>
+                {abertas.length === 0 ? (
+                  <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-2xs)', margin: 0 }}>Nenhuma posição aberta agora.</p>
+                ) : abertas.map((a: any, i: number) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-hairline)', fontSize: 'var(--text-2xs)' }}>
+                    <span><b>{a.symbol}</b> · {a.long}/{a.short}</span>
+                    <span className="tabular" style={{ color: 'var(--engine-funding)' }}>+{fmt.usd(a.fundingAcum)}</span>
+                    <span className="tabular" style={{ color: 'var(--ink-3)' }}>{a.holdH}h</span>
                   </div>
                 ))}
-              </div>
-            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>{t('Nenhum settlement iminente.')}</p>}
-          </Section>
+              </Section>
 
-          <Section titulo={t('Oportunidades (varredura do mercado)')} acao={<Link to="/opportunities" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>{t('ver mapa →')}</Link>}>
-            {oport?.estado === 'sucesso' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>{t('Observadas')}</span><span className="tabular" style={{ fontWeight: 700 }}>{fmt.int(oport.dado.summary.total)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>{t('Elegíveis')}</span><span className="tabular" style={{ color: 'var(--gain-500)', fontWeight: 700 }}>{fmt.int(oport.dado.summary.eligible)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ color: 'var(--ink-2)' }}>{t('Coletor')}</span><StatusBadge label={cs?.estado ?? '—'} tom={cs?.estado === 'live' ? 'ok' : cs?.estado === 'stale' ? 'warn' : 'loss'} /></div>
-              </div>
-            ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>{t('Carregando coletor…')}</p>}
-          </Section>
-
-          {ranking && ranking.comparaveis.length > 0 && (
-            <Section titulo={t('Melhor / pior motor (janela comum)')}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--gain-500)' }}>▲ {ranking.melhor?.strategyId}</span><span className="tabular">{ranking.melhor && fmt.usd(ranking.melhor.pnlDesdeOInicio)}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--loss-500)' }}>▼ {ranking.pior?.strategyId}</span><span className="tabular">{ranking.pior && fmt.pct(ranking.pior.pnlPct)}</span></div>
-              </div>
-            </Section>
-          )}
-        </div>
-      </div>
+              <Section titulo="📜 Operações recentes">
+                {operacoes.length === 0 ? (
+                  <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-2xs)', margin: 0 }}>Ainda sem operações — entra após 30min de sinal persistente.</p>
+                ) : operacoes.slice(0, 10).map((o: any, i: number) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--border-hairline)', fontSize: 'var(--text-2xs)' }}>
+                    <span>{o.tipo === 'abre' ? '🟢' : (o.pnl >= 0 ? '✅' : '⚠️')}</span>
+                    <span><b>{o.symbol}</b> {o.tipo === 'fecha' && o.motivo ? <span style={{ color: 'var(--ink-3)' }}>· {o.motivo}</span> : ''}</span>
+                    <span className="tabular" style={{ color: o.tipo === 'fecha' ? fmt.corPnl(o.pnl) : 'var(--ink-3)' }}>
+                      {o.tipo === 'abre' ? `apr ${o.apr}` : `${o.pnl >= 0 ? '+' : ''}${fmt.usd(o.pnl)}`}
+                    </span>
+                  </div>
+                ))}
+              </Section>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

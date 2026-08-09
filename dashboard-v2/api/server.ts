@@ -213,6 +213,30 @@ const servidor = http.createServer((req, res) => {
       return enviarJson(res, 200, { ok: true, competidores, geradoEm: Date.now() });
     }
 
+    // ── spot-perp: oportunidades reais (cash-and-carry no perp) do coletor. SÓ LEITURA ──
+    if (url.pathname === '/api/v2/spotperp') {
+      const feed = path.join(ROOT, 'vigilancia', 'arquivo-spotperp.jsonl');
+      let ops: any[] = [];
+      try {
+        const st = fs.statSync(feed);
+        const N = Math.min(st.size, 500 * 1024);
+        const fd = fs.openSync(feed, 'r'); const buf = Buffer.alloc(N);
+        fs.readSync(fd, buf, 0, N, st.size - N); fs.closeSync(fd);
+        const parsed = buf.toString('utf8').split('\n').filter(Boolean)
+          .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean) as any[];
+        const ultimoTs = parsed.reduce((m, o) => Math.max(m, o.ts || 0), 0);
+        ops = parsed.filter((o) => o.ts === ultimoTs);
+      } catch { /* feed pode não existir ainda */ }
+      const r2 = (n: number, c = 4) => Math.round(n * 10 ** c) / 10 ** c;
+      ops.sort((a, b) => (b.evDiaBruto || 0) - (a.evDiaBruto || 0));
+      const porExchange: Record<string, number> = {};
+      for (const o of ops) porExchange[o.exchange] = (porExchange[o.exchange] || 0) + 1;
+      const top = ops.slice(0, 20).map((o) => ({ sym: o.sym, exchange: o.exchange,
+        pctDia: r2((o.fundingDia || 0) * 100, 3), fundingIntervalo: r2((o.funding || 0) * 100, 4), iv: o.iv,
+        paybackDias: r2(o.paybackDias || 0, 1), vol: o.vol }));
+      return enviarJson(res, 200, { ok: true, total: ops.length, porExchange, geradoEm: ops[0]?.ts || null, top });
+    }
+
     // ── transporte incremental de eventos (Parte 4) ──────────────────────
     if (url.pathname === '/api/v2/events') {
       const cursor = url.searchParams.get('after');
