@@ -50,15 +50,16 @@ function build() {
           proximoDesbloqueio: 'evidência forward VÁLIDA de um filtro (amostra com vencedores + 2 janelas + regime) — NÃO por criar filtros',
           confidence: eg.confidence, diagnostico: 'ver entry-gate-shadow.json',
           validacaoProspectiva: (() => { const ev = L.rd(L.P.outDir + '/entry-gate-validation.json', null); if (!ev) return null;
-            const pf = ev.item6_ledgerProspectivo.validationSet.porFiltro || {};
-            const challengerPnL = {}; for (const f of ['Control', 'A3', 'B60', 'C1_5', 'D']) challengerPnL[f] = pf[f] ? pf[f].realizedNetPnL : 0;
-            return { epochId: ev.item2_epoch.entryGateValidationEpochId, developmentSet: ev.item1_developmentSet.total, validationSetProgress: ev.item3_validationSet.progresso,
-              controlPnL: pf.Control ? pf.Control.realizedNetPnL : 0, challengerPnL,
-              perdasEvitadas: { A3: pf.A3 ? pf.A3.lossesAvoided : 0, B60: pf.B60 ? pf.B60.lossesAvoided : 0, C1_5: pf.C1_5 ? pf.C1_5.lossesAvoided : 0, D: pf.D ? pf.D.lossesAvoided : 0 },
-              vencedoresRejeitados: { A3: pf.A3 ? pf.A3.winnersRejected : 0, B60: pf.B60 ? pf.B60.winnersRejected : 0, C1_5: pf.C1_5 ? pf.C1_5.winnersRejected : 0, D: pf.D ? pf.D.winnersRejected : 0 },
-              winnerRetentionRate: { A3: pf.A3 ? pf.A3.winnerRetentionRate : null, B60: pf.B60 ? pf.B60.winnerRetentionRate : null, C1_5: pf.C1_5 ? pf.C1_5.winnerRetentionRate : null, D: pf.D ? pf.D.winnerRetentionRate : null },
-              challengerXP: 0, xpNota: 'XP dos challengers = 0 até haver evidência de VALIDATION SET (não do development set).',
-              promovivel: ev.item9_promocao.elegivel, proximoDesbloqueio: `${ev.item3_validationSet.total}/30 posições de validação + vencedores/perdedores + PnL>Control + 2ª janela + regime + stress + aprovação humana` }; })() }; })(),
+            const c = ev.item6_contadores || {};
+            return { epochId: ev.item4_epochDurabilidade ? ev.item4_epochDurabilidade.entryGateValidationEpochId : null,
+              validationStatus: ev.validationStatus, manifestStatus: ev.manifestStatus,
+              developmentSet: 4, validationSetProgress: c.validationProgress || '0/30',
+              decisionsObserved: c.decisionsObserved, aceitasPorFiltro: { Control: c.controlAccepted, A3: c.a3Accepted, B60: c.b60Accepted, C1_5: c.c15Accepted, D: c.dAccepted },
+              closedOutcomes: c.closedOutcomes, openOutcomes: c.openOutcomes, rightCensored: c.rightCensored, winners: c.winners, losers: c.losers,
+              rejectedNeverPositioned: c.rejectedNeverPositioned,
+              challengerXP: 0, xpNota: 'XP dos challengers = 0 até haver evidência de VALIDATION SET fechada (não do development set).',
+              promovivel: ev.promocao ? ev.promocao.elegivel : false,
+              proximoDesbloqueio: `${(c.validationProgress || '0/30')} posições de validação + vencedores/perdedores + PnL>Control + 2ª janela + regime + stress + aprovação humana` }; })() }; })(),
       chefeCustosEWhipsaw: { nome: 'Custos e Whipsaw', derrotadoQuando: 'funding capturado cobre o round-trip ($0,28) com folga — hoje captura só ~$0,03 (12% do break-even)', estado: 'ATIVO_VENCENDO_O_JOGADOR', diagnostico: 'ver edge-diagnosis.json' },
       chefeDaCapacidade: { nome: 'Capacidade', derrotadoQuando: 'nenhuma oportunidade positive-EV bloqueada por saldo/exchange limitante', estado: 'EM_COLETA' },
       chefeDaDiversificacao: { nome: 'Diversificação', derrotadoQuando: 'concentração ≤ limites (posição/símbolo/par/janela) com amostra suficiente', estado: 'EM_COLETA' },
