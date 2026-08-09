@@ -30,27 +30,15 @@ declare -A CMD=(
   # A entrada do 'dashboard' segue no process-manifest.json só como identidade
   # para o rollback/detecção — nunca como processo supervisionado aqui.
   [coletor]="node src/cli/coletor.ts --intervalo 5"
-  # modo agressivo: ts-momentum multi-ativo, papel -- roda EM PARALELO ao
-  # motor delta-neutro acima, nao no lugar dele. Os dois so coletam dado.
-  [momentum]="node --env-file-if-exists=.env src/cli/momentum-live.ts --equity 200 --risco 0.005 --alavancagem 2"
-  # medição de preenchimento maker: só LEITURA de ticker, nenhuma ordem, roda
-  # isolado dos outros -- mede se ordem limite preenche rápido o bastante
-  # para trocar o custo taker (0,05-0,06%) pelo maker (~0,02%).
-  [preenchimento]="node --env-file-if-exists=.env src/cli/preenchimento-live.ts --intervalo 10"
-  # pares cointegrados: mercado-neutro, independente do motor delta-neutro e
-  # do momentum -- capital e diário próprios. Resultado 14 (docs/RESULTADOS.md)
-  # validou que misturar com o momentum corta a chance de ruína de ~46% para
-  # ~15% sem perder chance de sucesso.
-  [pares]="node --env-file-if-exists=.env src/cli/pares-live.ts --equity 200 --risco 0.05"
+  # FOCO 2-EXCHANGE (refactor 2026-08): as outras estratégias (momentum, pares,
+  # preenchimento, renda) foram removidas do projeto. O sistema agora é só o
+  # funding-arb delta-neutro: scanner do mercado inteiro + motor + custódia.
 )
 declare -A LOG=(
   [vigilancia]="vigilancia/live.log"
   [custodia]="vigilancia/custodia.log"
   [motor]="spread/live.log"
   [coletor]="vigilancia/coletor.log"
-  [momentum]="momentum/live.log"
-  [preenchimento]="preenchimento/live.log"
-  [pares]="pares/live.log"
 )
 
 TIMEOUT_EXTERNO_S=8
