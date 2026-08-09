@@ -61,6 +61,7 @@ const ordem = [
   'profit-discovery.cjs',       // v1.8-profit Partes 2-8,10,12 (ranking/próximo dólar/capacidade/rejeições/timing/maxPos/compounding)
   'edge-diagnosis.cjs',        // v1.8 diagnóstico da edge negativa
   'entry-gate-shadow.cjs',      // v1.8 entry gate shadow lab (challengers A-E, read-only)
+  'entry-gate-validation.cjs',  // v1.8 prospective validation (dev set congelado + validation epoch)
   'game-layer-data.cjs',        // v1.8-coleta/profit (game layer + níveis + chefes econômicos)
   'relatorio-forward.cjs',      // v1.4→1.8 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
