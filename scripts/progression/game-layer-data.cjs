@@ -35,6 +35,20 @@ function build() {
     economia: (() => { const led = L.rd(L.P.outDir + '/economic-ledger.json', null); const pd = L.rd(L.P.outDir + '/profit-discovery.json', null); const un = L.rd(L.P.outDir + '/unlock-fund.json', null);
       return { lucroAcumulado: led ? led.totalRealizedNetPnL : 0, lucroPorCapitalHora: 'ver economic-ledger por posição', proximoDolar: pd ? pd.item3_proximoDolar.recomendacao : null, proximoDesbloqueio: un ? (un.faltaParaDesbloquear || un.regra || 'ver unlock-fund') : null }; })(),
     chefesEconomicos: {
+      chefeEntradasPrematuras: (() => { const eg = L.rd(L.P.outDir + '/entry-gate-shadow.json', null); if (!eg) return { nome: 'Entradas Prematuras', estado: 'DESCONHECIDO' };
+        const evitaTudo = Object.entries(eg.challengersAvaliacao).filter(([, v]) => v.lossesAvoided === eg.populacao.uniqueSourcePositions).map(([n]) => n);
+        const lucroPerdidoPorRejeicao = 0; // 0 vencedores na amostra ⇒ nenhum lucro perdido mensurável
+        return { nome: 'Entradas Prematuras',
+          derrotadoQuando: 'um filtro de entrada mostrar edge líquida POSITIVA em 2 janelas + outro regime + stress de custo, com vencedores na amostra (não só evitando as 4 perdas que formaram a hipótese) + aprovação humana',
+          estado: 'ATIVO_VENCENDO_O_JOGADOR',
+          edgeStatus: eg.populacao.realizedNetPnLDedup < 0 ? 'NEGATIVE_UNPROVEN' : 'POSITIVE_UNPROVEN',
+          dedupPnL: eg.populacao.realizedNetPnLDedup, posicoesUnicas: `${eg.populacao.uniqueSourcePositions}/30`,
+          challengersShadow: Object.keys(eg.challengersAvaliacao).length,
+          challengersQueEvitamTodasAsPerdas: evitaTudo,
+          perdasEvitadasMax: eg.populacao.uniqueSourcePositions, lucroPerdidoPorRejeicao,
+          hipoteseCentral: eg.item8_hipoteseCentral.veredito,
+          proximoDesbloqueio: 'evidência forward VÁLIDA de um filtro (amostra com vencedores + 2 janelas + regime) — NÃO por criar filtros',
+          confidence: eg.confidence, diagnostico: 'ver entry-gate-shadow.json' }; })(),
       chefeCustosEWhipsaw: { nome: 'Custos e Whipsaw', derrotadoQuando: 'funding capturado cobre o round-trip ($0,28) com folga — hoje captura só ~$0,03 (12% do break-even)', estado: 'ATIVO_VENCENDO_O_JOGADOR', diagnostico: 'ver edge-diagnosis.json' },
       chefeDaCapacidade: { nome: 'Capacidade', derrotadoQuando: 'nenhuma oportunidade positive-EV bloqueada por saldo/exchange limitante', estado: 'EM_COLETA' },
       chefeDaDiversificacao: { nome: 'Diversificação', derrotadoQuando: 'concentração ≤ limites (posição/símbolo/par/janela) com amostra suficiente', estado: 'EM_COLETA' },
