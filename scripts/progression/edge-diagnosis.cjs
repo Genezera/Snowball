@@ -24,7 +24,7 @@ function build() {
   const reconciliacao = {
     closedRecords: fechadas.length, uniqueClosedSourcePositionIds: uniqueIds.length,
     warmupExcluded: 0, watermarkExcluded: 0, duplicatePolicyRecords, gateEligibleClosed: uniqueIds.length,
-    resolucao_5_vs_3: `5 REGISTROS de fechamento (por política) ⇒ ${uniqueIds.length} sourcePositionId ÚNICOS. Os ${duplicatePolicyRecords} extras são a MESMA oportunidade LA (2983...) fechada por observer-max3/4/5 (idênticas). O gate conta 3 (únicas), não 5.`,
+    resolucao_5_vs_3: `${fechadas.length} REGISTROS de fechamento (por política) ⇒ ${uniqueIds.length} sourcePositionId ÚNICOS. Os ${duplicatePolicyRecords} extras são a MESMA oportunidade (ex.: LA 2983) fechada por várias políticas (idênticas). O gate conta ${uniqueIds.length} (únicas), não ${fechadas.length}. [os "5 vs 3" do enunciado eram o snapshot anterior; agora ${fechadas.length} vs ${uniqueIds.length} com os mesmos princípios.]`,
   };
 
   // ── item 2: ledger detalhado das perdas (por registro) ──
