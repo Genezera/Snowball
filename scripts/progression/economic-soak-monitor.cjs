@@ -55,6 +55,23 @@ function ciclo() {
     policyFidelity: pol ? { divergencias: pol.contadores, todasExplicadas: pol.explicadas ? pol.explicadas.todasExplicadas : null } : null,
     processosVivos: vivos, processosVivosN: vivosN,
     completo: false,   // economicSoak nunca "completo" aqui — só coleta
+    operationalEconomicSoak: (() => {
+      // item 10: janela operacional de 1440min. Mantém a epoch/dados; zera SÓ o relógio de uptime.
+      const START = path.join(ECON, 'operational-soak-start.json');
+      let s = rd(START, null);
+      if (!s || s.economicForwardEpochId !== (epoch ? epoch.economicForwardEpochId : null)) { s = { iniciadoEm: now(), economicForwardEpochId: epoch ? epoch.economicForwardEpochId : null }; try { fs.writeFileSync(START, JSON.stringify(s, null, 2)); } catch {} }
+      const sup = rd(path.join(ECON, 'supervisor-economic-status.json'), null);
+      const risk = L.rd(L.P.outDir + '/risk-guardian.json', null);
+      const rec = L.rd(L.P.outDir + '/economic-recovery-check.json', null);
+      const restartsTotal = sup ? Object.values(sup.processos || {}).reduce((a, p) => a + (p.restarts || 0), 0) : 0;
+      const upMin = Math.round((now() - s.iniciadoEm) / 60000);
+      return { alvoMin: 1440, uptimeMin: upMin, progresso: `${Math.min(upMin, 1440)}/1440`, completo: upMin >= 1440,
+        crashesRestartsTotal: restartsTotal, supervisorEstados: sup ? Object.fromEntries(Object.entries(sup.processos || {}).map(([k, v]) => [k, v.estado])) : null,
+        commonWatermarkCoverage: wm ? wm.status : null, sourceDivergence: wm && /DIVERGENCE/.test(wm.status || '') ? 1 : 0,
+        stateDivergence: rec ? (rec.comparisonStatus === 'SUSPENDED_STATE_DIVERGENCE' ? 1 : 0) : 0,
+        riskAlerts: risk ? { nivelGlobal: risk.nivelGlobal, globais: (risk.alertasGlobais || []).length } : null,
+        dadosPreservados: true, apenasRelogioZerado: true };
+    })(),
     nota: 'economicSoak separado do durabilitySoak. Coleta contínua; gate econômico permanece BLOQUEADO.',
   };
   try { fs.writeFileSync(F.resumo, JSON.stringify(resumo, null, 2)); } catch {}

@@ -50,7 +50,10 @@ const ordem = [
   'economic-sample.cjs',        // v1.8 Parte 9 (amostra independente econômica)
   'economic-watermark.cjs',     // v1.8 Parte 11 (watermark econômico)
   'economic-source-validation.cjs', // v1.8-coleta Parte 2 (validação de fonte)
-  'economic-gate.cjs',          // v1.8-close/coleta (gate + readiness 5 estados)
+  'economic-recovery-check.cjs', // v1.8-op Parte 4 (não-regressão pós-restart)
+  'risk-guardian.cjs',          // v1.8-op Parte 6 (guardian paper) — roda --once no pipeline
+  'bico-incident.cjs',          // v1.8-op Parte 7 (registro OPERATIONAL_RISK_NEAR_MISS)
+  'economic-gate.cjs',          // v1.8-close/coleta/op (gate + readiness + supervisor matrix)
   'economic-daily-report.cjs',  // v1.8-coleta Parte 8 (relatório diário + close-exit + shadow)
   'game-layer-data.cjs',        // v1.8-coleta Parte 11 (dados da game layer)
   'relatorio-forward.cjs',      // v1.4→1.8 (identidade/capital local/diário/gate estendido)

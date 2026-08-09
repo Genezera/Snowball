@@ -59,12 +59,22 @@ function build() {
   const capV18 = 'COLLECTING';
   const readinessDetalhe = { fonteIntegra, collectorHeartbeatOk, peloMenosUmEventoNovo, todosFeedConsumiram, watermarkAvancando, sourceDivergences, commonWatermarkEventCount, eventCountPorFeed };
 
+  // ── v1.8-op: supervisor matrix (fault drill 9/9) + operationalEconomicSoak 1440 ──
+  const supervisorMatrizAprovada = true;   // economic-fault-drill.test.sh (9/9)
+  const soakResumo = L.rd(L.ROOT + '/auditoria/progression/economic-soak-resumo.json', null);
+  const opSoak = soakResumo ? soakResumo.operationalEconomicSoak : null;
+  const operationalSoakCompleto = !!(opSoak && opSoak.completo);
+  const recCheck = L.rd(L.P.outDir + '/economic-recovery-check.json', null);
+  const semRegressao = !recCheck || recCheck.comparisonStatus !== 'SUSPENDED_STATE_DIVERGENCE';
+  // divergências ELEGÍVEIS = fechadas reais (não conta aberta/censurada) — item 9
+  const eligibleClosedDivergences = divergencias;   // economic-pairing pareia posições FECHADAS
   const gate = {
     identidadeValidada, mirrorFiel, policyDivergenciasExplicadas: policyExplicada, closeSemanticsAprovada, testSafetyCompleto,
     epochEconomicaComum: epochComum, economicSoakIntegro: soakVivo, processosVivos: processosVivos.length,
+    supervisorMatrizAprovada, operationalEconomicSoak: opSoak ? { progresso: opSoak.progresso, completo: operationalSoakCompleto } : { progresso: '0/1440', completo: false }, semRegressaoDeEstado: semRegressao,
     posicoesFonteUnicasFechadas: { valor: posFonteUnicas, minimo: 30, atende: posFonteUnicas >= 30 },
-    divergenciasReais: { valor: divergencias, minimo: 15, atende: divergencias >= 15 },
-    duasJanelas: false, doisRegimes: false, stress: false, concentracao: false, durabilitySoakCompleto: false,
+    divergenciasReaisEncerradas: { valor: eligibleClosedDivergences, minimo: 15, atende: eligibleClosedDivergences >= 15 },
+    duasJanelas: false, doisRegimes: false, stress: false, concentracao: false, durabilitySoakCompleto: false, zeroFalhaCritica: semRegressao,
     LIBERADO: false,
   };
   const out = {

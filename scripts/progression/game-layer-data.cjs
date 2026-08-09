@@ -16,19 +16,22 @@ function build() {
 
   const fechadas = sample ? sample.contagemCorreta.sourcePositionIdUnicosFechados : 0;
   const divergencias = sample ? sample.contagemCorreta.divergenciasReaisPorPosicaoFonte : 0;
-  // XP = evidência econômica válida (fechamentos únicos + divergências). NUNCA por processo vivo.
+  // XP = evidência econômica válida (fechamentos únicos + divergências). NUNCA por processo vivo/restart/observação.
   const xp = fechadas * 1 + divergencias * 1;
   const readiness = gate ? gate.profitGameLayerReadiness : 'BLOCKED_METHODOLOGY';
+  const soakResumo = L.rd(L.ROOT + '/auditoria/progression/economic-soak-resumo.json', null);
+  const opSoak = soakResumo ? soakResumo.operationalEconomicSoak : null;
+  const soakProgresso = opSoak ? opSoak.progresso : '0/1440';
 
   const out = {
     schema: 'snowball.game-layer-data.v1_8', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
     apenasDados: true, semAlteracaoOperacional: true,
     nivelAtual: fechadas >= 30 ? 1 : 0,
     nomeNivel: 'Coleta de Evidência Econômica',
-    missaoAtual: 'Fechar 30 oportunidades-fonte únicas e observar 15 divergências reais entre políticas, sob identidade causal e Mirror snapshot-fiel.',
-    chefeAtual: { nome: 'Economic Gate', estado: readiness, derrotadoQuando: '≥30 posições-fonte únicas + ≥15 divergências + 2 janelas + 2 regimes + stress + concentração + durabilitySoak completo' },
-    progresso: { posicoesFonte: `${fechadas}/30`, divergencias: `${divergencias}/15` },
-    xp: { total: xp, fonte: 'SOMENTE evidência econômica (fechamento único / divergência real)', naoConcedidoPor: 'processo vivo / uptime / heartbeat' },
+    missaoAtual: 'Sobreviver 1440 min de operationalEconomicSoak sob supervisão e fechar 30 oportunidades-fonte únicas + 15 divergências reais encerradas, sob identidade causal e Mirror snapshot-fiel.',
+    chefeAtual: { nome: 'Instabilidade Operacional', estado: readiness, derrotadoQuando: 'supervisor matrix + operationalEconomicSoak 1440/1440 + ≥30 posições-fonte + ≥15 divergências encerradas + 2 janelas + 2 regimes + stress + concentração + durabilitySoak completo + zero falha crítica' },
+    progresso: { operationalSoak: soakProgresso, posicoesFonte: `${fechadas}/30`, divergencias: `${divergencias}/15` },
+    xp: { total: xp, fonte: 'SOMENTE evidência econômica (fechamento único / divergência real)', naoConcedidoPor: 'processo vivo / uptime / heartbeat / restart / observação' },
     proximoDesbloqueio: fechadas >= 30 && divergencias >= 15 ? 'Análise de profit (READY_FOR_PROFIT_ANALYSIS) — fora do teto da v1.8' : 'READY_FOR_PROFIT_ANALYSIS (bloqueado até metas + janelas/regimes)',
     fundoDesbloqueio: unlock ? { atual: unlock.fundoAtual || unlock.saldo || 0, regra: unlock.regra || null } : null,
     honestidade: 'Camada de jogo é só telemetria aqui. XP=0 enquanto não houver fechamento econômico real — processos vivos NÃO dão XP.',

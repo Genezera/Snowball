@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# v1.8 — Supervisor ISOLADO do economicSoak: mirror/policy/trial/observer-max3/4/5 + monitor.
+# Single-instance (mutex+lock+heartbeat), stale detection, restart com backoff exponencial,
+# restart limit, downtime, PID tracking (via heartbeat de CADA processo — NÃO por --label, que
+# colide com o durabilitySoak), estados por processo, recovery check pós-restart. NÃO toca no
+# Champion nem no durabilitySoak. Nenhuma ordem.
+#   ECON_ROOT: raiz da árvore econômica (default auditoria/progression/economic). Em teste, aponte
+#   para um temp e exporte FORWARD_TEST_MODE=1 (o fault drill faz isso).
+set -u
+cd "$(dirname "$0")/../.."
+ECON_ROOT="${ECON_ROOT:-auditoria/progression/economic}"
+NODE="node"; FLAB="scripts/progression/forward-lab.cjs"; FMIR="scripts/progression/forward-mirror.cjs"; FMON="scripts/progression/economic-soak-monitor.cjs"
+INTERVALO_CHECK=30; CICLO=300; MON_CICLO=120; HEARTBEAT_MAX_S=$((CICLO * 2 + 60))
+BACKOFF_BASE=5; BACKOFF_MAX=120; RESTART_LIMIT=8
+LOCK="$ECON_ROOT/supervisor-economic.lock"; MUTEX="$ECON_ROOT/supervisor-economic.lockdir"
+LOG="$ECON_ROOT/supervisor-economic.log"; STATUS="$ECON_ROOT/supervisor-economic-status.json"
+mkdir -p "$ECON_ROOT"
+log() { echo "[$(date '+%H:%M:%S')] $1" >> "$LOG"; }
+now_ms() { date +%s%3N; }
+
+# processos: label | comando (sem intervalo) | caminho do heartbeat (relativo a ECON_ROOT)
+declare -A CMD HBP
+CMD[mirror]="$NODE $FMIR";                                                                                 HBP[mirror]="mirror/heartbeat.json"
+CMD[policy]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode control --label policy --close-policy economic_inversion";           HBP[policy]="policy/heartbeat.json"
+CMD[trial]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode trial --label trial --close-policy economic_inversion";               HBP[trial]="trial/heartbeat.json"
+CMD[observer-max3]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode control --maxpos 3 --label observer-max3 --close-policy economic_inversion"; HBP[observer-max3]="observer-max3/heartbeat.json"
+CMD[observer-max4]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode control --maxpos 4 --label observer-max4 --close-policy economic_inversion"; HBP[observer-max4]="observer-max4/heartbeat.json"
+CMD[observer-max5]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode control --maxpos 5 --label observer-max5 --close-policy economic_inversion"; HBP[observer-max5]="observer-max5/heartbeat.json"
+CMD[monitor]="$NODE $FMON";                                                                                HBP[monitor]="soak-monitor-heartbeat.json"
+LABELS=(mirror policy trial observer-max3 observer-max4 observer-max5 monitor)
+
+# ── single instance ──
+if ! mkdir "$MUTEX" 2>/dev/null; then
+  if [ -f "$LOCK" ]; then hb=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).heartbeat||0)}catch(e){console.log(0)}' "$LOCK" 2>/dev/null)
+    if [ -n "$hb" ] && [ $(( $(now_ms) - hb )) -lt 90000 ]; then log "outro supervisor-economic vivo — saindo"; exit 0; fi; fi
+  rmdir "$MUTEX" 2>/dev/null; mkdir "$MUTEX" 2>/dev/null || { log "mutex ocupado"; exit 1; }
+fi
+echo '{"pid":'$$',"heartbeat":'$(now_ms)'}' > "$LOCK"; rmdir "$MUTEX" 2>/dev/null
+
+declare -A FALHAS PROXIMA ESTADO PIDVISTO
+for l in "${LABELS[@]}"; do FALHAS[$l]=0; PROXIMA[$l]=0; ESTADO[$l]="UNKNOWN"; PIDVISTO[$l]=0; done
+
+hb_field() { node -e 'try{const o=JSON.parse(require("fs").readFileSync(process.argv[1]));console.log(o[process.argv[2]]||0)}catch(e){console.log(0)}' "$ECON_ROOT/$1" "$2" 2>/dev/null; }
+pid_vivo() { local p="$1"; [ "$p" -gt 0 ] 2>/dev/null || return 1; timeout 6 powershell -NoProfile -Command "@(Get-Process -Id $p -EA SilentlyContinue).Count" 2>/dev/null | tr -d '\r\n ' | grep -q '^[1-9]'; }
+matar_pid() { local p="$1"; [ "$p" -gt 0 ] 2>/dev/null && timeout 6 powershell -NoProfile -Command "Stop-Process -Id $p -Force -EA SilentlyContinue" >/dev/null 2>&1; }
+lancar() { local l="$1"; mkdir -p "$ECON_ROOT/$l" 2>/dev/null
+  local ic="$CICLO"; [ "$l" = "monitor" ] && ic="$MON_CICLO"
+  nohup ${CMD[$l]} --intervalo "$ic" >> "$ECON_ROOT/$l.live.log" 2>&1 & disown
+  log "$l (re)lançado — cursor/checkpoint preservados"; }
+
+escrever_status() { local j='{"schema":"snowball.supervisor-economic-status","ts":'$(now_ms)',"processos":{'; local first=1
+  for l in "${LABELS[@]}"; do [ $first -eq 1 ] && first=0 || j+=","
+    j+="\"$l\":{\"estado\":\"${ESTADO[$l]}\",\"restarts\":${FALHAS[$l]},\"pid\":${PIDVISTO[$l]}}"; done
+  j+='}}'; echo "$j" > "$STATUS"; }
+
+trap 'rm -f "$LOCK"; rmdir "$MUTEX" 2>/dev/null; log "supervisor-economic encerrado (limpo)"; exit 0' INT TERM
+log "supervisor-economic iniciado — 7 processos (6 econ + monitor), ECON_ROOT=$ECON_ROOT, ZERO Champion/durabilitySoak"
+
+while true; do
+  echo '{"pid":'$$',"heartbeat":'$(now_ms)'}' > "$LOCK"
+  for l in "${LABELS[@]}"; do
+    pid=$(hb_field "${HBP[$l]}" pid); u=$(hb_field "${HBP[$l]}" ultimoCiclo)
+    fresco=0; [ "$u" -gt 0 ] 2>/dev/null && [ $(( $(now_ms) - u )) -lt $((HEARTBEAT_MAX_S * 1000)) ] && fresco=1
+    vivo=0; pid_vivo "$pid" && vivo=1
+    if [ "$vivo" = 1 ] && [ "$fresco" = 1 ]; then ESTADO[$l]="HEALTHY"; FALHAS[$l]=0; PIDVISTO[$l]=$pid; continue; fi
+    if [ "$vivo" = 1 ] && [ "$fresco" = 0 ]; then ESTADO[$l]="STALE"; fi         # vivo mas sem heartbeat → travado
+    if [ "$vivo" = 0 ] && [ "$pid" -gt 0 ] 2>/dev/null; then ESTADO[$l]="CRASHED"; fi
+    agora=$(date +%s); if [ "$agora" -lt "${PROXIMA[$l]}" ]; then ESTADO[$l]="BACKOFF"; continue; fi
+    if [ "${FALHAS[$l]}" -ge "$RESTART_LIMIT" ]; then ESTADO[$l]="SUSPENDED"; log "$l SUSPENDED (restart limit $RESTART_LIMIT)"; continue; fi
+    # stale/crashed → matar o pid econômico exato (nunca por label) e religar
+    [ "$vivo" = 1 ] && { matar_pid "$pid"; ESTADO[$l]="RESTARTING"; }
+    ESTADO[$l]="RESTARTING"; lancar "$l"
+    FALHAS[$l]=$(( FALHAS[$l] + 1 ))
+    bk=$(( BACKOFF_BASE * (1 << (FALHAS[$l] > 5 ? 5 : FALHAS[$l]-1 > 0 ? FALHAS[$l]-1 : 0)) )); [ "$bk" -gt "$BACKOFF_MAX" ] && bk=$BACKOFF_MAX
+    PROXIMA[$l]=$(( agora + bk )); ESTADO[$l]="BACKOFF"; log "$l restart #${FALHAS[$l]} backoff ${bk}s"
+  done
+  escrever_status
+  sleep "$INTERVALO_CHECK"
+done
