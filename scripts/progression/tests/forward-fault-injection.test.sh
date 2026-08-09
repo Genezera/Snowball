@@ -3,8 +3,9 @@
 # Cobre: 2 linhas com mesmo ts, obs fora de ordem, truncamento, rotação, linha
 # parcial completada, e determinismo do hash final. Nunca toca produção/Champion.
 set -u
+export FORWARD_TEST_MODE=1; FWROOT=".forward-test-tmp/forward-fault-injection"; export FORWARD_TEST_ROOT="$FWROOT"; rm -rf "$FWROOT"; mkdir -p "$FWROOT"
 cd "$(dirname "$0")/../../.."
-PROC="scripts/progression/forward-lab.cjs"; LABEL="test-fault"; D="auditoria/progression/forward/$LABEL"
+PROC="scripts/progression/forward-lab.cjs"; LABEL="test-fault"; D="$FWROOT/$LABEL"
 PASS=0; FAIL=0
 ok(){ echo "  [OK]   $1"; PASS=$((PASS+1)); }
 bad(){ echo "  [FALHA] $1"; FAIL=$((FAIL+1)); }
@@ -50,11 +51,11 @@ run; st4=$(g sourceStatus)
 OBS3="$TMP/o3.jsonl"; printf '%s\n%s\n' \
  "{\"ts\":$T,\"k\":\"AAA/USDT:USDT|bitget|bybit\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1000}" \
  "{\"ts\":$((T+1)),\"k\":\"BBB/USDT:USDT|okx|gate\",\"apr\":2.0,\"spread\":0.0003,\"vol\":1000}" > "$OBS3"
-hh(){ local d="auditoria/progression/forward/$1"; rm -rf "$d"; mkdir -p "$d"; rm -f "$d/lock.json"; FORWARD_OBS="$OBS3" FORWARD_EPOCH="$EP" node "$PROC" --mode control --label "$1" --once >/dev/null 2>&1; node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).accumulatedEventHash)}catch(e){console.log("ERR")}' "$d/estado.json"; }
+hh(){ local d="$FWROOT/$1"; rm -rf "$d"; mkdir -p "$d"; rm -f "$d/lock.json"; FORWARD_OBS="$OBS3" FORWARD_EPOCH="$EP" node "$PROC" --mode control --label "$1" --once >/dev/null 2>&1; node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).accumulatedEventHash)}catch(e){console.log("ERR")}' "$d/estado.json"; }
 h1=$(hh det1); h2=$(hh det2)
 [ -n "$h1" ] && [ "$h1" = "$h2" ] && ok "hash DETERMINÍSTICO (mesmo arquivo => mesmo hash físico: $h1)" || bad "hash não-determinístico ($h1 vs $h2)"
 
-rm -rf "$TMP" "$D" auditoria/progression/forward/det1 auditoria/progression/forward/det2
+rm -rf "$TMP" "$D" $FWROOT/det1 $FWROOT/det2
 echo "===================================="
 echo "RESULTADO fault injection: $PASS passaram, $FAIL falharam"
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1

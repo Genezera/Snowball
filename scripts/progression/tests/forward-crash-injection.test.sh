@@ -3,6 +3,7 @@
 # que a recuperação é IDEMPOTENTE — mesmo eventCount/accumulatedEventHash/saldos/
 # posições/stateHash finais que uma execução SEM crash. ISOLADO, obs sintéticas.
 set -u
+export FORWARD_TEST_MODE=1; FWROOT=".forward-test-tmp/forward-crash-injection"; export FORWARD_TEST_ROOT="$FWROOT"; rm -rf "$FWROOT"; mkdir -p "$FWROOT"
 cd "$(dirname "$0")/../../.."
 PROC="scripts/progression/forward-lab.cjs"
 PASS=0; FAIL=0
@@ -19,12 +20,12 @@ sig(){ node -e 'try{const e=JSON.parse(require("fs").readFileSync(process.argv[1
 runN(){ local d="$1" crash="$2"; for i in 1 2 3; do rm -f "$d/lock.json"; FORWARD_OBS="$OBS" FORWARD_EPOCH="$EP" FORWARD_CRASH_AT="$crash" node "$PROC" --mode control --label "$(basename "$d")" --once >/dev/null 2>&1; crash=""; done; }
 
 echo "==== CRASH INJECTION (7 pontos) ===="
-REF="auditoria/progression/forward/crashref"; rm -rf "$REF"; mkdir -p "$REF"; runN "$REF" ""
+REF="$FWROOT/crashref"; rm -rf "$REF"; mkdir -p "$REF"; runN "$REF" ""
 REFSIG=$(sig "$REF")
 echo "  referência (sem crash): $REFSIG"
 
 for pt in after_read after_wal_prepared during_tmp_write after_fsync before_rename after_rename before_wal_committed; do
-  D="auditoria/progression/forward/crash-$pt"; rm -rf "$D"; mkdir -p "$D"
+  D="$FWROOT/crash-$pt"; rm -rf "$D"; mkdir -p "$D"
   # 1ª passada COM crash no ponto; depois recuperação (sem crash) até estabilizar
   runN "$D" "$pt"
   S=$(sig "$D")

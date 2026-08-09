@@ -8,15 +8,26 @@ PROC="scripts/progression/forward-lab.cjs"
 PASS=0; FAIL=0
 ok(){ echo "  [OK]   $1"; PASS=$((PASS+1)); }
 bad(){ echo "  [FALHA] $1"; FAIL=$((FAIL+1)); }
-TMP=$(mktemp -d); TROOT="$TMP/root"; EP="$TMP/ep.json"
+TMP=$(mktemp -d); TROOT="$TMP/root"; mkdir -p "$TROOT"; EP="$TMP/ep.json"
 echo '{"forwardEpochId":"safe","byteOffset":0,"lineNumber":0,"timestamp":0}' > "$EP"
 echo '{"ts":1700000000000,"k":"AAA|bitget|bybit","apr":3.0,"spread":0.0003,"vol":1000}' > "$TMP/o.jsonl"
 
 echo "==== TEST SAFETY (item 10) ===="
 # 1) TEST_ROOT apontando p/ árvore auditoria/progression/forward ⇒ ABORTA (exit 2)
+mkdir -p "$TMP/auditoria/progression/forward"
 FORWARD_TEST_MODE=1 FORWARD_TEST_ROOT="$TMP/auditoria/progression/forward" FORWARD_OBS="$TMP/o.jsonl" FORWARD_EPOCH="$EP" \
   node "$PROC" --mode control --label safe1 --once >/dev/null 2>&1; rc=$?
 [ "$rc" = "2" ] && ok "1) TEST_ROOT em árvore de produção ⇒ ABORTA (exit 2)" || bad "1) não abortou (exit $rc)"
+# 1b) TEST_ROOT inexistente ⇒ ABORTA
+FORWARD_TEST_MODE=1 FORWARD_TEST_ROOT="$TMP/nao-existe-$$" FORWARD_OBS="$TMP/o.jsonl" FORWARD_EPOCH="$EP" \
+  node "$PROC" --mode control --label safe1b --once >/dev/null 2>&1; rc=$?
+[ "$rc" = "2" ] && ok "1b) TEST_ROOT inexistente ⇒ ABORTA" || bad "1b) não abortou (exit $rc)"
+# 1c) TEST_ROOT fora de diretório temporário ⇒ ABORTA (dir sem 'tmp'/'temp' no nome)
+mkdir -p "$(pwd)/prodlike-$$"
+FORWARD_TEST_MODE=1 FORWARD_TEST_ROOT="$(pwd)/prodlike-$$" FORWARD_OBS="$TMP/o.jsonl" FORWARD_EPOCH="$EP" \
+  node "$PROC" --mode control --label safe1c --once >/dev/null 2>&1; rc=$?
+[ "$rc" = "2" ] && ok "1c) TEST_ROOT fora de diretório temporário ⇒ ABORTA" || bad "1c) não abortou (exit $rc)"
+rm -rf "$(pwd)/prodlike-$$"
 
 # 2) modo teste SEM TEST_ROOT ⇒ ABORTA
 FORWARD_TEST_MODE=1 FORWARD_OBS="$TMP/o.jsonl" FORWARD_EPOCH="$EP" node "$PROC" --label safe2 --once >/dev/null 2>&1; rc=$?

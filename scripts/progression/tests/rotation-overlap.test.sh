@@ -3,6 +3,7 @@
 # da cauda do antigo, o leitor compara logicalObservationHash e PULA as linhas copiadas —
 # sem dupla contagem. Sem sobreposição comprovada, NÃO avança (não reprocessa, não zera).
 set -u
+export FORWARD_TEST_MODE=1; FWROOT=".forward-test-tmp/rotation-overlap"; export FORWARD_TEST_ROOT="$FWROOT"; rm -rf "$FWROOT"; mkdir -p "$FWROOT"
 cd "$(dirname "$0")/../../.."
 PROC="scripts/progression/forward-lab.cjs"
 PASS=0; FAIL=0
@@ -12,7 +13,7 @@ TMP=$(mktemp -d); OBS="$TMP/o.jsonl"; EP="$TMP/ep.json"
 echo '{"forwardEpochId":"rot","byteOffset":0,"lineNumber":0,"timestamp":0}' > "$EP"
 T=$(node -e 'console.log(Date.now())')
 LN(){ echo "{\"ts\":$1,\"k\":\"$2/USDT:USDT|bitget|bybit\",\"apr\":0.05,\"spread\":0.0001,\"vol\":100}"; }
-D="auditoria/progression/forward/rotmx"; rm -rf "$D"; mkdir -p "$D"
+D="$FWROOT/rotmx"; rm -rf "$D"; mkdir -p "$D"
 run(){ rm -f "$D/lock.json"; FORWARD_OBS="$OBS" FORWARD_EPOCH="$EP" node "$PROC" --mode control --label rotmx --once >/dev/null 2>&1; }
 field(){ node -e 'try{const e=require("./'"$D"'/estado.json");const parts=process.argv[1].split(".");let v=e;for(const k of parts)v=v[k];console.log(v)}catch(x){console.log("ERR")}' "$1"; }
 status(){ node -e 'try{console.log(require("./'"$D"'/estado.json").sourceStatus)}catch(e){console.log("NONE")}'; }

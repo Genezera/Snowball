@@ -5,6 +5,7 @@
 # WAL consistente, nenhuma duplicata. Complementa o drill AO VIVO (v1.6 + fresco) do
 # supervisor real. Nenhuma ordem; nenhum saldo real.
 set -u
+export FORWARD_TEST_MODE=1; FWROOT=".forward-test-tmp/supervisor-matrix"; export FORWARD_TEST_ROOT="$FWROOT"; rm -rf "$FWROOT"; mkdir -p "$FWROOT"
 cd "$(dirname "$0")/../../.."
 PROC="scripts/progression/forward-lab.cjs"; SUP="scripts/progression/supervisor-forward"
 PASS=0; FAIL=0
@@ -32,7 +33,7 @@ for target in trial control observer-max3 observer-max4 observer-max5; do
     observer-max4) A="--mode control --maxpos 4";;
     observer-max5) A="--mode control --maxpos 5";;
   esac
-  D="auditoria/progression/forward/supmx-$target"; rm -rf "$D"; mkdir -p "$D"
+  D="$FWROOT/supmx-$target"; rm -rf "$D"; mkdir -p "$D"
   boot(){ local crash="$1"; rm -f "$D/lock.json"; FORWARD_OBS="$OBS" FORWARD_EPOCH="$EP" FORWARD_CRASH_AT="$crash" node "$PROC" $A --label "supmx-$target" --once >/dev/null 2>&1; }
   boot ""                              # ciclo normal → abre posição, WAL COMMITTED
   bo0=$(field cursor.byteOffset "$D"); pos0=$(field virtuais "$D"); sal0=$(field saldosPorExchange "$D")

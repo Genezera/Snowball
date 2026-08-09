@@ -40,6 +40,9 @@ const TAKER = 0.0005, SLIP = 0.0002, CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
 const NOTIONAL = L.ALVO_POR_EXCHANGE, MARGEM_PERNA = NOTIONAL / L.ALAVANCAGEM;
 const STALE_CICLOS = 3, DEDUP_MAX = 20000, LATE_MS = 10 * 60000;
 const INVERSION_CICLOS = 2;                // econômico: fecha após N ciclos com EV não-positivo (inversão), não por sumiço do scanner
+const MAX_HOLDING_MS = 7 * 86400000;       // política de RISCO: não manter posição indefinidamente (maxHoldingExit)
+const FUNDING_DETERIORATION_FRAC = 0.5;    // funding cai a <50% do apr de entrada por INVERSION_CICLOS → deterioração
+const EVAL_STALE_MS = 30 * 60000;          // avaliação econômica considerada "velha" além disto
 const BURST_GAP_MS = 120000, EPISODE_GAP_MS = 30 * 60000; // ranking cycle (scan burst) e episódio de oportunidade (causal, por contiguidade)
 const SCHEMA_VERSION = 'forward.v1_8';                  // v1.8: identidade causal + close policy
 const COMPAT_SCHEMAS = ['forward.v1_7', 'forward.v1_8']; // durabilitySoak v1.7 sobrevive a restart sob código v1.8
@@ -53,10 +56,16 @@ if (TEST_MODE) {
   const root = process.env.FORWARD_TEST_ROOT;
   if (!root) { console.error('[forward-lab] FATAL: FORWARD_TEST_MODE=1 exige FORWARD_TEST_ROOT'); process.exit(2); }
   const abs = path.resolve(root);
-  // recusa a produção DESTE repo E qualquer árvore forward real (segmentos auditoria/progression/forward)
+  // recusa a produção DESTE repo E qualquer árvore forward/economic real (segmentos de produção)
   const segs = abs.split(/[\\/]/);
-  const temSegmentoForward = segs.some((s, i) => s === 'auditoria' && segs[i + 1] === 'progression' && segs[i + 2] === 'forward');
+  const temSegmentoForward = segs.some((s, i) => s === 'auditoria' && segs[i + 1] === 'progression' && (segs[i + 2] === 'forward' || segs[i + 2] === 'economic'));
   if (abs === PROD_FORWARD || abs.startsWith(PROD_FORWARD + path.sep) || temSegmentoForward) { console.error(`[forward-lab] FATAL: FORWARD_TEST_ROOT resolve p/ árvore de produção (${abs}) — recusado`); process.exit(2); }
+  // exige diretório temporário: sob os.tmpdir() OU com 'tmp'/'temp' no caminho (case-insensitive)
+  const tmpDir = path.resolve(require('node:os').tmpdir());
+  const ehTemp = abs.startsWith(tmpDir + path.sep) || /tmp|temp/i.test(abs);
+  if (!ehTemp) { console.error(`[forward-lab] FATAL: FORWARD_TEST_ROOT deve estar sob diretório temporário (${abs}) — recusado`); process.exit(2); }
+  // exige que exista ANTES de qualquer escrita
+  if (!fs.existsSync(abs)) { console.error(`[forward-lab] FATAL: FORWARD_TEST_ROOT não existe (${abs}) — recusado (crie o temp antes)`); process.exit(2); }
   BASE = abs;
 } else if (process.env.FORWARD_ROOT) {
   BASE = path.resolve(process.env.FORWARD_ROOT);   // raiz de produção alternativa (ex.: economicSoak em auditoria/progression/economic), separada do durabilitySoak
@@ -196,7 +205,9 @@ function computeCausal(est, epochId, physicalEventId, ts, k, sym, long, short) {
   const gapGlobal = cur.lastGlobalTs == null ? Infinity : (ts - cur.lastGlobalTs);
   if (gapGlobal > BURST_GAP_MS) cur.burstAnchorId = physicalEventId;
   if (cur.lastGlobalTs == null || ts > cur.lastGlobalTs) cur.lastGlobalTs = ts;
-  const sourceRankingCycleId = sha(`${epochId}|${cur.burstAnchorId}`).slice(0, 20);
+  // PROVENANCE: o feed NÃO tem collectorCycleId/scanCycleId nativo — o ranking cycle é INFERIDO do
+  // timing da fonte (gap de burst). Prefixo 'inf_' impede confundir com ID nativo (item 1).
+  const sourceRankingCycleId = 'inf_' + sha(`${epochId}|${cur.burstAnchorId}`).slice(0, 16);
   // episódio de oportunidade = contiguidade da MESMA chave: novo quando ausente > EPISODE_GAP_MS
   let st = est.episodios[k];
   if (!st || (ts - st.lastTs) > EPISODE_GAP_MS) { const seq = st ? st.episodeSeq + 1 : 0; st = { episodeSeq: seq, anchorObsId: physicalEventId, episodeId: sha(`${epochId}|${k}|${seq}|${physicalEventId}`).slice(0, 20), lastTs: ts }; est.episodios[k] = st; }
@@ -204,7 +215,7 @@ function computeCausal(est, epochId, physicalEventId, ts, k, sym, long, short) {
   const sourceOpportunityEpisodeId = st.episodeId;
   const sourceDecisionId = sha(`${epochId}|${sourceRankingCycleId}|${sourceOpportunityEpisodeId}|${sym}|${long}|${short}`).slice(0, 24);
   const sourcePositionId = sha(`${epochId}|${sourceOpportunityEpisodeId}`).slice(0, 24); // uma posição-fonte por episódio (comum entre políticas)
-  return { sourceObservationEventId: physicalEventId, sourceRankingCycleId, sourceOpportunityEpisodeId, sourceDecisionId, sourcePositionId };
+  return { sourceObservationEventId: physicalEventId, sourceRankingCycleId, sourceRankingCycleProvenance: 'INFERRED_FROM_SOURCE_TIMING', sourceRankingCycleGapMs: BURST_GAP_MS, sourceOpportunityEpisodeId, sourceDecisionId, sourcePositionId };
 }
 
 function economia(apr, spread) { const c = CUSTO_FRAC + Math.max(0, spread || 0); return apr * 24 / 8760 - c; }
@@ -288,7 +299,8 @@ function umCiclo() {
   const virtSemVer = new Set(Object.keys(est.virtuais)); const decisoes = [];
   for (const c of candidatas) {
     est.contadores.avaliadas++;
-    if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0; est.fundingAcum += inc; virtSemVer.delete(c.k); continue; }
+    if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.latestEconomicEvaluationTs = now(); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0;
+      vp.ciclosFundingDeteriorado = (c.apr < (vp.aprEntrada || c.apr) * FUNDING_DETERIORATION_FRAC) ? (vp.ciclosFundingDeteriorado || 0) + 1 : 0; est.fundingAcum += inc; virtSemVer.delete(c.k); continue; }
     if (c.apr <= 0 || c.score <= 0) { est.contadores.bloqueadas++; est.bloqueios.evNaoPositivo++; continue; }
     const livreLong = margemLivre(est, c.long), livreShort = margemLivre(est, c.short); const abertas = Object.keys(est.virtuais).length; let motivo = null;
     if (abertas >= MAXPOS) motivo = 'maxPositionsBlocked';
@@ -298,7 +310,7 @@ function umCiclo() {
     if (motivo) { est.contadores.bloqueadas++; est.bloqueios[motivo]++; append(F.diario, { ts: now(), evento: 'bloqueada', k: c.k, exchangeLong: c.long, exchangeShort: c.short, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]), margemLivreLong: L.r2(livreLong), margemLivreShort: L.r2(livreShort), motivo }); decisoes.push({ k: c.k, acao: 'bloqueada', motivo }); continue; }
     const custoEntrada = NOTIONAL * (2 * TAKER + 2 * SLIP);
     est.saldosPorExchange[c.long] -= MARGEM_PERNA; est.saldosPorExchange[c.short] -= MARGEM_PERNA; est.custosAcum += custoEntrada;
-    est.virtuais[c.k] = { k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, ultimoApr: c.apr, ciclosSemVer: 0, ciclosInversao: 0, scannerEpisodeFirstSeen: c.ts, scannerEpisodeLastSeen: c.ts, economicPositiveFirstSeen: c.ts, positionOpenedAt: now(),
+    est.virtuais[c.k] = { k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, aprEntrada: c.apr, ultimoApr: c.apr, ciclosSemVer: 0, ciclosInversao: 0, ciclosFundingDeteriorado: 0, economicEV: L.r4(c.score), latestEconomicEvaluationTs: now(), scannerVisible: true, scannerLastSeen: c.ts, scannerEpisodeFirstSeen: c.ts, scannerEpisodeLastSeen: c.ts, economicPositiveFirstSeen: c.ts, positionOpenedAt: now(),
       sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId, entryCycle: cycleId };
     est.contadores.abertas++; virtSemVer.delete(c.k); decisoes.push({ k: c.k, acao: 'abre', physicalEventId: c.physicalEventId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
     append(F.diario, { ts: now(), evento: 'abre', k: c.k, apr: L.r4(c.apr), custoEntrada: L.r4(custoEntrada), entryCycle: cycleId, sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
@@ -308,20 +320,37 @@ function umCiclo() {
   // implícito. scanner_stale = comportamento durabilidade (v1.7). economic_inversion = fecha só na
   // inversão econômica sustentada — NÃO por sumiço do scanner. ──
   if (feedAtivo) for (const k of [...virtSemVer]) { const vp = est.virtuais[k]; vp.ciclosSemVer = (vp.ciclosSemVer || 0) + 1; vp.scannerVisible = false; }
+  const agora = now();
+  // exchangeFailure é um HOOK declarado: a saúde por exchange vive no builder source-health, não no
+  // reader. Aqui fica null (nunca dispara sozinho) — honesto, sem fingir detecção que o reader não faz.
+  const sourceHealthPorExchange = null;
   for (const k of Object.keys(est.virtuais)) {
     const vp = est.virtuais[k];
+    // ── sinais de fechamento (item 4): registrados SEMPRE; nenhum implícito por scanner ──
     const scannerStale = (vp.ciclosSemVer || 0) >= STALE_CICLOS;
     const inversion = (vp.ciclosInversao || 0) >= INVERSION_CICLOS;
     const aprNaoPositivo = (vp.ultimoApr || 0) <= 0;
-    let closeReason = null;
+    const maxHoldingExit = (agora - (vp.positionOpenedAt || agora)) >= MAX_HOLDING_MS;   // política de RISCO
+    const fundingDeterioration = (vp.ciclosFundingDeteriorado || 0) >= INVERSION_CICLOS;
+    const exchangeFailure = !!(sourceHealthPorExchange && (sourceHealthPorExchange[vp.long] === 'EXCHANGE_UNAVAILABLE' || sourceHealthPorExchange[vp.short] === 'EXCHANGE_UNAVAILABLE'));
+    const latestEconomicEvaluationAgeMs = agora - (vp.latestEconomicEvaluationTs || agora);
+    let closeReason = null, riskExit = false;
     if (CLOSE_POLICY === 'scanner_stale') { if (scannerStale) closeReason = 'scanner_stale'; else if (aprNaoPositivo) closeReason = 'apr_nonpositive'; }
-    else if (CLOSE_POLICY === 'economic_inversion') { if (inversion) closeReason = 'economic_inversion'; } // NÃO fecha por scanner stale
+    else if (CLOSE_POLICY === 'economic_inversion') {
+      // NÃO fecha por scanner stale. Fecha por economia/risco EXPLÍCITO.
+      if (inversion) closeReason = 'economic_inversion';
+      else if (fundingDeterioration) closeReason = 'funding_deterioration';
+      else if (exchangeFailure) { closeReason = 'exchange_failure'; riskExit = true; }
+      else if (maxHoldingExit) { closeReason = 'max_holding_exit'; riskExit = true; }
+    }
     if (!closeReason) continue;
     const custoSaida = vp.notional * (2 * TAKER + 2 * SLIP);
     est.saldosPorExchange[vp.long] += vp.margemPorPerna; est.saldosPorExchange[vp.short] += vp.margemPorPerna; est.custosAcum += custoSaida; est.contadores.fechadas++;
     const pnl = vp.fundingAcum - vp.custoEntrada - custoSaida;
-    append(F.diario, { ts: now(), evento: 'fecha', k, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: now(), closeCycle: cycleId, closeReason, closePolicy: CLOSE_POLICY,
-      scannerVisible: !!vp.scannerVisible, scannerLastSeen: vp.scannerLastSeen || vp.scannerEpisodeLastSeen, economicEV: vp.economicEV, inversion, riskExit: false, sourceChampionClose: false, policyClose: true,
+    append(F.diario, { ts: agora, evento: 'fecha', k, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: agora, closeCycle: cycleId, closeReason, closePolicy: CLOSE_POLICY,
+      scannerVisible: !!vp.scannerVisible, scannerLastSeen: vp.scannerLastSeen || vp.scannerEpisodeLastSeen,
+      latestEconomicEvaluation: vp.economicEV, latestEconomicEvaluationAgeMs, evalStale: latestEconomicEvaluationAgeMs > EVAL_STALE_MS,
+      inversion, riskExit, maxHoldingExit, fundingDeterioration, exchangeFailure, sourceChampionClose: false, policyClose: true, policyCloseReason: closeReason,
       sourceDecisionId: vp.sourceDecisionId, sourcePositionId: vp.sourcePositionId, sourceOpportunityEpisodeId: vp.sourceOpportunityEpisodeId });
     decisoes.push({ k, acao: 'fecha', pnl: L.r4(pnl), closeReason, sourcePositionId: vp.sourcePositionId }); delete est.virtuais[k];
   }

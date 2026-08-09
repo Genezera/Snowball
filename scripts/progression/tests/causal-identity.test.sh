@@ -8,7 +8,7 @@ PROC="scripts/progression/forward-lab.cjs"
 PASS=0; FAIL=0
 ok(){ echo "  [OK]   $1"; PASS=$((PASS+1)); }
 bad(){ echo "  [FALHA] $1"; FAIL=$((FAIL+1)); }
-TMP=$(mktemp -d); TROOT="$TMP/root"; EP="$TMP/ep.json"
+TMP=$(mktemp -d); TROOT="$TMP/root"; mkdir -p "$TROOT"; EP="$TMP/ep.json"
 echo '{"forwardEpochId":"idep","byteOffset":0,"lineNumber":0,"timestamp":0}' > "$EP"
 H=3600000  # 1h em ms
 BASE_TS=1700000000000  # começo de "hora"

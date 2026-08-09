@@ -4,6 +4,7 @@
 #   vazio / parcial / truncado / checksum inválido / PREPARED-sem-COMMITTED / COMMITTED-sem-checkpoint.
 # ISOLADO, obs sintéticas, nenhuma ordem.
 set -u
+export FORWARD_TEST_MODE=1; FWROOT=".forward-test-tmp/wal-durability"; export FORWARD_TEST_ROOT="$FWROOT"; rm -rf "$FWROOT"; mkdir -p "$FWROOT"
 cd "$(dirname "$0")/../../.."
 PROC="scripts/progression/forward-lab.cjs"
 PASS=0; FAIL=0
@@ -16,7 +17,7 @@ printf '%s\n%s\n%s\n' \
  "{\"ts\":$T,\"k\":\"AAA/USDT:USDT|bitget|bybit\",\"apr\":3.0,\"spread\":0.0003,\"vol\":1000}" \
  "{\"ts\":$((T+1)),\"k\":\"BBB/USDT:USDT|okx|gate\",\"apr\":2.5,\"spread\":0.0004,\"vol\":900}" \
  "{\"ts\":$((T+2)),\"k\":\"CCC/USDT:USDT|bybit|okx\",\"apr\":2.0,\"spread\":0.0002,\"vol\":800}" > "$OBS"
-D="auditoria/progression/forward/waldur"; rm -rf "$D"; mkdir -p "$D"
+D="$FWROOT/waldur"; rm -rf "$D"; mkdir -p "$D"
 run(){ rm -f "$D/lock.json"; FORWARD_OBS="$OBS" FORWARD_EPOCH="$EP" node "$PROC" --mode control --label waldur --once >/dev/null 2>&1; }
 recstate(){ node -e 'try{console.log(require("./'"$D"'/recovery.json").recoveryState)}catch(e){console.log("NONE")}'; }
 field(){ node -e 'try{const e=require("./'"$D"'/estado.json");console.log(e["'"$1"'"])}catch(x){console.log("ERR")}'; }

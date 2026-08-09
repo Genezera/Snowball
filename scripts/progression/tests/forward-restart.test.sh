@@ -4,8 +4,9 @@
 # Prova: zero perda, zero duplicação, estado/saldo/cursor preservados; robusto a
 # linha parcial/truncada e evento duplicado; stale-lock => takeover.
 set -u
+export FORWARD_TEST_MODE=1; FWROOT=".forward-test-tmp/forward-restart"; export FORWARD_TEST_ROOT="$FWROOT"; rm -rf "$FWROOT"; mkdir -p "$FWROOT"
 cd "$(dirname "$0")/../../.."
-PROC="scripts/progression/forward-lab.cjs"; LABEL="test-restart"; DIR="auditoria/progression/forward/$LABEL"
+PROC="scripts/progression/forward-lab.cjs"; LABEL="test-restart"; DIR="$FWROOT/$LABEL"
 PASS=0; FAIL=0
 ok(){ echo "  [OK]   $1"; PASS=$((PASS+1)); }
 bad(){ echo "  [FALHA] $1"; FAIL=$((FAIL+1)); }

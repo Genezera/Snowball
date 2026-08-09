@@ -30,13 +30,17 @@ function build() {
 
   const out = {
     schema: 'snowball.mirror-fidelity.v1_8', geradoEm: new Date(asOf || 0).toISOString(), asOfMs: asOf,
+    mirrorMode: mir.mirrorMode || 'SNAPSHOT_MIRROR_INCOMPLETE',
+    nivelDeFidelidade: 'SNAPSHOT_GRANULAR',   // não event-level: Champion não tem event log append-only
     operacional: { championAbertas: championSet.size, mirrorAbertas: mirrorSet.size, soNoMirror: soMirror, soNoChampion: soChampion, fiel: operacionalFiel },
-    contabil: { maxDiffFundingAberto: L.r4(maxDiffFunding), fiel: contabilFiel, capitalEspelhado, championCapital: L.r4(champ.capital), mirrorChampionCapital: mir.championCapital },
-    fielTotal: operacionalFiel && contabilFiel && capitalEspelhado,
-    nota: 'Mirror segue o Champion evento a evento (abre/escala/funding/fecha). Divergência operacional só apareceria se o Mirror perdesse um evento do Champion.',
-    honestidade: 'Fidelidade do Mirror é SEPARADA da do Policy Control. Mirror = baseline contábil-operacional; Policy = reexecução de regras a partir do feed.',
+    contabil: { maxDiffFundingAberto: L.r4(maxDiffFunding), fiel: contabilFiel, capitalEspelhado, championCapital: L.r4(champ.capital), mirrorChampionCapital: mir.championCapital, toleranciaUSD: 0.01 },
+    eventos: { total: mir.eventos || 0, duplicadosIgnorados: mir.eventosDuplicadosIgnorados || 0, stateHash: mir.stateHash || null, tiposDerivados: ['OPEN', 'SCALE', 'FUNDING_SETTLED', 'COST_APPLIED', 'CLOSE'], championEventIdSintetico: true },
+    fidelidadeSnapshotGranular: operacionalFiel && contabilFiel && capitalEspelhado,
+    fielTotal: operacionalFiel && contabilFiel && capitalEspelhado,   // = fidelidade na granularidade do snapshot
+    limitacaoHonesta: 'SNAPSHOT_MIRROR_INCOMPLETE: o Champion NÃO expõe log de eventos append-only, então o Mirror DERIVA eventos do diff de snapshots. Reconciliação financeira ≤US$0,01 é provável no snapshot; "zero evento perdido" a nível de evento NÃO é provável (eventos intra-ciclo sem rastro no snapshot). championEventId é SINTÉTICO.',
+    honestidade: 'Fidelidade do Mirror é SEPARADA da do Policy Control. Mirror = baseline contábil-operacional no snapshot; Policy = reexecução de regras do feed.',
   };
   const p = L.writeJSON('mirror-fidelity.json', out);
-  console.log(JSON.stringify({ saida: p, operacionalFiel, contabilFiel, capitalEspelhado, championAbertas: championSet.size, mirrorAbertas: mirrorSet.size }, null, 2));
+  console.log(JSON.stringify({ saida: p, mirrorMode: out.mirrorMode, operacionalFiel, contabilFiel, capitalEspelhado, championAbertas: championSet.size, mirrorAbertas: mirrorSet.size, eventos: out.eventos.total, dupIgn: out.eventos.duplicadosIgnorados }, null, 2));
 }
 build();
