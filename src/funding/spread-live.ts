@@ -81,28 +81,87 @@ const ANTECEDENCIA_MINIMA_MS = 2 * 60_000;
  * fora de propósito, senão vira ruído. Se o Telegram não estiver
  * configurado, `enviarTelegram` não faz nada — isto nunca derruba o motor.
  */
+const LINHA = '━━━━━━━━━━━━━━━━━━━';
+const usd = (n: unknown, casas = 2) => 'US$ ' + Number(n ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+
+/** Traduz o código de fechamento para português simples + explicação pra iniciante. */
+function explicarMotivo(motivo: string): { rotulo: string; explica: string } {
+  const m = String(motivo || '').toLowerCase();
+  if (m.includes('invers')) return { rotulo: 'a taxa virou contra', explica: 'A taxa de funding, que estava pagando a favor, virou. O robô fechou pra não começar a pagar em vez de receber.' };
+  if (m.includes('deterior')) return { rotulo: 'a taxa caiu muito', explica: 'A taxa de funding caiu bastante e não valia mais a pena manter a operação aberta. O robô saiu pra guardar o lucro.' };
+  if (m.includes('risk') || m.includes('risco') || m.includes('liquid')) return { rotulo: '🛡️ segurança (risco)', explica: 'O preço se mexeu forte e o robô fechou por precaução, pra proteger o capital de um risco de liquidação.' };
+  if (m.includes('maxhold') || m.includes('max_hold') || m.includes('holding')) return { rotulo: 'tempo máximo', explica: 'A operação ficou aberta pelo tempo máximo permitido. O robô fechou pra girar o capital em oportunidades novas.' };
+  if (m.includes('stale') || m.includes('scanner')) return { rotulo: 'oportunidade sumiu', explica: 'A oportunidade deixou de aparecer no mercado. O robô fechou pra não ficar exposto no escuro.' };
+  if (m.includes('exchange') || m.includes('fail')) return { rotulo: '⚠️ falha da corretora', explica: 'Uma das corretoras falhou/ficou instável. O robô fechou por segurança.' };
+  return { rotulo: motivo || 'fechamento normal', explica: 'O robô encerrou a operação seguindo suas regras de saída.' };
+}
+
+/**
+ * Notificações Telegram — escritas pra QUALQUER pessoa entender, mesmo sem
+ * experiência. Só o que é raro e importa: dinheiro mudando de mãos, o robô se
+ * pausar, ou reinvestir lucro. 'bloqueado' (a cada 5min) fica de fora de
+ * propósito, senão vira spam. Se o Telegram não estiver configurado, não faz nada.
+ */
 function notificarTelegram(evento: string, dados: Record<string, unknown>) {
   const s = String(dados.symbol ?? '').replace('/USDT:USDT', '');
+
   if (evento === 'abre') {
     void enviarTelegram(
-      `🟢 <b>Posição aberta</b> — ${s}\n` +
-      `${dados.short} → ${dados.long} · notional US$ ${Number(dados.notional ?? 0).toFixed(0)}\n` +
-      `consistência ${(Number(dados.consistencia ?? 0) * 100).toFixed(0)}%`,
+      `🟢 <b>NOVA OPERAÇÃO ABERTA</b>\n${LINHA}\n` +
+      `🪙 <b>Moeda:</b> ${s}\n` +
+      `🔄 <b>Comprado em:</b> ${dados.long}\n` +
+      `🔄 <b>Vendido em:</b> ${dados.short}\n` +
+      `💵 <b>Valor operado:</b> ${usd(dados.notional, 0)}\n` +
+      `📊 <b>Qualidade do sinal:</b> ${(Number(dados.consistencia ?? 0) * 100).toFixed(0)}%\n${LINHA}\n` +
+      `ℹ️ O robô abriu uma operação <b>neutra</b>: comprou numa corretora e vendeu na outra ao mesmo tempo. ` +
+      `Assim, <b>não importa se o preço sobe ou cai</b> — o lucro vem da <b>taxa de funding</b> que uma corretora paga à outra. ` +
+      `Sem aposta em direção. 🛡️`,
     );
+
   } else if (evento === 'fecha') {
     const funding = Number(dados.fundingAcumulado ?? 0), custo = Number(dados.custo ?? 0);
     const resultado = funding - custo;
+    const lucro = resultado >= 0;
+    const mot = explicarMotivo(String(dados.motivo ?? ''));
     void enviarTelegram(
-      `🔴 <b>Posição fechada</b> — ${s}\n` +
-      `motivo: ${dados.motivo}\n` +
-      `funding recebido US$ ${funding.toFixed(4)} · custo US$ ${custo.toFixed(3)} · ` +
-      `resultado ${resultado >= 0 ? '+' : '−'}US$ ${Math.abs(resultado).toFixed(4)}`,
+      `${lucro ? '✅' : '⚠️'} <b>OPERAÇÃO FECHADA — ${lucro ? 'LUCRO' : 'PREJUÍZO'}</b>\n${LINHA}\n` +
+      `🪙 <b>Moeda:</b> ${s}\n` +
+      `💰 <b>Recebido (funding):</b> +${usd(funding, 4)}\n` +
+      `💸 <b>Custo (taxas):</b> −${usd(custo, 4)}\n` +
+      `${lucro ? '📈' : '📉'} <b>Resultado:</b> ${lucro ? '+' : '−'}${usd(Math.abs(resultado), 4)}\n` +
+      `📝 <b>Por que fechou:</b> ${mot.rotulo}\n${LINHA}\n` +
+      `ℹ️ ${mot.explica}`,
     );
+
+  } else if (evento === 'reinvestimento') {
+    void enviarTelegram(
+      `🔁 <b>LUCRO REINVESTIDO — BOLA DE NEVE</b> ⛄\n${LINHA}\n` +
+      `💰 <b>Reinvestido agora:</b> ${usd(dados.valor, 2)}\n` +
+      `📈 <b>Capital total:</b> ${usd(dados.capital, 2)}\n${LINHA}\n` +
+      `ℹ️ O robô juntou lucro suficiente e <b>aumentou o tamanho das próximas operações</b>. ` +
+      `Cada lucro faz o próximo ser maior — é o efeito bola de neve trabalhando pra você. 🚀`,
+    );
+
+  } else if (evento === 'resumo') {
+    const net = Number(dados.net ?? 0);
+    void enviarTelegram(
+      `📊 <b>RESUMO DO DIA</b>\n${LINHA}\n` +
+      `💼 <b>Capital:</b> ${usd(dados.capital, 2)}\n` +
+      `${net >= 0 ? '🟢' : '🔴'} <b>Lucro no período:</b> ${net >= 0 ? '+' : '−'}${usd(Math.abs(net), 2)}\n` +
+      `💰 <b>Funding recebido:</b> +${usd(dados.funding, 2)}\n` +
+      `💸 <b>Custos:</b> −${usd(dados.custo, 2)}\n` +
+      `🔓 <b>Operações abertas agora:</b> ${Number(dados.abertas ?? 0)}\n${LINHA}\n` +
+      `ℹ️ Tudo no automático. O robô segue operando e te avisa quando abrir ou fechar posição. 😴`,
+    );
+
   } else if (evento === 'piso') {
     void enviarTelegram(
-      `🛑 <b>MOTOR PARADO</b> — piso de capital atingido\n` +
-      `capital US$ ${Number(dados.capital ?? 0).toFixed(2)} · piso US$ ${Number(dados.piso ?? 0).toFixed(2)}\n` +
-      `Precisa de decisão manual pra retomar (apagar 'parado' de spread/estado.json).`,
+      `🛑 <b>ROBÔ PAUSADO — PRECISA DE VOCÊ</b> 🚨\n${LINHA}\n` +
+      `💼 <b>Capital atual:</b> ${usd(dados.capital, 2)}\n` +
+      `🔻 <b>Limite de segurança:</b> ${usd(dados.piso, 2)}\n${LINHA}\n` +
+      `⚠️ O robô <b>parou sozinho por segurança</b>: o capital chegou no limite mínimo. ` +
+      `Nenhuma operação nova será aberta até você liberar manualmente.\n` +
+      `👉 <b>O que fazer:</b> revisar a situação e retomar quando decidir (apagar 'parado' de spread/estado.json).`,
     );
   }
 }
@@ -1531,6 +1590,7 @@ export class MotorSpread {
       const ganhoDia = extra.notionalPorPerna * atual.spread * 3;
       const diasPagar = ganhoDia > 0 ? extra.custoMontagem / ganhoDia : Infinity;
       if (diasPagar <= 3) {
+        const reinvestido = this.estado.caixaOcioso;
         pos.notionalPorPerna += extra.notionalPorPerna;
         pos.margemShort += extra.margemPorPerna;
         pos.margemLong += extra.margemPorPerna;
@@ -1542,6 +1602,7 @@ export class MotorSpread {
           `REINVESTE +US$ ${extra.notionalPorPerna.toFixed(3)}/perna · ` +
           `notional agora US$ ${pos.notionalPorPerna.toFixed(2)} · se paga em ${diasPagar.toFixed(1)} dias`,
         );
+        notificarTelegram('reinvestimento', { valor: reinvestido, capital: this.estado.capital });
         this.diario('reinveste', {
           symbol: pos.symbol, exchangeShort: pos.exchangeShort, exchangeLong: pos.exchangeLong,
           notionalExtra: extra.notionalPorPerna, notionalNovo: pos.notionalPorPerna, custo: extra.custoMontagem,
