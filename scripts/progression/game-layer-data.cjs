@@ -35,10 +35,12 @@ function build() {
     economia: (() => { const led = L.rd(L.P.outDir + '/economic-ledger.json', null); const pd = L.rd(L.P.outDir + '/profit-discovery.json', null); const un = L.rd(L.P.outDir + '/unlock-fund.json', null);
       return { lucroAcumulado: led ? led.totalRealizedNetPnL : 0, lucroPorCapitalHora: 'ver economic-ledger por posição', proximoDolar: pd ? pd.item3_proximoDolar.recomendacao : null, proximoDesbloqueio: un ? (un.faltaParaDesbloquear || un.regra || 'ver unlock-fund') : null }; })(),
     chefesEconomicos: {
-      chefeDosCustos: { nome: 'Custos', derrotadoQuando: 'lucro líquido cobre round-trip + slippage com folga em ≥30 fechadas', estado: 'EM_COLETA' },
+      chefeCustosEWhipsaw: { nome: 'Custos e Whipsaw', derrotadoQuando: 'funding capturado cobre o round-trip ($0,28) com folga — hoje captura só ~$0,03 (12% do break-even)', estado: 'ATIVO_VENCENDO_O_JOGADOR', diagnostico: 'ver edge-diagnosis.json' },
       chefeDaCapacidade: { nome: 'Capacidade', derrotadoQuando: 'nenhuma oportunidade positive-EV bloqueada por saldo/exchange limitante', estado: 'EM_COLETA' },
       chefeDaDiversificacao: { nome: 'Diversificação', derrotadoQuando: 'concentração ≤ limites (posição/símbolo/par/janela) com amostra suficiente', estado: 'EM_COLETA' },
     },
+    edgeStatus: (() => { const ed = L.rd(L.P.outDir + '/edge-diagnosis.json', null); const net = ed ? ed.item3_decomposicaoPnL.netPorSourcePositionIdUnico : null; return net == null ? 'DESCONHECIDO' : net < 0 ? 'NEGATIVE_UNPROVEN' : 'POSITIVE_UNPROVEN'; })(),
+    capitalNaoAlocado: 'recomendado com edge negativa — todo capital fica no Snowball, parte NÃO exposta (reserva/unlock)',
     progresso: { operationalSoak: soakProgresso, posicoesFonte: `${fechadas}/30`, divergencias: `${divergencias}/15` },
     xp: { total: xp, fonte: 'SOMENTE evidência econômica (fechamento único / divergência real)', naoConcedidoPor: 'processo vivo / uptime / heartbeat / restart / observação' },
     proximoDesbloqueio: fechadas >= 30 && divergencias >= 15 ? 'Análise de profit (READY_FOR_PROFIT_ANALYSIS) — fora do teto da v1.8' : 'READY_FOR_PROFIT_ANALYSIS (bloqueado até metas + janelas/regimes)',

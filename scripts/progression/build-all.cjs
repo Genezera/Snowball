@@ -59,6 +59,7 @@ const ordem = [
   'economic-daily-report.cjs',  // v1.8-coleta Parte 8 (relatório diário + close-exit + shadow)
   'economic-ledger.cjs',        // v1.8-profit Parte 1 (ledger exato por sourcePositionId)
   'profit-discovery.cjs',       // v1.8-profit Partes 2-8,10,12 (ranking/próximo dólar/capacidade/rejeições/timing/maxPos/compounding)
+  'edge-diagnosis.cjs',        // v1.8 diagnóstico da edge negativa
   'game-layer-data.cjs',        // v1.8-coleta/profit (game layer + níveis + chefes econômicos)
   'relatorio-forward.cjs',      // v1.4→1.8 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
