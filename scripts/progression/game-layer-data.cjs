@@ -50,16 +50,17 @@ function build() {
           proximoDesbloqueio: 'evidência forward VÁLIDA de um filtro (amostra com vencedores + 2 janelas + regime) — NÃO por criar filtros',
           confidence: eg.confidence, diagnostico: 'ver entry-gate-shadow.json',
           validacaoProspectiva: (() => { const ev = L.rd(L.P.outDir + '/entry-gate-validation.json', null); if (!ev) return null;
-            const c = ev.item6_contadores || {};
-            return { epochId: ev.item4_epochDurabilidade ? ev.item4_epochDurabilidade.entryGateValidationEpochId : null,
-              validationStatus: ev.validationStatus, manifestStatus: ev.manifestStatus,
-              developmentSet: 4, validationSetProgress: c.validationProgress || '0/30',
-              decisionsObserved: c.decisionsObserved, aceitasPorFiltro: { Control: c.controlAccepted, A3: c.a3Accepted, B60: c.b60Accepted, C1_5: c.c15Accepted, D: c.dAccepted },
-              closedOutcomes: c.closedOutcomes, openOutcomes: c.openOutcomes, rightCensored: c.rightCensored, winners: c.winners, losers: c.losers,
-              rejectedNeverPositioned: c.rejectedNeverPositioned,
-              challengerXP: 0, xpNota: 'XP dos challengers = 0 até haver evidência de VALIDATION SET fechada (não do development set).',
-              promovivel: ev.promocao ? ev.promocao.elegivel : false,
-              proximoDesbloqueio: `${(c.validationProgress || '0/30')} posições de validação + vencedores/perdedores + PnL>Control + 2ª janela + regime + stress + aprovação humana` }; })() }; })(),
+            const rd2 = ev.item5_relatorioDiario || {}; const i1 = ev.item1_capturaProspectiva || {}; const i6 = ev.item6_durabilidade || {};
+            // XP prospectivo = SOMENTE outcomes de validação INLINE-elegíveis fechados (nunca post-hoc, nunca dev set)
+            const xpProspectivo = rd2.closedOutcomes || 0;
+            return { epochId: i6.entryGateValidationEpochId, validationStatus: ev.validationStatus, manifestStatus: ev.manifestStatus, recoverySource: i6.recoverySource,
+              developmentSet: 4, validationDecisions: i1.inlineEligible || 0, postHocReconstruction: i1.postHocReconstruction || 0,
+              validationOutcomes: rd2.validationProgress || '0/30',
+              winners: rd2.winners || 0, losers: rd2.losers || 0,
+              pnlPorChallenger: rd2.pnlPorFiltro || {}, winnerRetention: rd2.winnerRetention || {},
+              xpProspectivo, xpNota: 'XP prospectivo = só outcomes de validação INLINE-elegíveis fechados. Reconstruções POST_HOC e development set NÃO concedem XP.',
+              promovivel: ev.item7_gate ? ev.item7_gate.elegivelPromo : false,
+              proximoDesbloqueio: `${rd2.validationProgress || '0/30'} outcomes elegíveis + vencedores/perdedores + PnL>Control + winnerRetention + 2ª janela + regime + stress + concentração + aprovação humana` }; })() }; })(),
       chefeCustosEWhipsaw: { nome: 'Custos e Whipsaw', derrotadoQuando: 'funding capturado cobre o round-trip ($0,28) com folga — hoje captura só ~$0,03 (12% do break-even)', estado: 'ATIVO_VENCENDO_O_JOGADOR', diagnostico: 'ver edge-diagnosis.json' },
       chefeDaCapacidade: { nome: 'Capacidade', derrotadoQuando: 'nenhuma oportunidade positive-EV bloqueada por saldo/exchange limitante', estado: 'EM_COLETA' },
       chefeDaDiversificacao: { nome: 'Diversificação', derrotadoQuando: 'concentração ≤ limites (posição/símbolo/par/janela) com amostra suficiente', estado: 'EM_COLETA' },

@@ -54,6 +54,10 @@ function ciclo() {
     mirrorFidelity: mir ? { mode: mir.mirrorMode, snapshotGranular: mir.fidelidadeSnapshotGranular } : null,
     policyFidelity: pol ? { divergencias: pol.contadores, todasExplicadas: pol.explicadas ? pol.explicadas.todasExplicadas : null } : null,
     processosVivos: vivos, processosVivosN: vivosN,
+    entryGateCapturer: (() => { const hb = rd(path.join(ECON, 'entry-gate-capturer', 'heartbeat.json'), null);
+      if (!hb) return { presente: false, nota: 'capturador prospectivo não iniciado' };
+      return { presente: true, pid: hb.pid, idadeS: hb.ultimoCiclo ? Math.round((now() - hb.ultimoCiclo) / 1000) : null, vivo: !!(hb.ultimoCiclo && now() - hb.ultimoCiclo < 15 * 60000),
+        inlineEligible: hb.inlineEligible, postHoc: hb.postHoc, validationProgress: hb.validationProgress, validationStatus: hb.validationStatus }; })(),
     completo: false,   // economicSoak nunca "completo" aqui — só coleta
     operationalEconomicSoak: (() => {
       // item 10: janela operacional de 1440min. Mantém a epoch/dados; zera SÓ o relógio de uptime.
