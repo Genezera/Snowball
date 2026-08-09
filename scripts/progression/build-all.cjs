@@ -57,7 +57,9 @@ const ordem = [
   'bico-incident.cjs',          // v1.8-op Parte 7 (registro OPERATIONAL_RISK_NEAR_MISS)
   'economic-gate.cjs',          // v1.8-close/coleta/op (gate + readiness + supervisor matrix)
   'economic-daily-report.cjs',  // v1.8-coleta Parte 8 (relatório diário + close-exit + shadow)
-  'game-layer-data.cjs',        // v1.8-coleta Parte 11 (dados da game layer)
+  'economic-ledger.cjs',        // v1.8-profit Parte 1 (ledger exato por sourcePositionId)
+  'profit-discovery.cjs',       // v1.8-profit Partes 2-8,10,12 (ranking/próximo dólar/capacidade/rejeições/timing/maxPos/compounding)
+  'game-layer-data.cjs',        // v1.8-coleta/profit (game layer + níveis + chefes econômicos)
   'relatorio-forward.cjs',      // v1.4→1.8 (identidade/capital local/diário/gate estendido)
   'build-progression-status.cjs', // Parte 13 (lê todos)
 ];

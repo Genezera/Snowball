@@ -30,6 +30,15 @@ function build() {
     nomeNivel: 'Coleta de Evidência Econômica',
     missaoAtual: 'Sobreviver 1440 min de operationalEconomicSoak sob supervisão e fechar 30 oportunidades-fonte únicas + 15 divergências reais encerradas, sob identidade causal e Mirror snapshot-fiel.',
     chefeAtual: { nome: 'Instabilidade Operacional', estado: readiness, derrotadoQuando: 'supervisor matrix + operationalEconomicSoak 1440/1440 + ≥30 posições-fonte + ≥15 divergências encerradas + 2 janelas + 2 regimes + stress + concentração + durabilitySoak completo + zero falha crítica' },
+    // ── item 9: foco econômico (níveis + chefes econômicos) ──
+    niveis: (() => { const lv = L.rd(L.P.outDir + '/levels.json', null); return lv ? { capitalLevel: lv.capitalLevel || lv.capital || null, evidenceLevel: lv.evidenceLevel || lv.evidence || null, operationalLevel: lv.operationalLevel || lv.operational || null } : { capitalLevel: null, evidenceLevel: null, operationalLevel: null }; })(),
+    economia: (() => { const led = L.rd(L.P.outDir + '/economic-ledger.json', null); const pd = L.rd(L.P.outDir + '/profit-discovery.json', null); const un = L.rd(L.P.outDir + '/unlock-fund.json', null);
+      return { lucroAcumulado: led ? led.totalRealizedNetPnL : 0, lucroPorCapitalHora: 'ver economic-ledger por posição', proximoDolar: pd ? pd.item3_proximoDolar.recomendacao : null, proximoDesbloqueio: un ? (un.faltaParaDesbloquear || un.regra || 'ver unlock-fund') : null }; })(),
+    chefesEconomicos: {
+      chefeDosCustos: { nome: 'Custos', derrotadoQuando: 'lucro líquido cobre round-trip + slippage com folga em ≥30 fechadas', estado: 'EM_COLETA' },
+      chefeDaCapacidade: { nome: 'Capacidade', derrotadoQuando: 'nenhuma oportunidade positive-EV bloqueada por saldo/exchange limitante', estado: 'EM_COLETA' },
+      chefeDaDiversificacao: { nome: 'Diversificação', derrotadoQuando: 'concentração ≤ limites (posição/símbolo/par/janela) com amostra suficiente', estado: 'EM_COLETA' },
+    },
     progresso: { operationalSoak: soakProgresso, posicoesFonte: `${fechadas}/30`, divergencias: `${divergencias}/15` },
     xp: { total: xp, fonte: 'SOMENTE evidência econômica (fechamento único / divergência real)', naoConcedidoPor: 'processo vivo / uptime / heartbeat / restart / observação' },
     proximoDesbloqueio: fechadas >= 30 && divergencias >= 15 ? 'Análise de profit (READY_FOR_PROFIT_ANALYSIS) — fora do teto da v1.8' : 'READY_FOR_PROFIT_ANALYSIS (bloqueado até metas + janelas/regimes)',
