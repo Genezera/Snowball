@@ -25,3 +25,8 @@ if (-not (Vivo 'dashboard-v2/api/server.ts')) {
 if (-not (Vivo 'vite')) {
   Start-Process $bash -ArgumentList '-lc','npm --prefix dashboard-v2 run dev' -WorkingDirectory $cwd -WindowStyle Hidden
 }
+# 5. Coletor spot-perp (produtor de dados do radar spot-perp; a cada 10min)
+if (-not (Vivo 'coletor-spotperp.cjs')) {
+  Start-Process $node -ArgumentList 'scripts/progression/coletor-spotperp.cjs','--intervalo','600' -WorkingDirectory $cwd -WindowStyle Hidden `
+    -RedirectStandardOutput "$cwd\vigilancia\spotperp.out.log" -RedirectStandardError "$cwd\vigilancia\spotperp.err.log"
+}
