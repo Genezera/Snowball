@@ -50,17 +50,18 @@ function build() {
           proximoDesbloqueio: 'evidência forward VÁLIDA de um filtro (amostra com vencedores + 2 janelas + regime) — NÃO por criar filtros',
           confidence: eg.confidence, diagnostico: 'ver entry-gate-shadow.json',
           validacaoProspectiva: (() => { const ev = L.rd(L.P.outDir + '/entry-gate-validation.json', null); if (!ev) return null;
-            const rd2 = ev.item5_relatorioDiario || {}; const i1 = ev.item1_capturaProspectiva || {}; const i6 = ev.item6_durabilidade || {};
-            // XP prospectivo = SOMENTE outcomes de validação INLINE-elegíveis fechados (nunca post-hoc, nunca dev set)
-            const xpProspectivo = rd2.closedOutcomes || 0;
-            return { epochId: i6.entryGateValidationEpochId, validationStatus: ev.validationStatus, manifestStatus: ev.manifestStatus, recoverySource: i6.recoverySource,
-              developmentSet: 4, validationDecisions: i1.inlineEligible || 0, postHocReconstruction: i1.postHocReconstruction || 0,
-              validationOutcomes: rd2.validationProgress || '0/30',
+            const rd2 = ev.item6_relatorioDiario || {}; const i2 = ev.item2_taxonomia || {}; const dur = ev.durabilidade || {};
+            // XP prospectivo = SOMENTE outcomes de validação EVENT_CAPTURED_FRESH fechados (nunca post-hoc/missed/dev set)
+            const xpProspectivo = rd2.closedValidationOutcomes || 0;
+            return { epochId: dur.entryGateValidationEpochId, validationStatus: ev.validationStatus, manifestStatus: ev.manifestStatus, recoverySource: dur.recoverySource,
+              capturerState: rd2.capturerState, capturerRestarts: rd2.capturerRestarts, captureDowntimeJanelas: rd2.captureDowntime ? rd2.captureDowntime.janelas : 0,
+              developmentSet: 4, newFreshDecisions: rd2.newFreshDecisions || 0, postHocDecisions: rd2.postHocDecisions || 0, missedDuringDowntime: rd2.missedDuringDowntime || 0,
+              validationDecisions: i2.freshEligible || 0, validationOutcomes: rd2.validationProgress || '0/30',
               winners: rd2.winners || 0, losers: rd2.losers || 0,
               pnlPorChallenger: rd2.pnlPorFiltro || {}, winnerRetention: rd2.winnerRetention || {},
-              xpProspectivo, xpNota: 'XP prospectivo = só outcomes de validação INLINE-elegíveis fechados. Reconstruções POST_HOC e development set NÃO concedem XP.',
+              xpProspectivo, xpNota: 'XP prospectivo = só outcomes de validação EVENT_CAPTURED_FRESH fechados. POST_HOC, MISSED_DURING_DOWNTIME e development set NÃO concedem XP.',
               promovivel: ev.item7_gate ? ev.item7_gate.elegivelPromo : false,
-              proximoDesbloqueio: `${rd2.validationProgress || '0/30'} outcomes elegíveis + vencedores/perdedores + PnL>Control + winnerRetention + 2ª janela + regime + stress + concentração + aprovação humana` }; })() }; })(),
+              proximoDesbloqueio: `${rd2.validationProgress || '0/30'} outcomes fechados + vencedores/perdedores + PnL>Control + retenção + 2ª janela + regime + stress + concentração + aprovação humana` }; })() }; })(),
       chefeCustosEWhipsaw: { nome: 'Custos e Whipsaw', derrotadoQuando: 'funding capturado cobre o round-trip ($0,28) com folga — hoje captura só ~$0,03 (12% do break-even)', estado: 'ATIVO_VENCENDO_O_JOGADOR', diagnostico: 'ver edge-diagnosis.json' },
       chefeDaCapacidade: { nome: 'Capacidade', derrotadoQuando: 'nenhuma oportunidade positive-EV bloqueada por saldo/exchange limitante', estado: 'EM_COLETA' },
       chefeDaDiversificacao: { nome: 'Diversificação', derrotadoQuando: 'concentração ≤ limites (posição/símbolo/par/janela) com amostra suficiente', estado: 'EM_COLETA' },

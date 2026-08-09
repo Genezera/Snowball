@@ -9,8 +9,8 @@
 set -u
 cd "$(dirname "$0")/../.."
 ECON_ROOT="${ECON_ROOT:-auditoria/progression/economic}"
-NODE="node"; FLAB="scripts/progression/forward-lab.cjs"; FMIR="scripts/progression/forward-mirror.cjs"; FMON="scripts/progression/economic-soak-monitor.cjs"
-INTERVALO_CHECK=30; CICLO=300; MON_CICLO=120; HEARTBEAT_MAX_S=$((CICLO * 2 + 60))
+NODE="node"; FLAB="scripts/progression/forward-lab.cjs"; FMIR="scripts/progression/forward-mirror.cjs"; FMON="scripts/progression/economic-soak-monitor.cjs"; FCAP="scripts/progression/entry-gate-validation.cjs"
+INTERVALO_CHECK=30; CICLO=300; MON_CICLO=120; CAP_CICLO=120; HEARTBEAT_MAX_S=$((CICLO * 2 + 60))
 BACKOFF_BASE=5; BACKOFF_MAX=120; RESTART_LIMIT=8
 LOCK="$ECON_ROOT/supervisor-economic.lock"; MUTEX="$ECON_ROOT/supervisor-economic.lockdir"
 LOG="$ECON_ROOT/supervisor-economic.log"; STATUS="$ECON_ROOT/supervisor-economic-status.json"
@@ -27,7 +27,11 @@ CMD[observer-max3]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode control --max
 CMD[observer-max4]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode control --maxpos 4 --label observer-max4 --close-policy economic_inversion"; HBP[observer-max4]="observer-max4/heartbeat.json"
 CMD[observer-max5]="env FORWARD_ROOT=$ECON_ROOT $NODE $FLAB --mode control --maxpos 5 --label observer-max5 --close-policy economic_inversion"; HBP[observer-max5]="observer-max5/heartbeat.json"
 CMD[monitor]="$NODE $FMON";                                                                                HBP[monitor]="soak-monitor-heartbeat.json"
+CMD[capturer]="$NODE $FCAP --daemon";                                                                      HBP[capturer]="entry-gate-capturer/heartbeat.json"
 LABELS=(mirror policy trial observer-max3 observer-max4 observer-max5 monitor)
+# capturador prospectivo: só supervisionado na árvore de PRODUÇÃO (fault drill usa ECON_ROOT temp e
+# NÃO deve subir o capturador, que lê o diário real). Read-only; single-instance é garantido pelo próprio capturador.
+[ "$ECON_ROOT" = "auditoria/progression/economic" ] && LABELS+=(capturer)
 
 # ── single instance ──
 if ! mkdir "$MUTEX" 2>/dev/null; then
@@ -44,7 +48,7 @@ hb_field() { node -e 'try{const o=JSON.parse(require("fs").readFileSync(process.
 pid_vivo() { local p="$1"; [ "$p" -gt 0 ] 2>/dev/null || return 1; timeout 6 powershell -NoProfile -Command "@(Get-Process -Id $p -EA SilentlyContinue).Count" 2>/dev/null | tr -d '\r\n ' | grep -q '^[1-9]'; }
 matar_pid() { local p="$1"; [ "$p" -gt 0 ] 2>/dev/null && timeout 6 powershell -NoProfile -Command "Stop-Process -Id $p -Force -EA SilentlyContinue" >/dev/null 2>&1; }
 lancar() { local l="$1"; mkdir -p "$ECON_ROOT/$l" 2>/dev/null
-  local ic="$CICLO"; [ "$l" = "monitor" ] && ic="$MON_CICLO"
+  local ic="$CICLO"; [ "$l" = "monitor" ] && ic="$MON_CICLO"; [ "$l" = "capturer" ] && ic="$CAP_CICLO"
   nohup ${CMD[$l]} --intervalo "$ic" >> "$ECON_ROOT/$l.live.log" 2>&1 & disown
   log "$l (re)lançado — cursor/checkpoint preservados"; }
 
@@ -54,7 +58,7 @@ escrever_status() { local j='{"schema":"snowball.supervisor-economic-status","ts
   j+='}}'; echo "$j" > "$STATUS"; }
 
 trap 'rm -f "$LOCK"; rmdir "$MUTEX" 2>/dev/null; log "supervisor-economic encerrado (limpo)"; exit 0' INT TERM
-log "supervisor-economic iniciado — 7 processos (6 econ + monitor), ECON_ROOT=$ECON_ROOT, ZERO Champion/durabilitySoak"
+log "supervisor-economic iniciado — ${#LABELS[@]} processos (6 econ + monitor + capturer prospectivo), ECON_ROOT=$ECON_ROOT, ZERO Champion/durabilitySoak"
 
 while true; do
   echo '{"pid":'$$',"heartbeat":'$(now_ms)'}' > "$LOCK"
