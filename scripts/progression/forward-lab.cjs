@@ -39,6 +39,9 @@ const EXCHS_OVERRIDE = args.includes('--exchanges') ? String(opt('--exchanges', 
 const EXCHS = (EXCHS_OVERRIDE && EXCHS_OVERRIDE.length) ? EXCHS_OVERRIDE : (MODE === 'control' ? L.EXCHANGES : ['bitget', 'bybit']);
 // --persist-min N : só entra após a oportunidade ficar positive-EV por N min (filtro de persistência). 0 = desligado (default, comportamento original inalterado).
 const PERSIST_MIN = args.includes('--persist-min') ? Number(opt('--persist-min', 0)) : 0;
+// --reserva F : fração do capital mantida em reserva (não usada como margem). Default = L.RESERVA (0.30).
+// Reduzir (ex.: 0.20) coloca mais capital ocioso pra trabalhar → mais posições → mais funding. Lever de UTILIZAÇÃO.
+const RESERVA = args.includes('--reserva') ? Number(opt('--reserva', L.RESERVA)) : L.RESERVA;
 const CAP_POR_EX = L.ALVO_POR_EXCHANGE;
 // --cost-model taker|maker : custo de execução. taker (default) = ordens a mercado (0,05%+slip).
 // maker = ordens LIMITE (0,02%+slip mínimo, presets reais do src/config.ts) — 35,7% do custo taker.
@@ -228,7 +231,7 @@ function computeCausal(est, epochId, physicalEventId, ts, k, sym, long, short) {
 }
 
 function economia(apr, spread) { const c = CUSTO_FRAC + Math.max(0, spread || 0); return apr * 24 / 8760 - c; }
-function margemLivre(est, ex) { return (est.saldosPorExchange[ex] || 0) * (1 - L.RESERVA); }
+function margemLivre(est, ex) { return (est.saldosPorExchange[ex] || 0) * (1 - RESERVA); }
 function stateHash(est) { return sha(JSON.stringify({ so: est.cursor.byteOffset, ec: est.eventCount, aeh: est.accumulatedEventHash, sal: est.saldosPorExchange, vi: Object.keys(est.virtuais).sort(), fu: L.r4(est.fundingAcum), cu: L.r4(est.custosAcum) })).slice(0, 24); }
 
 // ── TELEGRAM (opcional) ──────────────────────────────────────────────────────
@@ -354,7 +357,7 @@ function umCiclo() {
     const livreLong = margemLivre(est, c.long), livreShort = margemLivre(est, c.short); const abertas = Object.keys(est.virtuais).length; let motivo = null;
     if (abertas >= MAXPOS) motivo = 'maxPositionsBlocked';
     else if (MARGEM_PERNA > livreLong || MARGEM_PERNA > livreShort) motivo = 'localBalanceBlocked';
-    else if (est.saldosPorExchange[c.long] < CAP_POR_EX * L.RESERVA || est.saldosPorExchange[c.short] < CAP_POR_EX * L.RESERVA) motivo = 'reserveBlocked';
+    else if (est.saldosPorExchange[c.long] < CAP_POR_EX * RESERVA || est.saldosPorExchange[c.short] < CAP_POR_EX * RESERVA) motivo = 'reserveBlocked';
     else if (2 * MARGEM_PERNA > EXCHS.reduce((s, e) => s + margemLivre(est, e), 0)) motivo = 'aggregateCapitalBlocked';
     if (motivo) { est.contadores.bloqueadas++; est.bloqueios[motivo]++; append(F.diario, { ts: now(), evento: 'bloqueada', k: c.k, exchangeLong: c.long, exchangeShort: c.short, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]), margemLivreLong: L.r2(livreLong), margemLivreShort: L.r2(livreShort), motivo }); decisoes.push({ k: c.k, acao: 'bloqueada', motivo }); continue; }
     const custoEntrada = NOTIONAL * (2 * TAKER + 2 * SLIP);

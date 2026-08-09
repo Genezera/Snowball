@@ -180,7 +180,7 @@ const servidor = http.createServer((req, res) => {
     // Tudo lido AO VIVO dos arquivos do motor (estado/diario/snapshots). SÓ LEITURA.
     if (url.pathname === '/api/v2/competidores') {
       const compDir = path.join(ROOT, 'auditoria', 'progression', 'compete');
-      const defs = [{ label: 'compete-bybit-bitget', par: 'bybit + bitget' }, { label: 'compete-gate-okx', par: 'gate + okx' }];
+      const defs = [{ label: 'compete-bybit-bitget', par: 'bybit + bitget' }, { label: 'compete-gate-okx', par: 'gate + okx' }, { label: 'compete-turbo-bb', par: 'bybit + bitget · TURBO (5 pos · reserva 20%)' }];
       const r2 = (n: number, c = 4) => Math.round(n * 10 ** c) / 10 ** c;
       const competidores = defs.map((d) => {
         const est = lerJsonSeguro<any>(path.join(compDir, d.label, 'estado.json'), null);
