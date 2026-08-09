@@ -1,19 +1,19 @@
 {
   "schema": "snowball.opportunity-life.v1_3",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "item7_funil": {
-    "oportunidadesDistintas": 2929,
-    "modelPositiveEV_holdMax168h": 1072,
-    "modelPositiveEV_queViveramAtePayback": 158,
-    "realmentePositivas_vidaObservada": 158,
+    "oportunidadesDistintas": 3043,
+    "modelPositiveEV_holdMax168h": 1127,
+    "modelPositiveEV_queViveramAtePayback": 193,
+    "realmentePositivas_vidaObservada": 193,
     "abertasPeloChampion_simbolos": 1,
-    "explicacao": "De 2929 oportunidades, 1072 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 158 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~158 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
+    "explicacao": "De 3043 oportunidades, 1127 pareceriam positivas SE segurássemos até 168h (o \"1064\"). Mas só 193 realmente VIVERAM tempo suficiente (duração ≥ payback×1.5) — o resto DESAPARECEU antes de pagar o round-trip. É por isso que o motor, usando a vida real, aprova ~193 (≈13 na janela anterior), não 1064. O Champion abriu 1 símbolos distintos, um subconjunto dos que viveram o suficiente."
   },
   "distribuicao": {
-    "duracaoMedianaH": 27.56,
-    "paybackMedianoH": 160.91,
-    "pctQueViveramAtePayback": 5.39
+    "duracaoMedianaH": 29.61,
+    "paybackMedianoH": 159.17,
+    "pctQueViveramAtePayback": 6.34
   },
   "item6_multiHorizonte": {
     "horizontes": [
@@ -27,14 +27,27 @@
       {
         "sym": "ACE/USDT:USDT",
         "aprMediano": 29.1051,
-        "duracaoH": 39.55,
+        "duracaoH": 57.47,
         "paybackH": 8.84,
-        "evVidaObservada": 10.2008,
+        "evVidaObservada": 16.1564,
         "evPorHorizonte": {
           "h1": -2.6057,
           "h8": -0.28,
           "h24": 5.036,
           "h72": 20.984
+        }
+      },
+      {
+        "sym": "CYS/USDT:USDT",
+        "aprMediano": 11.4958,
+        "duracaoH": 87.9,
+        "paybackH": 10.13,
+        "evVidaObservada": 10.2056,
+        "evPorHorizonte": {
+          "h1": -1.1986,
+          "h8": -0.28,
+          "h24": 1.8197,
+          "h72": 8.1188
         }
       },
       {
@@ -51,16 +64,29 @@
         }
       },
       {
-        "sym": "CYS/USDT:USDT",
-        "aprMediano": 11.158,
-        "duracaoH": 75.93,
-        "paybackH": 10.2,
-        "evVidaObservada": 8.3731,
+        "sym": "ACE/USDT:USDT",
+        "aprMediano": 10.3905,
+        "duracaoH": 81.4,
+        "paybackH": 10.36,
+        "evVidaObservada": 8.4263,
         "evPorHorizonte": {
-          "h1": -1.1716,
+          "h1": -1.1103,
           "h8": -0.28,
-          "h24": 1.758,
-          "h72": 7.872
+          "h24": 1.6178,
+          "h72": 7.3112
+        }
+      },
+      {
+        "sym": "ACE/USDT:USDT",
+        "aprMediano": 9.0361,
+        "duracaoH": 87.99,
+        "paybackH": 10.71,
+        "evVidaObservada": 7.9709,
+        "evPorHorizonte": {
+          "h1": -1.0021,
+          "h8": -0.28,
+          "h24": 1.3704,
+          "h72": 6.3217
         }
       },
       {
@@ -77,55 +103,29 @@
         }
       },
       {
-        "sym": "ACE/USDT:USDT",
-        "aprMediano": 9.0737,
-        "duracaoH": 79.95,
-        "paybackH": 10.7,
-        "evVidaObservada": 7.173,
+        "sym": "KAITO/USDT:USDT",
+        "aprMediano": 18.9374,
+        "duracaoH": 41.67,
+        "paybackH": 9.3,
+        "evVidaObservada": 6.998,
         "evPorHorizonte": {
-          "h1": -1.0051,
+          "h1": -1.7933,
           "h8": -0.28,
-          "h24": 1.3773,
-          "h72": 6.3492
+          "h24": 3.1789,
+          "h72": 13.5555
         }
       },
       {
         "sym": "COTI/USDT:USDT",
-        "aprMediano": 11.6631,
-        "duracaoH": 62.27,
-        "paybackH": 10.1,
-        "evVidaObservada": 6.9461,
+        "aprMediano": 9.7227,
+        "duracaoH": 68.89,
+        "paybackH": 10.52,
+        "evVidaObservada": 6.4777,
         "evPorHorizonte": {
-          "h1": -1.212,
+          "h1": -1.0569,
           "h8": -0.28,
-          "h24": 1.8502,
-          "h72": 8.241
-        }
-      },
-      {
-        "sym": "COTI/USDT:USDT",
-        "aprMediano": 9.6608,
-        "duracaoH": 64.89,
-        "paybackH": 10.54,
-        "evVidaObservada": 5.9939,
-        "evPorHorizonte": {
-          "h1": -1.052,
-          "h8": -0.28,
-          "h24": 1.4845,
-          "h72": 6.7781
-        }
-      },
-      {
-        "sym": "ACE/USDT:USDT",
-        "aprMediano": 16.5636,
-        "duracaoH": 41.06,
-        "paybackH": 9.48,
-        "evVidaObservada": 5.9711,
-        "evPorHorizonte": {
-          "h1": -1.6036,
-          "h8": -0.28,
-          "h24": 2.7453,
-          "h72": 11.8213
+          "h24": 1.4958,
+          "h72": 6.8234
         }
       }
     ]

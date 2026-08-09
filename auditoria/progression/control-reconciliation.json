@@ -1,47 +1,47 @@
 {
   "schema": "snowball.control-reconciliation.v1_3",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "toleranciaUSD": 0.01,
   "champion": {
-    "capital": 612.9763,
+    "capital": 617.5517,
     "capitalInicial": 600,
-    "funding": 23.7538,
-    "custos": 10.7775,
-    "net": 12.9763,
+    "funding": 29.4486,
+    "custos": 11.8969,
+    "net": 17.5517,
     "reconciliacaoInterna": 0,
     "reconcilia": true
   },
   "decomposicaoCustosPorCategoria": {
-    "abre": 2.2329,
-    "fecha": 4.5257,
-    "escalona": 2.5247,
+    "abre": 2.4269,
+    "fecha": 5.1229,
+    "escalona": 2.8386,
     "apara": 0.1838,
     "socorre": 0,
-    "reinveste": 0.0594,
+    "reinveste": 0.0736,
     "abre-captura": 1.2511
   },
-  "fundingPorEvento": 23.7538,
-  "custoTotalEventos": 10.7775,
+  "fundingPorEvento": 29.4486,
+  "custoTotalEventos": 11.8969,
   "reconciliacaoPorDimensao": [
     {
       "dimensao": "funding (soma eventos vs Champion.fundingTotal)",
-      "control": 23.7538,
-      "champion": 23.7538,
+      "control": 29.4486,
+      "champion": 29.4486,
       "diferenca": 0,
       "dentro001": true
     },
     {
       "dimensao": "custos (soma eventos vs Champion.custosTotal)",
-      "control": 10.7775,
-      "champion": 10.7775,
+      "control": 11.8969,
+      "champion": 11.8969,
       "diferenca": 0,
       "dentro001": true
     },
     {
       "dimensao": "capital (inicial+funding−custos vs Champion.capital)",
-      "control": 612.9763,
-      "champion": 612.9763,
+      "control": 617.5517,
+      "champion": 617.5517,
       "diferenca": 0,
       "dentro001": true
     },
@@ -55,32 +55,32 @@
   ],
   "todasDimensoesDentro001": true,
   "pnlControleVsNet": {
-    "controlPnl": 13.5505,
-    "championNet": 12.9763,
-    "diferenca": 0.5742,
+    "controlPnl": 17.9491,
+    "championNet": 17.5517,
+    "diferenca": 0.3974,
     "dentro001": false,
     "categoriasDiferenca": [
       {
         "categoria": "funding_acumulado_de_posicoes_abertas_sem_custo_de_fechamento",
-        "valor": 3.224,
-        "explicacao": "O Control conta o funding já acumulado das posições ABERTAS como PnL; o custo de fechá-las (~US$1.0737, marcacao.custoEstimadoFechamentoTotal) ainda NÃO foi incorrido. Diferença esperada e documentada.",
+        "valor": 2.1654,
+        "explicacao": "O Control conta o funding já acumulado das posições ABERTAS como PnL; o custo de fechá-las (~US$0.7893, marcacao.custoEstimadoFechamentoTotal) ainda NÃO foi incorrido. Diferença esperada e documentada.",
         "posicoesAbertas": [
           {
-            "symbol": "BICO/USDT:USDT",
-            "funding": 0.9416
-          },
-          {
-            "symbol": "1000CAT/USDT:USDT",
-            "funding": 2.1219
-          },
-          {
             "symbol": "ZBT/USDT:USDT",
-            "funding": 0.1604
+            "funding": 1.0119
+          },
+          {
+            "symbol": "KAITO/USDT:USDT",
+            "funding": 1.1535
+          },
+          {
+            "symbol": "DEXE/USDT:USDT",
+            "funding": 0
           }
         ]
       }
     ]
   },
-  "veredito": "Control reconcilia com o Champion em TODAS as dimensões contábeis (funding/custos/capital/abertas) dentro de US$0,01. A única diferença de PnL (US$0.5742) é 100% atribuída a categoria documentada: funding acumulado das posições abertas ainda sem custo de fechamento.",
+  "veredito": "Control reconcilia com o Champion em TODAS as dimensões contábeis (funding/custos/capital/abertas) dentro de US$0,01. A única diferença de PnL (US$0.3974) é 100% atribuída a categoria documentada: funding acumulado das posições abertas ainda sem custo de fechamento.",
   "honestidade": "A tolerância de US$1 da v1.2 foi substituída por ≤US$0,01 por dimensão contábil. A diferença de PnL residual é categorizada, não tolerada às cegas."
 }

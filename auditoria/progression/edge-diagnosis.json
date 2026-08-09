@@ -1,0 +1,312 @@
+{
+  "schema": "snowball.edge-diagnosis.v1_8",
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
+  "item1_reconciliacao": {
+    "closedRecords": 6,
+    "uniqueClosedSourcePositionIds": 4,
+    "warmupExcluded": 0,
+    "watermarkExcluded": 0,
+    "duplicatePolicyRecords": 2,
+    "gateEligibleClosed": 4,
+    "resolucao_5_vs_3": "6 REGISTROS de fechamento (por política) ⇒ 4 sourcePositionId ÚNICOS. Os 2 extras são a MESMA oportunidade (ex.: LA 2983) fechada por várias políticas (idênticas). O gate conta 4 (únicas), não 6. [os \"5 vs 3\" do enunciado eram o snapshot anterior; agora 6 vs 4 com os mesmos princípios.]"
+  },
+  "item2_ledgerPerdas": [
+    {
+      "sourcePositionId": "47f46a65f40280821ca7b650",
+      "policy": "policy",
+      "symbol": "1000CAT/USDT:USDT",
+      "exchanges": [
+        "bingx",
+        "bybit"
+      ],
+      "openedAt": "2026-08-09T01:29:02.046Z",
+      "closedAt": "2026-08-09T11:40:26.476Z",
+      "holdingHours": 10.19,
+      "settledFunding": 0.1383,
+      "entryCosts": 0.14,
+      "exitCosts": 0.14,
+      "scalingCosts": 0,
+      "cutCosts": 0,
+      "totalCosts": 0.28,
+      "realizedNetPnL": -0.1417,
+      "breakEvenFunding": 0.28,
+      "fundingShortfall": 0.1417,
+      "closeReason": "economic_inversion",
+      "inversionObservedAt": "2026-08-09T11:40:26.476Z",
+      "rightCensored": false,
+      "gateEligible": true
+    },
+    {
+      "sourcePositionId": "26ad5eafe675f6f5c717356b",
+      "policy": "trial",
+      "symbol": "SIREN/USDT:USDT",
+      "exchanges": [
+        "bybit",
+        "bitget"
+      ],
+      "openedAt": "2026-08-09T01:47:08.279Z",
+      "closedAt": "2026-08-09T02:27:08.380Z",
+      "holdingHours": 0.67,
+      "settledFunding": 0.0229,
+      "entryCosts": 0.14,
+      "exitCosts": 0.14,
+      "scalingCosts": 0,
+      "cutCosts": 0,
+      "totalCosts": 0.28,
+      "realizedNetPnL": -0.2571,
+      "breakEvenFunding": 0.28,
+      "fundingShortfall": 0.2571,
+      "closeReason": "economic_inversion",
+      "inversionObservedAt": "2026-08-09T02:27:08.380Z",
+      "rightCensored": false,
+      "gateEligible": true
+    },
+    {
+      "sourcePositionId": "5660bbac719e3abaab2ef359",
+      "policy": "trial",
+      "symbol": "LA/USDT:USDT",
+      "exchanges": [
+        "bitget",
+        "bybit"
+      ],
+      "openedAt": "2026-08-09T02:32:08.384Z",
+      "closedAt": "2026-08-09T03:22:08.484Z",
+      "holdingHours": 0.83,
+      "settledFunding": 0.0524,
+      "entryCosts": 0.14,
+      "exitCosts": 0.14,
+      "scalingCosts": 0,
+      "cutCosts": 0,
+      "totalCosts": 0.28,
+      "realizedNetPnL": -0.2276,
+      "breakEvenFunding": 0.28,
+      "fundingShortfall": 0.2276,
+      "closeReason": "funding_deterioration",
+      "inversionObservedAt": "2026-08-09T03:22:08.484Z",
+      "rightCensored": false,
+      "gateEligible": true
+    },
+    {
+      "sourcePositionId": "29836066334187a23736ae7c",
+      "policy": "observer-max3",
+      "symbol": "LA/USDT:USDT",
+      "exchanges": [
+        "bingx",
+        "bybit"
+      ],
+      "openedAt": "2026-08-09T01:47:08.695Z",
+      "closedAt": "2026-08-09T03:47:08.918Z",
+      "holdingHours": 2,
+      "settledFunding": 0.0345,
+      "entryCosts": 0.14,
+      "exitCosts": 0.14,
+      "scalingCosts": 0,
+      "cutCosts": 0,
+      "totalCosts": 0.28,
+      "realizedNetPnL": -0.2455,
+      "breakEvenFunding": 0.28,
+      "fundingShortfall": 0.2455,
+      "closeReason": "funding_deterioration",
+      "inversionObservedAt": "2026-08-09T03:47:08.918Z",
+      "rightCensored": false,
+      "gateEligible": true
+    },
+    {
+      "sourcePositionId": "29836066334187a23736ae7c",
+      "policy": "observer-max4",
+      "symbol": "LA/USDT:USDT",
+      "exchanges": [
+        "bingx",
+        "bybit"
+      ],
+      "openedAt": "2026-08-09T01:47:09.195Z",
+      "closedAt": "2026-08-09T03:47:09.458Z",
+      "holdingHours": 2,
+      "settledFunding": 0.0345,
+      "entryCosts": 0.14,
+      "exitCosts": 0.14,
+      "scalingCosts": 0,
+      "cutCosts": 0,
+      "totalCosts": 0.28,
+      "realizedNetPnL": -0.2455,
+      "breakEvenFunding": 0.28,
+      "fundingShortfall": 0.2455,
+      "closeReason": "funding_deterioration",
+      "inversionObservedAt": "2026-08-09T03:47:09.458Z",
+      "rightCensored": false,
+      "gateEligible": true
+    },
+    {
+      "sourcePositionId": "29836066334187a23736ae7c",
+      "policy": "observer-max5",
+      "symbol": "LA/USDT:USDT",
+      "exchanges": [
+        "bingx",
+        "bybit"
+      ],
+      "openedAt": "2026-08-09T01:47:09.634Z",
+      "closedAt": "2026-08-09T03:47:09.832Z",
+      "holdingHours": 2,
+      "settledFunding": 0.0345,
+      "entryCosts": 0.14,
+      "exitCosts": 0.14,
+      "scalingCosts": 0,
+      "cutCosts": 0,
+      "totalCosts": 0.28,
+      "realizedNetPnL": -0.2455,
+      "breakEvenFunding": 0.28,
+      "fundingShortfall": 0.2455,
+      "closeReason": "funding_deterioration",
+      "inversionObservedAt": "2026-08-09T03:47:09.832Z",
+      "rightCensored": false,
+      "gateEligible": true
+    }
+  ],
+  "item3_decomposicaoPnL": {
+    "baseRegistros": 6,
+    "entryCosts": -0.84,
+    "exitCosts": -0.84,
+    "scalingCosts": 0,
+    "cutCosts": 0,
+    "fundingRecebido": 0.3171,
+    "fundingInsuficiente": "embutido",
+    "parcelaSlippageAprox": -0.24,
+    "somaValidada": -1.3629,
+    "bateComNetPorRegistro": true,
+    "causaRaiz": "Custo round-trip por posição ($0.28) >> funding capturado ($0.0529). As posições foram cortadas cedo (inversão/deterioração de funding) tendo capturado ~1/8 do necessário p/ break-even.",
+    "netPorRegistro": -1.3629,
+    "netPorSourcePositionIdUnico": -0.8719,
+    "notaDedup": "O -$1.3629 soma REGISTROS por política. Deduplicado por sourcePositionId, a perda real é -$0.8719 (4 oportunidades). A diferença é a LA vista por 3 observers."
+  },
+  "item4_whipsaw": [
+    {
+      "sourcePositionId": "47f46a65f40280821ca7b650",
+      "symbol": "1000CAT/USDT:USDT",
+      "tempoAteFechamentoH": 10.19,
+      "fundingRecebido": 0.1383,
+      "fundingBreakEven": 0.28,
+      "fundingShortfall": 0.1417,
+      "paybackRealizadoFrac": 0.4939,
+      "custoRoundTrip": 0.28,
+      "closeReason": "economic_inversion",
+      "classe": "FUNDING_DETERIORATED"
+    },
+    {
+      "sourcePositionId": "26ad5eafe675f6f5c717356b",
+      "symbol": "SIREN/USDT:USDT",
+      "tempoAteFechamentoH": 0.67,
+      "fundingRecebido": 0.0229,
+      "fundingBreakEven": 0.28,
+      "fundingShortfall": 0.2571,
+      "paybackRealizadoFrac": 0.0818,
+      "custoRoundTrip": 0.28,
+      "closeReason": "economic_inversion",
+      "classe": "OPPORTUNITY_TOO_SHORT"
+    },
+    {
+      "sourcePositionId": "5660bbac719e3abaab2ef359",
+      "symbol": "LA/USDT:USDT",
+      "tempoAteFechamentoH": 0.83,
+      "fundingRecebido": 0.0524,
+      "fundingBreakEven": 0.28,
+      "fundingShortfall": 0.2276,
+      "paybackRealizadoFrac": 0.1871,
+      "custoRoundTrip": 0.28,
+      "closeReason": "funding_deterioration",
+      "classe": "FUNDING_DETERIORATED"
+    },
+    {
+      "sourcePositionId": "29836066334187a23736ae7c",
+      "symbol": "LA/USDT:USDT",
+      "tempoAteFechamentoH": 2,
+      "fundingRecebido": 0.0345,
+      "fundingBreakEven": 0.28,
+      "fundingShortfall": 0.2455,
+      "paybackRealizadoFrac": 0.1232,
+      "custoRoundTrip": 0.28,
+      "closeReason": "funding_deterioration",
+      "classe": "FUNDING_DETERIORATED"
+    }
+  ],
+  "item5_comparacaoPareada": [
+    {
+      "sourcePositionId": "47f46a65f40280821ca7b650",
+      "symbol": "1000CAT/USDT:USDT",
+      "politicasQueFecharam": [
+        "policy"
+      ],
+      "quantasPoliticas": 1,
+      "identicasEntrePoliticas": true,
+      "holdingHours": 10.19,
+      "funding": 0.1383,
+      "custos": 0.28,
+      "PnL": -0.1417,
+      "capitalHours": 407.6
+    },
+    {
+      "sourcePositionId": "26ad5eafe675f6f5c717356b",
+      "symbol": "SIREN/USDT:USDT",
+      "politicasQueFecharam": [
+        "trial"
+      ],
+      "quantasPoliticas": 1,
+      "identicasEntrePoliticas": true,
+      "holdingHours": 0.67,
+      "funding": 0.0229,
+      "custos": 0.28,
+      "PnL": -0.2571,
+      "capitalHours": 26.8
+    },
+    {
+      "sourcePositionId": "5660bbac719e3abaab2ef359",
+      "symbol": "LA/USDT:USDT",
+      "politicasQueFecharam": [
+        "trial"
+      ],
+      "quantasPoliticas": 1,
+      "identicasEntrePoliticas": true,
+      "holdingHours": 0.83,
+      "funding": 0.0524,
+      "custos": 0.28,
+      "PnL": -0.2276,
+      "capitalHours": 33.2
+    },
+    {
+      "sourcePositionId": "29836066334187a23736ae7c",
+      "symbol": "LA/USDT:USDT",
+      "politicasQueFecharam": [
+        "observer-max3",
+        "observer-max4",
+        "observer-max5"
+      ],
+      "quantasPoliticas": 3,
+      "identicasEntrePoliticas": true,
+      "holdingHours": 2,
+      "funding": 0.0345,
+      "custos": 0.28,
+      "PnL": -0.2455,
+      "capitalHours": 80
+    }
+  ],
+  "item6_rankingsSeparados": {
+    "realized": {
+      "amostra": 6,
+      "unicas": 4,
+      "totalNetPorUnica": -0.8719
+    },
+    "marked": {
+      "amostra": 18,
+      "nota": "posições abertas (censuradas) — marked não misturado com realized"
+    },
+    "executable": {
+      "amostra": 18,
+      "nota": "executável só faz sentido em aberto; não somado ao realizado"
+    },
+    "censored": {
+      "amostra": 18
+    }
+  },
+  "veredito": "Edge negativa NÃO é bug de contabilidade (invariante fecha ≤$0,01). É ENTRADA em oportunidades curtas demais: custo round-trip ~$0,28 vs funding capturado ~$0,03. Deduplicado por sourcePositionId a perda é -$0.8719 (3 oportunidades), não -$1.3629. Amostra insuficiente (3/30) p/ concluir a borda.",
+  "honestidade": "Diagnóstico read-only. NÃO altera estratégia/close policy. Com 3 oportunidades, é whipsaw de funding-arb (mesmo padrão de WAXP/ACE do Champion): apr de entrada não persistiu."
+}

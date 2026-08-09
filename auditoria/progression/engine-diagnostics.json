@@ -1,19 +1,19 @@
 {
   "schema": "snowball.engine-diagnostics.v1",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "momentum": {
     "estado": "DATA_COLLECTION (live-paper)",
-    "capital": 198.8203,
+    "capital": 198.8039,
     "pnlAcumulado": -0.9946,
     "fechados": 1,
     "vitorias": 0,
-    "abertos": 44,
-    "custosTotal": 0.1898,
+    "abertos": 48,
+    "custosTotal": 0.2062,
     "halted": false,
     "diagnostico": [
       "PnL inicial NEGATIVO (-0.9946) com amostra fechada mínima (1) — inconclusivo.",
-      "44 posições abertas vs 1 fechadas: quase nada realizou; sem base para julgar edge.",
+      "48 posições abertas vs 1 fechadas: quase nada realizou; sem base para julgar edge.",
       "Não afrouxar entradas/saídas para forçar fechamentos. Acumular fechados suficientes antes de shadow verdict."
     ],
     "porQuePerdeu": "ainda indeterminado — amostra fechada insuficiente; custos e regime a medir sobre fechados reais.",

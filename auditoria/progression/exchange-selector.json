@@ -1,7 +1,7 @@
 {
   "schema": "snowball.exchange-selector.v1",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "metodo": "replay cronológico; sem seleção retrospectiva de vencedores; common-window por construção (scans varrem todas as exchanges no mesmo ciclo).",
   "exchangesOperacionais": [
     "binanceusdm",
@@ -21,16 +21,16 @@
   "margemLivreCom100PorPerna": 140,
   "respostas": {
     "maiorPnlLiquidoRealizado": {
-      "par": "bitget+bybit",
-      "pnl": 5.9127
+      "par": "gate+okx",
+      "pnl": 6.1318
     },
     "maisOportunidadesEVpositivo": [
       {
-        "par": "bitget+bybit",
+        "par": "gate+okx",
         "evPos": 0
       },
       {
-        "par": "gate+okx",
+        "par": "bitget+bybit",
         "evPos": 0
       },
       {
@@ -40,11 +40,11 @@
     ],
     "maisBloqueadasPorOrdemMinima": [
       {
-        "par": "bitget+bybit",
+        "par": "gate+okx",
         "bloqueadas": 0
       },
       {
-        "par": "gate+okx",
+        "par": "bitget+bybit",
         "bloqueadas": 0
       },
       {
@@ -52,7 +52,7 @@
         "bloqueadas": 0
       }
     ],
-    "lucroPerdidoAoRestringirA2Exchanges": 7.6378,
+    "lucroPerdidoAoRestringirA2Exchanges": 11.8173,
     "duasExchangesSaoSuficientes": null
   },
   "veredito": {
@@ -62,32 +62,6 @@
   },
   "honestidade": "O capitalNecessario/saldoDisponivel dos candidatos reflete a config viva (US$600/6 exchanges), não um cenário hipotético de US$200/2 exchanges — a coluna fundavelCom100PorPerna é aproximação. Realizado é enviesado para os pares que o Champion escolheu (ele só abre o melhor).",
   "ranking": [
-    {
-      "par": "bitget+bybit",
-      "exchanges": [
-        "bybit",
-        "bitget"
-      ],
-      "landscape": {
-        "obs": 0,
-        "oportunidadesEVpositivo": 0,
-        "aprovadas": 0,
-        "somaEVpositivo": 0,
-        "somaCusto": 0,
-        "spreadMedio": 0,
-        "consistenciaMedia": 0,
-        "symbolsDistintos": 0,
-        "fundavelCom100PorPerna": 0,
-        "bloqueadasPorOrdemMinima": 0
-      },
-      "realizado": {
-        "posicoes": 6,
-        "funding": 7.5726,
-        "custo": 1.6599,
-        "pnlLiquido": 5.9127
-      },
-      "rank": 1
-    },
     {
       "par": "gate+okx",
       "exchanges": [
@@ -107,10 +81,36 @@
         "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
-        "posicoes": 4,
-        "funding": 4.6835,
-        "custo": 1.5237,
-        "pnlLiquido": 3.1598
+        "posicoes": 5,
+        "funding": 8.3733,
+        "custo": 2.2415,
+        "pnlLiquido": 6.1318
+      },
+      "rank": 1
+    },
+    {
+      "par": "bitget+bybit",
+      "exchanges": [
+        "bybit",
+        "bitget"
+      ],
+      "landscape": {
+        "obs": 0,
+        "oportunidadesEVpositivo": 0,
+        "aprovadas": 0,
+        "somaEVpositivo": 0,
+        "somaCusto": 0,
+        "spreadMedio": 0,
+        "consistenciaMedia": 0,
+        "symbolsDistintos": 0,
+        "fundavelCom100PorPerna": 0,
+        "bloqueadasPorOrdemMinima": 0
+      },
+      "realizado": {
+        "posicoes": 7,
+        "funding": 7.5726,
+        "custo": 1.6599,
+        "pnlLiquido": 5.9127
       },
       "rank": 2
     },
@@ -133,10 +133,10 @@
         "bloqueadasPorOrdemMinima": 0
       },
       "realizado": {
-        "posicoes": 5,
-        "funding": 4.9162,
+        "posicoes": 6,
+        "funding": 6.9212,
         "custo": 2.3919,
-        "pnlLiquido": 2.5242
+        "pnlLiquido": 4.5293
       },
       "rank": 3
     },
@@ -161,8 +161,8 @@
       "realizado": {
         "posicoes": 4,
         "funding": 3.1802,
-        "custo": 1.744,
-        "pnlLiquido": 1.4361
+        "custo": 2.3224,
+        "pnlLiquido": 0.8578
       },
       "rank": 4
     },

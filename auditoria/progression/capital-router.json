@@ -1,7 +1,7 @@
 {
   "schema": "snowball.capital-router.v1",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "natureza": "SHADOW/observer — nenhuma ordem, saldo, fechamento, sizing ou aprovação real. Só registra a decisão que TOMARIA e compara com o Champion.",
   "formatoComum": [
     "opportunityId",
@@ -44,8 +44,8 @@
   },
   "honestidade": "A maioria esmagadora dos episódios tem EV não-positivo → shadow e Champion REJEITAM juntos. A concordância alta reflete que quase nada passa no custo/payback, não que o router \"acerta\". Router é observador; a decisão real continua do Champion.",
   "posicoesAbertasChampion": [
-    "BICO/USDT:USDT",
-    "1000CAT/USDT:USDT",
-    "ZBT/USDT:USDT"
+    "ZBT/USDT:USDT",
+    "KAITO/USDT:USDT",
+    "DEXE/USDT:USDT"
   ]
 }

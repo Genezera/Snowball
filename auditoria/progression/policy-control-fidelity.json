@@ -1,9 +1,9 @@
 {
   "schema": "snowball.policy-control-fidelity.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "championAbertas": 3,
-  "policyAbertas": 0,
+  "policyAbertas": 3,
   "tiposDivergencia": [
     "ENTRY_DIVERGENCE",
     "SIZING_DIVERGENCE",
@@ -13,8 +13,8 @@
     "DATA_DIVERGENCE"
   ],
   "contadores": {
-    "ENTRY_DIVERGENCE": 3,
-    "SIZING_DIVERGENCE": 0,
+    "ENTRY_DIVERGENCE": 2,
+    "SIZING_DIVERGENCE": 2,
     "RANKING_DIVERGENCE": 0,
     "BALANCE_DIVERGENCE": 0,
     "CLOSE_DIVERGENCE": 0,
@@ -23,23 +23,34 @@
   "divergencias": [
     {
       "tipo": "ENTRY_DIVERGENCE",
-      "detalhe": "Champion tem BICO|gate+okx, Policy não",
-      "causaProvavel": "warmup (posição aberta antes da economicForwardEpoch) ou DATA_DIVERGENCE"
+      "detalhe": "Champion tem DEXE|bitget+bybit, Policy não",
+      "warmup": false,
+      "causaProvavel": "DATA/timing (Champion vê dados/exchanges fora do feed comum)"
     },
     {
       "tipo": "ENTRY_DIVERGENCE",
-      "detalhe": "Champion tem 1000CAT|binanceusdm+bybit, Policy não",
-      "causaProvavel": "warmup (posição aberta antes da economicForwardEpoch) ou DATA_DIVERGENCE"
+      "detalhe": "Policy tem COTI|binanceusdm+bingx, Champion não",
+      "warmup": false,
+      "causaProvavel": "timing/feed (Champion fechou ou não abriu; Policy age só pelo feed)"
     },
     {
-      "tipo": "ENTRY_DIVERGENCE",
-      "detalhe": "Champion tem ZBT|bingx+bybit, Policy não",
-      "causaProvavel": "warmup (posição aberta antes da economicForwardEpoch) ou DATA_DIVERGENCE"
+      "tipo": "SIZING_DIVERGENCE",
+      "detalhe": "ZBT|bingx+bybit: champion 108.35 vs policy 100",
+      "warmup": true,
+      "causaProvavel": "warmup (escala/estágio do Champion pré-epoch — notional não replicável pós-epoch)"
+    },
+    {
+      "tipo": "SIZING_DIVERGENCE",
+      "detalhe": "KAITO|bingx+bybit: champion 185.3 vs policy 100",
+      "warmup": false,
+      "causaProvavel": "sizing real (pós-epoch) — evidência"
     }
   ],
   "explicadas": {
-    "warmupPreEpoch": 3,
-    "total": 3,
+    "warmupPreEpoch": 1,
+    "warmupExcluidasDoGate": 1,
+    "divergenciasReaisPosEpoch": 3,
+    "total": 4,
     "todasExplicadas": true
   },
   "separadaDoMirror": true,

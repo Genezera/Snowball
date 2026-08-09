@@ -1,11 +1,11 @@
 {
   "schema": "snowball.source-health.v1_6",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "arquivo": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
-  "arquivoBytes": 15115365,
-  "lastModifiedISO": "2026-08-08T23:44:12.001Z",
-  "idadeArquivoS": 4837,
+  "arquivoBytes": 16059066,
+  "lastModifiedISO": "2026-08-09T12:55:40.367Z",
+  "idadeArquivoS": 44,
   "scanIntervalEsperadoS": 300,
   "coletorHeartbeat": {
     "ok": true,
@@ -18,44 +18,44 @@
       "totalCustodia"
     ]
   },
-  "classificacaoGlobal": "COLLECTOR_DOWNTIME",
-  "ultimoCicloCompletoISO": "2026-08-08T23:41:40.278Z",
+  "classificacaoGlobal": "NO_NEW_DATA_YET",
+  "ultimoCicloCompletoISO": "2026-08-09T12:55:26.095Z",
   "saudePorExchange": {
     "binanceusdm": {
-      "ultimaObsTs": 1786232500278,
-      "ocorrencias": 2628,
-      "idadeUltimaObsS": 4988,
-      "classe": "EXCHANGE_UNAVAILABLE"
+      "ultimaObsTs": 1786280126095,
+      "ocorrencias": 2630,
+      "idadeUltimaObsS": 58,
+      "classe": "HEALTHY"
     },
     "bybit": {
-      "ultimaObsTs": 1786232500278,
-      "ocorrencias": 4187,
-      "idadeUltimaObsS": 4988,
-      "classe": "EXCHANGE_UNAVAILABLE"
+      "ultimaObsTs": 1786280126095,
+      "ocorrencias": 4361,
+      "idadeUltimaObsS": 58,
+      "classe": "HEALTHY"
     },
     "okx": {
-      "ultimaObsTs": 1786232500278,
-      "ocorrencias": 2566,
-      "idadeUltimaObsS": 4988,
-      "classe": "EXCHANGE_UNAVAILABLE"
+      "ultimaObsTs": 1786280126095,
+      "ocorrencias": 2367,
+      "idadeUltimaObsS": 58,
+      "classe": "HEALTHY"
     },
     "gate": {
-      "ultimaObsTs": 1786232500278,
-      "ocorrencias": 3050,
-      "idadeUltimaObsS": 4988,
-      "classe": "EXCHANGE_UNAVAILABLE"
+      "ultimaObsTs": 1786280126095,
+      "ocorrencias": 2700,
+      "idadeUltimaObsS": 58,
+      "classe": "HEALTHY"
     },
     "bitget": {
-      "ultimaObsTs": 1786232500278,
-      "ocorrencias": 1908,
-      "idadeUltimaObsS": 4988,
-      "classe": "EXCHANGE_UNAVAILABLE"
+      "ultimaObsTs": 1786280126095,
+      "ocorrencias": 2241,
+      "idadeUltimaObsS": 58,
+      "classe": "HEALTHY"
     },
     "bingx": {
-      "ultimaObsTs": 1786232500278,
-      "ocorrencias": 3739,
-      "idadeUltimaObsS": 4988,
-      "classe": "EXCHANGE_UNAVAILABLE"
+      "ultimaObsTs": 1786280126095,
+      "ocorrencias": 3657,
+      "idadeUltimaObsS": 58,
+      "classe": "HEALTHY"
     }
   },
   "classesPossiveis": [

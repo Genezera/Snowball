@@ -1,50 +1,48 @@
 {
   "schema": "snowball.progression-status.v1",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
-  "nivelAtual": 1,
-  "nivelAtualNome": "Motor principal",
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
+  "nivelAtual": 0,
+  "nivelAtualNome": "Fundação",
   "progressoNivel": {
-    "proximo": 2,
-    "nome": "Eficiência",
+    "proximo": 1,
+    "nome": "Motor principal",
     "unlockStatus": "BLOCKED",
     "bloqueios": [
-      "capital suficiente; falta evidência: gate dos challengers de timing LIBERADO · Chefe Concentração derrotado"
+      "capital suficiente; falta evidência: Champion LIVE · Chefe Custos derrotado · Chefe Sobrevivência derrotado · lucro líquido > 0"
     ]
   },
-  "proximoDesbloqueio": "N2 Eficiência — BLOCKED",
-  "capitalAtual": 612.9763,
+  "proximoDesbloqueio": "N1 Motor principal — BLOCKED",
+  "capitalAtual": 617.6281,
   "capitalNecessarioProximoNivelEvidencia": 0,
   "capitalNecessarioNota": "Capital do próximo nível JÁ atingido — o bloqueio é EVIDÊNCIA (gate/amostra), não dinheiro.",
   "fronteiraCapital": {
     "proximoNivelPorCapital": 4,
-    "gapUSD": 187.02,
+    "gapUSD": 182.45,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
   "niveisTriplos": {
     "capitalLevel": 3,
-    "evidenceLevel": 1,
-    "operationalLevel": 1
+    "evidenceLevel": 0,
+    "operationalLevel": 0
   },
   "chefesPorEstado": {
     "PROVISIONALLY_DEFEATED": [
       "custos",
       "concentracao"
     ],
-    "PASSED_CURRENT_WINDOW": [
-      "sobrevivencia"
-    ],
     "ACTIVE": [
+      "sobrevivencia",
       "capacidade",
       "diversificacao"
     ]
   },
   "chefesAtivos": [
+    "sobrevivencia",
     "capacidade",
     "diversificacao"
   ],
   "chefesProvisorios": [
-    "sobrevivencia",
     "custos",
     "concentracao"
   ],
@@ -72,7 +70,7 @@
     "champion-funding"
   ],
   "contribuicaoPnL": {
-    "champion-funding": 12.9763,
+    "champion-funding": 17.5517,
     "outros": 0,
     "nota": "100% do lucro vem do funding; nenhum 2º motor comprovado."
   },
@@ -84,47 +82,47 @@
   "progressoGates": {
     "reconciliacao": true,
     "chefeCustos": "PROVISIONALLY_DEFEATED",
-    "chefeSobrevivencia": "PASSED_CURRENT_WINDOW",
+    "chefeSobrevivencia": "ACTIVE",
     "chefeConcentracao": "PROVISIONALLY_DEFEATED",
     "chefeCapacidade": "ACTIVE",
     "chefeDiversificacao": "ACTIVE"
   },
   "exchangeSelector": {
     "melhorParRealizado": {
-      "par": "bitget+bybit",
-      "pnl": 5.9127
+      "par": "gate+okx",
+      "pnl": 6.1318
     },
     "suficienteParaEscolher2": false,
-    "lucroPerdidoAoRestringir": 7.6378
+    "lucroPerdidoAoRestringir": 11.8173
   },
   "capacidade": {
     "veredito": "CAPACIDADE PRODUTIVA NÃO COMPROVADA",
     "saturacaoUSD": 300,
-    "picoMargemUSD": 190.36
+    "picoMargemUSD": 176.9
   },
   "exchangeReplay2ex": {
     "melhorPar": {
-      "par": "bitget+bybit",
-      "pnl": 5.9127
+      "par": "gate+okx",
+      "pnl": 6.1318
     },
     "todasReconciliam": true,
-    "diferencaFixo2vs6": 7.6378
+    "diferencaFixo2vs6": 11.8173
   },
   "reinvestimentoContrafactual": {
     "conclusao": "Nesta janela (~6 dias) as políticas A/B/C geram o MESMO PnL de motor em ambas as bases — o lucro compõe devagar demais p/ relaxar restrição de capital, então a política de reinvestimento NÃO muda o lucro do motor. A única diferença econômica REAL é que a Política C acumula um fundo de 2º motor (US$6,14 a US$600) sem custo de PnL medido. Como o motor satura ~US$400, reinvestir MAIS nele é ocioso; desviar o excedente p/ diversificação (C) é a política superior no estado atual — mas o ganho é DIVERSIFICAÇÃO futura, não lucro garantido, e precisa de ≥2 janelas/regimes p/ confirmar.",
-    "fundoC600": 7.8124
+    "fundoC600": 10.0117
   },
   "crescimento": {
     "trajetoriaObservada": {
-      "netObservado": 12.9763,
-      "diasObservados": 5.49,
+      "netObservado": 17.5517,
+      "diasObservados": 6.03,
       "maxDrawdownPct": 0.43
     },
     "bootstrapPronto": false,
     "intervaloCenarios": {
-      "min": -3.7397,
-      "max": 12.9763,
-      "observado": 12.9763
+      "min": -1.7073,
+      "max": 17.5517,
+      "observado": 17.5517
     },
     "projecaoTemporal": null
   },

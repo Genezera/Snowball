@@ -1,12 +1,12 @@
 {
   "schema": "snowball.opportunity-episodes.v1_4",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "interpretacaoCorreta": {
     "duracaoMedianaEpisodioScannerH": 0.17,
-    "duracaoMedianaHoldPosicaoRealH": 2.97,
-    "posicoesFechadasReais": 24,
-    "insight": "O episódio no SCANNER dura ~0.17h (a oportunidade some da varredura em minutos), mas a POSIÇÃO real do Champion é segurada por ~2.97h — cerca de 17× o episódio do scanner. Ou seja: o Champion SEGURA a posição através da invisibilidade no scanner, rendendo funding mesmo quando o spread some da varredura. Por isso survivedPayback=0 medido pela vida-no-scanner é ENGANOSO — a vida-do-episódio NÃO é a métrica de payback. E o Champion só abre APR muito alto (payback curto), não a oportunidade mediana. CONCLUSÃO metodológica do v1.4: nenhum proxy offline (vida-no-scanner de v1.3/v1.4) responde ao payback; só o teste FORWARD — que segura posições sob as regras econômicas reais — resolve. Corrigir a metodologia ANTES de interpretar economia era o objetivo."
+    "duracaoMedianaHoldPosicaoRealH": 3.89,
+    "posicoesFechadasReais": 27,
+    "insight": "O episódio no SCANNER dura ~0.17h (a oportunidade some da varredura em minutos), mas a POSIÇÃO real do Champion é segurada por ~3.89h — cerca de 23× o episódio do scanner. Ou seja: o Champion SEGURA a posição através da invisibilidade no scanner, rendendo funding mesmo quando o spread some da varredura. Por isso survivedPayback=0 medido pela vida-no-scanner é ENGANOSO — a vida-do-episódio NÃO é a métrica de payback. E o Champion só abre APR muito alto (payback curto), não a oportunidade mediana. CONCLUSÃO metodológica do v1.4: nenhum proxy offline (vida-no-scanner de v1.3/v1.4) responde ao payback; só o teste FORWARD — que segura posições sob as regras econômicas reais — resolve. Corrigir a metodologia ANTES de interpretar economia era o objetivo."
   },
   "parametros": {
     "gapMaxMin": 30,
@@ -23,12 +23,12 @@
   },
   "janela": {
     "inicio": "2026-08-02T18:21:54.848Z",
-    "fim": "2026-08-08T23:41:40.278Z",
-    "chavesDistintas": 2929
+    "fim": "2026-08-09T12:55:26.095Z",
+    "chavesDistintas": 3043
   },
   "item2_3_episodios": {
-    "total": 18821,
-    "completos": 18675,
+    "total": 20177,
+    "completos": 20007,
     "exemplos": [
       {
         "id": "KAITO/USDT:USDT|bybit|binanceusdm|epoch-1#1785696993854",
@@ -88,21 +88,21 @@
   },
   "item3_censura": {
     "leftCensored": 5,
-    "rightCensored": 141,
-    "completeEpisodes": 18675,
+    "rightCensored": 165,
+    "completeEpisodes": 20007,
     "observationCoverageMediana": 1,
     "duracaoMedianaH_completosApenas": 0.17,
     "duracaoMedianaH_todos_ENGANOSA": 0.17,
     "nota": "A mediana de duração v1.3 (27h) misturava censurados. Correta = só completos. Censurados à direita NÃO têm duração conhecida."
   },
   "item5_funilCorrigido": {
-    "allEpisodes": 18821,
-    "completeEpisodes": 18675,
-    "modelPositiveAtDecisionTime": 5114,
+    "allEpisodes": 20177,
+    "completeEpisodes": 20007,
+    "modelPositiveAtDecisionTime": 5507,
     "survivedPayback": 0,
     "engineApproved": 13,
     "opened": 1,
-    "profitableClosed": 19,
+    "profitableClosed": 22,
     "survivalAmongAll": 0,
     "survivalAmongModelPositive": 0,
     "nota": "survivalAmongAll e survivalAmongModelPositive usam só episódios COMPLETOS (não censurados). engineApproved é estimativa (candidate-observations indisponível nesta sessão)."

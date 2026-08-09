@@ -1,0 +1,63 @@
+{
+  "schema": "snowball.risk-alert-tracker.v1_8",
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "paperOnly": true,
+  "naoAlteraRiskGuardian": true,
+  "nivelGlobalAtual": "WARNING",
+  "liquidationDistance": {
+    "nativaDisponivel": false,
+    "fonte": "ESTIMATED_FROM_LEVERAGE",
+    "nota": "A exchange não expõe preço de liquidação ao lab; usamos estimativa por alavancagem (não apresentada como oficial)."
+  },
+  "alertasAtivos": 3,
+  "alertasTotais": 3,
+  "alertas": [
+    {
+      "alertId": "de40de0fedc36714",
+      "positionId": "ZBT/USDT:USDT",
+      "firstObservedAt": 1786272095321,
+      "warningAt": 1786272095321,
+      "criticalAt": null,
+      "emergencyAt": null,
+      "resolvedAt": null,
+      "maxAdverseMove": 2.61,
+      "minimumLiquidationDistance": 14.55,
+      "nivelAtual": "WARNING",
+      "exchangeNativeLiquidationDistance": null,
+      "estimatedLiquidationDistancePct": 14.55,
+      "liquidationDistanceSource": "ESTIMATED_FROM_LEVERAGE (~17% p/ 5x, calibrado ao BICO) — NÃO é valor oficial da exchange"
+    },
+    {
+      "alertId": "c14e463835a068c0",
+      "positionId": "KAITO/USDT:USDT",
+      "firstObservedAt": 1786277749913,
+      "warningAt": null,
+      "criticalAt": null,
+      "emergencyAt": null,
+      "resolvedAt": null,
+      "maxAdverseMove": 0.98,
+      "minimumLiquidationDistance": 16.8,
+      "nivelAtual": "SAFE",
+      "exchangeNativeLiquidationDistance": null,
+      "estimatedLiquidationDistancePct": 17,
+      "liquidationDistanceSource": "ESTIMATED_FROM_LEVERAGE (~17% p/ 5x, calibrado ao BICO) — NÃO é valor oficial da exchange"
+    },
+    {
+      "alertId": "529891a6226d990e",
+      "positionId": "DEXE/USDT:USDT",
+      "firstObservedAt": 1786277749913,
+      "warningAt": null,
+      "criticalAt": null,
+      "emergencyAt": null,
+      "resolvedAt": null,
+      "maxAdverseMove": 0.18,
+      "minimumLiquidationDistance": 17,
+      "nivelAtual": "SAFE",
+      "exchangeNativeLiquidationDistance": null,
+      "estimatedLiquidationDistancePct": 17,
+      "liquidationDistanceSource": "ESTIMATED_FROM_LEVERAGE (~17% p/ 5x, calibrado ao BICO) — NÃO é valor oficial da exchange"
+    }
+  ],
+  "honestidade": "Read-only do Risk Guardian. Distância NATIVA = UNAVAILABLE (não exposta); só ESTIMADA, com fonte rotulada. engineResponseDelayMs = quanto o motor demorou a agir após EMERGENCY (mede o risco operacional do incidente BICO)."
+}

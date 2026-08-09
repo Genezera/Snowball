@@ -1,0 +1,272 @@
+{
+  "schema": "snowball.profit-discovery.v1_8",
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
+  "amostra": {
+    "uniqueSourcePositionClosed": 4,
+    "minimo": 30,
+    "suficiente": false
+  },
+  "item2_rankingPoliticas": {
+    "ranking": [
+      {
+        "policy": "policy",
+        "lucroLiquido": -0.1417,
+        "lucroPorCapitalHora": -0.0003,
+        "capitalMedioUtilizado": 120,
+        "capitalOcioso": 480,
+        "frequenciaFechadas": 1,
+        "custos": 0.28,
+        "drawdown": 0.1417,
+        "posicoesFechadas": 1,
+        "censura": 3
+      },
+      {
+        "policy": "observer-max3",
+        "lucroLiquido": -0.2455,
+        "lucroPorCapitalHora": -0.0031,
+        "capitalMedioUtilizado": 120,
+        "capitalOcioso": 480,
+        "frequenciaFechadas": 1,
+        "custos": 0.28,
+        "drawdown": 0.2455,
+        "posicoesFechadas": 1,
+        "censura": 3
+      },
+      {
+        "policy": "observer-max4",
+        "lucroLiquido": -0.2455,
+        "lucroPorCapitalHora": -0.0031,
+        "capitalMedioUtilizado": 160,
+        "capitalOcioso": 440,
+        "frequenciaFechadas": 1,
+        "custos": 0.28,
+        "drawdown": 0.2455,
+        "posicoesFechadas": 1,
+        "censura": 4
+      },
+      {
+        "policy": "observer-max5",
+        "lucroLiquido": -0.2455,
+        "lucroPorCapitalHora": -0.0031,
+        "capitalMedioUtilizado": 200,
+        "capitalOcioso": 400,
+        "frequenciaFechadas": 1,
+        "custos": 0.28,
+        "drawdown": 0.2455,
+        "posicoesFechadas": 1,
+        "censura": 5
+      },
+      {
+        "policy": "trial",
+        "lucroLiquido": -0.4847,
+        "lucroPorCapitalHora": -0.0081,
+        "capitalMedioUtilizado": 120,
+        "capitalOcioso": 80,
+        "frequenciaFechadas": 2,
+        "custos": 0.56,
+        "drawdown": 0.2571,
+        "posicoesFechadas": 2,
+        "censura": 3
+      }
+    ],
+    "vencedor": "INDETERMINADO (amostra insuficiente)",
+    "nota": "NÃO se declara vencedor — amostra insuficiente (fechadas < 30)."
+  },
+  "item3_proximoDolar": {
+    "usos": [
+      {
+        "uso": "adicionar_saldo_exchange_limitante",
+        "expectedMarginalReturn": "ALTO se destrava posição positive-EV bloqueada",
+        "risk": "baixo",
+        "capacity": "nenhuma limitante agora",
+        "confidence": "baixa (amostra insuficiente)",
+        "opportunityCost": "imobiliza $ até fechar",
+        "unlockValue": "direto"
+      },
+      {
+        "uso": "abrir_posicao_adicional",
+        "expectedMarginalReturn": "depende de haver slot livre + oportunidade positive-EV madura",
+        "risk": "concentração",
+        "capacity": "3/3 slots",
+        "confidence": "baixa",
+        "opportunityCost": "reserva",
+        "unlockValue": "médio"
+      },
+      {
+        "uso": "aumentar_sizing_champion",
+        "expectedMarginalReturn": "linear no funding, mas custo fixo por perna dilui em posição pequena",
+        "risk": "liquidação (alavancagem)",
+        "capacity": "limitado pela margem livre",
+        "confidence": "baixa",
+        "opportunityCost": "menos posições",
+        "unlockValue": "médio"
+      },
+      {
+        "uso": "acumular_unlock_fund",
+        "expectedMarginalReturn": "habilita 2º motor no futuro",
+        "risk": "nenhum",
+        "capacity": "ilimitada",
+        "confidence": "alta (regra)",
+        "opportunityCost": "lucro parado",
+        "unlockValue": "estratégico"
+      },
+      {
+        "uso": "manter_reserva",
+        "expectedMarginalReturn": "0 direto; reduz risco de ruína",
+        "risk": "menor",
+        "capacity": "n/a",
+        "confidence": "alta",
+        "opportunityCost": "lucro não exposto",
+        "unlockValue": "defensivo"
+      },
+      {
+        "uso": "financiar_settlement_capture",
+        "expectedMarginalReturn": "capturas de liquidação de alto %/liq (ver captura)",
+        "risk": "timing",
+        "capacity": "janelas de settlement",
+        "confidence": "média",
+        "opportunityCost": "capital de curto prazo",
+        "unlockValue": "oportunista"
+      },
+      {
+        "uso": "aguardar_oportunidade",
+        "expectedMarginalReturn": "0 até aparecer positive-EV madura",
+        "risk": "nenhum",
+        "capacity": "n/a",
+        "confidence": "alta",
+        "opportunityCost": "ociosidade",
+        "unlockValue": "baixo"
+      }
+    ],
+    "recomendacao": "acumular_unlock_fund enquanto a amostra econômica não confirma a borda"
+  },
+  "item4_capacidadePorExchange": {
+    "porExchange": [
+      {
+        "exchange": "binanceusdm",
+        "saldoLivre": 100.4289,
+        "comprometidoAprox": "nas posições abertas do Champion",
+        "abaixoDaReserva": false
+      },
+      {
+        "exchange": "bybit",
+        "saldoLivre": 105.7243,
+        "comprometidoAprox": "nas posições abertas do Champion",
+        "abaixoDaReserva": false
+      },
+      {
+        "exchange": "okx",
+        "saldoLivre": 103.2001,
+        "comprometidoAprox": "nas posições abertas do Champion",
+        "abaixoDaReserva": false
+      },
+      {
+        "exchange": "gate",
+        "saldoLivre": 103.1887,
+        "comprometidoAprox": "nas posições abertas do Champion",
+        "abaixoDaReserva": false
+      },
+      {
+        "exchange": "bitget",
+        "saldoLivre": 102.9837,
+        "comprometidoAprox": "nas posições abertas do Champion",
+        "abaixoDaReserva": false
+      },
+      {
+        "exchange": "bingx",
+        "saldoLivre": 102.1024,
+        "comprometidoAprox": "nas posições abertas do Champion",
+        "abaixoDaReserva": false
+      }
+    ],
+    "exchangeLimitante": [],
+    "nota": "Não mover dinheiro automaticamente. Exchange a $0 livre bloqueia pares que a exigem."
+  },
+  "item5_rejeicoesContrafactuais": {
+    "rawRejectionEvents": 3162,
+    "uniqueSourceDecisionIds": 98,
+    "uniqueOpportunityEpisodes": 98,
+    "uniqueSymbols": 45,
+    "classificacao": {
+      "GOOD_REJECTION": 0,
+      "MISSED_PROFITABLE_OPPORTUNITY": 0,
+      "CORRECTLY_REJECTED_LOSS": 0,
+      "INCONCLUSIVE": 98,
+      "RIGHT_CENSORED": 0
+    },
+    "nota": "Sem lookahead confiável, a maioria fica INCONCLUSIVE ou CORRECTLY_REJECTED_LOSS (portão de EV). MISSED só com prova de que a rejeitada teria lucrado."
+  },
+  "item6_timingFechamento": {
+    "fonte": "economic-daily-report.shadowMaxHoldingSensibilidade + close-exit categorias",
+    "shadow": {
+      "ativoMaxHoldingH": 168,
+      "nota": "shadow — NÃO altera a política ativa (7d)",
+      "fechariam_sob_24h": 0,
+      "fechariam_sob_72h": 0,
+      "fechariam_sob_168h": 0
+    },
+    "nota": "Shadow 24/72/168h já calculado; champion/inversion/next-funding/risk exigem mais fechamentos. Política ativa (7d) NÃO alterada."
+  },
+  "item7_maxPositions": {
+    "schema": "snowball.maxpositions-test.v1_3",
+    "geradoEm": "2026-08-09T12:15:49.913Z",
+    "asOfMs": 1786277749913,
+    "positivasQueViveram": 193,
+    "concorrenciaMaximaObservada": 110,
+    "cenarios": [
+      {
+        "maxPositions": 3,
+        "oportunidadesCapturadas": 19,
+        "pnlPotencialUSD": 53.8821,
+        "capitalNecessarioUSD": 171.43,
+        "picoMargemUSD": 120,
+        "usoSimultaneoExchanges": 6,
+        "concentracaoTop1": 0.2966,
+        "retornoMarginalPorDolar": null
+      },
+      {
+        "maxPositions": 4,
+        "oportunidadesCapturadas": 24,
+        "pnlPotencialUSD": 61.0168,
+        "capitalNecessarioUSD": 228.57,
+        "picoMargemUSD": 160,
+        "usoSimultaneoExchanges": 6,
+        "concentracaoTop1": 0.2324,
+        "retornoMarginalPorDolar": 0.1249
+      },
+      {
+        "maxPositions": 5,
+        "oportunidadesCapturadas": 28,
+        "pnlPotencialUSD": 69.2223,
+        "capitalNecessarioUSD": 285.71,
+        "picoMargemUSD": 200,
+        "usoSimultaneoExchanges": 6,
+        "concentracaoTop1": 0.1851,
+        "retornoMarginalPorDolar": 0.1436
+      }
+    ],
+    "gargalo": "LIMITE DE POSIÇÕES *pelo modelo leniente* (até 110 janelas de payback sobrepostas). MAS este modelo superconta (193 vs ~13 do motor): janelas de payback de ~160h se sobrepõem em excesso, e o motor exige best-ranked + payback-dentro-da-vida. O gargalo REAL só o TESTE FORWARD (itens 3/4) resolve.",
+    "determinacao": "Modelos OFFLINE discordam: v1.1/v1.2 (posições REAIS do Champion, capadas em 3) → capital satura em 3; este teste (fluxo de oportunidades, modelo leniente) → subir maxPositions captura mais (15→19→23, marginal 0.048→0.144/US$). A discordância vem do modelo de viabilidade (leniente superconta). NÃO se decide o gargalo offline — o TESTE FORWARD live-paper (Trial/Control) é que resolve, medindo oportunidades boas REAIS simultâneas ao vivo. Não alterar o Champion sem esse dado forward.",
+    "riscoLiquidacao": "inalterado: cada perna mantém margem/notional = 1/alavancagem; mais posições concorrentes não muda a distância de liquidação individual, mas aumenta a concentração agregada.",
+    "honestidade": "observed (janelas de vida) + simulated (captura greedy por EV). Censura: o Champion capou em 3, então a captura de 4/5 é inferida da sobreposição de oportunidades, não de posições reais."
+  },
+  "item8_compounding": {
+    "reinvestment": "ver reinvestment-counterfactual.json",
+    "growth": "ver growth-scenarios.json",
+    "separacao": {
+      "operatingCapital": "capital em uso",
+      "safetyReserve": 180,
+      "unlockFund": 0,
+      "freeCapital": "livre acima da reserva",
+      "committedCapital": "margem nas posições"
+    },
+    "principio": "Todo lucro fica no sistema; nem todo lucro fica EXPOSTO (parte vira reserva/unlock)."
+  },
+  "item12_candidatoSegundoMotor": {
+    "candidato": "Settlement Capture (captura de liquidação) — já observado pagando alto %/liq no live.log",
+    "condicao": "financiado pelo unlock fund após a borda do 1º motor ser comprovada (gate)",
+    "nota": "não ativar sem gate + aprovação humana"
+  },
+  "honestidade": "Descoberta de lucro estrutural. Com 3/30 fechadas, NENHUM ranking/vencedor é declarado como definitivo — o framework está pronto e os números definitivos vêm com o soak."
+}

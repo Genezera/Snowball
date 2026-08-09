@@ -1,25 +1,25 @@
 {
   "schema": "snowball.levels.v1_1",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
-  "capitalRealizado": 612.9763,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "capitalRealizado": 617.5517,
   "capitalLevel": 3,
-  "evidenceLevel": 1,
-  "operationalLevel": 1,
+  "evidenceLevel": 0,
+  "operationalLevel": 0,
   "niveisTriplos": {
     "capitalLevel": "N3 (capital suporta)",
-    "evidenceLevel": "N1 (prova provisória — 1 janela)",
-    "operationalLevel": "N1 (operar ≤ prova)",
+    "evidenceLevel": "N0 (prova provisória — 1 janela)",
+    "operationalLevel": "N0 (operar ≤ prova)",
     "nota": "capitalLevel ≥ evidenceLevel; a diferença é capacidade não comprovada. operationalLevel = min(capital, evidência). Unlocks são PROVISÓRIOS até DEFEATED (≥2 janelas/regimes)."
   },
-  "nivelAtual": 1,
-  "nivelAtualNome": "Motor principal",
+  "nivelAtual": 0,
+  "nivelAtualNome": "Fundação",
   "proximoNivel": {
-    "levelId": 2,
-    "nome": "Eficiência",
+    "levelId": 1,
+    "nome": "Motor principal",
     "unlockStatus": "BLOCKED",
     "blockedReasons": [
-      "capital suficiente; falta evidência: gate dos challengers de timing LIBERADO · Chefe Concentração derrotado"
+      "capital suficiente; falta evidência: Champion LIVE · Chefe Custos derrotado · Chefe Sobrevivência derrotado · lucro líquido > 0"
     ]
   },
   "principio": "Capital sozinho não desbloqueia. Um lucro isolado ou uma moeda que subiu muito NÃO desbloqueia um motor. Exige capital + amostra + 2 janelas + 2 regimes + custos estressados + drawdown aceitável + concentração + estabilidade + dados íntegros + rollback + aprovação humana.",
@@ -86,9 +86,11 @@
       ],
       "bossCondition": "Chefe dos Custos + Chefe da Sobrevivência derrotados na amostra viva.",
       "capitalAtingido": true,
-      "evidenciaAtingida": true,
-      "unlockStatus": "UNLOCKED",
-      "blockedReasons": []
+      "evidenciaAtingida": false,
+      "unlockStatus": "BLOCKED",
+      "blockedReasons": [
+        "capital suficiente; falta evidência: Champion LIVE · Chefe Custos derrotado · Chefe Sobrevivência derrotado · lucro líquido > 0"
+      ]
     },
     {
       "levelId": 2,
@@ -182,7 +184,7 @@
       "evidenciaAtingida": false,
       "unlockStatus": "LOCKED",
       "blockedReasons": [
-        "capital insuficiente: US$612.98 < US$800 (estimativa)"
+        "capital insuficiente: US$617.55 < US$800 (estimativa)"
       ]
     },
     {
@@ -213,7 +215,7 @@
       "evidenciaAtingida": false,
       "unlockStatus": "LOCKED",
       "blockedReasons": [
-        "capital insuficiente: US$612.98 < US$1200 (estimativa)"
+        "capital insuficiente: US$617.55 < US$1200 (estimativa)"
       ]
     },
     {
@@ -247,7 +249,7 @@
       "evidenciaAtingida": false,
       "unlockStatus": "LOCKED",
       "blockedReasons": [
-        "capital insuficiente: US$612.98 < US$2000 (estimativa)"
+        "capital insuficiente: US$617.55 < US$2000 (estimativa)"
       ]
     }
   ]

@@ -1,54 +1,54 @@
 {
   "schema": "snowball.stress-paired.v1_7",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
-  "operacoesNoConjunto": 2,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "operacoesNoConjunto": 13,
   "custoRoundTripFrac": 0.0028,
   "slippageAdicionalPorPerna": 0.0002,
   "cenarios": {
     "baseline": {
-      "operacoes": 2,
-      "pnlTotal": -0.5159,
-      "positivas": 0
+      "operacoes": 13,
+      "pnlTotal": -2.6034,
+      "positivas": 1
     },
     "custos_1_5x": {
-      "operacoes": 2,
-      "pnlTotal": -0.7959,
+      "operacoes": 13,
+      "pnlTotal": -4.4234,
       "positivas": 0
     },
     "custos_2x": {
-      "operacoes": 2,
-      "pnlTotal": -1.0759,
+      "operacoes": 13,
+      "pnlTotal": -6.2434,
       "positivas": 0
     },
     "funding_menos_25": {
-      "operacoes": 2,
-      "pnlTotal": -0.5269,
+      "operacoes": 13,
+      "pnlTotal": -2.8623,
       "positivas": 0
     },
     "funding_menos_50": {
-      "operacoes": 2,
-      "pnlTotal": -0.5379,
+      "operacoes": 13,
+      "pnlTotal": -3.1214,
       "positivas": 0
     },
     "slippage_adicional": {
-      "operacoes": 2,
-      "pnlTotal": -0.6759,
-      "positivas": 0
+      "operacoes": 13,
+      "pnlTotal": -3.6434,
+      "positivas": 1
     },
     "perda_bybit": {
-      "operacoes": 0,
-      "pnlTotal": 0,
+      "operacoes": 2,
+      "pnlTotal": -0.3829,
       "positivas": 0
     },
     "combinado_2x_funding_menos_50": {
-      "operacoes": 2,
-      "pnlTotal": -1.2579,
+      "operacoes": 13,
+      "pnlTotal": -7.8014,
       "positivas": 0
     }
   },
-  "amostraSuficiente": false,
+  "amostraSuficiente": true,
   "stressAprovado": false,
-  "veredito": "Amostra insuficiente p/ stress (2 fechamentos). NÃO aprovado ainda.",
+  "veredito": "Borda NÃO sobrevive a algum cenário — não liberar.",
   "honestidade": "Stress aplicado ao MESMO conjunto pareado (control 6-ex). Com amostra ~0, o veredito é \"não aprovado ainda\" por falta de evidência."
 }

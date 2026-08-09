@@ -1,36 +1,36 @@
 {
   "schema": "snowball.control-fidelity-vectorial.v1_5",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "toleranciaUSD": 0.01,
   "semCategoriaResidual": true,
   "championAccountingConsistency": {
     "identidadesInternas": [
       {
         "identidade": "capital = capitalInicial + funding − custos",
-        "valor": 612.9763,
-        "esperado": 612.9763,
+        "valor": 617.5517,
+        "esperado": 617.5517,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "Σ saldosPorExchange = capital",
-        "valor": 612.9763,
-        "esperado": 612.9763,
+        "valor": 617.5517,
+        "esperado": 617.5517,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "equityMark = capitalRealizado + pnlMark",
-        "valor": 614.516,
-        "esperado": 614.516,
+        "valor": 619.1423,
+        "esperado": 619.1423,
         "diferenca": 0,
         "ok": true
       },
       {
         "identidade": "equityLiquidacao = capitalRealizado + pnlExec − custoFecho",
-        "valor": 613.3999,
-        "esperado": 613.3999,
+        "valor": 618.1919,
+        "esperado": 618.1919,
         "diferenca": 0,
         "ok": true
       }
@@ -57,8 +57,8 @@
       "camada": 3,
       "definicoesReconciliamAgora": true,
       "aprovadoAposEventosForwardReais": false,
-      "fechadasForward": 2,
-      "nota": "entradas/positionIds/exchanges/notional/custos/funding/fechamentos/saldos/realized/marked/executable PnL ≤US$0,01. APROVAÇÃO só após ≥30 eventos econômicos FORWARD reais (hoje 2)."
+      "fechadasForward": 13,
+      "nota": "entradas/positionIds/exchanges/notional/custos/funding/fechamentos/saldos/realized/marked/executable PnL ≤US$0,01. APROVAÇÃO só após ≥30 eventos econômicos FORWARD reais (hoje 13)."
     }
   },
   "nota": "Cada definição reconcilia na SUA base (realized vs realized, marked vs marked, executable vs executable). NÃO se usa resíduo p/ compensar bases diferentes: marked e realized são coisas distintas e cada uma bate com a sua fonte no Champion.",
@@ -66,56 +66,56 @@
     {
       "definicao": "funding",
       "base": "soma de ganhos de funding",
-      "control": 23.7538,
-      "champion": 23.7538,
+      "control": 29.4486,
+      "champion": 29.4486,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "custos",
       "base": "soma de custos de eventos",
-      "control": 10.7775,
-      "champion": 10.7775,
+      "control": 11.8969,
+      "champion": 11.8969,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "capital",
       "base": "capitalInicial + funding − custos",
-      "control": 612.9763,
-      "champion": 612.9763,
+      "control": 617.5517,
+      "champion": 617.5517,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "realized PnL",
       "base": "capital − capitalInicial",
-      "control": 12.9763,
-      "champion": 12.9763,
+      "control": 17.5517,
+      "champion": 17.5517,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "marked PnL",
       "base": "equityMark − capitalRealizado",
-      "control": 1.5398,
-      "champion": 1.5398,
+      "control": 1.5905,
+      "champion": 1.5905,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "executable PnL",
       "base": "equityLiquidacao − capitalRealizado + custoEstimadoFechamentoTotal",
-      "control": 1.4973,
-      "champion": 1.4973,
+      "control": 1.4294,
+      "champion": 1.4294,
       "diferenca": 0,
       "reconcilia": true
     },
     {
       "definicao": "saldos por exchange",
       "base": "soma dos saldos por exchange = capital",
-      "control": 612.9763,
-      "champion": 612.9763,
+      "control": 617.5517,
+      "champion": 617.5517,
       "diferenca": 0,
       "reconcilia": true
     }
@@ -130,19 +130,19 @@
     {
       "definicao": "positionIds (conjunto)",
       "control": [
-        "BICO/USDT:USDT:1786169106062",
-        "1000CAT/USDT:USDT:1786219244131",
-        "ZBT/USDT:USDT:1786222650260"
+        "ZBT/USDT:USDT:1786222650260",
+        "KAITO/USDT:USDT:1786277428258",
+        "DEXE/USDT:USDT:1786279880012"
       ],
       "champion": [
-        "BICO/USDT:USDT:1786169106062",
-        "1000CAT/USDT:USDT:1786219244131",
-        "ZBT/USDT:USDT:1786222650260"
+        "ZBT/USDT:USDT:1786222650260",
+        "KAITO/USDT:USDT:1786277428258",
+        "DEXE/USDT:USDT:1786279880012"
       ],
       "reconcilia": true
     }
   ],
-  "fundingPosicoesAbertas": 3.224,
+  "fundingPosicoesAbertas": 2.1654,
   "todasReconciliam": true,
   "veredito": "Control FIEL ao Champion em TODAS as 9 definições, cada uma ≤US$0,01 na sua base, sem categoria residual."
 }

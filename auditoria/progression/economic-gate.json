@@ -1,16 +1,33 @@
 {
   "schema": "snowball.economic-gate.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
   "metodologiaSolida": true,
   "profitGameLayerReadiness": "COLLECTING",
   "tetoV18": "COLLECTING",
   "estadosPossiveis": [
     "BLOCKED_METHODOLOGY",
     "READY_FOR_COLLECTION",
+    "WAITING_FOR_SOURCE",
     "COLLECTING",
     "READY_FOR_PROFIT_ANALYSIS"
   ],
+  "readinessDetalhe": {
+    "fonteIntegra": true,
+    "collectorHeartbeatOk": true,
+    "peloMenosUmEventoNovo": true,
+    "todosFeedConsumiram": true,
+    "watermarkAvancando": true,
+    "sourceDivergences": 0,
+    "commonWatermarkEventCount": 7941,
+    "eventCountPorFeed": {
+      "policy": 7941,
+      "trial": 7941,
+      "observer-max3": 7941,
+      "observer-max4": 7941,
+      "observer-max5": 8078
+    }
+  },
   "gate": {
     "identidadeValidada": true,
     "mirrorFiel": true,
@@ -20,13 +37,19 @@
     "epochEconomicaComum": true,
     "economicSoakIntegro": true,
     "processosVivos": 6,
+    "supervisorMatrizAprovada": true,
+    "operationalEconomicSoak": {
+      "progresso": "93/1440",
+      "completo": false
+    },
+    "semRegressaoDeEstado": true,
     "posicoesFonteUnicasFechadas": {
-      "valor": 0,
+      "valor": 4,
       "minimo": 30,
       "atende": false
     },
-    "divergenciasReais": {
-      "valor": 0,
+    "divergenciasReaisEncerradas": {
+      "valor": 4,
       "minimo": 15,
       "atende": false
     },
@@ -35,8 +58,9 @@
     "stress": false,
     "concentracao": false,
     "durabilitySoakCompleto": false,
+    "zeroFalhaCritica": true,
     "LIBERADO": false
   },
-  "veredito": "BLOQUEADO — metodologia SÓLIDA; profitGameLayerReadiness=COLLECTING (teto v1.8=COLLECTING); processos vivos 6/6; posições-fonte 0/30; divergências 0/15. NÃO recomendar Bitget+Bybit.",
+  "veredito": "BLOQUEADO — metodologia SÓLIDA; profitGameLayerReadiness=COLLECTING (teto v1.8=COLLECTING); processos vivos 6/6; posições-fonte 4/30; divergências 4/15. NÃO recomendar Bitget+Bybit.",
   "honestidade": "Identidade INFERIDA (não nativa) é aceita como metodologicamente sólida desde que rotulada; Mirror é SNAPSHOT_MIRROR_INCOMPLETE. v1.8 só coleta — nunca declara profit readiness."
 }

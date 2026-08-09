@@ -1,7 +1,7 @@
 {
   "schema": "snowball.mirror-fidelity.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "mirrorMode": "SNAPSHOT_MIRROR_INCOMPLETE",
   "nivelDeFidelidade": "SNAPSHOT_GRANULAR",
   "operacional": {
@@ -15,14 +15,14 @@
     "maxDiffFundingAberto": 0,
     "fiel": true,
     "capitalEspelhado": true,
-    "championCapital": 612.9763,
-    "mirrorChampionCapital": 612.9763,
+    "championCapital": 617.5517,
+    "mirrorChampionCapital": 617.5517,
     "toleranciaUSD": 0.01
   },
   "eventos": {
-    "total": 9,
+    "total": 26,
     "duplicadosIgnorados": 0,
-    "stateHash": "3e1a14ac6a24676a89c76db1",
+    "stateHash": "a1165744aba9e4d03df922a3",
     "tiposDerivados": [
       "OPEN",
       "SCALE",
@@ -32,8 +32,11 @@
     ],
     "championEventIdSintetico": true
   },
+  "snapshotAccountingFidelity": true,
+  "snapshotPositionFidelity": true,
+  "eventLevelFidelity": "UNAVAILABLE",
+  "mirrorCompleteness": "SNAPSHOT_MIRROR_INCOMPLETE",
   "fidelidadeSnapshotGranular": true,
-  "fielTotal": true,
-  "limitacaoHonesta": "SNAPSHOT_MIRROR_INCOMPLETE: o Champion NÃO expõe log de eventos append-only, então o Mirror DERIVA eventos do diff de snapshots. Reconciliação financeira ≤US$0,01 é provável no snapshot; \"zero evento perdido\" a nível de evento NÃO é provável (eventos intra-ciclo sem rastro no snapshot). championEventId é SINTÉTICO.",
+  "limitacaoHonesta": "eventLevelFidelity=UNAVAILABLE: o Champion NÃO expõe log de eventos append-only, então o Mirror DERIVA eventos do diff de snapshots. snapshotAccountingFidelity e snapshotPositionFidelity são declaráveis; \"zero evento perdido\" a nível de evento NÃO é declarado. championEventId é SINTÉTICO.",
   "honestidade": "Fidelidade do Mirror é SEPARADA da do Policy Control. Mirror = baseline contábil-operacional no snapshot; Policy = reexecução de regras do feed."
 }

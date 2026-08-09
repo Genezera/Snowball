@@ -60,6 +60,10 @@ export function buscarChampion(): Promise<Resultado<ChampionDados>> {
 export function buscarProfitLab(): Promise<Resultado<ProfitLabDados>> {
   return buscarValidado('/api/v2/profit-lab', ProfitLabDadosSchema);
 }
+// Maximização de lucro: schema lenient (o builder é a fonte da verdade; a página é só leitura).
+export function buscarMaximizacao(): Promise<Resultado<{ dados: any } | null>> {
+  return buscarValidado('/api/v2/profit-maximization', { parse: (v: unknown) => v as { dados: any } | null });
+}
 export function buscarEventosIncremental(cursor: string | null, limit: number): Promise<Resultado<EventosRecentesResposta>> {
   const qs = new URLSearchParams({ limit: String(limit) });
   if (cursor) qs.set('after', cursor);

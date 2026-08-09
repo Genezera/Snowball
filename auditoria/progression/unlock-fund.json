@@ -1,17 +1,17 @@
 {
   "schema": "snowball.unlock-fund.v1_2",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "item7_fundoDesbloqueio": {
     "natureza": "contabilidade SHADOW — o fundo NÃO financia nenhum motor real.",
-    "lucroTotal": 12.9763,
-    "parcelaOperacional": 5.1639,
-    "parcelaReservada": 7.8124,
-    "saldoDoFundo": 7.8124,
+    "lucroTotal": 17.5517,
+    "parcelaOperacional": 7.54,
+    "parcelaReservada": 10.0117,
+    "saldoDoFundo": 10.0117,
     "capitalMinimoProximoMotor": 200,
-    "progressoPct": 3.91,
+    "progressoPct": 5.01,
     "motorCandidatoAoDesbloqueio": "settlement-capture",
-    "nota": "Política C acumula 7.8124 (3.91% de US$200) a custo ZERO de PnL do motor saturado. Nada é financiado de verdade."
+    "nota": "Política C acumula 10.0117 (5.01% de US$200) a custo ZERO de PnL do motor saturado. Nada é financiado de verdade."
   },
   "item8_rankingSegundoMotor": [
     {
@@ -74,9 +74,9 @@
       "engineId": "momentum",
       "estado": "DATA_COLLECTION",
       "capitalMinimo": 200,
-      "amostra": "1 fechados / 0 vitórias / 44 abertos",
+      "amostra": "1 fechados / 0 vitórias / 48 abertos",
       "pnlLiquido": -0.9946,
-      "drawdown": "0.59%",
+      "drawdown": "0.6%",
       "frequencia": "intradiária",
       "capacidade": "desconhecida",
       "independenciaDoChampion": "potencialmente alta (sinal independente do funding)",

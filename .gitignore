@@ -42,3 +42,12 @@ node_modules/
 *.key
 credentials.json
 .forward-test-tmp/
+
+# estado vivo do experimento de maximização (competidores 2-exchange) e ledgers
+# de runtime — reprodutíveis pelos builders, não são código. (varredura 2026-08)
+/auditoria/progression/compete/
+/auditoria/progression/*.lock
+/auditoria/progression/entry-gate-validation-epoch.json
+/auditoria/progression/entry-gate-validation-epoch.json.bak
+/auditoria/progression/entry-gate-decisions.jsonl
+/auditoria/progression/entry-gate-outcomes.jsonl

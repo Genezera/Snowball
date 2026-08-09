@@ -1,0 +1,58 @@
+{
+  "schema": "snowball.economic-daily-report.v1_8",
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
+  "janela": "economicSoak v1.8 (epoch 032a0b32) — dia 1",
+  "capital": {
+    "total": 599.9286,
+    "comprometido": 120,
+    "livre": 299.9286,
+    "reserva": 180,
+    "fundoDesbloqueio": 0
+  },
+  "pnl": {
+    "realizadoFechado": 0,
+    "marcado": 0.6286,
+    "executavel": 0.6286,
+    "fundingLiquidado": 0.6286,
+    "fundingEsperado": "a assentar (posições abertas)",
+    "custos": 0.7
+  },
+  "risco": {
+    "drawdown": 0,
+    "capitalHoras": 2409.6219,
+    "lucroPorCapitalHora": 0
+  },
+  "amostra": {
+    "sourcePositionIdsFechados": 4,
+    "divergenciasReais": 4,
+    "censura": 18
+  },
+  "concentracao": false,
+  "progresso": {
+    "posicoesFonte_30": "4/30",
+    "divergencias_15": "4/15",
+    "duasJanelas": false,
+    "doisRegimes": false
+  },
+  "fechamentos": {
+    "categorias": {
+      "economicInversionExit": 2,
+      "riskExit": 0,
+      "maxHoldingExit": 0,
+      "fundingDeteriorationExit": 4,
+      "exchangeFailureExit": 0,
+      "ChampionSourceClose": 0,
+      "rightCensored": 18
+    },
+    "duracaoMediaHoldH": 2.95
+  },
+  "shadowMaxHoldingSensibilidade": {
+    "ativoMaxHoldingH": 168,
+    "nota": "shadow — NÃO altera a política ativa (7d)",
+    "fechariam_sob_24h": 0,
+    "fechariam_sob_72h": 0,
+    "fechariam_sob_168h": 0
+  },
+  "honestidade": "economicSoak dia 1 — quase tudo em 0 (coleta recém-iniciada, warmup EXCLUÍDO). Sombra de maxHolding é analítica; política ativa de 7d NÃO alterada."
+}

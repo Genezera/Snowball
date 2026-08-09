@@ -1,132 +1,132 @@
 {
   "schema": "snowball.forward-status.v1_3",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "processos": {
     "trial": {
       "modo": "trial",
-      "vivo": false,
+      "vivo": true,
       "iniciadoEm": "2026-08-08T22:47:16.011Z",
       "capitalInicial": 200,
-      "capitalAtual": 199.3173,
-      "funding": 0.0173,
-      "custos": 0.7,
-      "pnlLiquido": -0.6827,
-      "abertas": 1,
-      "avaliadas": 74,
-      "abertasTotal": 3,
-      "fechadas": 2,
+      "capitalAtual": 197.2637,
+      "funding": 0.6237,
+      "custos": 3.36,
+      "pnlLiquido": -2.7363,
+      "abertas": 2,
+      "avaliadas": 760,
+      "abertasTotal": 13,
+      "fechadas": 11,
       "bloqueios": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 48,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 68
+        "evNaoPositivo": 573
       },
       "saldosPorExchange": {
-        "bitget": 80,
-        "bybit": 80
+        "bitget": 60,
+        "bybit": 60
       },
-      "retornoPct": -0.34
+      "retornoPct": -1.37
     },
     "control": {
       "modo": "control",
-      "vivo": false,
+      "vivo": true,
       "iniciadoEm": "2026-08-08T22:47:16.529Z",
       "capitalInicial": 600,
-      "capitalAtual": 599.3473,
-      "funding": 0.3273,
-      "custos": 0.98,
-      "pnlLiquido": -0.6527,
+      "capitalAtual": 597.8242,
+      "funding": 1.8842,
+      "custos": 4.06,
+      "pnlLiquido": -2.1758,
       "abertas": 3,
-      "avaliadas": 1646,
-      "abertasTotal": 5,
-      "fechadas": 2,
+      "avaliadas": 9587,
+      "abertasTotal": 16,
+      "fechadas": 13,
       "bloqueios": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 109,
+        "maxPositionsBlocked": 788,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 1507
+        "evNaoPositivo": 8630
       },
       "saldosPorExchange": {
-        "binanceusdm": 80,
+        "binanceusdm": 100,
         "bybit": 60,
-        "okx": 100,
+        "okx": 80,
         "gate": 100,
-        "bitget": 100,
-        "bingx": 40
+        "bitget": 60,
+        "bingx": 80
       },
-      "retornoPct": -0.11
+      "retornoPct": -0.36
     }
   },
   "item9_commonWindowForward": {
     "pnlAbsolutoUSD": {
-      "trial": -0.6827,
-      "control": -0.6527
+      "trial": -2.7363,
+      "control": -2.1758
     },
     "retornoPct": {
-      "trial": -0.34,
-      "control": -0.11
+      "trial": -1.37,
+      "control": -0.36
     },
     "funding": {
-      "trial": 0.0173,
-      "control": 0.3273
+      "trial": 0.6237,
+      "control": 1.8842
     },
     "custos": {
-      "trial": 0.7,
-      "control": 0.98
+      "trial": 3.36,
+      "control": 4.06
     },
     "oportunidadesAvaliadas": {
-      "trial": 74,
-      "control": 1646
+      "trial": 760,
+      "control": 9587
     },
     "posicoesAbertas": {
-      "trial": 3,
-      "control": 5
+      "trial": 13,
+      "control": 16
     },
     "posicoesFechadas": {
-      "trial": 2,
-      "control": 2
+      "trial": 11,
+      "control": 13
     },
     "bloqueiosPorSaldoLocal": {
       "trial": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 0,
+        "maxPositionsBlocked": 48,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 68
+        "evNaoPositivo": 573
       },
       "control": {
         "aggregateCapitalBlocked": 0,
         "localBalanceBlocked": 0,
         "reserveBlocked": 0,
-        "maxPositionsBlocked": 109,
+        "maxPositionsBlocked": 788,
         "minOrderBlocked": 0,
-        "evNaoPositivo": 1507
+        "evNaoPositivo": 8630
       }
     },
     "saldosPorExchange": {
       "trial": {
-        "bitget": 80,
-        "bybit": 80
+        "bitget": 60,
+        "bybit": 60
       },
       "control": {
-        "binanceusdm": 80,
+        "binanceusdm": 100,
         "bybit": 60,
-        "okx": 100,
+        "okx": 80,
         "gate": 100,
-        "bitget": 100,
-        "bingx": 40
+        "bitget": 60,
+        "bingx": 80
       }
     }
   },
   "item10_gateSelecaoExchanges": {
     "posicoesFechadasForward": {
-      "valor": 2,
+      "valor": 11,
       "minimo": 30,
       "atende": false
     },
@@ -139,7 +139,7 @@
     "zeroFalhaCriticaExchange": true,
     "resultadoForwardNaoApenasReplay": true,
     "LIBERADO": false,
-    "veredito": "BLOQUEADO — 2/30 posições FECHADAS forward, 0/2 janelas, 0/2 regimes. Os processos forward começaram agora; NÃO recomendar Bitget+Bybit até acumular resultado FORWARD real (não replay). Control fiel ao Champion: true."
+    "veredito": "BLOQUEADO — 11/30 posições FECHADAS forward, 0/2 janelas, 0/2 regimes. Os processos forward começaram agora; NÃO recomendar Bitget+Bybit até acumular resultado FORWARD real (não replay). Control fiel ao Champion: true."
   },
   "nota": "Os processos FORWARD (Trial/Control) começaram do zero e acumulam com o tempo (funding ao longo de horas). No corte da entrega os números forward são mínimos — por design. A decisão de exchanges espera resultado forward + 2 janelas/2 regimes.",
   "honestidade": "live-paper (forward, shadow). Nenhuma ordem; nenhum saldo real. Trial enviesa nada — parte do zero e só vê oportunidades novas."

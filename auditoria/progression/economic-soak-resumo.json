@@ -1,23 +1,23 @@
 {
   "schema": "snowball.economic-soak.v1_8",
-  "geradoEm": "2026-08-09T01:06:33.500Z",
+  "geradoEm": "2026-08-09T13:34:53.803Z",
   "iniciadoEm": 1786237353461,
   "separadoDoDurabilitySoak": true,
-  "uptimeMin": 4,
+  "uptimeMin": 752,
   "economicForwardEpochId": "032a0b32782e1e8a",
   "commonWatermark": {
-    "status": "OK_COMMON_WATERMARK",
-    "eventCount": 0,
-    "comparablePositions": 0,
+    "status": "OK_LAGGING",
+    "eventCount": 7941,
+    "comparablePositions": 18,
     "excludedDueToLag": 0
   },
-  "eventosRecebidos": 0,
-  "sourceDecisionIdsUnicos": 0,
-  "sourcePositionIdsUnicos": 0,
-  "posicoesAbertas": 0,
-  "posicoesFechadas": 0,
-  "censuradasRightCensored": 0,
-  "divergencias": 0,
+  "eventosRecebidos": 3438,
+  "sourceDecisionIdsUnicos": 14,
+  "sourcePositionIdsUnicos": 14,
+  "posicoesAbertas": 24,
+  "posicoesFechadas": 6,
+  "censuradasRightCensored": 18,
+  "divergencias": 4,
   "perdas": 0,
   "duplicacoes": 0,
   "mirrorFidelity": {
@@ -26,8 +26,8 @@
   },
   "policyFidelity": {
     "divergencias": {
-      "ENTRY_DIVERGENCE": 3,
-      "SIZING_DIVERGENCE": 0,
+      "ENTRY_DIVERGENCE": 2,
+      "SIZING_DIVERGENCE": 2,
       "RANKING_DIVERGENCE": 0,
       "BALANCE_DIVERGENCE": 0,
       "CLOSE_DIVERGENCE": 0,
@@ -44,6 +44,41 @@
     "observer-max5": true
   },
   "processosVivosN": 6,
+  "entryGateCapturer": {
+    "presente": true,
+    "pid": 4224,
+    "idadeS": 108,
+    "vivo": true,
+    "postHoc": 14,
+    "validationProgress": "0/30",
+    "validationStatus": "ACTIVE"
+  },
   "completo": false,
+  "operationalEconomicSoak": {
+    "alvoMin": 1440,
+    "uptimeMin": 133,
+    "progresso": "133/1440",
+    "completo": false,
+    "crashesRestartsTotal": 0,
+    "supervisorEstados": {
+      "mirror": "HEALTHY",
+      "policy": "HEALTHY",
+      "trial": "HEALTHY",
+      "observer-max3": "HEALTHY",
+      "observer-max4": "HEALTHY",
+      "observer-max5": "HEALTHY",
+      "monitor": "HEALTHY",
+      "capturer": "HEALTHY"
+    },
+    "commonWatermarkCoverage": "OK_LAGGING",
+    "sourceDivergence": 0,
+    "stateDivergence": 0,
+    "riskAlerts": {
+      "nivelGlobal": "WARNING",
+      "globais": 0
+    },
+    "dadosPreservados": true,
+    "apenasRelogioZerado": true
+  },
   "nota": "economicSoak separado do durabilitySoak. Coleta contínua; gate econômico permanece BLOQUEADO."
 }

@@ -1,0 +1,219 @@
+{
+  "schema": "snowball.entry-gate-validation.v1_8",
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
+  "validationStatus": "ACTIVE",
+  "manifestStatus": "OK",
+  "implementationChanged": [],
+  "item1_supervisao": {
+    "supervisor": "supervisor-economic (worker `capturer`)",
+    "capturerState": "HEALTHY",
+    "restarts": 0,
+    "heartbeat": {
+      "pid": 4224,
+      "idadeS": 120,
+      "vivo": true
+    },
+    "singleInstance": true,
+    "staleDetection": true,
+    "backoff": true,
+    "duplicateDetection": true,
+    "downtimeRegistrado": {
+      "janelas": 0,
+      "totalMs": 0,
+      "ultimas": []
+    }
+  },
+  "item2_taxonomia": {
+    "modos": [
+      "INLINE_NATIVE",
+      "EVENT_CAPTURED_FRESH",
+      "CAPTURE_MISSED_DURING_DOWNTIME",
+      "POST_HOC_RECONSTRUCTION"
+    ],
+    "soContaValidation": "EVENT_CAPTURED_FRESH com outcome desconhecido",
+    "totalDecisions": 14,
+    "freshEligible": 0,
+    "postHoc": 14,
+    "missedDuringDowntime": 0,
+    "novasNestaRun": 0,
+    "nota": "INLINE_NATIVE reservado (reader congelado não emite decisões de challenger). As atuais são POST_HOC."
+  },
+  "item3_janelaFresca": {
+    "freshnessWindowMsCongelada": 300000,
+    "campos": [
+      "decisionTimestamp",
+      "eventWrittenAt",
+      "capturedAt",
+      "captureDelayMs",
+      "outcomeAlreadyKnownAtCapture"
+    ],
+    "congeladaNaEpoch": true,
+    "naoModificarNaJanela": true
+  },
+  "item4_downtime": {
+    "janelas": 0,
+    "totalMs": 0,
+    "missedDuringDowntime": [],
+    "regra": "CAPTURE_MISSED_DURING_DOWNTIME nunca é reconstruído como elegível; excluído da validação."
+  },
+  "item5_bloqueios": {
+    "entryGateValidationDecisions": 1,
+    "capacityBlockedRawEvents": 3406,
+    "capacityBlockedUniqueKeysApprox": 97,
+    "balanceBlockedKeysApprox": 2,
+    "evRejectedKeysApprox": 0,
+    "rawByMotivo": {
+      "maxPositionsBlocked": 3406,
+      "localBalanceBlocked": 2
+    },
+    "nota": "Bloqueios de capacidade NÃO têm sourceDecisionId (aprox por chave). NUNCA entram no ranking dos filtros."
+  },
+  "item6_relatorioDiario": {
+    "capturerState": "HEALTHY",
+    "capturerUptimeMin": 40,
+    "capturerRestarts": 0,
+    "captureDowntime": {
+      "janelas": 0,
+      "totalMs": 0,
+      "ultimas": []
+    },
+    "newFreshDecisions": 0,
+    "postHocDecisions": 14,
+    "missedDuringDowntime": 0,
+    "captureDelayP50Ms": null,
+    "captureDelayP95Ms": null,
+    "validationDecisionsObserved": 0,
+    "controlAccepted": 0,
+    "a3Accepted": 0,
+    "b60Accepted": 0,
+    "c15Accepted": 0,
+    "dAccepted": 0,
+    "openValidationOutcomes": 0,
+    "closedValidationOutcomes": 0,
+    "winners": 0,
+    "losers": 0,
+    "pnlPorFiltro": {
+      "Control": 0,
+      "A3": 0,
+      "B60": 0,
+      "C1_5": 0,
+      "D": 0
+    },
+    "capitalHoursPorFiltro": {
+      "Control": 0,
+      "A3": 0,
+      "B60": 0,
+      "C1_5": 0,
+      "D": 0
+    },
+    "winnerRetention": {
+      "Control": null,
+      "A3": null,
+      "B60": null,
+      "C1_5": null,
+      "D": null
+    },
+    "rejectionPrecision": {
+      "Control": null,
+      "A3": null,
+      "B60": null,
+      "C1_5": null,
+      "D": null
+    },
+    "validationProgress": "0/30"
+  },
+  "item7_gate": {
+    "elegivelPromo": false,
+    "criterios": {
+      "min30OutcomesFechados": false,
+      "vencedoresEPerdedores": false,
+      "pnlSuperiorControl": false,
+      "retencaoAceitavel": false,
+      "segundaJanela": false,
+      "outroRegime": false,
+      "stress": false,
+      "concentracao": false,
+      "aprovacaoHumana": false
+    },
+    "veredito": "Sem promoção — 0/30 outcomes prospectivos fechados."
+  },
+  "durabilidade": {
+    "entryGateValidationEpochId": "egv_1786272095321",
+    "epochStartedAt": 1786272095321,
+    "checksum": "25e710bb5b5a7147bd09e6bf7422e2b309e0377a00896f6c7ac57f6750cb6f70",
+    "sequence": 2,
+    "recoverySource": "RECOVERED_FROM_PRIMARY",
+    "manifestHash": "23e5b16904a24623ed7ae79eed2b6c5269338bf5b6cb12a4cafebf2d00870be5",
+    "implementationHashes": {
+      "economia": "62457e0134054aa85df4dd894b11e105e0860670ff2b3159c1bba193be2a1476",
+      "Control": "a2b9339ef52853f3720b8d2a42c060f4ef53d8f5ed5d85d7206bb428a2c5b0ee",
+      "A3": "db531305f54ba5d1c13f976006e137b9eaf3da343b84e29f944e045671893ecb",
+      "B60": "ac34945ffc373649471ba09fe3378efb048a5213a21891fad30ab759e511d5ad",
+      "C1_5": "1811e7bacd25436936dfe5e70493a7e6e6e80bda647aa39b757ee878f07f0c64",
+      "D": "df247eb026eee9e74d065f776d3b029c624e65f1c7049ede4bce97262b7d5e1a",
+      "episodeSegmentation": "fd442c1b81e5ff55254f7a442136ab00f174b3a1db5ffe028ec271f4ec27ce3e",
+      "expectedRemainingLife": "1459039b3bd7b159d52979c221f7595682be5e46320cc6c96f020027b50c86ad",
+      "survivalProbability": "14a6ebd450f20a6a16d9eda1c6edaae131b340bb39514781c36843cc942bf51a",
+      "frozenParams": "500993d4bce948b49d1ca2711ff5bb69a595640c398754df2c464fb6eaafd7ae"
+    },
+    "freshnessWindowMsCongelada": 300000,
+    "monitorApenas": true,
+    "testesDestrutivos": "só em cópia temporária — NUNCA na epoch real"
+  },
+  "multiplasComparacoes": {
+    "elegiveis": [
+      "Control",
+      "A3",
+      "B60",
+      "C1_5",
+      "D"
+    ],
+    "exploratorios": [
+      {
+        "challenger": "A_consecutive_2",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "A_consecutive_4",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "B_persistence_15min",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "B_persistence_30min",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "B_persistence_120min",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "C_paybackSurvival_1x",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "C_paybackSurvival_1.25x",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "C_paybackSurvival_2x",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      },
+      {
+        "challenger": "E_settlementProximity_4h",
+        "status": "NOT_ELIGIBLE_FOR_PROMOTION"
+      }
+    ]
+  },
+  "proximoDolar": {
+    "estado": "HOLD_UNALLOCATED",
+    "reserva": "SAFETY_RESERVE",
+    "aumentoExposicao": false,
+    "novoMotor": false,
+    "live": false
+  },
+  "honestidade": "Capturador supervisionado. 0 decisões EVENT_CAPTURED_FRESH elegíveis, 14 post-hoc, 0 missed-during-downtime. validation 0/30 ⇒ sem promoção. Bloqueios de capacidade separados (aprox por chave, fora do ranking). Champion/Control/core intactos. Sem ordens."
+}

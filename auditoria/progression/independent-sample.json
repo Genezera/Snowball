@@ -1,14 +1,14 @@
 {
   "schema": "snowball.independent-sample.v1_7",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "contagemCorreta": {
-    "sourceOpportunityIdUnicosFechados": 4,
-    "divergenciasReais": 4,
-    "censuradasAbertas": 16
+    "sourceOpportunityIdUnicosFechados": 28,
+    "divergenciasReais": 28,
+    "censuradasAbertas": 17
   },
   "contagemInflada_NAO_USADA": {
-    "somaFechamentosPorPolitica": 12,
+    "somaFechamentosPorPolitica": 76,
     "nota": "Isto contaria a MESMA oportunidade uma vez por política — NÃO é usado no gate."
   },
   "metas": {
@@ -17,8 +17,8 @@
   },
   "atende": {
     "unicasFechadas": false,
-    "divergencias": false
+    "divergencias": true
   },
-  "veredito": "Amostra INSUFICIENTE: 4/30 únicas, 4/15 divergências. Posições abertas (16) são censuradas e NÃO contam.",
+  "veredito": "Amostra INSUFICIENTE: 28/30 únicas, 28/15 divergências. Posições abertas (17) são censuradas e NÃO contam.",
   "honestidade": "Unidade de evidência = oportunidade-fonte única fechada. Multiplicar por políticas seria contar o mesmo evento várias vezes."
 }

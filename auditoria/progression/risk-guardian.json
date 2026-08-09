@@ -1,0 +1,66 @@
+{
+  "schema": "snowball.risk-guardian.v1_8",
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
+  "paperOnly": true,
+  "semOrdens": true,
+  "naoAlteraPolitica": true,
+  "limiarLiquidacaoEstimado": 0.17,
+  "calibracao": "incidente BICO (11,6% move + 5,3% dist ≈ 17%)",
+  "ambiente": {
+    "obsIdadeMin": 5,
+    "feedStale": false,
+    "motorIdadeMin": 3,
+    "posicaoSemGerenciamento": false
+  },
+  "posicoes": [
+    {
+      "symbol": "ZBT/USDT:USDT",
+      "exchanges": [
+        "bybit",
+        "bingx"
+      ],
+      "movimentoDesdeEntradaPct": 2.85,
+      "distanciaLiquidacaoPct": 14.27,
+      "pernaOrfa": false,
+      "nivel": "WARNING",
+      "faltasSeguidas": 0,
+      "abertaHhoras": 16.63
+    },
+    {
+      "symbol": "KAITO/USDT:USDT",
+      "exchanges": [
+        "bybit",
+        "bingx"
+      ],
+      "movimentoDesdeEntradaPct": 0.54,
+      "distanciaLiquidacaoPct": 17,
+      "pernaOrfa": false,
+      "nivel": "SAFE",
+      "faltasSeguidas": 0,
+      "abertaHhoras": 1.41
+    },
+    {
+      "symbol": "DEXE/USDT:USDT",
+      "exchanges": [
+        "bybit",
+        "bitget"
+      ],
+      "movimentoDesdeEntradaPct": 0.64,
+      "distanciaLiquidacaoPct": 16.59,
+      "pernaOrfa": false,
+      "nivel": "SAFE",
+      "faltasSeguidas": 0,
+      "abertaHhoras": 0.73
+    }
+  ],
+  "alertasGlobais": [],
+  "nivelGlobal": "WARNING",
+  "niveisPossiveis": [
+    "SAFE",
+    "WARNING",
+    "CRITICAL",
+    "EMERGENCY_EXIT_RECOMMENDED"
+  ],
+  "honestidade": "Guardian PAPER: só observa e recomenda. NÃO executa fechamento nem altera a política econômica. O motor do Champion continua sendo o único que age."
+}

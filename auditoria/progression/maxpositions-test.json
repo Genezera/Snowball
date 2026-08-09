@@ -1,42 +1,42 @@
 {
   "schema": "snowball.maxpositions-test.v1_3",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
-  "positivasQueViveram": 158,
-  "concorrenciaMaximaObservada": 90,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "positivasQueViveram": 193,
+  "concorrenciaMaximaObservada": 110,
   "cenarios": [
     {
       "maxPositions": 3,
-      "oportunidadesCapturadas": 15,
-      "pnlPotencialUSD": 43.4041,
+      "oportunidadesCapturadas": 19,
+      "pnlPotencialUSD": 53.8821,
       "capitalNecessarioUSD": 171.43,
       "picoMargemUSD": 120,
-      "usoSimultaneoExchanges": 5,
-      "concentracaoTop1": 0.3904,
+      "usoSimultaneoExchanges": 6,
+      "concentracaoTop1": 0.2966,
       "retornoMarginalPorDolar": null
     },
     {
       "maxPositions": 4,
-      "oportunidadesCapturadas": 20,
-      "pnlPotencialUSD": 49.0446,
+      "oportunidadesCapturadas": 24,
+      "pnlPotencialUSD": 61.0168,
       "capitalNecessarioUSD": 228.57,
       "picoMargemUSD": 160,
-      "usoSimultaneoExchanges": 5,
-      "concentracaoTop1": 0.3205,
-      "retornoMarginalPorDolar": 0.0987
+      "usoSimultaneoExchanges": 6,
+      "concentracaoTop1": 0.2324,
+      "retornoMarginalPorDolar": 0.1249
     },
     {
       "maxPositions": 5,
-      "oportunidadesCapturadas": 23,
-      "pnlPotencialUSD": 50.0268,
+      "oportunidadesCapturadas": 28,
+      "pnlPotencialUSD": 69.2223,
       "capitalNecessarioUSD": 285.71,
       "picoMargemUSD": 200,
-      "usoSimultaneoExchanges": 5,
-      "concentracaoTop1": 0.2919,
-      "retornoMarginalPorDolar": 0.0172
+      "usoSimultaneoExchanges": 6,
+      "concentracaoTop1": 0.1851,
+      "retornoMarginalPorDolar": 0.1436
     }
   ],
-  "gargalo": "LIMITE DE POSIÇÕES *pelo modelo leniente* (até 90 janelas de payback sobrepostas). MAS este modelo superconta (158 vs ~13 do motor): janelas de payback de ~160h se sobrepõem em excesso, e o motor exige best-ranked + payback-dentro-da-vida. O gargalo REAL só o TESTE FORWARD (itens 3/4) resolve.",
+  "gargalo": "LIMITE DE POSIÇÕES *pelo modelo leniente* (até 110 janelas de payback sobrepostas). MAS este modelo superconta (193 vs ~13 do motor): janelas de payback de ~160h se sobrepõem em excesso, e o motor exige best-ranked + payback-dentro-da-vida. O gargalo REAL só o TESTE FORWARD (itens 3/4) resolve.",
   "determinacao": "Modelos OFFLINE discordam: v1.1/v1.2 (posições REAIS do Champion, capadas em 3) → capital satura em 3; este teste (fluxo de oportunidades, modelo leniente) → subir maxPositions captura mais (15→19→23, marginal 0.048→0.144/US$). A discordância vem do modelo de viabilidade (leniente superconta). NÃO se decide o gargalo offline — o TESTE FORWARD live-paper (Trial/Control) é que resolve, medindo oportunidades boas REAIS simultâneas ao vivo. Não alterar o Champion sem esse dado forward.",
   "riscoLiquidacao": "inalterado: cada perna mantém margem/notional = 1/alavancagem; mais posições concorrentes não muda a distância de liquidação individual, mas aumenta a concentração agregada.",
   "honestidade": "observed (janelas de vida) + simulated (captura greedy por EV). Censura: o Champion capou em 3, então a captura de 4/5 é inferida da sobreposição de oportunidades, não de posições reais."

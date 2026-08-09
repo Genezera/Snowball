@@ -1,0 +1,79 @@
+{
+  "schema": "snowball.economic-recovery-check.v1_8",
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "economicForwardEpochId": "032a0b32782e1e8a",
+  "comparisonStatus": "OK_NO_REGRESSION",
+  "regressaoDetectada": false,
+  "violacoes": [],
+  "invariantes": [
+    "mesma epoch",
+    "cursor não regride",
+    "eventCount não regride",
+    "hash preservado sem novos eventos",
+    "saldos/posições/funding preservados"
+  ],
+  "checks": {
+    "policy": {
+      "epochId": "032a0b32782e1e8a",
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "okEpoch": true,
+      "okCursor": true,
+      "okEvent": true,
+      "okHash": true,
+      "ok": true,
+      "baselineEventCount": 7549,
+      "baselineByteOffset": 15997227
+    },
+    "trial": {
+      "epochId": "032a0b32782e1e8a",
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "okEpoch": true,
+      "okCursor": true,
+      "okEvent": true,
+      "okHash": true,
+      "ok": true,
+      "baselineEventCount": 7549,
+      "baselineByteOffset": 15997227
+    },
+    "observer-max3": {
+      "epochId": "032a0b32782e1e8a",
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "okEpoch": true,
+      "okCursor": true,
+      "okEvent": true,
+      "okHash": true,
+      "ok": true,
+      "baselineEventCount": 7549,
+      "baselineByteOffset": 15997227
+    },
+    "observer-max4": {
+      "epochId": "032a0b32782e1e8a",
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "okEpoch": true,
+      "okCursor": true,
+      "okEvent": true,
+      "okHash": true,
+      "ok": true,
+      "baselineEventCount": 7549,
+      "baselineByteOffset": 15997227
+    },
+    "observer-max5": {
+      "epochId": "032a0b32782e1e8a",
+      "byteOffset": 16059066,
+      "eventCount": 8078,
+      "okEpoch": true,
+      "okCursor": true,
+      "okEvent": true,
+      "okHash": true,
+      "ok": true,
+      "baselineEventCount": 7672,
+      "baselineByteOffset": 16011676
+    }
+  },
+  "honestidade": "Baseline = máximos monotônicos por processo. Qualquer regressão pós-restart (cursor/eventCount/hash) → SUSPENDED_STATE_DIVERGENCE. Recuperação limpa (RECOVERED_FROM_PRIMARY) mantém os máximos."
+}

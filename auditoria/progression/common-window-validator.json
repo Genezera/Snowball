@@ -1,7 +1,7 @@
 {
   "schema": "snowball.common-window-validator.v1_5",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "epoch": {
     "forwardEpochId": "c816ed1a27fbc747",
     "byteOffset": 14923765,
@@ -11,52 +11,52 @@
     {
       "label": "trial",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 15115365,
-      "eventCount": 1646,
-      "accumulatedEventHash": "9dd0d99c219f9c356b3288bd0e7b0f2b",
+      "byteOffset": 16043091,
+      "eventCount": 9587,
+      "accumulatedEventHash": "f4baaab3834fb45e6c6f3f6883a91a87",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
-      "vivo": false
+      "vivo": true
     },
     {
       "label": "control",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 15115365,
-      "eventCount": 1646,
-      "accumulatedEventHash": "9dd0d99c219f9c356b3288bd0e7b0f2b",
+      "byteOffset": 16043091,
+      "eventCount": 9587,
+      "accumulatedEventHash": "f4baaab3834fb45e6c6f3f6883a91a87",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
-      "vivo": false
+      "vivo": true
     },
     {
       "label": "observer-max3",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 15115365,
-      "eventCount": 1646,
-      "accumulatedEventHash": "9dd0d99c219f9c356b3288bd0e7b0f2b",
+      "byteOffset": 16043091,
+      "eventCount": 9587,
+      "accumulatedEventHash": "f4baaab3834fb45e6c6f3f6883a91a87",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
-      "vivo": false
+      "vivo": true
     },
     {
       "label": "observer-max4",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 15115365,
-      "eventCount": 1646,
-      "accumulatedEventHash": "9dd0d99c219f9c356b3288bd0e7b0f2b",
+      "byteOffset": 16043091,
+      "eventCount": 9587,
+      "accumulatedEventHash": "f4baaab3834fb45e6c6f3f6883a91a87",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
-      "vivo": false
+      "vivo": true
     },
     {
       "label": "observer-max5",
       "forwardEpochId": "c816ed1a27fbc747",
-      "byteOffset": 15115365,
-      "eventCount": 1646,
-      "accumulatedEventHash": "9dd0d99c219f9c356b3288bd0e7b0f2b",
+      "byteOffset": 16043091,
+      "eventCount": 9587,
+      "accumulatedEventHash": "f4baaab3834fb45e6c6f3f6883a91a87",
       "sourceStatus": "OK",
       "fileIdentity": "3968459148:130604389193919400",
-      "vivo": false
+      "vivo": true
     }
   ],
   "checks": {

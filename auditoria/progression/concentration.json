@@ -1,9 +1,9 @@
 {
   "schema": "snowball.concentration.v1_7",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
-  "operacoesPositivas": 0,
-  "ganhoIncrementalTotal": 0,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "operacoesPositivas": 1,
+  "ganhoIncrementalTotal": 0.0828,
   "limites": {
     "posicao": 25,
     "simbolo": 35,
@@ -13,43 +13,43 @@
   "checks": {
     "posicao": {
       "top": {
-        "chave": null,
-        "valor": 0,
-        "pct": 0
+        "chave": "control:ZBT/USDT:USDT|bingx|bybit:1786229536559",
+        "valor": 0.0828,
+        "pct": 100
       },
       "limite": 25,
-      "ok": true
+      "ok": false
     },
     "simbolo": {
       "top": {
-        "chave": null,
-        "valor": 0,
-        "pct": 0
+        "chave": "ZBT/USDT:USDT",
+        "valor": 0.0828,
+        "pct": 100
       },
       "limite": 35,
-      "ok": true
+      "ok": false
     },
     "parExchanges": {
       "top": {
-        "chave": null,
-        "valor": 0,
-        "pct": 0
+        "chave": "bingx|bybit",
+        "valor": 0.0828,
+        "pct": 100
       },
       "limite": 50,
-      "ok": true
+      "ok": false
     },
     "janela": {
       "top": {
-        "chave": null,
-        "valor": 0,
-        "pct": 0
+        "chave": "dia:20673",
+        "valor": 0.0828,
+        "pct": 100
       },
       "limite": 50,
-      "ok": true
+      "ok": false
     }
   },
   "amostraSuficiente": false,
   "concentracaoAceitavel": false,
-  "veredito": "Amostra insuficiente p/ julgar concentração (0 fechamentos positivos). NÃO aceitável ainda.",
+  "veredito": "Amostra insuficiente p/ julgar concentração (1 fechamentos positivos). NÃO aceitável ainda.",
   "honestidade": "Concentração só é avaliável com fechamentos reais suficientes. Com amostra ~0, o resultado é \"não aceitável ainda\" por falta de evidência, não por aprovação."
 }

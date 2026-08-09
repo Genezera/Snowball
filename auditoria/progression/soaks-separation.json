@@ -1,7 +1,7 @@
 {
   "schema": "snowball.soaks-separation.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "durabilitySoak": {
     "arvore": "auditoria/progression/forward",
     "epoch": "c816ed1a27fbc747",
@@ -34,13 +34,13 @@
   "warmupEconomico": {
     "marcador": "ECONOMIC_WARMUP_NOT_GATE_ELIGIBLE",
     "fechamentosWarmupPorLabel": {
-      "trial": 2,
-      "control": 2,
-      "observer-max3": 2,
-      "observer-max4": 2,
-      "observer-max5": 4
+      "trial": 11,
+      "control": 13,
+      "observer-max3": 13,
+      "observer-max4": 18,
+      "observer-max5": 21
     },
-    "fechamentosWarmupTotal": 12,
+    "fechamentosWarmupTotal": 76,
     "dadosPreservados": true,
     "localArquivado": "auditoria/progression/forward/<label>/archive-v1_6 + estado corrente do durabilitySoak",
     "nota": "Fechamentos do durabilitySoak (identidade por símbolo+hora / close por scanner-stale) NÃO entram no gate econômico. Dados preservados, não apagados."

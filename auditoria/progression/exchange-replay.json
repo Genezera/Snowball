@@ -1,7 +1,7 @@
 {
   "schema": "snowball.exchange-replay-2ex.v1_1",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "parametros": {
     "capitalInicial": 200,
     "porExchange": 100,
@@ -12,8 +12,8 @@
   },
   "commonWindow": {
     "inicio": "2026-08-04T01:44:39.037Z",
-    "fim": "2026-08-08T21:48:24.958Z",
-    "horas": 116.06,
+    "fim": "2026-08-09T12:15:49.913Z",
+    "horas": 130.52,
     "mesmaParaTodas": true
   },
   "reconciliacao": {
@@ -24,19 +24,46 @@
   "limitacao": "Só há outcome realizado para posições que o Champion abriu. Un-taken opportunities não são creditadas. Portanto este replay mede o desempenho de cada par SOB orçamento US$200 nas posições observadas, não um universo hipotético completo.",
   "ranking": [
     {
+      "par": "gate+okx",
+      "exchanges": [
+        "okx",
+        "gate"
+      ],
+      "posicoesNoPar": 5,
+      "capitalInicial": 200,
+      "funding": 8.3733,
+      "custos": 2.2415,
+      "pnlRealizado": 6.1318,
+      "residualRealizado": 0,
+      "capitalFinal": 206.1318,
+      "posicoesFinanciadas": 5,
+      "posicoesPerdidasPorMargem": 0,
+      "minOrderRejeicoes": 0,
+      "capitalBloqueadoPicoUSD": 52.38,
+      "capitalOciosoPicoUSD": 87.62,
+      "equityMarcada": 206.1318,
+      "drawdownPct": 0,
+      "reconciliacao": {
+        "calculado": 206.1318,
+        "reportado": 206.1318,
+        "reconcilia": true
+      },
+      "rank": 1
+    },
+    {
       "par": "bitget+bybit",
       "exchanges": [
         "bybit",
         "bitget"
       ],
-      "posicoesNoPar": 6,
+      "posicoesNoPar": 7,
       "capitalInicial": 200,
       "funding": 7.5726,
       "custos": 1.6599,
       "pnlRealizado": 5.9127,
       "residualRealizado": 0,
       "capitalFinal": 205.9127,
-      "posicoesFinanciadas": 6,
+      "posicoesFinanciadas": 7,
       "posicoesPerdidasPorMargem": 0,
       "minOrderRejeicoes": 0,
       "capitalBloqueadoPicoUSD": 57.12,
@@ -48,33 +75,6 @@
         "reportado": 205.9127,
         "reconcilia": true
       },
-      "rank": 1
-    },
-    {
-      "par": "gate+okx",
-      "exchanges": [
-        "okx",
-        "gate"
-      ],
-      "posicoesNoPar": 4,
-      "capitalInicial": 200,
-      "funding": 4.6835,
-      "custos": 1.5237,
-      "pnlRealizado": 3.1598,
-      "residualRealizado": 0,
-      "capitalFinal": 203.1598,
-      "posicoesFinanciadas": 4,
-      "posicoesPerdidasPorMargem": 0,
-      "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 53.57,
-      "capitalOciosoPicoUSD": 86.43,
-      "equityMarcada": 203.1598,
-      "drawdownPct": 0,
-      "reconciliacao": {
-        "calculado": 203.1598,
-        "reportado": 203.1598,
-        "reconcilia": true
-      },
       "rank": 2
     },
     {
@@ -83,23 +83,23 @@
         "bybit",
         "bingx"
       ],
-      "posicoesNoPar": 5,
+      "posicoesNoPar": 6,
       "capitalInicial": 200,
-      "funding": 4.9162,
+      "funding": 6.9212,
       "custos": 2.3919,
-      "pnlRealizado": 2.5243,
+      "pnlRealizado": 4.5293,
       "residualRealizado": 0,
-      "capitalFinal": 202.5243,
-      "posicoesFinanciadas": 5,
+      "capitalFinal": 204.5293,
+      "posicoesFinanciadas": 6,
       "posicoesPerdidasPorMargem": 0,
       "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 62.36,
-      "capitalOciosoPicoUSD": 77.64,
-      "equityMarcada": 202.5243,
+      "capitalBloqueadoPicoUSD": 117.46,
+      "capitalOciosoPicoUSD": 22.54,
+      "equityMarcada": 204.5293,
       "drawdownPct": 0,
       "reconciliacao": {
-        "calculado": 202.5243,
-        "reportado": 202.5243,
+        "calculado": 204.5293,
+        "reportado": 204.5293,
         "reconcilia": true
       },
       "rank": 3
@@ -113,20 +113,20 @@
       "posicoesNoPar": 4,
       "capitalInicial": 200,
       "funding": 3.1802,
-      "custos": 1.744,
-      "pnlRealizado": 1.4362,
+      "custos": 2.3224,
+      "pnlRealizado": 0.8578,
       "residualRealizado": 0,
-      "capitalFinal": 201.4362,
+      "capitalFinal": 200.8578,
       "posicoesFinanciadas": 4,
       "posicoesPerdidasPorMargem": 0,
       "minOrderRejeicoes": 0,
-      "capitalBloqueadoPicoUSD": 97.74,
-      "capitalOciosoPicoUSD": 42.26,
-      "equityMarcada": 201.4362,
+      "capitalBloqueadoPicoUSD": 48.87,
+      "capitalOciosoPicoUSD": 91.13,
+      "equityMarcada": 200.8578,
       "drawdownPct": 0,
       "reconciliacao": {
-        "calculado": 201.4362,
-        "reportado": 201.4362,
+        "calculado": 200.8578,
+        "reportado": 200.8578,
         "reconcilia": true
       },
       "rank": 4
@@ -431,9 +431,9 @@
   ],
   "dinamicoVsFixo": {
     "melhorParFixo": {
-      "par": "bitget+bybit",
-      "capitalFinal": 205.9127,
-      "pnl": 5.9127
+      "par": "gate+okx",
+      "capitalFinal": 206.1318,
+      "pnl": 6.1318
     },
     "parEscolhidoSemanalmente": {
       "nota": "janela = 1 semana(s) — curta demais p/ troca semanal provar valor; ver caveat",
@@ -444,14 +444,14 @@
       "aplicavel": false
     },
     "seisMonitoradas2Financiadas": {
-      "par": "bitget+bybit",
+      "par": "gate+okx",
       "capitalUsado": 200,
-      "pnl": 5.9127,
+      "pnl": 6.1318,
       "nota": "monitora 6 (shadow), financia só o melhor par com US$200"
     },
     "seisFinanciadas": {
       "capitalUsado": 600,
-      "pnl": 13.5505,
+      "pnl": 17.9491,
       "nota": "Champion real multi-par: acessa posições de TODOS os pares"
     },
     "duasMaisFundoMigracao": {
@@ -460,8 +460,8 @@
       "custoEstimadoPorTroca": 0.2,
       "nota": "trocar de par custa taxa de saque/depósito + tempo de settlement — corrói ganho de troca frequente"
     },
-    "diferencaFixo2_vs_6financiadas": 7.6378,
-    "conclusao": "6 exchanges financiadas rendem 13.5505 vs 5.9127 do melhor par fixo (US$200): diferença de 7.6378. A troca dinâmica NÃO é comprovável na amostra (1 janela) e o custo/tempo de migração desencoraja troca frequente."
+    "diferencaFixo2_vs_6financiadas": 11.8173,
+    "conclusao": "6 exchanges financiadas rendem 17.9491 vs 6.1318 do melhor par fixo (US$200): diferença de 11.8173. A troca dinâmica NÃO é comprovável na amostra (1 janela) e o custo/tempo de migração desencoraja troca frequente."
   },
   "honestidade": "Todas as 15 combinações reconciliam exatamente."
 }

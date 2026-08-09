@@ -1,7 +1,7 @@
 {
   "schema": "snowball.identity-provenance.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "idNativoPresente": false,
   "classificacao": "INFERRED_FROM_SOURCE_TIMING",
   "chavesDoFeed": [
@@ -18,9 +18,9 @@
     "opportunityEpisodeGapMs": 1800000
   },
   "distribuicaoGaps": {
-    "amostraGaps": 18065,
-    "intraBurst": 17934,
-    "interBurst": 131,
+    "amostraGaps": 18015,
+    "intraBurst": 17880,
+    "interBurst": 135,
     "ambiguosNaZonaLimiar": 0,
     "fracaoAmbigua": 0
   },

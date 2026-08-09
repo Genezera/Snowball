@@ -1,40 +1,40 @@
 {
   "schema": "snowball.economic-watermark.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
-  "status": "OK_COMMON_WATERMARK",
-  "commonWatermarkEventCount": 0,
-  "commonWatermarkOffset": 15115365,
-  "commonWatermarkHash": "",
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "status": "OK_LAGGING",
+  "commonWatermarkEventCount": 7941,
+  "commonWatermarkOffset": 16043091,
+  "commonWatermarkHash": "e2219b0906d526bf71444d556df33415",
   "hashesConcordam": true,
-  "comparablePositions": 0,
+  "comparablePositions": 18,
   "excludedDueToLag": 0,
-  "spreadEventCount": 0,
+  "spreadEventCount": 137,
   "porPolitica": {
     "policy": {
-      "eventCountNoWatermark": 0,
-      "posicoesNoWatermark": 0,
-      "capital": 600
+      "eventCountNoWatermark": 7941,
+      "posicoesNoWatermark": 3,
+      "capital": 599.9286
     },
     "trial": {
-      "eventCountNoWatermark": 0,
-      "posicoesNoWatermark": 0,
-      "capital": 200
+      "eventCountNoWatermark": 7941,
+      "posicoesNoWatermark": 3,
+      "capital": 199.265
     },
     "observer-max3": {
-      "eventCountNoWatermark": 0,
-      "posicoesNoWatermark": 0,
-      "capital": 600
+      "eventCountNoWatermark": 7941,
+      "posicoesNoWatermark": 3,
+      "capital": 600.2407
     },
     "observer-max4": {
-      "eventCountNoWatermark": 0,
-      "posicoesNoWatermark": 0,
-      "capital": 600
+      "eventCountNoWatermark": 7941,
+      "posicoesNoWatermark": 4,
+      "capital": 600.1644
     },
     "observer-max5": {
-      "eventCountNoWatermark": 0,
-      "posicoesNoWatermark": 0,
-      "capital": 600
+      "eventCountNoWatermark": 7941,
+      "posicoesNoWatermark": 5,
+      "capital": 600.0788
     }
   },
   "nota": "A comparação econômica pareada só considera posições materializadas neste watermark comum; o resto é excludedDueToLag."

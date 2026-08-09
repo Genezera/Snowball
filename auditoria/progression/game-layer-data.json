@@ -1,0 +1,119 @@
+{
+  "schema": "snowball.game-layer-data.v1_8",
+  "geradoEm": "2026-08-09T12:56:25.650Z",
+  "asOfMs": 1786280185650,
+  "apenasDados": true,
+  "semAlteracaoOperacional": true,
+  "nivelAtual": 0,
+  "nomeNivel": "Coleta de Evidência Econômica",
+  "missaoAtual": "Sobreviver 1440 min de operationalEconomicSoak sob supervisão e fechar 30 oportunidades-fonte únicas + 15 divergências reais encerradas, sob identidade causal e Mirror snapshot-fiel.",
+  "chefeAtual": {
+    "nome": "Instabilidade Operacional",
+    "estado": "COLLECTING",
+    "derrotadoQuando": "supervisor matrix + operationalEconomicSoak 1440/1440 + ≥30 posições-fonte + ≥15 divergências encerradas + 2 janelas + 2 regimes + stress + concentração + durabilitySoak completo + zero falha crítica"
+  },
+  "niveis": {
+    "capitalLevel": 3,
+    "evidenceLevel": null,
+    "operationalLevel": null
+  },
+  "economia": {
+    "lucroAcumulado": -1.3629,
+    "lucroPorCapitalHora": "ver economic-ledger por posição",
+    "proximoDolar": "acumular_unlock_fund enquanto a amostra econômica não confirma a borda",
+    "proximoDesbloqueio": "ver unlock-fund"
+  },
+  "chefesEconomicos": {
+    "chefeEntradasPrematuras": {
+      "nome": "Entradas Prematuras",
+      "derrotadoQuando": "um filtro de entrada mostrar edge líquida POSITIVA em 2 janelas + outro regime + stress de custo, com vencedores na amostra (não só evitando as 4 perdas que formaram a hipótese) + aprovação humana",
+      "estado": "ATIVO_VENCENDO_O_JOGADOR",
+      "edgeStatus": "NEGATIVE_UNPROVEN",
+      "dedupPnL": -0.8719,
+      "posicoesUnicas": "4/30",
+      "challengersShadow": 13,
+      "challengersQueEvitamTodasAsPerdas": [
+        "C_paybackSurvival_1x",
+        "C_paybackSurvival_1.25x",
+        "C_paybackSurvival_1.5x",
+        "C_paybackSurvival_2x",
+        "D_historicalSurvival_p50"
+      ],
+      "perdasEvitadasMax": 4,
+      "lucroPerdidoPorRejeicao": 0,
+      "hipoteseCentral": "INCONCLUSIVO (amostra 4) — MAS a direção SUPORTA a hipótese: apr de entrada não previu sobrevivência; apr realizado médio << apr de entrada.",
+      "proximoDesbloqueio": "evidência forward VÁLIDA de um filtro (amostra com vencedores + 2 janelas + regime) — NÃO por criar filtros",
+      "confidence": "BAIXA (4 posições fechadas, todas perdas, 0 vencedores) — nenhum challenger promovível.",
+      "diagnostico": "ver entry-gate-shadow.json",
+      "validacaoProspectiva": {
+        "epochId": "egv_1786272095321",
+        "validationStatus": "ACTIVE",
+        "manifestStatus": "OK",
+        "recoverySource": "RECOVERED_FROM_PRIMARY",
+        "capturerState": "HEALTHY",
+        "capturerRestarts": 0,
+        "captureDowntimeJanelas": 0,
+        "developmentSet": 4,
+        "newFreshDecisions": 0,
+        "postHocDecisions": 14,
+        "missedDuringDowntime": 0,
+        "validationDecisions": 0,
+        "validationOutcomes": "0/30",
+        "winners": 0,
+        "losers": 0,
+        "pnlPorChallenger": {
+          "Control": 0,
+          "A3": 0,
+          "B60": 0,
+          "C1_5": 0,
+          "D": 0
+        },
+        "winnerRetention": {
+          "Control": null,
+          "A3": null,
+          "B60": null,
+          "C1_5": null,
+          "D": null
+        },
+        "xpProspectivo": 0,
+        "xpNota": "XP prospectivo = só outcomes de validação EVENT_CAPTURED_FRESH fechados. POST_HOC, MISSED_DURING_DOWNTIME e development set NÃO concedem XP.",
+        "promovivel": false,
+        "proximoDesbloqueio": "0/30 outcomes fechados + vencedores/perdedores + PnL>Control + retenção + 2ª janela + regime + stress + concentração + aprovação humana"
+      }
+    },
+    "chefeCustosEWhipsaw": {
+      "nome": "Custos e Whipsaw",
+      "derrotadoQuando": "funding capturado cobre o round-trip ($0,28) com folga — hoje captura só ~$0,03 (12% do break-even)",
+      "estado": "ATIVO_VENCENDO_O_JOGADOR",
+      "diagnostico": "ver edge-diagnosis.json"
+    },
+    "chefeDaCapacidade": {
+      "nome": "Capacidade",
+      "derrotadoQuando": "nenhuma oportunidade positive-EV bloqueada por saldo/exchange limitante",
+      "estado": "EM_COLETA"
+    },
+    "chefeDaDiversificacao": {
+      "nome": "Diversificação",
+      "derrotadoQuando": "concentração ≤ limites (posição/símbolo/par/janela) com amostra suficiente",
+      "estado": "EM_COLETA"
+    }
+  },
+  "edgeStatus": "NEGATIVE_UNPROVEN",
+  "capitalNaoAlocado": "recomendado com edge negativa — todo capital fica no Snowball, parte NÃO exposta (reserva/unlock)",
+  "progresso": {
+    "operationalSoak": "93/1440",
+    "posicoesFonte": "4/30",
+    "divergencias": "4/15"
+  },
+  "xp": {
+    "total": 8,
+    "fonte": "SOMENTE evidência econômica (fechamento único / divergência real)",
+    "naoConcedidoPor": "processo vivo / uptime / heartbeat / restart / observação"
+  },
+  "proximoDesbloqueio": "READY_FOR_PROFIT_ANALYSIS (bloqueado até metas + janelas/regimes)",
+  "fundoDesbloqueio": {
+    "atual": 0,
+    "regra": null
+  },
+  "honestidade": "Camada de jogo é só telemetria aqui. XP=0 enquanto não houver fechamento econômico real — processos vivos NÃO dão XP."
+}

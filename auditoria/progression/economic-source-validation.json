@@ -1,0 +1,62 @@
+{
+  "schema": "snowball.economic-source-validation.v1_8",
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
+  "arquivoFonte": "C:\\Users\\Renan\\Projetos\\Snowball\\vigilancia\\arquivo-observacoes.jsonl",
+  "economicForwardEpochId": "032a0b32782e1e8a",
+  "fileIdentity": {
+    "epoch": "3968459148:130604389193919400",
+    "atual": "3968459148:130604389193919400",
+    "igual": true,
+    "rotacaoReconhecida": false
+  },
+  "byteOffset": {
+    "inicialEpoch": 15115365,
+    "sizeAtual": 16059066,
+    "bytesNovos": 943701,
+    "truncado": false
+  },
+  "cursoresPorProcesso": {
+    "policy": {
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "epochId": "032a0b32782e1e8a"
+    },
+    "trial": {
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "epochId": "032a0b32782e1e8a"
+    },
+    "observer-max3": {
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "epochId": "032a0b32782e1e8a"
+    },
+    "observer-max4": {
+      "byteOffset": 16043091,
+      "eventCount": 7941,
+      "epochId": "032a0b32782e1e8a"
+    },
+    "observer-max5": {
+      "byteOffset": 16059066,
+      "eventCount": 8078,
+      "epochId": "032a0b32782e1e8a"
+    }
+  },
+  "checks": {
+    "fonteExiste": true,
+    "mesmaFonte": true,
+    "fileIdentityIgual": true,
+    "naoTruncado": true,
+    "epochPreservado": true,
+    "byteOffsetInicialPreservado": true,
+    "nenhumEventoAnteriorReprocessado": true,
+    "mesmoEpochNosProcessos": true
+  },
+  "fonteIntegra": true,
+  "veredito": "SOURCE_OK",
+  "acao": "PROSSEGUIR_ECONOMIC_SOAK",
+  "suspendeEconomicSoak": false,
+  "novaEpochNecessaria": false,
+  "honestidade": "Se a fonte foi truncada/substituída/recriada, o economicSoak SUSPENDE (não reinicia em silêncio) e só se congela nova epoch se necessário. Nesta janela: fonte íntegra, mesma identity, sem reprocessamento."
+}

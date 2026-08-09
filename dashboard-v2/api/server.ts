@@ -154,6 +154,27 @@ const servidor = http.createServer((req, res) => {
       });
     }
 
+    // ── maximização de lucro: Champion + ranking 2-exchanges + head-to-head ao vivo ──
+    // Serve o JSON pré-construído (scripts/analise/profit-max-dashboard.cjs) + relê os
+    // estados dos competidores AO VIVO para o head-to-head não ficar defasado. SÓ LEITURA.
+    if (url.pathname === '/api/v2/profit-maximization') {
+      const base = lerJsonSeguro<any>(path.join(ROOT, 'auditoria', 'progression', 'profit-maximization.json'), null);
+      if (base && base.headToHead) {
+        const compDir = path.join(ROOT, 'auditoria', 'progression', 'compete');
+        base.headToHead.competidores = (base.headToHead.competidores || []).map((c: any) => {
+          const est = lerJsonSeguro<any>(path.join(compDir, c.label, 'estado.json'), null);
+          const hb = lerJsonSeguro<any>(path.join(compDir, c.label, 'heartbeat.json'), null);
+          if (!est) return c;
+          const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, net = funding - custos;
+          const vivo = !!(hb && hb.ultimoCiclo && Date.now() - hb.ultimoCiclo < 15 * 60000);
+          return { ...c, fundingAcum: Math.round(funding * 1e4) / 1e4, custosAcum: Math.round(custos * 1e4) / 1e4, net: Math.round(net * 1e4) / 1e4,
+            capital: Math.round((est.capitalInicial + net) * 1e4) / 1e4, abertas: Object.keys(est.virtuais || {}).length,
+            fechadas: (est.contadores || {}).fechadas || 0, persistencePending: (est.bloqueios || {}).persistencePending || 0, vivo };
+        });
+      }
+      return enviarJson(res, 200, { ok: true, dados: base, geradoEm: Date.now() });
+    }
+
     // ── transporte incremental de eventos (Parte 4) ──────────────────────
     if (url.pathname === '/api/v2/events') {
       const cursor = url.searchParams.get('after');

@@ -1,27 +1,27 @@
 {
   "schema": "snowball.economic-pairing.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "pareadoPor": "sourcePositionId (causal) — nunca horário aproximado",
   "fechadasPorPolitica": {
-    "policy": 0,
-    "trial": 0,
-    "observer-max3": 0,
-    "observer-max4": 0,
-    "observer-max5": 0
+    "policy": 1,
+    "trial": 2,
+    "observer-max3": 1,
+    "observer-max4": 1,
+    "observer-max5": 1
   },
   "censuradasPorPolitica": {
-    "policy": 0,
-    "trial": 0,
-    "observer-max3": 0,
-    "observer-max4": 0,
-    "observer-max5": 0
+    "policy": 3,
+    "trial": 3,
+    "observer-max3": 3,
+    "observer-max4": 4,
+    "observer-max5": 5
   },
   "resumo": {
-    "uniqueSourcePositionClosed": 0,
-    "uniqueSourceDecision": 0,
-    "divergenciasReais": 0,
-    "censuradasRightCensored": 0
+    "uniqueSourcePositionClosed": 4,
+    "uniqueSourceDecision": 4,
+    "divergenciasReais": 4,
+    "censuradasRightCensored": 18
   },
   "campos": [
     "abriu/recusou",
@@ -34,6 +34,171 @@
     "capitalHoras",
     "drawdown"
   ],
-  "pares": [],
+  "pares": [
+    {
+      "sourcePositionId": "47f46a65f40280821ca7b650",
+      "sourceDecisionId": "1bd89566fc678c4eeb1c4f58",
+      "k": "1000CAT/USDT:USDT|bingx|bybit",
+      "politicas": {
+        "policy": {
+          "sourcePositionId": "47f46a65f40280821ca7b650",
+          "sourceDecisionId": "1bd89566fc678c4eeb1c4f58",
+          "k": "1000CAT/USDT:USDT|bingx|bybit",
+          "abriu": true,
+          "entryTs": 1786238942046,
+          "closeTs": 1786275626476,
+          "closeReason": "economic_inversion",
+          "closePolicy": "economic_inversion",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "funding": 0.1383,
+          "realizedPnL": -0.1417,
+          "capitalHoras": 1019.0119,
+          "closeTiming": 10.1901
+        }
+      },
+      "realizedPnLPorPolitica": {
+        "policy": -0.1417,
+        "trial": "recusou/censurou",
+        "observer-max3": "recusou/censurou",
+        "observer-max4": "recusou/censurou",
+        "observer-max5": "recusou/censurou"
+      },
+      "spreadRealizedPnL": 0,
+      "divergiu": true,
+      "tipo": "decisao_diferente"
+    },
+    {
+      "sourcePositionId": "26ad5eafe675f6f5c717356b",
+      "sourceDecisionId": "eb04d8ac0efb0efe716516e9",
+      "k": "SIREN/USDT:USDT|bybit|bitget",
+      "politicas": {
+        "trial": {
+          "sourcePositionId": "26ad5eafe675f6f5c717356b",
+          "sourceDecisionId": "eb04d8ac0efb0efe716516e9",
+          "k": "SIREN/USDT:USDT|bybit|bitget",
+          "abriu": true,
+          "entryTs": 1786240028279,
+          "closeTs": 1786242428380,
+          "closeReason": "economic_inversion",
+          "closePolicy": "economic_inversion",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "funding": 0.0229,
+          "realizedPnL": -0.2571,
+          "capitalHoras": 66.6695,
+          "closeTiming": 0.6667
+        }
+      },
+      "realizedPnLPorPolitica": {
+        "policy": "recusou/censurou",
+        "trial": -0.2571,
+        "observer-max3": "recusou/censurou",
+        "observer-max4": "recusou/censurou",
+        "observer-max5": "recusou/censurou"
+      },
+      "spreadRealizedPnL": 0,
+      "divergiu": true,
+      "tipo": "decisao_diferente"
+    },
+    {
+      "sourcePositionId": "5660bbac719e3abaab2ef359",
+      "sourceDecisionId": "6d926b113409e44eeaaaf04a",
+      "k": "LA/USDT:USDT|bitget|bybit",
+      "politicas": {
+        "trial": {
+          "sourcePositionId": "5660bbac719e3abaab2ef359",
+          "sourceDecisionId": "6d926b113409e44eeaaaf04a",
+          "k": "LA/USDT:USDT|bitget|bybit",
+          "abriu": true,
+          "entryTs": 1786242728384,
+          "closeTs": 1786245728484,
+          "closeReason": "funding_deterioration",
+          "closePolicy": "economic_inversion",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "funding": 0.0524,
+          "realizedPnL": -0.2276,
+          "capitalHoras": 83.3361,
+          "closeTiming": 0.8334
+        }
+      },
+      "realizedPnLPorPolitica": {
+        "policy": "recusou/censurou",
+        "trial": -0.2276,
+        "observer-max3": "recusou/censurou",
+        "observer-max4": "recusou/censurou",
+        "observer-max5": "recusou/censurou"
+      },
+      "spreadRealizedPnL": 0,
+      "divergiu": true,
+      "tipo": "decisao_diferente"
+    },
+    {
+      "sourcePositionId": "29836066334187a23736ae7c",
+      "sourceDecisionId": "506dcf869d3423d41a577e6c",
+      "k": "LA/USDT:USDT|bingx|bybit",
+      "politicas": {
+        "observer-max3": {
+          "sourcePositionId": "29836066334187a23736ae7c",
+          "sourceDecisionId": "506dcf869d3423d41a577e6c",
+          "k": "LA/USDT:USDT|bingx|bybit",
+          "abriu": true,
+          "entryTs": 1786240028695,
+          "closeTs": 1786247228918,
+          "closeReason": "funding_deterioration",
+          "closePolicy": "economic_inversion",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "funding": 0.0345,
+          "realizedPnL": -0.2455,
+          "capitalHoras": 200.0062,
+          "closeTiming": 2.0001
+        },
+        "observer-max4": {
+          "sourcePositionId": "29836066334187a23736ae7c",
+          "sourceDecisionId": "506dcf869d3423d41a577e6c",
+          "k": "LA/USDT:USDT|bingx|bybit",
+          "abriu": true,
+          "entryTs": 1786240029195,
+          "closeTs": 1786247229458,
+          "closeReason": "funding_deterioration",
+          "closePolicy": "economic_inversion",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "funding": 0.0345,
+          "realizedPnL": -0.2455,
+          "capitalHoras": 200.0073,
+          "closeTiming": 2.0001
+        },
+        "observer-max5": {
+          "sourcePositionId": "29836066334187a23736ae7c",
+          "sourceDecisionId": "506dcf869d3423d41a577e6c",
+          "k": "LA/USDT:USDT|bingx|bybit",
+          "abriu": true,
+          "entryTs": 1786240029634,
+          "closeTs": 1786247229832,
+          "closeReason": "funding_deterioration",
+          "closePolicy": "economic_inversion",
+          "notional": 100,
+          "custoEntrada": 0.14,
+          "funding": 0.0345,
+          "realizedPnL": -0.2455,
+          "capitalHoras": 200.0055,
+          "closeTiming": 2.0001
+        }
+      },
+      "realizedPnLPorPolitica": {
+        "policy": "recusou/censurou",
+        "trial": "recusou/censurou",
+        "observer-max3": -0.2455,
+        "observer-max4": -0.2455,
+        "observer-max5": -0.2455
+      },
+      "spreadRealizedPnL": 0,
+      "divergiu": true,
+      "tipo": "decisao_diferente"
+    }
+  ],
   "honestidade": "Pareado por sourcePositionId causal (episódio), comum entre políticas feed-driven. Mirror↔Champion tem fidelidade SEPARADA (mirror-fidelity). Posições abertas = RIGHT_CENSORED."
 }

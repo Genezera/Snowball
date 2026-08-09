@@ -1,10 +1,10 @@
 {
   "schema": "snowball.capital-ledger.v1",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "reconciliacao": {
-    "calculado": 612.9763,
-    "reportado": 612.9763,
+    "calculado": 617.5517,
+    "reportado": 617.5517,
     "diferenca": 0,
     "reconcilia": true,
     "identidade": "capital = capitalInicial + funding − custos"
@@ -21,151 +21,151 @@
     "total": {
       "value": 600,
       "source": "champion_observed",
-      "observedAt": 1786225704958,
+      "observedAt": 1786277749913,
       "ageMs": 0,
       "confidence": 1
     }
   },
   "capitalRealizado": {
-    "value": 612.9762684675075,
+    "value": 617.5517293170349,
     "source": "champion_observed",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 1
   },
   "equityMarcada": {
-    "value": 614.516023913657,
+    "value": 619.14226949779,
     "source": "champion_observed",
-    "observedAt": 1786232735326,
+    "observedAt": 1786279881375,
     "ageMs": 0,
     "confidence": 1
   },
   "equityExecutavel": {
-    "value": 613.3998657546819,
+    "value": 618.1919185546897,
     "source": "champion_observed",
-    "observedAt": 1786232735326,
+    "observedAt": 1786279881375,
     "ageMs": 0,
     "confidence": 1
   },
   "lucroAcumulado": {
-    "value": 12.9763,
+    "value": 17.5517,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "custosAcumulados": {
-    "value": 10.777522150110466,
+    "value": 11.896866413440396,
     "source": "champion_observed",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 1
   },
   "fundingAcumulado": {
-    "value": 23.75379061761798,
+    "value": 29.448595730475425,
     "source": "champion_observed",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 1
   },
   "drawdown": {
     "maxObservadoPct": 0.43,
-    "atualPct": 0,
-    "picoTs": 1786225704958,
+    "atualPct": 0.03,
+    "picoTs": 1786277749913,
     "valeTs": 1785832241753,
     "source": "derived"
   },
   "reservaOperacional": {
-    "value": 183.8929,
+    "value": 185.2655,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalLivre": {
-    "value": 238.7282,
+    "value": 308.4818,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalComprometido": {
-    "value": 190.3552,
+    "value": 123.8044,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "notionalExposto": {
-    "value": 436.1706,
+    "value": 309.5109,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalHorasComprometidas": {
-    "value": 1050.725,
+    "value": 669.9725,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "lucroReinvestivel": {
-    "value": 12.9763,
+    "value": 17.5517,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalExperimentalVirtual": {
     "value": 0,
     "source": "derived",
-    "observedAt": 1786225704958,
+    "observedAt": 1786277749913,
     "ageMs": 0,
     "confidence": 0.7
   },
   "capitalNecessarioProximoNivel": {
-    "valor": 187.02,
+    "valor": 182.45,
     "nivelAtualPorCapital": 3,
     "proximoNivel": 4,
-    "capitalDeployable": 429.0834,
+    "capitalDeployable": 432.2862,
     "nota": "faltam US$ para o próximo degrau de capital."
   },
   "saldosPorExchange": {
-    "binanceusdm": 100.55104875308373,
-    "bybit": 104.93650252443082,
-    "okx": 101.66201625387443,
-    "gate": 101.65064290708084,
-    "bitget": 102.95464060316152,
-    "bingx": 101.22141742587606
+    "binanceusdm": 100.428877744119,
+    "bybit": 105.68616994410172,
+    "okx": 103.20007925896729,
+    "gate": 103.1887059121737,
+    "bitget": 102.9455230091198,
+    "bingx": 102.10237344855341
   },
   "posicoesAbertas": [
-    {
-      "symbol": "BICO/USDT:USDT",
-      "exchangeShort": "gate",
-      "exchangeLong": "okx",
-      "notionalPorPerna": 94.2012,
-      "margem": 53.5675,
-      "fundingAcumulado": 0.9416,
-      "abertaEm": 1786169106062
-    },
-    {
-      "symbol": "1000CAT/USDT:USDT",
-      "exchangeShort": "binanceusdm",
-      "exchangeLong": "bybit",
-      "notionalPorPerna": 244.342,
-      "margem": 97.7368,
-      "fundingAcumulado": 2.1219,
-      "abertaEm": 1786219244131
-    },
     {
       "symbol": "ZBT/USDT:USDT",
       "exchangeShort": "bingx",
       "exchangeLong": "bybit",
-      "notionalPorPerna": 97.6273,
-      "margem": 39.0509,
-      "fundingAcumulado": 0.1604,
+      "notionalPorPerna": 108.3518,
+      "margem": 43.3407,
+      "fundingAcumulado": 1.0119,
       "abertaEm": 1786222650260
+    },
+    {
+      "symbol": "KAITO/USDT:USDT",
+      "exchangeShort": "bingx",
+      "exchangeLong": "bybit",
+      "notionalPorPerna": 185.3024,
+      "margem": 74.121,
+      "fundingAcumulado": 1.1535,
+      "abertaEm": 1786277428258
+    },
+    {
+      "symbol": "DEXE/USDT:USDT",
+      "exchangeShort": "bitget",
+      "exchangeLong": "bybit",
+      "notionalPorPerna": 15.8567,
+      "margem": 6.3427,
+      "fundingAcumulado": 0,
+      "abertaEm": 1786279880012
     }
   ],
   "politicaComposicao": {
@@ -176,7 +176,7 @@
     "margemPayback": 1.5,
     "nota": "Reinvestir 100% ≠ expor 100%. Reserva/margem livre/capital de segurança pertencem ao Snowball e são capacidade operacional. Não reduzir reserva nem aumentar exposição para acelerar crescimento."
   },
-  "historicoEntradas": 65,
+  "historicoEntradas": 72,
   "fontes": {
     "estado": "spread/estado.json",
     "marcacao": "spread/marcacao.json",

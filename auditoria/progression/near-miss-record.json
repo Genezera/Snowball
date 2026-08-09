@@ -1,7 +1,7 @@
 {
   "schema": "snowball.near-miss-record.v1_8",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "incidente": "FORWARD_TEST_ROOT_APONTOU_PARA_PRODUCAO",
   "quando": "v1.8 (desenvolvimento em worktree), durante smoke test do harness de segurança",
   "oQueAconteceu": "Um smoke test passou FORWARD_TEST_ROOT apontando para a árvore de produção do repo PRINCIPAL (auditoria/progression/forward). Como o teste rodava a partir do WORKTREE, o L.ROOT do reader resolvia para o worktree — então o guard (que comparava só com a produção DO PRÓPRIO repo) NÃO reconheceu o caminho como produção e criou um diretório de teste \"t2\" dentro de auditoria/progression/forward do repo principal.",

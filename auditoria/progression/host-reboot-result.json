@@ -1,7 +1,7 @@
 {
   "schema": "snowball.host-reboot.v1_7",
-  "geradoEm": "2026-08-08T21:48:24.958Z",
-  "asOfMs": 1786225704958,
+  "geradoEm": "2026-08-09T12:15:49.913Z",
+  "asOfMs": 1786277749913,
   "executado": false,
   "HOST_REBOOT_TESTED": false,
   "recuperouIdentico": null,
