@@ -78,6 +78,11 @@ function build() {
       { lever: 'Concentração 2 exchanges', descricao: 'Focar capital no melhor par em vez de espalhar por 15 pares marginais.', status: 'em teste (head-to-head)', impacto: 'Médio' },
       { lever: 'Utilização de capital', descricao: 'Capital fica ocioso 76–92% do tempo com 2 exchanges — sizing maior quando aparece oportunidade boa acelera o lucro.', status: 'a decidir', impacto: 'Médio (acelera)' },
     ],
+    comoVaiMelhorar: (() => { const cf = rd(path.join(OUT, 'counterfactual-maximizacao.json'), null); if (!cf) return null;
+      return { nota: 'Quanto cada lever melhora o lucro — dados reconciliados + matemática exata dos presets reais (src/config.ts).',
+        lever1_maker: { titulo: 'Ordens maker (limite) em vez de market', champion6exAtual: cf.lever1_makerOrders.atual6ex.net, champion6exComMaker: cf.lever1_makerOrders.comMakerRealista.net, ganhoPct: cf.lever1_makerOrders.comMakerRealista.ganhoPct, custoAtualPct: cf.lever1_makerOrders.atual6ex.custoSobreFunding, explicacao: 'Corta o custo de ~41% do funding para ~15%. É o maior lever. O código já suporta.' },
+        lever2_paresMaker: (cf.lever2_paresTakerVsMaker || []).slice(0, 3).map((p) => ({ par: p.par, netTaker: p.netTaker, netMaker: p.netMakerRealista, ganhoPct: p.ganhoMakerPct })),
+        melhorCaminho: cf.melhorCaminho.config }; })(),
     ml: { veredito: 'O alvo certo de ML é um classificador de sobrevivência ("esta oportunidade persiste até o break-even?"). Precisa de outcomes rotulados por posição — os competidores estão gerando. Agora: filtro heurístico (80% do ganho, sem overfit). Depois: treinar o modelo.', prontoParaTreinar: false },
     proximosPassos: [
       'Deixar o head-to-head rodar 1–3 dias para o veredito calibrado.',

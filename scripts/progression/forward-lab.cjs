@@ -40,7 +40,12 @@ const EXCHS = (EXCHS_OVERRIDE && EXCHS_OVERRIDE.length) ? EXCHS_OVERRIDE : (MODE
 // --persist-min N : só entra após a oportunidade ficar positive-EV por N min (filtro de persistência). 0 = desligado (default, comportamento original inalterado).
 const PERSIST_MIN = args.includes('--persist-min') ? Number(opt('--persist-min', 0)) : 0;
 const CAP_POR_EX = L.ALVO_POR_EXCHANGE;
-const TAKER = 0.0005, SLIP = 0.0002, CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
+// --cost-model taker|maker : custo de execução. taker (default) = ordens a mercado (0,05%+slip).
+// maker = ordens LIMITE (0,02%+slip mínimo, presets reais do src/config.ts) — 35,7% do custo taker.
+const COST_MODEL = opt('--cost-model', 'taker');
+const TAKER = COST_MODEL === 'maker' ? 0.0002 : 0.0005;
+const SLIP = COST_MODEL === 'maker' ? 0.00005 : 0.0002;
+const CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
 const NOTIONAL = L.ALVO_POR_EXCHANGE, MARGEM_PERNA = NOTIONAL / L.ALAVANCAGEM;
 const STALE_CICLOS = 3, DEDUP_MAX = 20000, LATE_MS = 10 * 60000;
 const INVERSION_CICLOS = 2;                // econômico: fecha após N ciclos com EV não-positivo (inversão), não por sumiço do scanner

@@ -86,6 +86,37 @@ export function MaximizacaoLucro() {
         )}
       </Section>
 
+      {/* COMO VAI MELHORAR — counterfactual */}
+      {d?.comoVaiMelhorar && (
+        <Section titulo="Como vamos melhorar o lucro (dados)" sub={d.comoVaiMelhorar.nota}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', alignItems: 'start' }}>
+            <Section style={{ borderColor: 'var(--engine-funding)' }}>
+              <div style={{ fontWeight: 800, fontSize: 'var(--text-sm)' }}>Lever 1 — Ordens maker (limite)</div>
+              <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', marginBottom: 6 }}>{d.comoVaiMelhorar.lever1_maker?.explicacao}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <span className="tabular" style={{ color: 'var(--ink-3)' }}>{fmt.usd(d.comoVaiMelhorar.lever1_maker?.champion6exAtual ?? null)}</span>
+                <span style={{ color: 'var(--ink-3)' }}>→</span>
+                <span className="tabular" style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: 'var(--gain-500)' }}>{fmt.usd(d.comoVaiMelhorar.lever1_maker?.champion6exComMaker ?? null)}</span>
+                <StatusBadge label={`+${d.comoVaiMelhorar.lever1_maker?.ganhoPct}%`} tom="info" />
+              </div>
+              <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>custo cai de {d.comoVaiMelhorar.lever1_maker?.custoAtualPct}% do funding</div>
+            </Section>
+            <Section>
+              <div style={{ fontWeight: 800, fontSize: 'var(--text-sm)', marginBottom: 6 }}>Lever 2 — Melhor par 2-ex, taker → maker</div>
+              {(d.comoVaiMelhorar.lever2_paresMaker ?? []).map((p: any) => (
+                <div key={p.par} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 8, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--border-hairline)' }}>
+                  <span style={{ fontSize: 'var(--text-2xs)' }}>{p.par}</span>
+                  <span className="tabular" style={{ color: 'var(--ink-3)', fontSize: 'var(--text-2xs)' }}>{fmt.usd(p.netTaker)}</span>
+                  <span style={{ color: 'var(--ink-3)' }}>→</span>
+                  <span className="tabular" style={{ fontWeight: 700, color: 'var(--gain-500)', fontSize: 'var(--text-2xs)' }}>{fmt.usd(p.netMaker)} (+{p.ganhoPct}%)</span>
+                </div>
+              ))}
+            </Section>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 'var(--text-sm)' }}><strong style={{ color: 'var(--snow-primary)' }}>Melhor caminho:</strong> {d.comoVaiMelhorar.melhorCaminho}</div>
+        </Section>
+      )}
+
       {/* LEVERS */}
       <Section titulo="Levers de maximização" sub="O que aumenta o lucro — e o que acelera.">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
