@@ -192,7 +192,9 @@ const servidor = http.createServer((req, res) => {
         const dias = est.iniciadoEm ? (Date.now() - est.iniciadoEm) / 86400000 : 0;
         const vivo = !!(hb && hb.ultimoCiclo && Date.now() - hb.ultimoCiclo < 15 * 60000);
         const abertas = Object.values(est.virtuais || {}).map((v: any) => ({
-          symbol: String(v.sym || v.k || '').replace('/USDT:USDT', ''), long: v.long, short: v.short,
+          tipo: v.tipo === 'spotperp' ? 'spot-perp' : 'cross',
+          symbol: String(v.sym || v.k || '').replace('/USDT:USDT', '').replace(/^sp:/, ''),
+          long: v.tipo === 'spotperp' ? v.exchange : v.long, short: v.tipo === 'spotperp' ? 'spot+perp' : v.short,
           notional: v.notional, fundingAcum: r2(v.fundingAcum || 0), aprEntrada: r2(v.aprEntrada || 0, 2),
           holdH: v.positionOpenedAt ? r2((Date.now() - v.positionOpenedAt) / 3.6e6, 1) : null }));
         const diario = lerJsonlComNumeroDeLinha(path.join(compDir, d.label, 'diario.jsonl')).map((x) => x.linha as any);

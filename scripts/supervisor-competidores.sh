@@ -17,7 +17,7 @@ mkdir -p "$BASE"
 # levers seguros embutidos: maker + persistência 30min + utilização máxima (5 pos · reserva 20%)
 # + rendimento na reserva ociosa (6%/ano, neutro). É isto que vai virar dinheiro real.
 declare -A CMD=(
-  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 5 --reserva 0.20 --stable-yield 0.06 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 5 --reserva 0.20 --stable-yield 0.06 --spotperp --spotperp-minvol 5000000 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }

@@ -130,7 +130,10 @@ export function CommandCenter() {
                   <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-2xs)', margin: 0 }}>Nenhuma posição aberta agora.</p>
                 ) : abertas.map((a: any, i: number) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-hairline)', fontSize: 'var(--text-2xs)' }}>
-                    <span><b>{a.symbol}</b> · {a.long}/{a.short}</span>
+                    <span>
+                      <span title={a.tipo === 'spot-perp' ? 'spot-perp (mesma exchange)' : 'cross-exchange'}>{a.tipo === 'spot-perp' ? '📡' : '🔀'}</span> <b>{a.symbol}</b>
+                      <span style={{ color: 'var(--ink-3)' }}> · {a.long}{a.short ? '/' + a.short : ''}</span>
+                    </span>
                     <span className="tabular" style={{ color: 'var(--engine-funding)' }}>+{fmt.usd(a.fundingAcum)}</span>
                     <span className="tabular" style={{ color: 'var(--ink-3)' }}>{a.holdH}h</span>
                   </div>

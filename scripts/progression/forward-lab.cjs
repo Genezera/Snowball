@@ -45,6 +45,18 @@ const RESERVA = args.includes('--reserva') ? Number(opt('--reserva', L.RESERVA))
 // --stable-yield APR : rendimento anual sobre o capital LIVRE (reserva ociosa), tipo Earn/stablecoin do CEX.
 // Neutro, sem risco de preço — o colchão rende enquanto espera. 0 = desligado. Ex.: 0.06 = 6%/ano.
 const STABLE_YIELD = args.includes('--stable-yield') ? Number(opt('--stable-yield', 0)) : 0;
+// ── SPOT-PERP (cash-and-carry no perp): compra spot + short perp na MESMA exchange, capta funding
+// ABSOLUTO. Segunda superfície de captura nas mesmas 2 exchanges. Um contador de capital só. ──
+const SPOTPERP_ON = args.includes('--spotperp');
+const SPOTPERP_NOTIONAL = args.includes('--spotperp-notional') ? Number(opt('--spotperp-notional', 50)) : 50; // spot cheio é pesado
+const SPOTPERP_MINVOL = args.includes('--spotperp-minvol') ? Number(opt('--spotperp-minvol', 5e6)) : 5e6;       // perfil B
+const SPOTPERP_MAXPOS = args.includes('--spotperp-maxpos') ? Number(opt('--spotperp-maxpos', 2)) : 2;
+const SPOTPERP_FEED = opt('--spotperp-feed', path.join(L.ROOT, 'vigilancia', 'arquivo-spotperp.jsonl'));
+// custos REAIS do spot-perp (frações do notional). spot é caro; perp maker barato; basis = gap na entrada.
+const SP_SPOT_TAKER = 0.001, SP_PERP_MAKER = 0.0002, SP_SLIP = 0.0002, SP_BASIS = 0.0005;
+const SP_CUSTO_ENTRADA_FRAC = SP_SPOT_TAKER + SP_SLIP + SP_PERP_MAKER + SP_BASIS; // entra: spot+perp+basis
+const SP_CUSTO_SAIDA_FRAC = SP_SPOT_TAKER + SP_SLIP + SP_PERP_MAKER;              // sai: spot+perp
+const SP_FOOTPRINT_FRAC = 1 + 1 / L.ALAVANCAGEM;  // capital travado: spot cheio (notional) + margem do perp
 const CAP_POR_EX = L.ALVO_POR_EXCHANGE;
 // --cost-model taker|maker : custo de execução. taker (default) = ordens a mercado (0,05%+slip).
 // maker = ordens LIMITE (0,02%+slip mínimo, presets reais do src/config.ts) — 35,7% do custo taker.
@@ -270,6 +282,87 @@ function tgFecha(d, capital) {
     `${lucro ? '📈' : '📉'} <b>Resultado:</b> ${lucro ? '+' : '−'}${tgUsd(Math.abs(d.pnl), 4)}\n📝 <b>Por que fechou:</b> ${TG_MOTIVOS[d.closeReason] || d.closeReason || 'critério de saída'}\n💼 <b>Capital do competidor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
     `ℹ️ Tudo automático e em <b>paper</b> (sem dinheiro real). O robô segue operando sozinho. 😴`);
 }
+function tgAbreSpot(d, capital) {
+  return tgEnviar(`🟢 <b>NOVA OPERAÇÃO ABERTA · SPOT-PERP</b>\n${TG_TAG}\n${TG_LINHA}\n` +
+    `🪙 <b>Moeda:</b> ${d.sym}\n🏦 <b>Exchange:</b> ${d.exchange}\n🔁 <b>Estrutura:</b> compra spot + short perp (mesma exchange)\n` +
+    `💵 <b>Valor operado:</b> ${tgUsd(SPOTPERP_NOTIONAL, 0)}\n📊 <b>Funding:</b> ${(d.funding * 100).toFixed(4)}%/${d.iv}h\n💼 <b>Capital do motor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
+    `ℹ️ Captura o funding <b>absoluto</b> da ${d.exchange}. Neutro — o spot segura o preço. 🛡️`);
+}
+function tgFechaSpot(d, capital) {
+  const lucro = d.pnl >= 0;
+  return tgEnviar(`${lucro ? '✅' : '⚠️'} <b>OPERAÇÃO FECHADA · SPOT-PERP — ${lucro ? 'LUCRO' : 'PREJUÍZO'}</b>\n${TG_TAG}\n${TG_LINHA}\n` +
+    `🪙 <b>Moeda:</b> ${d.sym} (${d.exchange})\n💰 <b>Recebido (funding):</b> +${tgUsd(d.funding, 4)}\n💸 <b>Custo (taxas):</b> −${tgUsd(d.custo, 4)}\n` +
+    `${lucro ? '📈' : '📉'} <b>Resultado:</b> ${lucro ? '+' : '−'}${tgUsd(Math.abs(d.pnl), 4)}\n📝 <b>Por que fechou:</b> o funding sumiu\n💼 <b>Capital do motor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
+    `ℹ️ Paper, automático. 😴`);
+}
+
+// ── SPOT-PERP: lê o feed do coletor (tail, último ciclo), filtra por perfil e funding>0 ──
+function lerSpotPerp() {
+  const m = new Map();
+  try {
+    const st = fs.statSync(SPOTPERP_FEED);
+    const N = Math.min(st.size, 500 * 1024);
+    const fd = fs.openSync(SPOTPERP_FEED, 'r'); const buf = Buffer.alloc(N); fs.readSync(fd, buf, 0, N, st.size - N); fs.closeSync(fd);
+    const parsed = buf.toString('utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    const ultimoTs = parsed.reduce((mx, o) => Math.max(mx, o.ts || 0), 0);
+    for (const o of parsed) {
+      if (o.ts !== ultimoTs || !EXCHS.includes(o.exchange) || (o.vol || 0) < SPOTPERP_MINVOL || (o.funding || 0) <= 0) continue;
+      m.set(`sp:${o.sym}|${o.exchange}`, { sym: o.sym, exchange: o.exchange, funding: o.funding, iv: o.iv || 8, vol: o.vol });
+    }
+  } catch { /* feed pode não existir ainda */ }
+  return m;
+}
+
+// Processa spot-perp no MESMO livro-caixa: acumula funding das abertas, fecha as sem funding, abre novas.
+function processaSpotPerp(est, decisoes, cycleId) {
+  if (!SPOTPERP_ON) return;
+  est.bloqueios = est.bloqueios || {};
+  const oport = lerSpotPerp();
+  const agora = now();
+  const footprint = SPOTPERP_NOTIONAL * SP_FOOTPRINT_FRAC;
+  // 1) ACUMULA funding + sinal de fechamento para as abertas
+  for (const k of Object.keys(est.virtuais)) {
+    const vp = est.virtuais[k]; if (vp.tipo !== 'spotperp') continue;
+    const o = oport.get(k);
+    if (o) { const inc = vp.notional * (o.funding / o.iv) * (INTERVALO_S / 3600); vp.fundingAcum += inc; est.fundingAcum += inc; vp.ultimoFunding = o.funding; vp.ciclosSemFunding = 0; vp.latestEconomicEvaluationTs = agora; }
+    else { vp.ciclosSemFunding = (vp.ciclosSemFunding || 0) + 1; vp.ultimoFunding = 0; }
+  }
+  // 2) FECHA as que perderam o funding por N ciclos (devolve footprint = spot + margem)
+  for (const k of Object.keys(est.virtuais)) {
+    const vp = est.virtuais[k]; if (vp.tipo !== 'spotperp' || (vp.ciclosSemFunding || 0) < INVERSION_CICLOS) continue;
+    const custoSaida = vp.notional * SP_CUSTO_SAIDA_FRAC;
+    est.saldosPorExchange[vp.exchange] += vp.footprint; est.custosAcum += custoSaida; est.contadores.fechadas++;
+    const pnl = vp.fundingAcum - vp.custoEntrada - custoSaida;
+    append(F.diario, { ts: agora, evento: 'fecha', tipo: 'spotperp', k, exchange: vp.exchange, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: agora, closeCycle: cycleId, closeReason: 'funding_gone' });
+    decisoes.push({ k, acao: 'fecha', tipo: 'spotperp', sym: vp.sym, exchange: vp.exchange, funding: L.r4(vp.fundingAcum), custo: L.r4(vp.custoEntrada + custoSaida), pnl: L.r4(pnl), closeReason: 'funding_gone' });
+    delete est.virtuais[k];
+  }
+  // 3) ABRE novas (ranqueadas por funding/hora), respeitando capital livre e maxpos spot-perp
+  let abertos = Object.values(est.virtuais).filter((v) => v.tipo === 'spotperp').length;
+  const cands = [...oport.values()].filter((o) => !est.virtuais[`sp:${o.sym}|${o.exchange}`]).sort((a, b) => (b.funding / b.iv) - (a.funding / a.iv));
+  for (const o of cands) {
+    if (abertos >= SPOTPERP_MAXPOS) break;
+    const E = o.exchange; est.contadores.avaliadas++;
+    if ((est.saldosPorExchange[E] || 0) - footprint < CAP_POR_EX * RESERVA) { est.bloqueios.spotperpSemCapital = (est.bloqueios.spotperpSemCapital || 0) + 1; continue; }
+    const k = `sp:${o.sym}|${E}`;
+    const custoEntrada = SPOTPERP_NOTIONAL * SP_CUSTO_ENTRADA_FRAC;
+    est.saldosPorExchange[E] -= footprint; est.custosAcum += custoEntrada; est.contadores.abertas++; abertos++;
+    est.virtuais[k] = { tipo: 'spotperp', k, sym: o.sym, exchange: E, notional: SPOTPERP_NOTIONAL, footprint, margemPerp: SPOTPERP_NOTIONAL / L.ALAVANCAGEM, fundingAcum: 0, custoEntrada, fundingEntrada: o.funding, ultimoFunding: o.funding, ciclosSemFunding: 0, positionOpenedAt: agora, latestEconomicEvaluationTs: agora, entryCycle: cycleId };
+    append(F.diario, { ts: agora, evento: 'abre', tipo: 'spotperp', k, sym: o.sym, exchange: E, funding: L.r4(o.funding), iv: o.iv, custoEntrada: L.r4(custoEntrada), entryCycle: cycleId });
+    decisoes.push({ k, acao: 'abre', tipo: 'spotperp', sym: o.sym, exchange: E, funding: L.r4(o.funding), iv: o.iv });
+  }
+}
+
+// GARANTIA anti-número-falso: livro de margem tem de fechar ao centavo a cada ciclo.
+// saldos livres + capital comprometido (margens cross + footprints spot-perp) == capitalInicial.
+function reconciliar(est) {
+  let committed = 0;
+  for (const vp of Object.values(est.virtuais)) committed += vp.tipo === 'spotperp' ? vp.footprint : 2 * (vp.margemPorPerna || 0);
+  const somaSaldos = EXCHS.reduce((s, e) => s + (est.saldosPorExchange[e] || 0), 0);
+  const erro = Math.abs(somaSaldos + committed - est.capitalInicial);
+  if (erro > 0.01) { append(F.diario, { ts: now(), evento: 'RECONCILIATION_BREAK', somaSaldos: L.r4(somaSaldos), committed: L.r4(committed), capitalInicial: est.capitalInicial, erro: L.r4(erro) }); console.error(`[forward-lab ${LABEL}] RECONCILIATION_BREAK erro=${erro.toFixed(4)}`); }
+  return erro;
+}
 
 function umCiclo() {
   const r = recuperar();
@@ -345,7 +438,7 @@ function umCiclo() {
   candidatas.forEach((c) => { c.score = economia(c.apr, c.spread); c.ev = c.score * NOTIONAL; });
   candidatas.sort((a, b) => b.score - a.score || b.ev - a.ev || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
 
-  const virtSemVer = new Set(Object.keys(est.virtuais)); const decisoes = [];
+  const virtSemVer = new Set(Object.keys(est.virtuais).filter((k) => est.virtuais[k].tipo !== 'spotperp')); const decisoes = [];
   for (const c of candidatas) {
     est.contadores.avaliadas++;
     if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.latestEconomicEvaluationTs = now(); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0;
@@ -381,6 +474,7 @@ function umCiclo() {
   const sourceHealthPorExchange = null;
   for (const k of Object.keys(est.virtuais)) {
     const vp = est.virtuais[k];
+    if (vp.tipo === 'spotperp') continue;   // spot-perp tem lógica própria (processaSpotPerp)
     // ── sinais de fechamento (item 4): registrados SEMPRE; nenhum implícito por scanner ──
     const scannerStale = (vp.ciclosSemVer || 0) >= STALE_CICLOS;
     const inversion = (vp.ciclosInversao || 0) >= INVERSION_CICLOS;
@@ -410,8 +504,12 @@ function umCiclo() {
     decisoes.push({ k, acao: 'fecha', sym: vp.sym, long: vp.long, short: vp.short, funding: L.r4(vp.fundingAcum), custo: L.r4(vp.custoEntrada + custoSaida), pnl: L.r4(pnl), closeReason, sourcePositionId: vp.sourcePositionId }); delete est.virtuais[k];
   }
 
+  // ── SPOT-PERP: segunda superfície de captura, mesmo livro-caixa (abre/acumula/fecha) ──
+  processaSpotPerp(est, decisoes, cycleId);
   // ── rendimento da reserva ociosa (stablecoin yield) — neutro, sem risco de preço ──
   if (STABLE_YIELD > 0) { const idle = EXCHS.reduce((s, e) => s + (est.saldosPorExchange[e] || 0), 0); est.yieldAcum = (est.yieldAcum || 0) + idle * (STABLE_YIELD / 8760) * (INTERVALO_S / 3600); }
+  // ── GARANTIA: reconciliação do livro de margem ao centavo (trava número falso) ──
+  reconciliar(est);
   est.lastCycleId = cycleId;
   // ── CHECKPOINT ATÔMICO (com crash injection) ────────────────────────────────
   persistir(est, true);
@@ -423,7 +521,10 @@ function umCiclo() {
   // ── avisos ao Telegram (só ciclos ao vivo; largada é silenciosa) ──
   if (TG_ON && tgLargadaFeita) {
     const capital = est.capitalInicial + est.fundingAcum + (est.yieldAcum || 0) - est.custosAcum;
-    for (const d of decisoes) { if (d.acao === 'abre') tgAbre(d, capital); else if (d.acao === 'fecha') tgFecha(d, capital); }
+    for (const d of decisoes) {
+      if (d.acao === 'abre') (d.tipo === 'spotperp' ? tgAbreSpot : tgAbre)(d, capital);
+      else if (d.acao === 'fecha') (d.tipo === 'spotperp' ? tgFechaSpot : tgFecha)(d, capital);
+    }
   }
   tgLargadaFeita = true;
 }
