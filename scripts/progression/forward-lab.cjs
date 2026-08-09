@@ -42,6 +42,9 @@ const PERSIST_MIN = args.includes('--persist-min') ? Number(opt('--persist-min',
 // --reserva F : fração do capital mantida em reserva (não usada como margem). Default = L.RESERVA (0.30).
 // Reduzir (ex.: 0.20) coloca mais capital ocioso pra trabalhar → mais posições → mais funding. Lever de UTILIZAÇÃO.
 const RESERVA = args.includes('--reserva') ? Number(opt('--reserva', L.RESERVA)) : L.RESERVA;
+// --stable-yield APR : rendimento anual sobre o capital LIVRE (reserva ociosa), tipo Earn/stablecoin do CEX.
+// Neutro, sem risco de preço — o colchão rende enquanto espera. 0 = desligado. Ex.: 0.06 = 6%/ano.
+const STABLE_YIELD = args.includes('--stable-yield') ? Number(opt('--stable-yield', 0)) : 0;
 const CAP_POR_EX = L.ALVO_POR_EXCHANGE;
 // --cost-model taker|maker : custo de execução. taker (default) = ordens a mercado (0,05%+slip).
 // maker = ordens LIMITE (0,02%+slip mínimo, presets reais do src/config.ts) — 35,7% do custo taker.
@@ -134,7 +137,7 @@ function estadoInicial(epoch) {
   const fi = fileIdentity();
   return { modo: MODE, label: LABEL, maxPos: MAXPOS, closePolicy: CLOSE_POLICY, iniciadoEm: now(), forwardEpochId: epoch ? epoch.forwardEpochId : null,
     cursor: { sourceFileId: OBS, fileIdentity: fi.id, byteOffset: epoch ? epoch.byteOffset : fi.size, lineNumber: epoch ? epoch.lineNumber : 0, lastCompleteLineHash: null, lastTimestamp: epoch ? epoch.timestamp : now(), lastOpportunityKey: null, partial: '', tailLogicalHashes: [], lastGlobalTs: null, burstAnchorId: null },
-    saldosPorExchange: saldos, capitalInicial: EXCHS.length * CAP_POR_EX, virtuais: {}, fundingAcum: 0, custosAcum: 0,
+    saldosPorExchange: saldos, capitalInicial: EXCHS.length * CAP_POR_EX, virtuais: {}, fundingAcum: 0, custosAcum: 0, yieldAcum: 0,
     episodios: {},   // v1.8 identidade causal: por chave { episodeSeq, anchorObsId, episodeId, lastTs }
     eventCount: 0, accumulatedEventHash: '', lastCycleId: 0, walSequence: 0, sourceStatus: 'OK', lateEvents: 0,
     contadores: { avaliadas: 0, abertas: 0, fechadas: 0, bloqueadas: 0, dedupIgnorados: 0, rotationOverlapSkipped: 0 },
@@ -407,6 +410,8 @@ function umCiclo() {
     decisoes.push({ k, acao: 'fecha', sym: vp.sym, long: vp.long, short: vp.short, funding: L.r4(vp.fundingAcum), custo: L.r4(vp.custoEntrada + custoSaida), pnl: L.r4(pnl), closeReason, sourcePositionId: vp.sourcePositionId }); delete est.virtuais[k];
   }
 
+  // ── rendimento da reserva ociosa (stablecoin yield) — neutro, sem risco de preço ──
+  if (STABLE_YIELD > 0) { const idle = EXCHS.reduce((s, e) => s + (est.saldosPorExchange[e] || 0), 0); est.yieldAcum = (est.yieldAcum || 0) + idle * (STABLE_YIELD / 8760) * (INTERVALO_S / 3600); }
   est.lastCycleId = cycleId;
   // ── CHECKPOINT ATÔMICO (com crash injection) ────────────────────────────────
   persistir(est, true);
@@ -414,17 +419,17 @@ function umCiclo() {
   // ── WAL COMMITTED ───────────────────────────────────────────────────────────
   wal.status = 'COMMITTED'; wal.stateHashAfter = stateHash(est); wal.decisoes = decisoes; escreverAtomico(F.wal, wal);
   // ── snapshot por watermark ──────────────────────────────────────────────────
-  append(F.snapshots, { committedOffset: cur.byteOffset, eventCount: est.eventCount, accumulatedHash: est.accumulatedEventHash, capital: L.r4(est.capitalInicial + est.fundingAcum - est.custosAcum), saldos: est.saldosPorExchange, posicoes: Object.keys(est.virtuais).length, pnl: L.r4(est.fundingAcum - est.custosAcum), custos: L.r4(est.custosAcum), funding: L.r4(est.fundingAcum), stateHash: stateHash(est) });
+  append(F.snapshots, { committedOffset: cur.byteOffset, eventCount: est.eventCount, accumulatedHash: est.accumulatedEventHash, capital: L.r4(est.capitalInicial + est.fundingAcum + (est.yieldAcum || 0) - est.custosAcum), saldos: est.saldosPorExchange, posicoes: Object.keys(est.virtuais).length, pnl: L.r4(est.fundingAcum + (est.yieldAcum || 0) - est.custosAcum), custos: L.r4(est.custosAcum), funding: L.r4(est.fundingAcum), yield: L.r4(est.yieldAcum || 0), stateHash: stateHash(est) });
   // ── avisos ao Telegram (só ciclos ao vivo; largada é silenciosa) ──
   if (TG_ON && tgLargadaFeita) {
-    const capital = est.capitalInicial + est.fundingAcum - est.custosAcum;
+    const capital = est.capitalInicial + est.fundingAcum + (est.yieldAcum || 0) - est.custosAcum;
     for (const d of decisoes) { if (d.acao === 'abre') tgAbre(d, capital); else if (d.acao === 'fecha') tgFecha(d, capital); }
   }
   tgLargadaFeita = true;
 }
 
 function persistir(est, comCrash) {
-  const capitalAtual = est.capitalInicial + est.fundingAcum - est.custosAcum;
+  const capitalAtual = est.capitalInicial + est.fundingAcum + (est.yieldAcum || 0) - est.custosAcum;
   const ck = { ...est, capitalAtual: L.r4(capitalAtual) }; delete ck._recuperado; delete ck._partialAnterior;
   escreverAtomico(F.estado, ck, comCrash);
   fs.writeFileSync(F.heartbeat, JSON.stringify({ pid: process.pid, modo: MODE, label: LABEL, maxPos: MAXPOS, forwardEpochId: est.forwardEpochId, ultimoCiclo: now(), sourceStatus: est.sourceStatus, byteOffset: est.cursor.byteOffset, eventCount: est.eventCount, accumulatedEventHash: est.accumulatedEventHash, lastCycleId: est.lastCycleId, abertas: Object.keys(est.virtuais).length, fechadas: est.contadores.fechadas, capital: L.r4(capitalAtual) }, null, 2));

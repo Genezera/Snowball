@@ -12,12 +12,12 @@ LOG="$BASE/supervisor-competidores.log"
 STALE_MS=660000   # > 11min sem heartbeat = caiu (ciclo é 5min)
 mkdir -p "$BASE"
 
+# BOT ÚNICO — a configuração do DINHEIRO REAL (2 exchanges, foco total). Sem várias frentes.
+# bybit+bitget (par vencedor do head-to-head; gate+okx ficou faminto, 0 posições) + todos os
+# levers seguros embutidos: maker + persistência 30min + utilização máxima (5 pos · reserva 20%)
+# + rendimento na reserva ociosa (6%/ano, neutro). É isto que vai virar dinheiro real.
 declare -A CMD=(
-  [compete-bybit-bitget]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label compete-bybit-bitget --close-policy economic_inversion --persist-min 30 --cost-model maker --intervalo 300"
-  [compete-gate-okx]="node scripts/progression/forward-lab.cjs --mode control --exchanges gate,okx --label compete-gate-okx --close-policy economic_inversion --persist-min 30 --cost-model maker --intervalo 300"
-  # TURBO: mesmo par do baseline (bybit+bitget) para ISOLAR o lever de utilização de capital —
-  # limite 3→5 posições + reserva 30%→20%. Deploy do capital ocioso (~40%) → mais funding/dia.
-  [compete-turbo-bb]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label compete-turbo-bb --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 5 --reserva 0.20 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 5 --reserva 0.20 --stable-yield 0.06 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }

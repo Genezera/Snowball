@@ -104,7 +104,7 @@ export function Competidores() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader titulo="Competidores 2-Exchange" sub="A dupla que decide as 2 melhores exchanges para o dinheiro real. Cada um separado, completo: dinheiro, gráfico, ordens, o que pensa, histórico. Tudo paper." />
+      <PageHeader titulo="Motor Real — 2 Exchanges" sub="O bot único que vira dinheiro real: bybit + bitget, com maker + persistência + utilização máxima (5 posições · reserva 20%) + rendimento na reserva. Dinheiro, gráfico, ordens, o que pensa, histórico — tudo paper por enquanto." />
       {res?.estado === 'erro' && <DataStateBanner kind="offline" motivo={res.motivo} />}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 'var(--space-5)', alignItems: 'start' }}>
         {lista.map((c: any) => <Competidor key={c.label} c={c} />)}

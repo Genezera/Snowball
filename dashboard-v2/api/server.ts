@@ -165,7 +165,7 @@ const servidor = http.createServer((req, res) => {
           const est = lerJsonSeguro<any>(path.join(compDir, c.label, 'estado.json'), null);
           const hb = lerJsonSeguro<any>(path.join(compDir, c.label, 'heartbeat.json'), null);
           if (!est) return c;
-          const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, net = funding - custos;
+          const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, rend = est.yieldAcum || 0, net = funding + rend - custos;
           const vivo = !!(hb && hb.ultimoCiclo && Date.now() - hb.ultimoCiclo < 15 * 60000);
           return { ...c, fundingAcum: Math.round(funding * 1e4) / 1e4, custosAcum: Math.round(custos * 1e4) / 1e4, net: Math.round(net * 1e4) / 1e4,
             capital: Math.round((est.capitalInicial + net) * 1e4) / 1e4, abertas: Object.keys(est.virtuais || {}).length,
@@ -180,13 +180,15 @@ const servidor = http.createServer((req, res) => {
     // Tudo lido AO VIVO dos arquivos do motor (estado/diario/snapshots). SÓ LEITURA.
     if (url.pathname === '/api/v2/competidores') {
       const compDir = path.join(ROOT, 'auditoria', 'progression', 'compete');
-      const defs = [{ label: 'compete-bybit-bitget', par: 'bybit + bitget' }, { label: 'compete-gate-okx', par: 'gate + okx' }, { label: 'compete-turbo-bb', par: 'bybit + bitget · TURBO (5 pos · reserva 20%)' }];
+      // BOT ÚNICO — a configuração do dinheiro real: bybit+bitget, maker + persistência,
+      // utilização máxima (5 pos · reserva 20%) + rendimento na reserva. Sem várias frentes.
+      const defs = [{ label: 'snowball-2ex', par: 'bybit + bitget · MOTOR REAL' }];
       const r2 = (n: number, c = 4) => Math.round(n * 10 ** c) / 10 ** c;
       const competidores = defs.map((d) => {
         const est = lerJsonSeguro<any>(path.join(compDir, d.label, 'estado.json'), null);
         const hb = lerJsonSeguro<any>(path.join(compDir, d.label, 'heartbeat.json'), null);
         if (!est) return { ...d, disponivel: false };
-        const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, net = funding - custos;
+        const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, rend = est.yieldAcum || 0, net = funding + rend - custos;
         const dias = est.iniciadoEm ? (Date.now() - est.iniciadoEm) / 86400000 : 0;
         const vivo = !!(hb && hb.ultimoCiclo && Date.now() - hb.ultimoCiclo < 15 * 60000);
         const abertas = Object.values(est.virtuais || {}).map((v: any) => ({
@@ -201,7 +203,7 @@ const servidor = http.createServer((req, res) => {
         const snaps = lerJsonlComNumeroDeLinha(path.join(compDir, d.label, 'snapshots.jsonl')).map((x) => x.linha as any).slice(-300);
         const curva = snaps.map((s: any, i: number) => ({ ts: s.eventCount || i, capital: s.capital != null ? s.capital : (est.capitalInicial + (s.funding || 0) - (s.custos || 0)) }));
         return { ...d, disponivel: true, vivo, idadeS: hb && hb.ultimoCiclo ? Math.round((Date.now() - hb.ultimoCiclo) / 1000) : null,
-          dinheiro: { capitalInicial: est.capitalInicial, capital: r2(est.capitalInicial + net, 2), funding: r2(funding), custos: r2(custos), net: r2(net), dias: r2(dias, 2), pctDia: dias > 0 && est.capitalInicial ? r2(net / est.capitalInicial / dias * 100, 3) : 0 },
+          dinheiro: { capitalInicial: est.capitalInicial, capital: r2(est.capitalInicial + net, 2), funding: r2(funding), rendimento: r2(rend), custos: r2(custos), net: r2(net), dias: r2(dias, 2), pctDia: dias > 0 && est.capitalInicial ? r2(net / est.capitalInicial / dias * 100, 3) : 0 },
           abertas, operacoes,
           pensando: { avaliadas: (est.contadores || {}).avaliadas || 0, abertas: abertas.length, fechadas: (est.contadores || {}).fechadas || 0,
             aguardandoPersistencia: (est.bloqueios || {}).persistencePending || 0, rejeitadasSemEV: (est.bloqueios || {}).evNaoPositivo || 0,
