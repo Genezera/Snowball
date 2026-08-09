@@ -261,7 +261,7 @@ function tgFecha(d, capital) {
   const lucro = d.pnl >= 0;
   return tgEnviar(`${lucro ? '✅' : '⚠️'} <b>OPERAÇÃO FECHADA — ${lucro ? 'LUCRO' : 'PREJUÍZO'}</b>\n${TG_TAG}\n${TG_LINHA}\n` +
     `🪙 <b>Moeda:</b> ${tgSym(d.k, d.sym)}\n💰 <b>Recebido (funding):</b> +${tgUsd(d.funding, 4)}\n💸 <b>Custo (taxas):</b> −${tgUsd(d.custo, 4)}\n` +
-    `${lucro ? '📈' : '📉'} <b>Resultado:</b> ${lucro ? '+' : ''}${tgUsd(d.pnl, 4)}\n📝 <b>Por que fechou:</b> ${TG_MOTIVOS[d.closeReason] || d.closeReason || 'critério de saída'}\n💼 <b>Capital do competidor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
+    `${lucro ? '📈' : '📉'} <b>Resultado:</b> ${lucro ? '+' : '−'}${tgUsd(Math.abs(d.pnl), 4)}\n📝 <b>Por que fechou:</b> ${TG_MOTIVOS[d.closeReason] || d.closeReason || 'critério de saída'}\n💼 <b>Capital do competidor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
     `ℹ️ Tudo automático e em <b>paper</b> (sem dinheiro real). O robô segue operando sozinho. 😴`);
 }
 
