@@ -127,7 +127,7 @@ export function CommandCenter() {
             ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>{t('Nenhum settlement iminente.')}</p>}
           </Section>
 
-          <Section titulo={t('Oportunidades')} acao={<Link to="/opportunities" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>{t('ver mapa →')}</Link>}>
+          <Section titulo={t('Oportunidades (varredura do mercado)')} acao={<Link to="/opportunities" style={{ fontSize: 'var(--text-2xs)', color: 'var(--snow-primary)', textDecoration: 'none' }}>{t('ver mapa →')}</Link>}>
             {oport?.estado === 'sucesso' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ink-2)' }}>{t('Observadas')}</span><span className="tabular" style={{ fontWeight: 700 }}>{fmt.int(oport.dado.summary.total)}</span></div>

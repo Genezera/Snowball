@@ -3,65 +3,39 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useT } from '../../i18n';
 
-interface NavItem { to: string; label: string; glyph: string; pendente?: boolean }
+interface NavItem { to: string; label: string; glyph: string }
 interface NavGroup { titulo: string; itens: NavItem[] }
 
 /**
- * SIDEBAR DEFINITIVA (Etapa A, item 7) — navegação agrupada com a
- * identidade Snowball: marca com brilho ciano, estado ativo em ciano
- * glacial, grupos recolhíveis. Só as 6 páginas já construídas são reais;
- * as demais abrem a `PaginaPendente` (stubs de Etapa B/C) e ficam marcadas
- * com um ponto "em breve" pra não confundir o que já existe.
+ * SIDEBAR — navegação agrupada com a identidade Snowball (marca com brilho
+ * ciano, estado ativo em ciano glacial, grupos recolhíveis). Focada no plano
+ * de 2 exchanges: núcleo (Command Center, Competidores, Maximização, Champion)
+ * + operação/mercado + sistema. Todas as páginas listadas são reais.
  */
-// Grupos conforme a spec de reconstrução desktop (item 5). Os rótulos das 6
-// páginas JÁ construídas ficam nos nomes que os testes E2E e os <h1> das
-// páginas usam (renomear quebraria keyboard.spec + os headings) — a
-// tradução dos rótulos é polimento coordenado posterior.
 const GRUPOS: NavGroup[] = [
   {
-    titulo: 'Overview',
+    titulo: 'Snowball 2-Ex',
     itens: [
       { to: '/', label: 'Command Center', glyph: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
-      { to: '/champion', label: 'Champion', glyph: 'M12 2 L20 12 L12 22 L4 12 Z' },
-      { to: '/maximizacao', label: 'Maximização de Lucro', glyph: 'M3 17l6-6 4 4 8-8M21 7v6h-6' },
       { to: '/competidores', label: 'Competidores 2-Ex', glyph: 'M8 6h8M8 12h8M8 18h8M4 6h.01M4 12h.01M4 18h.01' },
+      { to: '/maximizacao', label: 'Maximização de Lucro', glyph: 'M3 17l6-6 4 4 8-8M21 7v6h-6' },
+      { to: '/champion', label: 'Champion (referência)', glyph: 'M12 2 L20 12 L12 22 L4 12 Z' },
     ],
   },
   {
-    titulo: 'Operações',
+    titulo: 'Operação & Mercado',
     itens: [
-      { to: '/live', label: 'Live Operations', glyph: 'M3 12h4l3-8 4 16 3-8h4' },
-      { to: '/capture', label: 'Settlement Capture', glyph: 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2' },
-      { to: '/opportunities', label: 'Opportunity Map', glyph: 'M5 12a7 7 0 1114 0 7 7 0 01-14 0zM12 5v2M12 17v2M5 12h2M17 12h2' },
-      { to: '/portfolio', label: 'Portfolio', glyph: 'M3 3v18h18M7 15l4-4 3 3 5-6' },
-    ],
-  },
-  {
-    titulo: 'Estratégias',
-    itens: [
-      { to: '/strategies', label: 'Strategy Universe', glyph: 'M12 2l8.5 5v10L12 22l-8.5-5V7z' },
-      { to: '/arena', label: 'Challenger Arena', glyph: 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 7v5l3 3' },
-      { to: '/champion-vs-control', label: 'Champion vs. Control', glyph: 'M4 6h7M4 12h7M4 18h7M13 6h7M13 12h7M13 18h7' },
-      { to: '/experiments', label: 'Experiment Lab', glyph: 'M9 2h6M10 2v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V2' },
-    ],
-  },
-  {
-    titulo: 'Inteligência financeira',
-    itens: [
-      { to: '/costs', label: 'Cost Intelligence', glyph: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
-      { to: '/risk', label: 'Risk Center', glyph: 'M12 2l9 5v6c0 5-3.8 8-9 9-5.2-1-9-4-9-9V7z' },
-      { to: '/exchanges', label: 'Exchanges', glyph: 'M4 7h13l-3-3M20 17H7l3 3' },
+      { to: '/opportunities', label: 'Varredura do Mercado', glyph: 'M5 12a7 7 0 1114 0 7 7 0 01-14 0zM12 5v2M12 17v2M5 12h2M17 12h2' },
+      { to: '/costs', label: 'Custos & Maker', glyph: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
+      { to: '/risk', label: 'Risco (liquidação)', glyph: 'M12 2l9 5v6c0 5-3.8 8-9 9-5.2-1-9-4-9-9V7z' },
+      { to: '/capture', label: 'Funding & Settlements', glyph: 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2' },
     ],
   },
   {
     titulo: 'Sistema',
     itens: [
-      { to: '/processes', label: 'Processos', glyph: 'M9 3H5a2 2 0 00-2 2v4M15 3h4a2 2 0 012 2v4M9 21H5a2 2 0 01-2-2v-4M15 21h4a2 2 0 002-2v-4M9 9h6v6H9z' },
-      { to: '/system', label: 'System Health', glyph: 'M12 2a5 5 0 00-5 5v3H5a2 2 0 00-2 2v8a2 2 0 002 2h14a2 2 0 002-2v-8a2 2 0 00-2-2h-2V7a5 5 0 00-5-5z' },
-      { to: '/pesquisa', label: 'Pesquisa', glyph: 'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-5-5' },
       { to: '/historico', label: 'Histórico', glyph: 'M3 3v5h5M3.05 13a9 9 0 105-8.5L3 8M12 7v5l4 2' },
-      { to: '/logs', label: 'Logs', glyph: 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
-      { to: '/audit', label: 'Audit', glyph: 'M9 12l2 2 4-4M5 3h14v18l-7-4-7 4z' },
+      { to: '/system', label: 'Saúde do Sistema', glyph: 'M12 2a5 5 0 00-5 5v3H5a2 2 0 00-2 2v8a2 2 0 002 2h14a2 2 0 002-2v-8a2 2 0 00-2-2h-2V7a5 5 0 00-5-5z' },
     ],
   },
 ];
@@ -94,12 +68,6 @@ function ItemLink({ item, colapsado, aoNavegar }: { item: NavItem; colapsado: bo
             <path d={item.glyph} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           {!colapsado && <span style={{ flex: 1 }}>{t(item.label)}</span>}
-          {!colapsado && item.pendente && (
-            <span title={t('Em construção (Etapa B/C)')} style={{
-              fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
-              color: 'var(--ink-3)', border: '1px solid var(--border-hairline)', borderRadius: 4, padding: '1px 5px',
-            }}>soon</span>
-          )}
         </>
       )}
     </NavLink>
