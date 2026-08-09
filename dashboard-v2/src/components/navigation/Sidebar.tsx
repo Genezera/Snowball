@@ -24,6 +24,7 @@ const GRUPOS: NavGroup[] = [
       { to: '/', label: 'Command Center', glyph: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
       { to: '/champion', label: 'Champion', glyph: 'M12 2 L20 12 L12 22 L4 12 Z' },
       { to: '/maximizacao', label: 'Maximização de Lucro', glyph: 'M3 17l6-6 4 4 8-8M21 7v6h-6' },
+      { to: '/competidores', label: 'Competidores 2-Ex', glyph: 'M8 6h8M8 12h8M8 18h8M4 6h.01M4 12h.01M4 18h.01' },
     ],
   },
   {

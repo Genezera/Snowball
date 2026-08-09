@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CHALLENGERS_APROVADOS } from '../../src/inteligencia/challengers.ts';
-import { lerJsonSeguro, caminhoAgregadoLab } from './readers/arquivos.ts';
+import { lerJsonSeguro, caminhoAgregadoLab, lerJsonlComNumeroDeLinha } from './readers/arquivos.ts';
 import { buscarEventosIncremental } from './services/eventos.ts';
 import { montarManifestoCobertura } from './services/cobertura.ts';
 import { lerTotaisAutoritativos, construirDecomposicao } from './services/waterfall.ts';
@@ -173,6 +173,42 @@ const servidor = http.createServer((req, res) => {
         });
       }
       return enviarJson(res, 200, { ok: true, dados: base, geradoEm: Date.now() });
+    }
+
+    // ── competidores 2-exchange: detalhe rico por competidor (dupla, cada um separado) ──
+    // dinheiro, curva de capital, ordens abertas, operações (histórico), "o que está pensando".
+    // Tudo lido AO VIVO dos arquivos do motor (estado/diario/snapshots). SÓ LEITURA.
+    if (url.pathname === '/api/v2/competidores') {
+      const compDir = path.join(ROOT, 'auditoria', 'progression', 'compete');
+      const defs = [{ label: 'compete-bybit-bitget', par: 'bybit + bitget' }, { label: 'compete-gate-okx', par: 'gate + okx' }];
+      const r2 = (n: number, c = 4) => Math.round(n * 10 ** c) / 10 ** c;
+      const competidores = defs.map((d) => {
+        const est = lerJsonSeguro<any>(path.join(compDir, d.label, 'estado.json'), null);
+        const hb = lerJsonSeguro<any>(path.join(compDir, d.label, 'heartbeat.json'), null);
+        if (!est) return { ...d, disponivel: false };
+        const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, net = funding - custos;
+        const dias = est.iniciadoEm ? (Date.now() - est.iniciadoEm) / 86400000 : 0;
+        const vivo = !!(hb && hb.ultimoCiclo && Date.now() - hb.ultimoCiclo < 15 * 60000);
+        const abertas = Object.values(est.virtuais || {}).map((v: any) => ({
+          symbol: String(v.sym || v.k || '').replace('/USDT:USDT', ''), long: v.long, short: v.short,
+          notional: v.notional, fundingAcum: r2(v.fundingAcum || 0), aprEntrada: r2(v.aprEntrada || 0, 2),
+          holdH: v.positionOpenedAt ? r2((Date.now() - v.positionOpenedAt) / 3.6e6, 1) : null }));
+        const diario = lerJsonlComNumeroDeLinha(path.join(compDir, d.label, 'diario.jsonl')).map((x) => x.linha as any);
+        const operacoes = diario.filter((e) => e.evento === 'abre' || e.evento === 'fecha').slice(-15).reverse()
+          .map((e) => ({ ts: e.ts, tipo: e.evento, symbol: String(e.k || '').split('|')[0], apr: e.apr != null ? r2(e.apr, 2) : null, funding: e.funding != null ? r2(e.funding) : null, pnl: e.pnl != null ? r2(e.pnl) : null, motivo: e.closeReason || null }));
+        const pend = diario.filter((e) => e.evento === 'bloqueada' && e.motivo === 'persistencePending').slice(-40);
+        const candidatos = [...new Set(pend.map((e) => String(e.k || '').split('|')[0]))].slice(0, 10);
+        const snaps = lerJsonlComNumeroDeLinha(path.join(compDir, d.label, 'snapshots.jsonl')).map((x) => x.linha as any).slice(-300);
+        const curva = snaps.map((s: any, i: number) => ({ ts: s.eventCount || i, capital: s.capital != null ? s.capital : (est.capitalInicial + (s.funding || 0) - (s.custos || 0)) }));
+        return { ...d, disponivel: true, vivo, idadeS: hb && hb.ultimoCiclo ? Math.round((Date.now() - hb.ultimoCiclo) / 1000) : null,
+          dinheiro: { capitalInicial: est.capitalInicial, capital: r2(est.capitalInicial + net, 2), funding: r2(funding), custos: r2(custos), net: r2(net), dias: r2(dias, 2), pctDia: dias > 0 && est.capitalInicial ? r2(net / est.capitalInicial / dias * 100, 3) : 0 },
+          abertas, operacoes,
+          pensando: { avaliadas: (est.contadores || {}).avaliadas || 0, abertas: abertas.length, fechadas: (est.contadores || {}).fechadas || 0,
+            aguardandoPersistencia: (est.bloqueios || {}).persistencePending || 0, rejeitadasSemEV: (est.bloqueios || {}).evNaoPositivo || 0,
+            semCapacidade: ((est.bloqueios || {}).maxPositionsBlocked || 0) + ((est.bloqueios || {}).localBalanceBlocked || 0), candidatosObservados: candidatos },
+          curva };
+      });
+      return enviarJson(res, 200, { ok: true, competidores, geradoEm: Date.now() });
     }
 
     // ── transporte incremental de eventos (Parte 4) ──────────────────────

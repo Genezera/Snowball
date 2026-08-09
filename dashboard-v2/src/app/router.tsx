@@ -9,6 +9,7 @@ import { Skeleton } from '../components/feedback/DataState';
 // da reconstrução, todas reais (nenhum placeholder restante).
 const ChampionView = lazy(() => import('../pages/ChampionView').then((m) => ({ default: m.ChampionView })));
 const MaximizacaoLucro = lazy(() => import('../pages/MaximizacaoLucro').then((m) => ({ default: m.MaximizacaoLucro })));
+const Competidores = lazy(() => import('../pages/Competidores').then((m) => ({ default: m.Competidores })));
 const LiveOperations = lazy(() => import('../pages/LiveOperations').then((m) => ({ default: m.LiveOperations })));
 const SettlementCapture = lazy(() => import('../pages/SettlementCapture').then((m) => ({ default: m.SettlementCapture })));
 const CostIntelligence = lazy(() => import('../pages/CostIntelligence').then((m) => ({ default: m.CostIntelligence })));
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <CommandCenter /> },
       { path: '/champion', element: comSuspense(ChampionView) },
       { path: '/maximizacao', element: comSuspense(MaximizacaoLucro) },
+      { path: '/competidores', element: comSuspense(Competidores) },
       { path: '/live', element: comSuspense(LiveOperations) },
       { path: '/capture', element: comSuspense(SettlementCapture) },
       { path: '/opportunities', element: comSuspense(OpportunityMap) },

@@ -64,6 +64,10 @@ export function buscarProfitLab(): Promise<Resultado<ProfitLabDados>> {
 export function buscarMaximizacao(): Promise<Resultado<{ dados: any } | null>> {
   return buscarValidado('/api/v2/profit-maximization', { parse: (v: unknown) => v as { dados: any } | null });
 }
+// Detalhe rico dos competidores 2-exchange (a dupla, cada um separado).
+export function buscarCompetidores(): Promise<Resultado<{ competidores: any[] } | null>> {
+  return buscarValidado('/api/v2/competidores', { parse: (v: unknown) => v as { competidores: any[] } | null });
+}
 export function buscarEventosIncremental(cursor: string | null, limit: number): Promise<Resultado<EventosRecentesResposta>> {
   const qs = new URLSearchParams({ limit: String(limit) });
   if (cursor) qs.set('after', cursor);
