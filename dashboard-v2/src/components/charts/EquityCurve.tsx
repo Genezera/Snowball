@@ -10,6 +10,8 @@ interface Props {
   cor?: string;
   motivo?: string;
   idadeMs?: number;
+  /** altura da ÁREA do gráfico (px). O card ainda soma cabeçalho/padding — não envolva em div de altura fixa. */
+  height?: number;
 }
 
 function fmtHora(ts: number): string {
@@ -30,9 +32,9 @@ function TooltipCustom({ active, payload, label }: any) {
 }
 
 /** Curva de equity — serve pra mark e pra liquidação, mudando só a fonte de `pontos` e a cor. */
-export function EquityCurve({ titulo, pontos, state, cor = 'var(--brass-300)', motivo, idadeMs }: Props) {
+export function EquityCurve({ titulo, pontos, state, cor = 'var(--brass-300)', motivo, idadeMs, height = 260 }: Props) {
   return (
-    <ChartFrame title={titulo} state={pontos && pontos.length < 2 ? 'empty' : state} motivo={motivo} idadeMs={idadeMs}
+    <ChartFrame title={titulo} state={pontos && pontos.length < 2 ? 'empty' : state} motivo={motivo} idadeMs={idadeMs} height={height}
       description={`Curva de equity ao longo do tempo — ${pontos?.length ?? 0} pontos observados.`}>
       {pontos && pontos.length >= 2 && (
         <ResponsiveContainer width="100%" height="100%">

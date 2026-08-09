@@ -47,9 +47,7 @@ function Competidor({ c }: { c: any }) {
 
       {/* gráfico */}
       <Section titulo="📈 Curva de capital">
-        <div style={{ height: 180 }}>
-          <EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={pontos.length >= 2 ? 'success' : 'empty'} cor="var(--snow-primary)" />
-        </div>
+        <EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={pontos.length >= 2 ? 'success' : 'empty'} cor="var(--snow-primary)" height={150} />
       </Section>
 
       {/* o que está pensando */}

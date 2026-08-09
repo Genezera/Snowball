@@ -4,6 +4,8 @@ import { ChartFrame, type ChartDataState } from './ChartFrame';
 interface Props {
   pontos: { ts: number; valor: number }[] | null; // valor = capital naquele instante
   state: ChartDataState;
+  /** altura da ÁREA do gráfico (px). O card soma cabeçalho/padding — não envolva em div de altura fixa. */
+  height?: number;
 }
 
 function fmtHora(ts: number): string { return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
@@ -18,10 +20,10 @@ function paraUnderwater(pontos: { ts: number; valor: number }[]): { ts: number; 
   });
 }
 
-export function DrawdownChart({ pontos, state }: Props) {
+export function DrawdownChart({ pontos, state, height = 180 }: Props) {
   const serie = pontos && pontos.length >= 2 ? paraUnderwater(pontos) : null;
   return (
-    <ChartFrame title="Drawdown (underwater)" state={serie ? state : 'empty'} height={180}
+    <ChartFrame title="Drawdown (underwater)" state={serie ? state : 'empty'} height={height}
       description="Percentual abaixo do pico histórico de equity, ao longo do tempo.">
       {serie && (
         <ResponsiveContainer width="100%" height="100%">

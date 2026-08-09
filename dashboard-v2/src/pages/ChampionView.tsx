@@ -73,8 +73,8 @@ export function ChampionView() {
       {/* curva + drawdown + painel de risco */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)', gap: 'var(--space-4)', alignItems: 'start' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-          <Section titulo="Curva de capital"><div style={{ height: 240 }}><EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" /></div></Section>
-          <Section titulo="Drawdown"><div style={{ height: 240 }}><DrawdownChart pontos={pontos.length ? pontos : null} state={chartState} /></div></Section>
+          <Section titulo="Curva de capital"><EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" height={210} /></Section>
+          <Section titulo="Drawdown"><DrawdownChart pontos={pontos.length ? pontos : null} state={chartState} height={210} /></Section>
         </div>
         <Section titulo="Painel de risco">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

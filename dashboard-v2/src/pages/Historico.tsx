@@ -37,9 +37,7 @@ export function Historico() {
       {champion?.estado === 'erro' && <DataStateBanner kind="offline" motivo={champion.motivo} />}
 
       <Section titulo="Curva de capital (vitalícia)">
-        <div style={{ height: 320 }}>
-          <EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" />
-        </div>
+        <EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" height={300} />
       </Section>
 
       <Section titulo="Funding recebido por dia" sub={`Total no período: ${fmt.usd(totalFunding)} em ${pagamentos.length} dia(s).`}>

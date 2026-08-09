@@ -87,7 +87,7 @@ export function CommandCenter() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(300px, 1fr)', gap: 'var(--space-4)', alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <Section titulo={t('Curva de capital (paper)')} sub={`${t('Capital inicial')} ${fmt.usd(est?.capitalInicial ?? null)} → ${t('atual')} ${fmt.usd(est?.capital ?? null)} · funding ${fmt.usd(est?.fundingTotal ?? null)} − ${t('custos')} ${fmt.usd(est?.custosTotal ?? null)}`}>
-            <div style={{ height: 300 }}><EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" /></div>
+            <EquityCurve titulo="" pontos={pontos.length ? pontos : null} state={chartState} cor="var(--snow-primary)" height={260} />
           </Section>
           <Section titulo={t('Motores')} sub={t('Champion (paper), challengers (paper lab) e experimentos — nunca somados.')}>
             <SnowballCore championCapital={est?.capital ?? 0} challengersCapital={resumo?.capitalVirtualTotal ?? 0} numeroChallengers={resumo?.numeroAtivos ?? 0} />
