@@ -34,8 +34,13 @@ mkdir -p "$BASE"
 # liquidação (medido: KMNO recebeu 3 pagamentos, ~8h um do outro). Posições que fecham antes de
 # cruzar um horário real de liquidação agora recebem US$0 de funding, não uma fração suavizada —
 # igual à vida real.
+# --settlement-capture (2026-08-10): terceira superfície de captura — o Champion tinha uma
+# estratégia à parte (strategyId 'settlement_capture' no diário dele) que montava a posição
+# minutos antes do horário real de liquidação e desmontava minutos depois (holds de 10-15min
+# medidos). Reusa o mesmo livro-caixa/margem do cross sustentado; maxpos próprio (2), piso de
+# entrada mais alto (1,5x — só um período pra pagar o custo fixo, sem diluir por várias liquidações).
 declare -A CMD=(
-  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --settle-interval-h 24 --funding-settlement-h 8 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --settle-interval-h 24 --funding-settlement-h 8 --settlement-capture --settlement-capture-window-min 20 --settlement-capture-maxpos 2 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }

@@ -189,7 +189,7 @@ const servidor = http.createServer((req, res) => {
         const abertas = Object.values(est.virtuais || {}).map((v: any) => {
           const serie = v.tipo !== 'spotperp' ? lerSerieRecente(feedObs, v.k, v.positionOpenedAt || agora) : { pontos: [], janelaLimitada: false };
           return {
-            tipo: v.tipo === 'spotperp' ? 'spot-perp' : 'cross',
+            tipo: v.tipo === 'spotperp' ? 'spot-perp' : v.tipo === 'settlement_capture' ? 'settlement-capture' : 'cross',
             symbol: String(v.sym || v.k || '').replace('/USDT:USDT', '').replace(/^sp:/, ''),
             long: v.tipo === 'spotperp' ? v.exchange : v.long, short: v.tipo === 'spotperp' ? 'spot+perp' : v.short,
             notional: v.notional, fundingAcum: r2(v.fundingAcum || 0), aprEntrada: r2(v.aprEntrada || 0, 2),

@@ -133,6 +133,24 @@ const ZOMBIE_STALE_MS = 8 * 3600000;
 // rápido demais pro `funding_deterioration` pegar a tempo, não por apr de entrada fraco. Amostra
 // pequena (4) — reavaliar com mais dado; reverter se cortar demais a frequência de entrada.
 const ENTRY_SAFETY_MULT = args.includes('--entry-safety-mult') ? Number(opt('--entry-safety-mult', 2.5)) : 2.5;
+// ── SETTLEMENT CAPTURE (achado comparando com o Champion arquivado, 2026-08-10): o Champion
+// tinha uma estratégia à parte (strategyId 'settlement_capture' no diário dele) — monta a
+// posição minutos antes do horário real de liquidação, desmonta minutos depois, captura só
+// aquele pagamento único. Holds de 10-15min medidos no histórico real. Diferente do cross
+// sustentado (que aposta no diferencial se manter por horas): aqui é uma aposta pontual, exposição
+// mínima. Reusa o MESMO livro-caixa/margem/formato de chave do cross — só o timing de abertura e
+// o fechamento agendado são diferentes; o crédito de funding usa o mesmo boundariesCruzados().
+const SETTLEMENT_CAPTURE_ON = args.includes('--settlement-capture');
+// --settlement-capture-window-min N : só considera candidatos quando faltam <= N minutos pro
+// próximo horário de liquidação (default 20 — perto do padrão medido no Champion, 10-15min).
+const SETTLEMENT_CAPTURE_WINDOW_MIN = args.includes('--settlement-capture-window-min') ? Number(opt('--settlement-capture-window-min', 20)) : 20;
+const SETTLEMENT_CAPTURE_MAXPOS = args.includes('--settlement-capture-maxpos') ? Number(opt('--settlement-capture-maxpos', 2)) : 2;
+// margem de segurança MAIOR que a do cross sustentado (2,5x): aqui só se captura UM período —
+// sem múltiplas liquidações pra diluir o custo fixo, então o apr de entrada precisa cobrir o
+// custo com folga bem maior só nesse período único.
+const SETTLEMENT_CAPTURE_SAFETY_MULT = args.includes('--settlement-capture-safety-mult') ? Number(opt('--settlement-capture-safety-mult', 1.5)) : 1.5;
+// buffer depois do horário de liquidação antes de fechar (dá tempo do próximo ciclo ver o crédito).
+const SETTLEMENT_CAPTURE_BUFFER_MS = args.includes('--settlement-capture-buffer-min') ? Number(opt('--settlement-capture-buffer-min', 6)) * 60000 : 6 * 60000;
 const BURST_GAP_MS = 120000, EPISODE_GAP_MS = 30 * 60000; // ranking cycle (scan burst) e episódio de oportunidade (causal, por contiguidade)
 const SCHEMA_VERSION = 'forward.v1_8';                  // v1.8: identidade causal + close policy
 const COMPAT_SCHEMAS = ['forward.v1_7', 'forward.v1_8']; // durabilitySoak v1.7 sobrevive a restart sob código v1.8
@@ -464,6 +482,43 @@ function processaSpotPerp(est, decisoes, cycleId) {
   }
 }
 
+// SETTLEMENT CAPTURE (achado comparando com o Champion, ver nota em SETTLEMENT_CAPTURE_ON): abre
+// SÓ dentro da janela antes do horário real de liquidação, com margem de segurança maior (um
+// período só, sem diluir custo por várias liquidações); fecha sozinha logo depois do horário
+// passar. Reusa a MESMA chave/margem/formato do cross sustentado — a única diferença é O QUANDO
+// abre e QUE fecha sozinha no horário, não por sinal econômico.
+function processaSettlementCapture(est, decisoes, cycleId, candidatas) {
+  if (!SETTLEMENT_CAPTURE_ON) return;
+  est.bloqueios = est.bloqueios || {};
+  const agora = now();
+  const boundaryMs = FUNDING_SETTLEMENT_H * 3600000;
+  const proximoBoundary = (Math.floor(agora / boundaryMs) + 1) * boundaryMs;
+  const minutosAteBoundary = (proximoBoundary - agora) / 60000;
+  if (minutosAteBoundary > SETTLEMENT_CAPTURE_WINDOW_MIN) return; // janela ainda não abriu — nada a avaliar neste ciclo
+  let abertas = Object.values(est.virtuais).filter((v) => v.tipo === 'settlement_capture').length;
+  const totalAbertas = Object.keys(est.virtuais).length;
+  if (abertas >= SETTLEMENT_CAPTURE_MAXPOS || totalAbertas >= MAXPOS) return;
+  for (const c of candidatas) {
+    if (abertas >= SETTLEMENT_CAPTURE_MAXPOS || Object.keys(est.virtuais).length >= MAXPOS) break;
+    if (est.virtuais[c.k]) continue; // já aberta (cross sustentado ou outra captura) — não duplica
+    est.contadores.avaliadas++;
+    // economia de UM período só (sem diluir custo por várias liquidações) — piso mais alto que o cross sustentado.
+    if ((c.apr * FUNDING_SETTLEMENT_H / 8760) < SETTLEMENT_CAPTURE_SAFETY_MULT * CUSTO_FRAC) {
+      est.bloqueios.captureSemPayback = (est.bloqueios.captureSemPayback || 0) + 1; continue;
+    }
+    const livreLong = margemLivre(est, c.long), livreShort = margemLivre(est, c.short);
+    if (MARGEM_PERNA > livreLong || MARGEM_PERNA > livreShort) { est.bloqueios.captureLocalBalanceBlocked = (est.bloqueios.captureLocalBalanceBlocked || 0) + 1; continue; }
+    if (est.saldosPorExchange[c.long] < CAP_POR_EX * RESERVA || est.saldosPorExchange[c.short] < CAP_POR_EX * RESERVA) { est.bloqueios.captureReserveBlocked = (est.bloqueios.captureReserveBlocked || 0) + 1; continue; }
+    const custoEntrada = NOTIONAL * (2 * TAKER + 2 * SLIP);
+    est.saldosPorExchange[c.long] -= MARGEM_PERNA; est.saldosPorExchange[c.short] -= MARGEM_PERNA; est.custosAcum += custoEntrada;
+    { const [, exCol, exPag] = c.k.split('|'); est.custosPorExchange[exCol] = (est.custosPorExchange[exCol] || 0) + custoEntrada / 2; est.custosPorExchange[exPag] = (est.custosPorExchange[exPag] || 0) + custoEntrada / 2; }
+    est.virtuais[c.k] = { tipo: 'settlement_capture', k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, aprEntrada: c.apr, ultimoApr: c.apr, ciclosSemVer: 0, ciclosInversao: 0, ciclosFundingDeteriorado: 0, economicEV: L.r4(c.score), latestEconomicEvaluationTs: now(), scannerVisible: true, scannerLastSeen: c.ts, positionOpenedAt: agora, ultimoBoundaryTs: agora, proximoBoundaryTs: proximoBoundary, entryCycle: cycleId };
+    est.contadores.abertas++; abertas++;
+    append(F.diario, { ts: agora, evento: 'abre', tipo: 'settlement_capture', k: c.k, apr: L.r4(c.apr), custoEntrada: L.r4(custoEntrada), proximoBoundaryTs: proximoBoundary, minutosAteBoundary: L.r2(minutosAteBoundary, 1), entryCycle: cycleId });
+    decisoes.push({ k: c.k, acao: 'abre', tipo: 'settlement_capture', sym: c.sym, long: c.long, short: c.short, apr: L.r4(c.apr) });
+  }
+}
+
 // LIQUIDAÇÃO PERIÓDICA (compounding): dobra o lucro acumulado pro capital deployável de verdade.
 // Feita em passo DISCRETO (não a cada ciclo) pra ficar simples de auditar: soma exatamente
 // fundingAcum+yieldAcum-custosAcum (o mesmo termo que já compõe capitalAtual em todo lugar —
@@ -693,8 +748,12 @@ function umCiclo() {
     // seguidas) E faz tempo de verdade que não é reavaliada. Risco de capital preso, não sinal
     // econômico — por isso é riskExit, igual ao maxHoldingExit, e não conta como 'inversão'.
     const zombieExit = scannerStale && latestEconomicEvaluationAgeMs > ZOMBIE_STALE_MS;
+    // captura de liquidação fecha SOZINHA no horário, independente da política de fechamento —
+    // é uma aposta agendada de um período só, não um sinal econômico contínuo.
+    const settlementCaptureExit = vp.tipo === 'settlement_capture' && vp.proximoBoundaryTs && agora > vp.proximoBoundaryTs + SETTLEMENT_CAPTURE_BUFFER_MS;
     let closeReason = null, riskExit = false;
-    if (CLOSE_POLICY === 'scanner_stale') { if (scannerStale) closeReason = 'scanner_stale'; else if (aprNaoPositivo) closeReason = 'apr_nonpositive'; }
+    if (settlementCaptureExit) { closeReason = vp.fundingAcum > 0 ? 'liquidacao_capturada' : 'liquidacao_sem_pagamento'; }
+    else if (CLOSE_POLICY === 'scanner_stale') { if (scannerStale) closeReason = 'scanner_stale'; else if (aprNaoPositivo) closeReason = 'apr_nonpositive'; }
     else if (CLOSE_POLICY === 'economic_inversion') {
       // NÃO fecha por scanner stale (piscar normal). Fecha por economia/risco EXPLÍCITO —
       // zumbi (sumiço PROLONGADO) entra como risco, não como sinal econômico.
@@ -719,6 +778,8 @@ function umCiclo() {
 
   // ── SPOT-PERP: segunda superfície de captura, mesmo livro-caixa (abre/acumula/fecha) ──
   processaSpotPerp(est, decisoes, cycleId);
+  // ── SETTLEMENT CAPTURE: terceira superfície — aposta pontual no horário real de liquidação ──
+  processaSettlementCapture(est, decisoes, cycleId, candidatas);
   // ── rendimento da reserva ociosa (stablecoin yield) — neutro, sem risco de preço ──
   if (STABLE_YIELD > 0) {
     let idleTotal = 0;
