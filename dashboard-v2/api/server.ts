@@ -258,6 +258,18 @@ const servidor = http.createServer((req, res) => {
       // 3) spot-perp: feed do coletor dedicado (roda a cada 10min)
       const idadeSpotperp = mtimeMin(path.join(ROOT, 'vigilancia', 'arquivo-spotperp.jsonl'));
 
+      // 3b) COMPOUNDING: quando o lucro acumulado vira capital deployável de verdade (liquidar()).
+      const diarioMotor = path.join(compDir, 'diario.jsonl');
+      let ultimaLiquidacao: any = null;
+      try {
+        const linhas = fs.readFileSync(diarioMotor, 'utf8').trim().split('\n');
+        for (let i = linhas.length - 1; i >= 0; i--) {
+          let o: any; try { o = JSON.parse(linhas[i]); } catch { continue; }
+          if (o.evento === 'settlement') { ultimaLiquidacao = o; break; }
+        }
+      } catch { /* sem diario ainda */ }
+      const proximaLiquidacaoH = estMotor?.ultimoSettlementTs ? r2((estMotor.ultimoSettlementTs + 24 * 3600000 - agora) / 3600000, 1) : null;
+
       // 4) LUCRO POR EXCHANGE — exigência explícita: nenhuma exchange pode ficar no negativo,
       // as duas têm de dar lucro. fundingPorExchange/custosPorExchange/yieldPorExchange são
       // instrumentação nova (adicionada nesta sessão) — decompõem exatamente os agregados
@@ -278,6 +290,7 @@ const servidor = http.createServer((req, res) => {
           itens: [
             { nome: 'Motor (ciclo)', sev: sev(idadeMotor, 10, 15), detalhe: idadeMotor != null ? `último ciclo há ${idadeMotor} min · ${hbMotor.abertas} abertas · sourceStatus=${hbMotor.sourceStatus}` : 'sem heartbeat' },
             { nome: 'Reconciliação (livro-caixa)', sev: erroReconciliacao == null ? 'loss' : erroReconciliacao > 0.01 ? 'loss' : 'ok', detalhe: erroReconciliacao == null ? 'sem estado lido' : `erro = US$ ${erroReconciliacao.toFixed(6)} (limite 0.01) — garantia anti-número-falso` },
+            { nome: 'Compounding (liquidação)', sev: 'info', detalhe: proximaLiquidacaoH != null ? `capitalInicial = US$ ${(estMotor?.capitalInicial ?? 0).toFixed(2)} · próxima liquidação em ${proximaLiquidacaoH}h${ultimaLiquidacao ? ` · última: US$ ${ultimaLiquidacao.lucroLiquido >= 0 ? '+' : ''}${ultimaLiquidacao.lucroLiquido} em ${new Date(ultimaLiquidacao.ts).toLocaleString('pt-BR')}` : ' · nenhuma liquidação ainda'}` : 'desligado' },
           ],
         },
         {

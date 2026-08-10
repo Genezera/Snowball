@@ -36,9 +36,10 @@ O sistema começou com **6 exchanges** (o "Champion") como referência/benchmark
 |---|---|
 | **Ordens maker (limite)** | custo cai de ~40% do funding para ~15% — matemática exata dos presets reais (`--cost-model maker`) |
 | **Filtro de persistência** | só entra após 30min de sinal positivo — corta entradas prematuras, a causa nº1 do vazamento de custo (`--persist-min 30`) |
-| **Utilização de capital** | 5 posições, 20% de reserva (`--maxpos 5 --reserva 0.20`) |
+| **Utilização de capital** | 6 posições, 20% de reserva (`--maxpos 6 --reserva 0.20`) |
 | **Rendimento da reserva ociosa** | reserva rende ~6%/ano no livro-caixa, neutro (`--stable-yield 0.06`) |
-| **Compounding** | o lucro vira notional maior, bola de neve |
+| **Margem de segurança na entrada** | exige apr cobrir 2,5× o custo fixo antes de abrir (`--entry-safety-mult 2.5`) |
+| **Compounding** | lucro liquidado pro capital deployável a cada 24h — libera mais posições simultâneas, não posições maiores (`--settle-interval-h 24`) |
 
 ### Spot-perp — segunda superfície de captura (mesma exchange)
 Além do cross-exchange (capta o **diferencial** de funding entre 2 exchanges), o motor também opera **cash-and-carry**: compra spot + shorta perp **na mesma exchange**, capturando o funding **absoluto** — acessa oportunidades que o cross-exchange perde. Delta-neutro, mesmo livro-caixa, reconciliado ao centavo. Um coletor dedicado (`coletor-spotperp.cjs`) varre o mercado real via ccxt e só aceita oportunidades com liquidez real **nos dois lados** (perp e spot).

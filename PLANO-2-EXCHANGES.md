@@ -23,10 +23,13 @@ Tudo o mais é meio para esse fim. Se algo não serve às 2 exchanges, ou vira r
 |---|---|---|
 | Ordens **maker** | custo cai a ~36% do taker | `--cost-model maker` |
 | **Persistência 30min** | corta entradas prematuras (vazamento nº1) | `--persist-min 30` |
-| **Utilização de capital** | usa os ~40% ociosos (5 posições, reserva 20%) | `--maxpos 5 --reserva 0.20` |
+| **Utilização de capital** | usa os ~40% ociosos (6 posições, reserva 20%) | `--maxpos 6 --reserva 0.20` |
 | **Rendimento da reserva** | reserva ociosa rende ~6%/ano, neutro | `--stable-yield 0.06` |
 | **Spot-perp** | 2ª superfície de captura nas mesmas 2 ex | `--spotperp --spotperp-minvol 5000000` |
-| **Compounding** | reinveste o lucro; bola de neve | (no motor) |
+| **Margem de segurança na entrada** | exige apr cobrir 2,5× o custo fixo antes de abrir | `--entry-safety-mult 2.5` |
+| **Compounding** | liquida o lucro pro capital deployável a cada 24h (libera mais posições, não posições maiores) | `--settle-interval-h 24` |
+
+> **Nota (2026-08-10):** até esta data, "Compounding — (no motor)" nesta tabela era **falso** — o motor nunca dobrava fundingAcum/custosAcum/yieldAcum de volta pro capital deployável (`saldosPorExchange`); era só um número de vitrine no dashboard. Corrigido no mesmo dia (`liquidar()`, commit `36fc529`) — ver `ROADMAP-MAXIMIZACAO.md` Fase 1 → achados.
 
 ### 2.3 O que é sagrado (invariantes — NÃO violar)
 1. **Paper trading.** Nenhuma ordem real, nunca.
