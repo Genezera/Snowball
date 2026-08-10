@@ -86,11 +86,17 @@ const EVAL_STALE_MS = 30 * 60000;          // avaliação econômica considerada
 // TETO PRA POSIÇÃO ZUMBI (achado medindo Fase 1, 2026-08-10): a política economic_inversion
 // nunca fecha só por sumiço do scanner (de propósito — ver comentário abaixo), mas isso deixava
 // uma posição presa até 7 DIAS (MAX_HOLDING_MS) se o scanner parasse de vê-la de vez — caso real
-// medido: HOME/bitget/bybit ficou 15h+ sem ser reavaliada (ciclosSemVer>100), ocupando 1 de 5
-// slots de maxpos sem acumular funding nenhum. 2h é generoso o bastante pra nunca confundir com
-// os "piscares" que a vigilância já tolera (TOLERANCIA_FALTAS=3 × 5min = 15min) — só fecha o que
-// está genuinamente sumido, bem antes do teto de risco de 7 dias.
-const ZOMBIE_STALE_MS = 2 * 3600000;
+// medido: HOME/bitget/bybit ficou 15,4h sem ser reavaliada, ocupando 1 slot de maxpos à toa.
+// REVISADO (mesmo dia, medindo o próprio efeito do fix): o valor original de 2h foi calibrado só
+// no "piscar" de 15min que a vigilância tolera — sem checar hiatos REAIS de posições que se
+// recuperaram sozinhas. Reconstruí o hiato de observação de cada posição fechada a partir de
+// `vigilancia/arquivo-observacoes.jsonl`: 4 posições (DEXE, "4", FARTCOIN, COAI) tiveram hiatos
+// de 2,3h–5,2h e voltaram a ser vistas, decaindo e fechando por sinal econômico real — não por
+// sumiço. Uma delas (INX, hiato de 5,35h) foi fechada como zumbi pela versão de 2h — bem dentro
+// da faixa onde as outras 4 se recuperaram; pode ter sido prematuro. Subido pra 8h: folga real
+// sobre o maior hiato recuperável confirmado (5,2h), ainda bem abaixo do caso morto de verdade
+// (HOME, 15,4h) e muitíssimo abaixo do teto de risco de 7 dias.
+const ZOMBIE_STALE_MS = 8 * 3600000;
 // MARGEM DE SEGURANÇA NA ENTRADA (achado medindo Fase 1, 2026-08-10, com mais dado que o zumbi/
 // spot-perp): das 6 posições cross fechadas, TODAS perderam — custo fixo de round-trip é sempre
 // US$0,10 (CUSTO_FRAC=0,1%, calibrado com o maker fee REAL de bybit e bitget, 0,02% cada, checado
