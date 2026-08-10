@@ -91,6 +91,21 @@ const EVAL_STALE_MS = 30 * 60000;          // avaliação econômica considerada
 // os "piscares" que a vigilância já tolera (TOLERANCIA_FALTAS=3 × 5min = 15min) — só fecha o que
 // está genuinamente sumido, bem antes do teto de risco de 7 dias.
 const ZOMBIE_STALE_MS = 2 * 3600000;
+// MARGEM DE SEGURANÇA NA ENTRADA (achado medindo Fase 1, 2026-08-10, com mais dado que o zumbi/
+// spot-perp): das 6 posições cross fechadas, TODAS perderam — custo fixo de round-trip é sempre
+// US$0,10 (CUSTO_FRAC=0,1%, calibrado com o maker fee REAL de bybit e bitget, 0,02% cada, checado
+// nas páginas oficiais das duas exchanges — não é modelo errado). O funding realmente coletado
+// nunca passou de US$0,057, mesmo em holds de 8-10h — o apr de entrada é uma foto que decai antes
+// de cobrir o custo. economia()>0 (usado tanto pra abrir quanto pra reavaliar posição já aberta)
+// só exige EMPATAR com 1 dia de funding ao apr de entrada — sem colchão pra decaimento real.
+// ENTRY_SAFETY_MULT eleva SÓ o piso de ENTRADA (não mexe em economia() nem na reavaliação de
+// posição já aberta — isso ficaria mais sensível a fechar cedo, repetindo o erro do v1.7 que
+// o projeto já evitou de propósito). Com os 4 casos reais medidos (não-zumbi): MULT=2.5 bloquearia
+// FARTCOIN(74% apr, perdeu US$0,095) e COAI(80% apr, perdeu US$0,064) — 63% do prejuízo cross
+// não-zumbi evitado — mas ainda deixaria passar DEXE(466%) e "4"(170%), que perderam por decaimento
+// rápido demais pro `funding_deterioration` pegar a tempo, não por apr de entrada fraco. Amostra
+// pequena (4) — reavaliar com mais dado; reverter se cortar demais a frequência de entrada.
+const ENTRY_SAFETY_MULT = args.includes('--entry-safety-mult') ? Number(opt('--entry-safety-mult', 2.5)) : 2.5;
 const BURST_GAP_MS = 120000, EPISODE_GAP_MS = 30 * 60000; // ranking cycle (scan burst) e episódio de oportunidade (causal, por contiguidade)
 const SCHEMA_VERSION = 'forward.v1_8';                  // v1.8: identidade causal + close policy
 const COMPAT_SCHEMAS = ['forward.v1_7', 'forward.v1_8']; // durabilitySoak v1.7 sobrevive a restart sob código v1.8
@@ -509,6 +524,16 @@ function umCiclo() {
       }
       virtSemVer.delete(c.k); continue; }
     if (c.apr <= 0 || c.score <= 0) { est.contadores.bloqueadas++; est.bloqueios.evNaoPositivo++; if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; continue; }
+    // margem de segurança SÓ na entrada (ver nota em ENTRY_SAFETY_MULT) — exige que o apr de
+    // entrada cubra o custo FIXO de round-trip com folga, não só empatar. Usa só CUSTO_FRAC (não
+    // o `c.spread` que economia() soma) — como apr == spread*3*365 sempre (verificado no dado
+    // real), somar spread aqui criaria uma exigência não-linear que dispara pra ~550%+ de apr em
+    // vez do piso pretendido; CUSTO_FRAC sozinho é o cálculo certo do que este filtro mede.
+    if ((c.apr * 24 / 8760) < ENTRY_SAFETY_MULT * CUSTO_FRAC) {
+      est.contadores.bloqueadas++; est.bloqueios.margemSegurancaInsuficiente = (est.bloqueios.margemSegurancaInsuficiente || 0) + 1;
+      if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k];
+      continue;
+    }
     // filtro de persistência (só quando ligado): exige N min de EV positivo contínuo antes de entrar.
     if (PERSIST_MIN > 0) { est.candidatoPositivoDesde = est.candidatoPositivoDesde || {};
       if (!est.candidatoPositivoDesde[c.k]) est.candidatoPositivoDesde[c.k] = c.ts;
