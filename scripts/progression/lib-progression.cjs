@@ -39,7 +39,10 @@ const MAX_POSICOES = 3;        // observada
 const MARGEM_PAYBACK = 1.5;    // observada
 const MIN_NOTIONAL = 5;        // src/config.ts (seed/grow/turtle)
 const ALVO_POR_EXCHANGE = 100; // desenho operacional: US$100 por exchange
-const EXCHANGES = ['binanceusdm', 'bybit', 'okx', 'gate', 'bitget', 'bingx'];
+// Foco estrito 2-exchange (Champion 6-ex arquivado — ver arquivo-6-exchanges/README.md).
+// Só usado como fallback se forward-lab.cjs rodar sem --exchanges (nunca acontece em
+// produção — supervisor-competidores.sh sempre passa --exchanges bybit,bitget).
+const EXCHANGES = ['bybit', 'bitget'];
 const STALE_MS = 20 * 60 * 1000;
 
 const rd = (p, d) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return d; } };

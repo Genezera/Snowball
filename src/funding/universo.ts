@@ -1,39 +1,25 @@
 /**
- * VARREDURA DO MERCADO INTEIRO.
+ * VARREDURA DO MERCADO — FOCO ESTRITO EM BYBIT+BITGET.
  *
- * A versão anterior escaneava 32 ativos escolhidos à mão, com uma requisição
- * por par por exchange — 320 chamadas para enxergar uma fração do mercado.
- *
- * A descoberta que destrava tudo: seis das oito exchanges expõem
- * `fetchFundingRates()` sem argumento, devolvendo o funding de TODOS os pares
- * numa única requisição.
- *
- *   binanceusdm  854 pares em 0,3s
- *   gate         857 pares em 1,2s
- *   bybit        783 pares em 1,5s
- *   bitget       733 pares em 0,8s
- *   okx          536 pares em 0,5s
- *
- * 3.763 pares em menos de 5 segundos, contra 320 chamadas para ver 32 ativos.
- * O universo inteiro passa a caber num ciclo, e não numa amostra escolhida por
- * mim — que era exatamente o viés que limitava o projeto.
- *
- * As duas que não suportam (kucoinfutures, mexc) ficam de fora da varredura
- * ampla. Perder duas exchanges é barato demais diante de ganhar o mercado.
+ * Historicamente isto escaneava 6 exchanges (binanceusdm, bybit, okx, gate,
+ * bitget, bingx) via `fetchFundingRates()` em massa, pra alimentar o Champion
+ * (motor de referência 6-ex). O Champion foi ARQUIVADO (ver
+ * arquivo-6-exchanges/README.md) e o projeto é estritamente 2 exchanges —
+ * pedido explícito: "qualquer e absolutamente qualquer coisa de 6 exchanges
+ * sair do projeto". A varredura foi restrita a bybit+bitget: além de
+ * alinhar com o foco, isso FECHA um ponto cego real que o escopo de 6
+ * exchanges causava — com 6 exchanges, o "melhor par por símbolo" podia ser
+ * bitget-gate ou bitget-okx em vez de bitget-bybit, e a posição do motor
+ * real em bitget-bybit ficava sem observação nova por horas mesmo com dado
+ * saudável disponível nas duas exchanges (achado ao vivo, ver commit da
+ * correção do vigilancia.ts arquivado por engano). Com só 2 exchanges, o
+ * par bybit-bitget é sempre o único possível — nunca mais "perde" pra outro
+ * par no ranking.
  */
 import ccxt from 'ccxt';
 
-/**
- * Exchanges com endpoint em massa — as únicas que entram na varredura ampla.
- *
- * bingx testado em 04/08/2026: `fetchFundingRates()` funciona, 988 pares em
- * 2,5s — mais cobertura de mercado sem custo de velocidade. phemex, htx,
- * kucoinfutures e mexc foram testados no mesmo dia e NÃO suportam o
- * endpoint em massa (erro "not supported yet" do ccxt); ficam de fora da
- * varredura ampla, mesmo entrando na varredura estreita de 32 ativos
- * (spread.ts) via chamada por símbolo, que tolera ser mais lenta.
- */
-export const EXCHANGES_MASSA = ['binanceusdm', 'bybit', 'okx', 'gate', 'bitget', 'bingx'];
+/** As únicas 2 exchanges do foco atual — nada de varredura ampla de 6 exchanges. */
+export const EXCHANGES_MASSA = ['bybit', 'bitget'];
 
 export interface ParUniverso {
   symbol: string;
