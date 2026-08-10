@@ -212,7 +212,12 @@ const servidor = http.createServer((req, res) => {
         const snaps = lerJsonlComNumeroDeLinha(path.join(compDir, d.label, 'snapshots.jsonl')).map((x) => x.linha as any).slice(-300);
         const curva = snaps.map((s: any, i: number) => ({ ts: s.eventCount || i, capital: s.capital != null ? s.capital : (est.capitalInicial + (s.funding || 0) - (s.custos || 0)) }));
         return { ...d, disponivel: true, vivo, idadeS: hb && hb.ultimoCiclo ? Math.round((Date.now() - hb.ultimoCiclo) / 1000) : null,
-          dinheiro: { capitalInicial: est.capitalInicial, capital: r2(est.capitalInicial + net, 2), funding: r2(funding), rendimento: r2(rend), custos: r2(custos), net: r2(net), dias: r2(dias, 2), pctDia: dias > 0 && est.capitalInicial ? r2(net / est.capitalInicial / dias * 100, 3) : 0 },
+          dinheiro: { capitalInicial: est.capitalInicial, capital: r2(est.capitalInicial + net, 2), funding: r2(funding), rendimento: r2(rend), custos: r2(custos), net: r2(net), dias: r2(dias, 2), pctDia: dias > 0 && est.capitalInicial ? r2(net / est.capitalInicial / dias * 100, 3) : 0,
+            // META: bybit+bitget quando era 1 par dentro do Champion (6-ex) — 7 posições, 100% de
+            // acerto, medido no diário arquivado (arquivo-6-exchanges/estado/spread/diario.jsonl,
+            // 2026-08-06 a 2026-08-09, 3,43 dias, capital do Champion US$600 total/6 exchanges).
+            // O objetivo declarado é bater ou passar isso agora que bybit+bitget é o foco total.
+            metaChampionUsdDia: 1.7918, metaChampionContexto: 'US$6,15 em 7 posições, 100% acerto, 3,43 dias — Champion 6-ex, capital US$600 total' },
           abertas, operacoes,
           pensando: { avaliadas: (est.contadores || {}).avaliadas || 0, abertas: abertas.length, fechadas: (est.contadores || {}).fechadas || 0,
             aguardandoPersistencia: (est.bloqueios || {}).persistencePending || 0, rejeitadasSemEV: (est.bloqueios || {}).evNaoPositivo || 0,

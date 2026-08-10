@@ -17,15 +17,33 @@ function Money({ c }: { c: any }) {
     ['Funding', '+' + fmt.usd(m.funding), 'var(--engine-funding)'],
     ['Custos', '−' + fmt.usd(m.custos), 'var(--loss-500)'],
   ];
+  const usdDiaAtual = m.dias > 0 ? m.net / m.dias : 0;
+  const meta = m.metaChampionUsdDia;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8 }}>
-      {stats.map(([lbl, val, cor]) => (
-        <div key={lbl} style={{ padding: '6px 8px', background: 'var(--surface-2)', borderRadius: 8 }}>
-          <div style={{ fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-3)', fontWeight: 800 }}>{lbl}</div>
-          <div className="tabular" style={{ fontSize: 'var(--text-base)', fontWeight: 800, color: cor }}>{val}</div>
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 8 }}>
+        {stats.map(([lbl, val, cor]) => (
+          <div key={lbl} style={{ padding: '6px 8px', background: 'var(--surface-2)', borderRadius: 8 }}>
+            <div style={{ fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-3)', fontWeight: 800 }}>{lbl}</div>
+            <div className="tabular" style={{ fontSize: 'var(--text-base)', fontWeight: 800, color: cor }}>{val}</div>
+          </div>
+        ))}
+      </div>
+      {meta != null && (
+        <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 'var(--text-2xs)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+            <span style={{ color: 'var(--ink-3)', fontWeight: 700 }}>🎯 Meta: igualar o Champion (bybit+bitget, 6-ex)</span>
+            <span className="tabular" style={{ fontWeight: 800, color: fmt.corPnl(usdDiaAtual - meta) }}>
+              {fmt.usd(usdDiaAtual)}/dia agora vs {fmt.usd(meta)}/dia da meta ({usdDiaAtual >= meta ? 'bateu' : (usdDiaAtual / meta * 100).toFixed(0) + '%'})
+            </span>
+          </div>
+          <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, usdDiaAtual / meta * 100))}%`, background: usdDiaAtual >= meta ? 'var(--gain-500)' : 'var(--snow-primary)', transition: 'width 0.5s ease' }} />
+          </div>
+          <div style={{ color: 'var(--ink-3)', marginTop: 4 }}>{c.dinheiro.metaChampionContexto}</div>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
