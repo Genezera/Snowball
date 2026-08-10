@@ -127,6 +127,16 @@ const INVERSION_CICLOS = 2;                // econômico: fecha após N ciclos c
 // deterioração. Posição que JÁ recebeu funding real (fundingAcum>0) mantém o corte rápido —
 // aí é lucro realizado sendo protegido, não uma aposta ainda não provada.
 const INVERSION_CICLOS_JOVEM = 6;
+// RELATÓRIO DE RETOMADA (2026-08-10, pedido explícito do usuário): quando o motor fica parado de
+// propósito (ex.: fim do dia) e volta, gera um relatório honesto do que aconteceu na parada —
+// quantos horários reais de liquidação passaram sem o motor rodar (settlement_capture perdeu essa
+// janela de verdade, não recuperável), quais posições ficaram sem reavaliação de risco durante a
+// parada, e se a liquidação de compounding está atrasada. NÃO finge saber o que o mercado fez
+// durante a parada (o scanner também estava parado) — é uma estimativa honesta baseada em tempo
+// decorrido, não uma reconstrução exata. Detectado comparando o heartbeat ANTES deste ciclo
+// sobrescrever com o "agora" — só dispara se o hiato for bem maior que um ciclo normal (evita
+// falso positivo em jitter normal do processo).
+const RETOMADA_GAP_MIN_MS = 15 * 60000;
 const MAX_HOLDING_MS = 7 * 86400000;       // política de RISCO: não manter posição indefinidamente (maxHoldingExit)
 const FUNDING_DETERIORATION_FRAC = 0.5;    // funding cai a <50% do apr de entrada por INVERSION_CICLOS → deterioração
 const EVAL_STALE_MS = 30 * 60000;          // avaliação econômica considerada "velha" além disto
@@ -560,6 +570,27 @@ function processaSettlementCapture(est, decisoes, cycleId, candidatas) {
   }
 }
 
+// RELATÓRIO DE RETOMADA — ver nota em RETOMADA_GAP_MIN_MS. `hbAnterior` é o heartbeat.json de
+// ANTES deste ciclo sobrescrever (a "última prova de vida" real antes da parada).
+function gerarRelatorioRetomada(est, hbAnterior, gapMs) {
+  const agora = now();
+  const horas = gapMs / 3600000;
+  const boundariesPerdidos = boundariesCruzados(hbAnterior.ultimoCiclo, agora, FUNDING_SETTLEMENT_H);
+  const liquidacaoAtrasada = SETTLE_INTERVAL_MS > 0 && est.ultimoSettlementTs && (agora - est.ultimoSettlementTs) > SETTLE_INTERVAL_MS;
+  const posicoes = Object.keys(est.virtuais);
+  const linhas = [
+    `⏸️ Motor ficou parado por ${horas.toFixed(1)}h (desde ${new Date(hbAnterior.ultimoCiclo).toLocaleString('pt-BR')}).`,
+    `🕐 Nesse período, ~${boundariesPerdidos} horário(s) real(is) de liquidação de funding (${FUNDING_SETTLEMENT_H}h) passaram sem o motor rodar — settlement_capture não pôde agir nessas janelas (oportunidade genuinamente perdida, não recuperável).`,
+  ];
+  if (posicoes.length) linhas.push(`📂 ${posicoes.length} posição(ões) estavam abertas quando parou: ${posicoes.map((k) => k.split('|')[0]).join(', ')}. O funding delas é recuperado automaticamente agora (crédito discreto cobre múltiplos horários perdidos de uma vez) — mas ficaram sem reavaliação de risco (inversão/deterioração) durante toda a parada.`);
+  if (liquidacaoAtrasada) linhas.push(`💰 A liquidação de compounding estava atrasada e deve disparar já nos próximos ciclos.`);
+  linhas.push(`⚠️ Estimativa honesta baseada no tempo decorrido — o scanner também esteve parado, então não há reconstrução exata do que o mercado fez durante a pausa.`);
+  const texto = linhas.join('\n');
+  console.log(`[forward-lab ${LABEL}] RELATÓRIO DE RETOMADA:\n${texto}`);
+  append(F.diario, { ts: agora, evento: 'retomada', gapHoras: L.r2(horas, 2), boundariesPerdidos, posicoesAbertas: posicoes, liquidacaoAtrasada, texto });
+  if (TG_ON) tgEnviar(`⏸️ <b>MOTOR RETOMADO APÓS PARADA</b>\n${TG_TAG}\n${TG_LINHA}\n${texto}\n${TG_LINHA}\nℹ️ Paper, automático. 😴`);
+}
+
 // LIQUIDAÇÃO PERIÓDICA (compounding): dobra o lucro acumulado pro capital deployável de verdade.
 // Feita em passo DISCRETO (não a cada ciclo) pra ficar simples de auditar: soma exatamente
 // fundingAcum+yieldAcum-custosAcum (o mesmo termo que já compõe capitalAtual em todo lugar —
@@ -606,9 +637,16 @@ function reconciliar(est) {
 }
 
 function umCiclo() {
+  // captura o heartbeat de ANTES deste ciclo sobrescrever — é a "última prova de vida" real,
+  // usada pro relatório de retomada (ver RETOMADA_GAP_MIN_MS) se o hiato for grande.
+  const hbAntesDesteCiclo = rd(F.heartbeat, null);
   const r = recuperar();
   if (r.suspenso) { registrarRecovery(r); append(F.diario, { ts: now(), evento: 'recovery', recoveryState: r.recoveryState, detalhe: r.detalhe }); console.log(`[forward-lab ${LABEL}] ${r.recoveryState} — SUSPENSO (não processa; não zera)`); return; }
   const est = r.est; registrarRecovery(r);
+  if (hbAntesDesteCiclo && hbAntesDesteCiclo.ultimoCiclo) {
+    const gapMs = now() - hbAntesDesteCiclo.ultimoCiclo;
+    if (gapMs > RETOMADA_GAP_MIN_MS) gerarRelatorioRetomada(est, hbAntesDesteCiclo, gapMs);
+  }
   // migração aditiva: estado gravado antes do P&L-por-exchange não tem estes campos — inicializa
   // em 0 na primeira vez, nunca mexe em saldosPorExchange/capitalInicial (reconciliar() intocado).
   est.fundingPorExchange = est.fundingPorExchange || {};
