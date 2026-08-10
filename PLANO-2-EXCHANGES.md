@@ -33,6 +33,12 @@ Tudo o mais é meio para esse fim. Se algo não serve às 2 exchanges, ou vira r
 2. **Reconciliação ao centavo.** `capital = inicial + funding + rendimento − custos`. E `saldos + comprometido == capitalInicial`. A função `reconciliar()` loga `RECONCILIATION_BREAK` e é a garantia anti-número-falso.
 3. **Segredos só no `.env`.** Token do Telegram nunca commitado.
 4. **O scanner é infraestrutura COMPARTILHADA, não o Champion.** (ver §4 — foi aqui que a IA anterior tropeçou.)
+5. **Nenhuma exchange no negativo.** bybit e bitget têm de dar lucro CADA UMA, não só o agregado — funding
+   settla por exchange, então o par pode "esconder" uma perna sangrando atrás do net combinado. Medido via
+   `fundingPorExchange`/`custosPorExchange`/`yieldPorExchange` no `estado.json` (decomposição exata dos
+   agregados, aditivo, não mexe em `saldosPorExchange`/`reconciliar()`; ver commit `e57371a`, 2026-08-10) e
+   exibido no dashboard em `/saude` → "Lucro por exchange". Se uma exchange ficar negativa persistentemente,
+   é sinal pra investigar (não necessariamente pra agir sozinho — é uma decisão de Fase 2, um lever por vez).
 
 ### 2.4 A meta e como se chega nela
 - **US$ 2/dia não é um truque diário — é uma meta de CAPITAL.** `Lucro/dia = Capital × Taxa/dia`. Com aporte de US$ 200/mês + reinvestimento, o capital chega no nível de US$ 2/dia em **meses**, não com alavancagem arriscada.
