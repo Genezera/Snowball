@@ -72,8 +72,12 @@ export function buscarEventosIncremental(cursor: string | null, limit: number): 
   if (cursor) qs.set('after', cursor);
   return buscarValidado(`/api/v2/events?${qs.toString()}`, EventosRecentesRespostaSchema);
 }
+// Saúde do motor 2-ex + infra compartilhada (scanner, spot-perp) — schema lenient, a API é a fonte de verdade.
+export function buscarSystemHealth(): Promise<Resultado<{ dominios: any[]; geradoEm: number } | null>> {
+  return buscarValidado('/api/v2/system-health', { parse: (v: unknown) => v as any });
+}
 
 /** Lista de chamadas de rede que este arquivo pode fazer — auditável (Parte 13, item 5). */
 export const CHAMADAS_DE_REDE_PERMITIDAS = [
-  '/api/v2/events', '/api/v2/health', '/api/v2/profit-maximization', '/api/v2/competidores', '/api/v2/spotperp',
+  '/api/v2/events', '/api/v2/health', '/api/v2/profit-maximization', '/api/v2/competidores', '/api/v2/spotperp', '/api/v2/system-health',
 ] as const;

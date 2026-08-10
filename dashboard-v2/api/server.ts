@@ -222,6 +222,81 @@ const servidor = http.createServer((req, res) => {
       return enviarJson(res, 200, { ok: true, competidores, geradoEm: Date.now() });
     }
 
+    // ── system health: saúde do motor 2-ex + infra compartilhada (scanner, spot-perp). SÓ LEITURA ──
+    // Recriada pro sistema atual depois do arquivamento do bloco "6 exchanges" (ver
+    // arquivo-6-exchanges/dashboard-v2-src/pages/SystemHealth.tsx pro antecessor). Nada de
+    // listar processos do SO aqui — mesmo padrão do resto da API: lê heartbeat/timestamp
+    // embutido nos arquivos que cada componente já escreve, e classifica por idade.
+    if (url.pathname === '/api/v2/system-health') {
+      const agora = Date.now();
+      const r2 = (n: number, c = 4) => Math.round(n * 10 ** c) / 10 ** c;
+      const compDir = path.join(ROOT, 'auditoria', 'progression', 'compete', 'snowball-2ex');
+      const idadeMin = (ts: number | null | undefined) => ts ? r2((agora - ts) / 60000, 1) : null;
+      const mtimeMin = (caminho: string) => { try { return r2((agora - fs.statSync(caminho).mtimeMs) / 60000, 1); } catch { return null; } };
+      const sev = (idade: number | null, warnMin: number, lossMin: number): 'ok' | 'warn' | 'loss' =>
+        idade == null ? 'loss' : idade > lossMin ? 'loss' : idade > warnMin ? 'warn' : 'ok';
+
+      // 1) motor snowball-2ex: heartbeat + reconciliação ao vivo (mesma fórmula de reconciliar() no forward-lab.cjs)
+      const hbMotor = lerJsonSeguro<any>(path.join(compDir, 'heartbeat.json'), null);
+      const estMotor = lerJsonSeguro<any>(path.join(compDir, 'estado.json'), null);
+      const idadeMotor = idadeMin(hbMotor?.ultimoCiclo);
+      let erroReconciliacao: number | null = null;
+      if (estMotor) {
+        let committed = 0;
+        for (const vp of Object.values<any>(estMotor.virtuais || {})) committed += vp.tipo === 'spotperp' ? (vp.footprint || 0) : 2 * (vp.margemPorPerna || 0);
+        const somaSaldos = Object.values<number>(estMotor.saldosPorExchange || {}).reduce((s, v) => s + (v || 0), 0);
+        erroReconciliacao = r2(Math.abs(somaSaldos + committed - (estMotor.capitalInicial || 0)), 6);
+      }
+
+      // 2) scanner compartilhado: watchdog (supervisor.sh) + custódia + coletor (feed que o motor lê)
+      const supHb = lerJsonSeguro<any>(path.join(ROOT, 'vigilancia', 'supervisor-heartbeat.json'), null);
+      const custodia = lerJsonSeguro<any>(path.join(ROOT, 'vigilancia', 'custodia.json'), null);
+      const custodiaRelevante = ['bybit', 'bitget'].map((ex) => custodia?.saude?.[ex]).filter(Boolean);
+      const coletorEstado = lerJsonSeguro<any>(path.join(ROOT, 'vigilancia', 'coletor-estado.json'), null);
+      const idadeObservacoes = mtimeMin(path.join(ROOT, 'vigilancia', 'arquivo-observacoes.jsonl'));
+
+      // 3) spot-perp: feed do coletor dedicado (roda a cada 10min)
+      const idadeSpotperp = mtimeMin(path.join(ROOT, 'vigilancia', 'arquivo-spotperp.jsonl'));
+
+      const dominios = [
+        {
+          titulo: 'Motor snowball-2ex',
+          itens: [
+            { nome: 'Motor (ciclo)', sev: sev(idadeMotor, 10, 15), detalhe: idadeMotor != null ? `último ciclo há ${idadeMotor} min · ${hbMotor.abertas} abertas · sourceStatus=${hbMotor.sourceStatus}` : 'sem heartbeat' },
+            { nome: 'Reconciliação (livro-caixa)', sev: erroReconciliacao == null ? 'loss' : erroReconciliacao > 0.01 ? 'loss' : 'ok', detalhe: erroReconciliacao == null ? 'sem estado lido' : `erro = US$ ${erroReconciliacao.toFixed(6)} (limite 0.01) — garantia anti-número-falso` },
+          ],
+        },
+        {
+          titulo: 'Scanner (infraestrutura compartilhada — o motor depende disto pra ter dado)',
+          itens: [
+            { nome: 'Watchdog (supervisor.sh)', sev: !supHb ? 'loss' : (supHb.processesMissing > 0 ? 'loss' : sev(idadeMin(supHb.lastLoopCompleted), 5, 15)), detalhe: supHb ? `${supHb.processesChecked} processos · ${supHb.processesMissing} ausentes · última varredura há ${idadeMin(supHb.lastLoopCompleted)} min` : 'sem heartbeat' },
+            { nome: 'Custódia (bybit + bitget)', sev: custodiaRelevante.length && custodiaRelevante.every((c) => c.nivel === 'ok') ? sev(idadeMin(custodia.verificadoEm), 30, 60) : 'warn', detalhe: custodiaRelevante.length ? custodiaRelevante.map((c) => `${c.id}=${c.nivel}`).join(' · ') + ` · há ${idadeMin(custodia.verificadoEm)} min` : 'sem dado' },
+            { nome: 'Coletor (feed arquivo-observacoes)', sev: sev(idadeObservacoes ?? idadeMin(coletorEstado?.ultimoTsHistorico), 15, 45), detalhe: idadeObservacoes != null ? `feed atualizado há ${idadeObservacoes} min · ${coletorEstado?.totalObservacoes ?? '?'} observações` : 'feed não encontrado' },
+          ],
+        },
+        {
+          titulo: 'Spot-perp',
+          itens: [
+            { nome: 'Coletor spot-perp (feed)', sev: sev(idadeSpotperp, 25, 60), detalhe: idadeSpotperp != null ? `feed atualizado há ${idadeSpotperp} min` : 'feed não encontrado' },
+          ],
+        },
+        {
+          titulo: 'Utilização de capital (motor)',
+          itens: estMotor ? [
+            { nome: 'Bloqueios do ciclo (cross)', sev: 'info', detalhe: `persistência ${estMotor.bloqueios?.persistencePending ?? 0} · sem EV ${estMotor.bloqueios?.evNaoPositivo ?? 0} · sem capacidade ${(estMotor.bloqueios?.maxPositionsBlocked ?? 0) + (estMotor.bloqueios?.localBalanceBlocked ?? 0)}` },
+            { nome: 'Bloqueios do ciclo (spot-perp)', sev: (estMotor.bloqueios?.spotperpSemCapital ?? 0) > 0 ? 'warn' : 'ok', detalhe: `sem capital livre acima da reserva: ${estMotor.bloqueios?.spotperpSemCapital ?? 0} avaliações bloqueadas neste ciclo` },
+          ] : [],
+        },
+        {
+          titulo: 'Dashboard',
+          itens: [
+            { nome: 'API (porta 5184)', sev: 'ok', detalhe: `respondendo · ${heartbeat.totalRequisicoes} requisições · uptime ${r2((Date.now() - heartbeat.startedAt) / 60000, 1)} min` },
+          ],
+        },
+      ];
+      return enviarJson(res, 200, { ok: true, geradoEm: agora, dominios });
+    }
+
     // ── spot-perp: oportunidades reais (cash-and-carry no perp) do coletor. SÓ LEITURA ──
     if (url.pathname === '/api/v2/spotperp') {
       const feed = path.join(ROOT, 'vigilancia', 'arquivo-spotperp.jsonl');

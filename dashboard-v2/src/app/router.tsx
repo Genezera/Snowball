@@ -11,10 +11,11 @@ import { Skeleton } from '../components/feedback/DataState';
 // do bloco "6 exchanges" (Champion, Paper Profit Lab, challengers-timing —
 // ChampionView/OpportunityMap/CostIntelligence/RiskCenter/SettlementCapture/
 // Historico/SystemHealth) foram ARQUIVADAS — código preservado em
-// arquivo-6-exchanges/dashboard-v2-src/, ver README lá. SystemHealth será
-// recriada pro sistema atual (snowball-2ex) numa fase separada.
+// arquivo-6-exchanges/dashboard-v2-src/, ver README lá. SystemHealth foi
+// recriada abaixo, focada no motor atual (snowball-2ex).
 const MaximizacaoLucro = lazy(() => import('../pages/MaximizacaoLucro').then((m) => ({ default: m.MaximizacaoLucro })));
 const Competidores = lazy(() => import('../pages/Competidores').then((m) => ({ default: m.Competidores })));
+const SystemHealth = lazy(() => import('../pages/SystemHealth').then((m) => ({ default: m.SystemHealth })));
 
 function Carregando() {
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}><Skeleton height={100} /><Skeleton height={260} /><Skeleton height={260} /></div>;
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <CommandCenter /> },
       { path: '/competidores', element: comSuspense(Competidores) },
       { path: '/maximizacao', element: comSuspense(MaximizacaoLucro) },
+      { path: '/saude', element: comSuspense(SystemHealth) },
     ],
   },
 ]);

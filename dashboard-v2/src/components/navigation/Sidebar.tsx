@@ -9,11 +9,11 @@ interface NavGroup { titulo: string; itens: NavItem[] }
 /**
  * SIDEBAR — navegação agrupada com a identidade Snowball (marca com brilho
  * ciano, estado ativo em ciano glacial, grupos recolhíveis). Focada no motor
- * real de 2 exchanges (Command Center, Competidores, Maximização). As páginas
- * do bloco "6 exchanges" (Champion, mercado/custos/risco/settlements do Lab,
- * Histórico do Champion, Saúde do Sistema antiga) foram ARQUIVADAS — ver
- * arquivo-6-exchanges/README.md. Saúde do Sistema será recriada pro sistema
- * atual numa fase separada.
+ * real de 2 exchanges (Command Center, Competidores, Maximização, Saúde). As
+ * páginas do bloco "6 exchanges" (Champion, mercado/custos/risco/settlements
+ * do Lab, Histórico do Champion, Saúde do Sistema antiga) foram ARQUIVADAS —
+ * ver arquivo-6-exchanges/README.md. Saúde do Sistema foi recriada pro motor
+ * atual (snowball-2ex + scanner + spot-perp).
  */
 const GRUPOS: NavGroup[] = [
   {
@@ -22,6 +22,7 @@ const GRUPOS: NavGroup[] = [
       { to: '/', label: 'Command Center', glyph: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
       { to: '/competidores', label: 'Competidores 2-Ex', glyph: 'M8 6h8M8 12h8M8 18h8M4 6h.01M4 12h.01M4 18h.01' },
       { to: '/maximizacao', label: 'Maximização de Lucro', glyph: 'M3 17l6-6 4 4 8-8M21 7v6h-6' },
+      { to: '/saude', label: 'System Health', glyph: 'M22 12h-4l-3 9L9 3l-3 9H2' },
     ],
   },
 ];

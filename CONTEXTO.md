@@ -37,7 +37,7 @@ Ou seja: ordens maker (custo mínimo) + só entra após 30min de sinal + utiliza
 2. **Lever de utilização de capital:** flag `--maxpos` e `--reserva` (deploy dos ~40% de capital ocioso). +33–67% teórico no funding/dia.
 3. **Rendimento da reserva** (`--stable-yield`): a reserva ociosa rende ~6%/ano no livro-caixa (campo `yieldAcum`, entra no capital/PnL e no dashboard).
 4. **Telegram:** mensagens amigáveis (emojis, explicação pra leigo) ao abrir/fechar posição, rotuladas pelo par. Trava anti-replay (ciclo de largada é silencioso). Token/chat **só do `.env`**.
-5. **Dashboard enxugado:** de 21 → 10 páginas úteis; removidas 11 do laboratório antigo + órfãos. **Command Center refeito do zero** para o motor 2-ex + **radar spot-perp**.
+5. **Dashboard enxugado:** de 21 → 10 páginas úteis (removidas 11 do laboratório antigo + órfãos); depois, com o arquivamento do Champion (`53be62f`), mais 7 páginas do bloco "6 exchanges" (`ChampionView`, `OpportunityMap`, `CostIntelligence`, `RiskCenter`, `SettlementCapture`, `Historico`, `SystemHealth`) foram movidas para `arquivo-6-exchanges/dashboard-v2-src/` — **hoje ficam só 3 páginas ativas**: Command Center, Competidores 2-Ex, Maximização de Lucro. **Command Center refeito do zero** para o motor 2-ex + **radar spot-perp**. `SystemHealth` recriada pro motor 2-ex — ver `dashboard-v2/src/pages/SystemHealth.tsx`.
 6. **Gráficos:** corrigido overflow (vazavam pra fora do card).
 7. **README** reescrito para o foco 2-exchange.
 
