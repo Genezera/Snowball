@@ -397,6 +397,17 @@ function tgFecha(d, capital) {
     `${lucro ? '📈' : '📉'} <b>Resultado:</b> ${lucro ? '+' : '−'}${tgUsd(Math.abs(d.pnl), 4)}\n📝 <b>Por que fechou:</b> ${TG_MOTIVOS[d.closeReason] || d.closeReason || 'critério de saída'}\n💼 <b>Capital do competidor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
     `ℹ️ Tudo automático e em <b>paper</b> (sem dinheiro real). O robô segue operando sozinho. 😴`);
 }
+// LIQUIDAÇÃO RECEBIDA (achado perguntando por que só chegava aviso de prejuízo, 2026-08-10): o
+// funding REAL chega em eventos discretos agora (boundariesCruzados), mas antes só abre/fecha
+// virava mensagem — o lucro acontecia de verdade numa posição ainda aberta e nunca virava aviso.
+function tgLiquidacao(d, capital) {
+  const tipoTxt = d.tipo === 'spotperp' ? `${d.sym} (${d.exchange})` : `${tgSym(d.k, d.sym)} · ${d.long}/${d.short}`;
+  const lucro = d.inc >= 0;
+  return tgEnviar(`${lucro ? '💰' : '💸'} <b>LIQUIDAÇÃO RECEBIDA${d.n > 1 ? ` (${d.n}x)` : ''}</b>\n${TG_TAG}\n${TG_LINHA}\n` +
+    `🪙 <b>Moeda:</b> ${tipoTxt}\n${lucro ? '📈' : '📉'} <b>Valor:</b> ${lucro ? '+' : '−'}${tgUsd(Math.abs(d.inc), 4)}\n` +
+    `📊 <b>Total acumulado nesta posição:</b> ${tgUsd(d.fundingAcumPosicao, 4)}\n💼 <b>Capital do competidor:</b> ${tgUsd(capital)}\n${TG_LINHA}\n` +
+    `ℹ️ Isto é o horário REAL de liquidação de funding passando (a cada 8h nas exchanges) — a posição estava aberta na hora certa e recebeu (ou pagou) o valor de verdade, não uma estimativa. 🕐`);
+}
 function tgAbreSpot(d, capital) {
   return tgEnviar(`🟢 <b>NOVA OPERAÇÃO ABERTA · SPOT-PERP</b>\n${TG_TAG}\n${TG_LINHA}\n` +
     `🪙 <b>Moeda:</b> ${d.sym}\n🏦 <b>Exchange:</b> ${d.exchange}\n🔁 <b>Estrutura:</b> compra spot + short perp (mesma exchange)\n` +
@@ -447,7 +458,11 @@ function processaSpotPerp(est, decisoes, cycleId) {
       if (!vp.ultimoBoundaryTs) vp.ultimoBoundaryTs = vp.positionOpenedAt;
       const n = boundariesCruzados(vp.ultimoBoundaryTs, agora, o.iv);
       let inc = 0;
-      if (n > 0) { vp.ultimoBoundaryTs = Math.floor(agora / (o.iv * 3600000)) * (o.iv * 3600000); inc = vp.notional * o.funding * n; }
+      if (n > 0) {
+        vp.ultimoBoundaryTs = Math.floor(agora / (o.iv * 3600000)) * (o.iv * 3600000); inc = vp.notional * o.funding * n;
+        decisoes.push({ k, acao: 'liquidacao', tipo: 'spotperp', sym: vp.sym, exchange: vp.exchange, inc: L.r4(inc), fundingAcumPosicao: L.r4(vp.fundingAcum + inc), n });
+        append(F.diario, { ts: agora, evento: 'liquidacao', tipo: 'spotperp', k, inc: L.r4(inc), n, fundingAcumPosicao: L.r4(vp.fundingAcum + inc) });
+      }
       vp.fundingAcum += inc; est.fundingAcum += inc; est.fundingPorExchange[vp.exchange] = (est.fundingPorExchange[vp.exchange] || 0) + inc;
       vp.ultimoFunding = o.funding; vp.ciclosSemFunding = 0; vp.latestEconomicEvaluationTs = agora;
     }
@@ -700,6 +715,11 @@ function umCiclo() {
           // real) => um período de FUNDING_SETTLEMENT_H horas vale apr*FUNDING_SETTLEMENT_H/8760.
           inc = NOTIONAL * (c.apr * FUNDING_SETTLEMENT_H / 8760) * n;
         }
+        // aviso de liquidação REAL recebida — antes o Telegram só avisava abre/fecha, nunca o
+        // momento em que o funding de verdade chega numa posição ainda aberta (achado perguntando
+        // por que só chegavam avisos de prejuízo: o lucro real acontecia, só nunca virava mensagem).
+        decisoes.push({ k: c.k, acao: 'liquidacao', sym: c.sym, long: c.long, short: c.short, inc: L.r4(inc), fundingAcumPosicao: L.r4(vp.fundingAcum + inc), n });
+        append(F.diario, { ts: now(), evento: 'liquidacao', k: c.k, inc: L.r4(inc), n, fundingAcumPosicao: L.r4(vp.fundingAcum + inc) });
       }
       vp.fundingAcum += inc; est.fundingAcum += inc;
       vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.latestEconomicEvaluationTs = now(); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0;
@@ -821,6 +841,7 @@ function umCiclo() {
     for (const d of decisoes) {
       if (d.acao === 'abre') (d.tipo === 'spotperp' ? tgAbreSpot : tgAbre)(d, capital);
       else if (d.acao === 'fecha') (d.tipo === 'spotperp' ? tgFechaSpot : tgFecha)(d, capital);
+      else if (d.acao === 'liquidacao') tgLiquidacao(d, capital);
     }
   }
   tgLargadaFeita = true;
