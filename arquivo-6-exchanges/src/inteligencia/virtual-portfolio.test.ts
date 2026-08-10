@@ -15,7 +15,7 @@ import {
   salvarEstado, carregarEstado, caminhoEstado, registrar,
   novosEventosParaDiario, formatarLinhasDiario, type ConfigChallenger,
 } from './virtual-portfolio.ts';
-import type { OportunidadeSpread } from '../funding/spread.ts';
+import type { OportunidadeSpread } from '../../../src/funding/spread.ts';
 
 const CFG: ConfigChallenger = {
   challengerId: 'teste', strategyVersion: 'v1', configVersion: 'v1',

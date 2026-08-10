@@ -57,7 +57,7 @@ if ($tradingRodando -gt 0) {
   Write-Host "Watchdog de trading ja rodando ($tradingRodando) -- nao subi outra instancia."
 } else {
   if ((Start-Supervisor 'supervisor.sh') -ne 0) { Write-Host "Falha ao criar supervisor.sh via WMI."; exit 1 }
-  Write-Host "Watchdog de trading iniciado (coletor -- motor/vigilancia/custodia/Profit Lab foram arquivados, ver arquivo-6-exchanges/; momentum/preenchimento/pares ja tinham sido removidos antes)."
+  Write-Host "Watchdog de trading iniciado (vigilancia, custodia, coletor -- so o motor (Champion) e o Profit Lab foram arquivados, ver arquivo-6-exchanges/; momentum/preenchimento/pares ja tinham sido removidos antes)."
 }
 
 # ATENCAO: este launcher (iniciar.ps1/iniciar.cmd) e o ANTIGO -- nunca iniciou

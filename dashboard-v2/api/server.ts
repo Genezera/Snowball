@@ -76,6 +76,47 @@ function enviarJson(res: http.ServerResponse, status: number, corpo: unknown) {
   res.end(JSON.stringify(corpo));
 }
 
+// ── detalhe de operação (Fase 2 — o que abriu, por que, o que faria fechar) ──
+// Limiares copiados de forward-lab.cjs — se mudarem lá, mudam aqui também
+// (não têm getter público; documentado pra não ficar defasado em silêncio).
+const INVERSION_CICLOS = 2, MAX_HOLDING_MS = 7 * 86400000, FUNDING_DETERIORATION_FRAC = 0.5, PERSIST_MIN_MS = 30 * 60000;
+
+function condicoesDeFechamento(v: any, agora: number): string[] {
+  const c: string[] = [];
+  if (v.tipo === 'spotperp') {
+    const x = v.ciclosSemFunding || 0;
+    c.push(x > 0 ? `Sem funding há ${x}/${INVERSION_CICLOS} ciclos — fecha se continuar` : 'Recebendo funding normalmente.');
+    return c;
+  }
+  const inv = v.ciclosInversao || 0, det = v.ciclosFundingDeteriorado || 0;
+  c.push(inv > 0 ? `Inversão econômica: ${inv}/${INVERSION_CICLOS} ciclos com EV negativo — fecha se continuar` : 'EV positivo agora — sem sinal de inversão.');
+  if (det > 0) c.push(`Funding caiu abaixo de ${Math.round(FUNDING_DETERIORATION_FRAC * 100)}% da entrada: ${det}/${INVERSION_CICLOS} ciclos.`);
+  const restanteMs = MAX_HOLDING_MS - (agora - (v.positionOpenedAt || agora));
+  const restanteD = restanteMs / 86400000;
+  c.push(restanteD > 0 ? `Prazo máximo de 7 dias: fecha automaticamente em ${restanteD.toFixed(1)}d se nada mudar antes.` : 'Prazo máximo de 7 dias atingido — deveria fechar no próximo ciclo.');
+  return c;
+}
+
+// lê só a COLA do feed (bounded, não o arquivo inteiro) — histórico "recente
+// desde a abertura", não a vida inteira; honesto sobre a janela no campo
+// `janelaLimitada`, nunca finge ser o histórico completo.
+function lerSerieRecente(caminhoFeed: string, chave: string, desdeTs: number, limiteBytes = 3 * 1024 * 1024): { pontos: { ts: number; apr: number }[]; janelaLimitada: boolean } {
+  try {
+    const st = fs.statSync(caminhoFeed);
+    const N = Math.min(st.size, limiteBytes);
+    const fd = fs.openSync(caminhoFeed, 'r'); const buf = Buffer.alloc(N);
+    fs.readSync(fd, buf, 0, N, st.size - N); fs.closeSync(fd);
+    const linhas = buf.toString('utf8').split('\n').filter(Boolean);
+    const pontos: { ts: number; apr: number }[] = [];
+    for (const l of linhas) {
+      let o: any; try { o = JSON.parse(l); } catch { continue; }
+      if (o.k !== chave || o.ts < desdeTs || o.apr == null) continue;
+      pontos.push({ ts: o.ts, apr: Math.round(o.apr * 1e4) / 1e4 });
+    }
+    return { pontos, janelaLimitada: N < st.size };
+  } catch { return { pontos: [], janelaLimitada: false }; }
+}
+
 const servidor = http.createServer((req, res) => {
   heartbeat.ultimaRequisicao = Date.now();
   heartbeat.totalRequisicoes++;
@@ -143,17 +184,31 @@ const servidor = http.createServer((req, res) => {
         const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, rend = est.yieldAcum || 0, net = funding + rend - custos;
         const dias = est.iniciadoEm ? (Date.now() - est.iniciadoEm) / 86400000 : 0;
         const vivo = !!(hb && hb.ultimoCiclo && Date.now() - hb.ultimoCiclo < 15 * 60000);
-        const abertas = Object.values(est.virtuais || {}).map((v: any) => ({
-          tipo: v.tipo === 'spotperp' ? 'spot-perp' : 'cross',
-          symbol: String(v.sym || v.k || '').replace('/USDT:USDT', '').replace(/^sp:/, ''),
-          long: v.tipo === 'spotperp' ? v.exchange : v.long, short: v.tipo === 'spotperp' ? 'spot+perp' : v.short,
-          notional: v.notional, fundingAcum: r2(v.fundingAcum || 0), aprEntrada: r2(v.aprEntrada || 0, 2),
-          holdH: v.positionOpenedAt ? r2((Date.now() - v.positionOpenedAt) / 3.6e6, 1) : null }));
+        const agora = Date.now();
+        const feedObs = path.join(ROOT, 'vigilancia', 'arquivo-observacoes.jsonl');
+        const abertas = Object.values(est.virtuais || {}).map((v: any) => {
+          const serie = v.tipo !== 'spotperp' ? lerSerieRecente(feedObs, v.k, v.positionOpenedAt || agora) : { pontos: [], janelaLimitada: false };
+          return {
+            tipo: v.tipo === 'spotperp' ? 'spot-perp' : 'cross',
+            symbol: String(v.sym || v.k || '').replace('/USDT:USDT', '').replace(/^sp:/, ''),
+            long: v.tipo === 'spotperp' ? v.exchange : v.long, short: v.tipo === 'spotperp' ? 'spot+perp' : v.short,
+            notional: v.notional, fundingAcum: r2(v.fundingAcum || 0), aprEntrada: r2(v.aprEntrada || 0, 2),
+            ultimoApr: v.ultimoApr != null ? r2(v.ultimoApr, 2) : null, economicEV: v.economicEV ?? null,
+            holdH: v.positionOpenedAt ? r2((agora - v.positionOpenedAt) / 3.6e6, 1) : null,
+            scannerVisible: !!v.scannerVisible, scannerAgeMin: v.scannerLastSeen ? r2((agora - v.scannerLastSeen) / 60000, 1) : null,
+            condicoesFechamento: condicoesDeFechamento(v, agora),
+            serieRecente: serie.pontos, serieJanelaLimitada: serie.janelaLimitada,
+          };
+        });
         const diario = lerJsonlComNumeroDeLinha(path.join(compDir, d.label, 'diario.jsonl')).map((x) => x.linha as any);
         const operacoes = diario.filter((e) => e.evento === 'abre' || e.evento === 'fecha').slice(-15).reverse()
           .map((e) => ({ ts: e.ts, tipo: e.evento, symbol: String(e.k || '').split('|')[0], apr: e.apr != null ? r2(e.apr, 2) : null, funding: e.funding != null ? r2(e.funding) : null, pnl: e.pnl != null ? r2(e.pnl) : null, motivo: e.closeReason || null }));
-        const pend = diario.filter((e) => e.evento === 'bloqueada' && e.motivo === 'persistencePending').slice(-40);
-        const candidatos = [...new Set(pend.map((e) => String(e.k || '').split('|')[0]))].slice(0, 10);
+        // candidatos aguardando o filtro de persistência (30min de sinal positivo contínuo) —
+        // usa candidatoPositivoDesde do próprio estado (fonte de verdade), não o diário.
+        const candidatos = Object.entries(est.candidatoPositivoDesde || {}).map(([k, desdeTs]: [string, any]) => {
+          const decorridoMs = agora - desdeTs, restanteMin = Math.max(0, (PERSIST_MIN_MS - decorridoMs) / 60000);
+          return { symbol: k.split('|')[0], par: k.split('|').slice(1).join('/'), decorridoMin: r2(decorridoMs / 60000, 1), restanteMin: r2(restanteMin, 1) };
+        }).sort((a, b) => a.restanteMin - b.restanteMin).slice(0, 10);
         const snaps = lerJsonlComNumeroDeLinha(path.join(compDir, d.label, 'snapshots.jsonl')).map((x) => x.linha as any).slice(-300);
         const curva = snaps.map((s: any, i: number) => ({ ts: s.eventCount || i, capital: s.capital != null ? s.capital : (est.capitalInicial + (s.funding || 0) - (s.custos || 0)) }));
         return { ...d, disponivel: true, vivo, idadeS: hb && hb.ultimoCiclo ? Math.round((Date.now() - hb.ultimoCiclo) / 1000) : null,

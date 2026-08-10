@@ -3,7 +3,7 @@
  * NENHUMA ORDEM É ENVIADA — as exchanges são apenas lidas.
  */
 import { MotorSpread } from '../funding/spread-live.ts';
-import { riscoDesbalanceamento } from '../funding/spread.ts';
+import { riscoDesbalanceamento } from '../../../src/funding/spread.ts';
 import { LIMIARES_PADRAO, MMR_ALT, alavancagemMaxima } from '../funding/protecao.ts';
 import { parseArgs, num } from './args.ts';
 

@@ -62,7 +62,10 @@ function Competidor({ c }: { c: any }) {
         </div>
         {p.candidatosObservados?.length > 0 && (
           <div style={{ marginTop: 8, fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>
-            👀 <b>Observando</b> (esperando 30min de sinal): {p.candidatosObservados.join(', ')}
+            👀 <b>Observando</b> (esperando 30min de sinal positivo contínuo):
+            {p.candidatosObservados.map((c: any, i: number) => (
+              <span key={c.symbol + i}> {c.symbol} ({c.restanteMin > 0 ? `faltam ${c.restanteMin}min` : 'completou, decide no próximo ciclo'}){i < p.candidatosObservados.length - 1 ? ',' : ''}</span>
+            ))}
           </div>
         )}
       </Section>

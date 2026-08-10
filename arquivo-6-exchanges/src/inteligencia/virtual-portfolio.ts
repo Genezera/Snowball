@@ -32,8 +32,8 @@ import { taxaEfetiva, taxaDaOperacao, ESCORREGAMENTO_PERNA, posicoesSustentaveis
 import { dimensionar, type Saldos } from '../funding/tesouraria.ts';
 import { avaliarRisco, mmrDe, LIMIARES_PADRAO, MMR_ALT } from '../funding/protecao.ts';
 import { FRACAO_ESTAGIO_INICIAL } from '../funding/spread-live.ts';
-import { dimensionarSpread } from '../funding/spread.ts';
-import type { OportunidadeSpread } from '../funding/spread.ts';
+import { dimensionarSpread } from '../../../src/funding/spread.ts';
+import type { OportunidadeSpread } from '../../../src/funding/spread.ts';
 
 export interface PosicaoVirtual {
   symbol: string;

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useCompetidores } from '../hooks/useCompetidores';
 import { useSpotperp } from '../hooks/useSpotperp';
 import { PageHeader, Section, StatusBadge, fmt } from '../components/ui/kit';
@@ -30,6 +31,54 @@ function BandaDinheiro({ m, posicoes }: { m: any; posicoes: number }) {
           <div className="tabular" style={{ fontSize: hero ? 'var(--text-2xl)' : 'var(--text-xl)', fontWeight: 800, marginTop: 4, color: cor as string }}>{val}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Cartão de posição aberta, expansível — clique mostra o "porquê" (condições
+ * de fechamento, em linguagem clara) e um mini-gráfico do APR observado desde
+ * a abertura. Tudo lido do que o motor já calcula por ciclo — nada novo é
+ * inventado, só exposto. `scannerAgeMin` alto = o motor não vê dado novo
+ * dessa posição há um tempo — mostrado explicitamente, nunca escondido.
+ */
+function PosicaoAberta({ a }: { a: any }) {
+  const [aberto, setAberto] = useState(false);
+  const serie = (a.serieRecente ?? []).map((p: any) => ({ ts: p.ts, valor: p.apr }));
+  const stale = a.scannerAgeMin != null && a.scannerAgeMin > 30;
+  return (
+    <div style={{ borderBottom: '1px solid var(--border-hairline)' }}>
+      <div
+        onClick={() => setAberto((v) => !v)}
+        style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 8, alignItems: 'center', padding: '6px 0', fontSize: 'var(--text-2xs)', cursor: 'pointer' }}
+      >
+        <span>
+          <span title={a.tipo === 'spot-perp' ? 'spot-perp (mesma exchange)' : 'cross-exchange'}>{a.tipo === 'spot-perp' ? '📡' : '🔀'}</span> <b>{a.symbol}</b>
+          <span style={{ color: 'var(--ink-3)' }}> · {a.long}{a.short ? '/' + a.short : ''}</span>
+          {stale && <span title={`sem dado novo do scanner há ${a.scannerAgeMin}min`} style={{ marginLeft: 4, color: 'var(--warn-500)' }}>⚠️</span>}
+        </span>
+        <span className="tabular" style={{ color: 'var(--engine-funding)' }}>+{fmt.usd(a.fundingAcum)}</span>
+        <span className="tabular" style={{ color: 'var(--ink-3)' }}>{a.holdH}h</span>
+        <span style={{ color: 'var(--ink-3)', fontSize: '0.6rem' }}>{aberto ? '▲' : '▼'}</span>
+      </div>
+      {aberto && (
+        <div style={{ padding: '0 0 10px 4px', fontSize: 'var(--text-2xs)', color: 'var(--ink-2)' }}>
+          <div style={{ marginBottom: 6 }}>
+            APR na entrada: <b>{a.aprEntrada}%</b> · APR na última leitura: <b>{a.ultimoApr ?? '—'}%</b>
+            {stale && <div style={{ color: 'var(--warn-500)', marginTop: 2 }}>Sem observação nova do scanner há {a.scannerAgeMin}min — os números acima podem estar defasados.</div>}
+          </div>
+          {serie.length >= 2 && (
+            <div style={{ marginBottom: 8 }}>
+              <EquityCurve titulo="" pontos={serie} state="success" cor="var(--snow-primary)" height={90} unidade="pct" />
+              {a.serieJanelaLimitada && <div style={{ color: 'var(--ink-3)', fontSize: '0.6rem', marginTop: 2 }}>janela recente, não é o histórico completo desde a abertura</div>}
+            </div>
+          )}
+          <div style={{ fontWeight: 700, marginBottom: 3 }}>O que faria essa posição fechar:</div>
+          <ul style={{ margin: 0, paddingLeft: 16 }}>
+            {(a.condicoesFechamento ?? []).map((c: string, i: number) => <li key={i}>{c}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -109,14 +158,24 @@ export function CommandCenter() {
 
               <Section titulo="🧠 O que o robô está pensando" sub="Decisões em tempo real — por que entra ou espera.">
                 {p ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, fontSize: 'var(--text-2xs)' }}>
-                    <div>🔎 Avaliadas: <b>{p.avaliadas}</b></div>
-                    <div>✅ Abertas: <b>{p.abertas}</b></div>
-                    <div>⏳ Aguardando (30min): <b>{p.aguardandoPersistencia}</b></div>
-                    <div>➖ Sem lucro: <b>{p.rejeitadasSemEV}</b></div>
-                    <div>🔒 Fechadas: <b>{p.fechadas}</b></div>
-                    <div>🚧 Sem capacidade: <b>{p.semCapacidade}</b></div>
-                  </div>
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, fontSize: 'var(--text-2xs)' }}>
+                      <div>🔎 Avaliadas: <b>{p.avaliadas}</b></div>
+                      <div>✅ Abertas: <b>{p.abertas}</b></div>
+                      <div>⏳ Aguardando (30min): <b>{p.aguardandoPersistencia}</b></div>
+                      <div>➖ Sem lucro: <b>{p.rejeitadasSemEV}</b></div>
+                      <div>🔒 Fechadas: <b>{p.fechadas}</b></div>
+                      <div>🚧 Sem capacidade: <b>{p.semCapacidade}</b></div>
+                    </div>
+                    {p.candidatosObservados?.length > 0 && (
+                      <div style={{ marginTop: 10, fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>
+                        👀 <b>Observando</b> (esperando 30min de sinal positivo contínuo):
+                        {p.candidatosObservados.map((c: any, i: number) => (
+                          <span key={c.symbol + i}> {c.symbol} ({c.restanteMin > 0 ? `faltam ${c.restanteMin}min` : 'completou'}){i < p.candidatosObservados.length - 1 ? ',' : ''}</span>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 ) : <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-xs)' }}>—</p>}
               </Section>
 
@@ -128,16 +187,7 @@ export function CommandCenter() {
               <Section titulo={`🔓 Posições abertas · ${abertas.length}`}>
                 {abertas.length === 0 ? (
                   <p style={{ color: 'var(--ink-3)', fontSize: 'var(--text-2xs)', margin: 0 }}>Nenhuma posição aberta agora.</p>
-                ) : abertas.map((a: any, i: number) => (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-hairline)', fontSize: 'var(--text-2xs)' }}>
-                    <span>
-                      <span title={a.tipo === 'spot-perp' ? 'spot-perp (mesma exchange)' : 'cross-exchange'}>{a.tipo === 'spot-perp' ? '📡' : '🔀'}</span> <b>{a.symbol}</b>
-                      <span style={{ color: 'var(--ink-3)' }}> · {a.long}{a.short ? '/' + a.short : ''}</span>
-                    </span>
-                    <span className="tabular" style={{ color: 'var(--engine-funding)' }}>+{fmt.usd(a.fundingAcum)}</span>
-                    <span className="tabular" style={{ color: 'var(--ink-3)' }}>{a.holdH}h</span>
-                  </div>
-                ))}
+                ) : abertas.map((a: any, i: number) => <PosicaoAberta key={i} a={a} />)}
               </Section>
 
               <Section titulo="📜 Operações recentes">

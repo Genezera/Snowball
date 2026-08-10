@@ -15,7 +15,7 @@
  */
 import type { EntradaValor } from '../funding/valor.ts';
 import type { ConfigChallenger } from './virtual-portfolio.ts';
-import type { OportunidadeSpread } from '../funding/spread.ts';
+import type { OportunidadeSpread } from '../../../src/funding/spread.ts';
 import type { Saldos } from '../funding/tesouraria.ts';
 
 const EXCHANGES_6 = ['binanceusdm', 'bybit', 'okx', 'gate', 'bitget', 'bingx'];

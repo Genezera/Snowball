@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-# Watchdog: verifica o(s) processo(s) compartilhados do Snowball a cada 30s e
-# religa automaticamente qualquer um que tiver caído. Hoje só supervisiona o
-# `coletor` (scanner de mercado que alimenta o motor real snowball-2ex, via
-# scripts/supervisor-competidores.sh). O Champion (motor 6-ex + vigilância +
-# custódia) e o Paper Profit Lab foram ARQUIVADOS (ver arquivo-6-exchanges/) —
-# não rodam mais nem são supervisionados aqui. O dashboard LEGADO (8787) foi
-# arquivado na unificação e NÃO é mais supervisionado aqui (ver bloco CMD).
+# Watchdog: verifica os processos compartilhados do Snowball a cada 30s e
+# religa automaticamente qualquer um que tiver caído. Hoje supervisiona
+# `vigilancia` (varredura real via ccxt, escreve vigilancia/historico.jsonl),
+# `custodia` (saúde das exchanges, escreve vigilancia/custodia.json) e
+# `coletor` (lê o que vigilancia/custodia escrevem e arquiva em
+# vigilancia/arquivo-*.jsonl, sem consultar exchange nenhuma) — os três
+# alimentam o motor real snowball-2ex (via scripts/supervisor-competidores.sh).
+# CORREÇÃO (achada verificando trades ao vivo): `vigilancia`/`custodia` tinham
+# sido arquivados por engano junto com o Champion — na verdade são a fonte de
+# dado COMPARTILHADA que o coletor só lê; sem eles, o coletor roda mas nunca
+# tem nada novo pra arquivar, e o motor real fica cego. Restaurados. Só o
+# `motor` (spread-live.ts, o Champion 6-ex em si) continua ARQUIVADO de
+# verdade — ver arquivo-6-exchanges/README.md. O Paper Profit Lab também
+# continua arquivado. O dashboard LEGADO (8787) foi arquivado na unificação e
+# NÃO é mais supervisionado aqui (ver bloco CMD).
 # O dashboard canônico (V2, :5183/:5184) tem supervisores próprios. Existe porque o
 # motor caiu uma vez (bug de import faltando) e ficou 3h30 sem ninguém
 # religar -- `start` dos .cmd nao funciona neste ambiente sandboxed sem
@@ -22,6 +30,8 @@ source scripts/lib/supervisor-lock.sh
 source scripts/lib/process-manifest.sh
 
 declare -A CMD=(
+  [vigilancia]="node src/cli/vigilancia.ts --equity 100 --intervalo 5"
+  [custodia]="node src/cli/custodia.ts --intervalo 15"
   # UNIFICAÇÃO (Snowball Dashboard): o dashboard LEGADO (src/dashboard/server.ts,
   # porta 8787) foi ARQUIVADO — não é mais iniciado nem supervisionado
   # automaticamente. O dashboard canônico é o V2 (frontend :5183 + API :5184),
@@ -32,12 +42,13 @@ declare -A CMD=(
   [coletor]="node src/cli/coletor.ts --intervalo 5"
   # FOCO 2-EXCHANGE (refactor 2026-08): as outras estratégias (momentum, pares,
   # preenchimento, renda) foram removidas do projeto. ARQUIVO 6-EXCHANGE
-  # (posterior): Champion (vigilancia/custodia/motor) e Paper Profit Lab foram
-  # movidos pra arquivo-6-exchanges/ e não rodam mais — ver README lá.
-  # O sistema agora é só o coletor (alimenta o motor real snowball-2ex, que
-  # tem supervisor próprio em scripts/supervisor-competidores.sh).
+  # (posterior): só o `motor` (Champion, spread-live.ts) e o Paper Profit Lab
+  # foram movidos pra arquivo-6-exchanges/ — ver README lá. `vigilancia` e
+  # `custodia` são compartilhados (o coletor depende deles) e continuam aqui.
 )
 declare -A LOG=(
+  [vigilancia]="vigilancia/live.log"
+  [custodia]="vigilancia/custodia.log"
   [coletor]="vigilancia/coletor.log"
 )
 

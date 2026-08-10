@@ -69,7 +69,8 @@ Além do cross-exchange (capta o **diferencial** de funding entre 2 exchanges), 
                                     └── supervisão + blindagem (auto-restart) ──▲
 ```
 
-- **Scanner** (`src/cli/coletor.ts`): varre o **mercado inteiro** (~4.750 pares nas 6 exchanges) via `fetchFundingRates` em massa, sem viés de seleção.
+- **Scanner** (`src/cli/vigilancia.ts`): varre o **mercado inteiro** (~4.750 pares nas 6 exchanges) via `fetchFundingRates` em massa, sem viés de seleção — escreve `vigilancia/historico.jsonl`.
+- **Arquivador** (`src/cli/coletor.ts`): só lê o que a vigilância/custódia escrevem e arquiva pra sempre em `arquivo-observacoes.jsonl` (nunca consulta exchange) — é este arquivo que o `snowball-2ex` lê.
 - **snowball-2ex** (`scripts/progression/forward-lab.cjs`): o motor do dinheiro real — bybit+bitget, maker, filtro de persistência, cross-exchange **e** spot-perp no mesmo livro-caixa reconciliado.
 - **Coletor spot-perp** (`scripts/progression/coletor-spotperp.cjs`): varre spot+perp na mesma exchange via ccxt (dado real), só aceita liquidez real dos dois lados.
 - **Dashboard** (`dashboard-v2/`): React + API read-only. Command Center com o motor real + radar spot-perp.
