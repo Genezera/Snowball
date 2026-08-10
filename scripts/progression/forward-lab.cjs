@@ -101,6 +101,19 @@ const CUSTO_FRAC = 4 * TAKER + 4 * SLIP;
 const NOTIONAL = L.ALVO_POR_EXCHANGE, MARGEM_PERNA = NOTIONAL / L.ALAVANCAGEM;
 const STALE_CICLOS = 3, DEDUP_MAX = 20000, LATE_MS = 10 * 60000;
 const INVERSION_CICLOS = 2;                // econômico: fecha após N ciclos com EV não-positivo (inversão), não por sumiço do scanner
+// PACIÊNCIA PRA POSIÇÃO JOVEM (achado medindo ao vivo, 2026-08-10, depois do funding discreto):
+// com funding só creditado em horário REAL de liquidação (boundariesCruzados), uma posição que
+// fecha por inversão/deterioração antes de cruzar seu primeiro horário real NUNCA recebeu nem
+// chance de funding — perde o custo fixo inteiro (US$0,10) garantido, sempre. Medido ao vivo:
+// BTW fechou em 0,63h com US$0,00 de funding (motivo economic_inversion); GRVT fechou em 0,25h
+// (15min!) quase igual. INVERSION_CICLOS=2 (~10min) reage rápido demais a ruído de curto prazo
+// pra uma posição que ainda nem teve chance de provar o próprio sinal — mesmo problema já visto
+// hoje no zumbi (2h→8h) e no scanner_stale (piscar de 15min tolerado). Posição "jovem" = ainda
+// não recebeu NENHUM crédito real (fundingAcum===0) — dá a ela a mesma paciência que a ENTRADA
+// já exige (--persist-min 30min, mesma ordem de grandeza) antes de cortar por inversão/
+// deterioração. Posição que JÁ recebeu funding real (fundingAcum>0) mantém o corte rápido —
+// aí é lucro realizado sendo protegido, não uma aposta ainda não provada.
+const INVERSION_CICLOS_JOVEM = 6;
 const MAX_HOLDING_MS = 7 * 86400000;       // política de RISCO: não manter posição indefinidamente (maxHoldingExit)
 const FUNDING_DETERIORATION_FRAC = 0.5;    // funding cai a <50% do apr de entrada por INVERSION_CICLOS → deterioração
 const EVAL_STALE_MS = 30 * 60000;          // avaliação econômica considerada "velha" além disto
@@ -366,7 +379,7 @@ const TG_TAG = `🤖 <b>${EXCHS.join(' + ')}</b> <i>(competidor · paper)</i>`;
 let tgLargadaFeita = false; // primeiro ciclo (catch-up) fica silencioso
 const tgUsd = (n, c = 2) => 'US$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: c, maximumFractionDigits: c });
 const tgSym = (k, sym) => String(sym || k || '').replace('/USDT:USDT', '').replace(/\|.*$/, '');
-const TG_MOTIVOS = { economic_inversion: 'a taxa virou contra (não valia mais a pena)', funding_deterioration: 'o funding caiu demais', scanner_stale: 'a oportunidade sumiu do mercado', apr_nonpositive: 'a taxa zerou / ficou negativa', max_holding_exit: 'tempo máximo de posição atingido (segurança)', exchange_failure: 'instabilidade na exchange (segurança)' };
+const TG_MOTIVOS = { economic_inversion: 'a taxa virou contra (não valia mais a pena)', funding_deterioration: 'o funding caiu demais', scanner_stale: 'a oportunidade sumiu do mercado', apr_nonpositive: 'a taxa zerou / ficou negativa', max_holding_exit: 'tempo máximo de posição atingido (segurança)', exchange_failure: 'instabilidade na exchange (segurança)', zombie_scanner_gone: 'o mercado parou de mostrar dado novo por muito tempo', liquidacao_capturada: 'capturou o pagamento da liquidação agendada', liquidacao_sem_pagamento: 'a liquidação agendada passou sem pagamento' };
 async function tgEnviar(texto) {
   if (!TG_ON) return;
   try { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: TG_CHAT, text: texto, parse_mode: 'HTML' }), signal: AbortSignal.timeout(8000) }); } catch {}
@@ -738,10 +751,14 @@ function umCiclo() {
     if (vp.tipo === 'spotperp') continue;   // spot-perp tem lógica própria (processaSpotPerp)
     // ── sinais de fechamento (item 4): registrados SEMPRE; nenhum implícito por scanner ──
     const scannerStale = (vp.ciclosSemVer || 0) >= STALE_CICLOS;
-    const inversion = (vp.ciclosInversao || 0) >= INVERSION_CICLOS;
+    // posição "jovem" (sem nenhum crédito real ainda) ganha mais paciência antes de cortar por
+    // inversão/deterioração — ver nota em INVERSION_CICLOS_JOVEM. Já provada (fundingAcum>0)
+    // mantém o corte rápido, protegendo lucro já realizado.
+    const limiarInversao = (vp.fundingAcum || 0) > 0 ? INVERSION_CICLOS : INVERSION_CICLOS_JOVEM;
+    const inversion = (vp.ciclosInversao || 0) >= limiarInversao;
     const aprNaoPositivo = (vp.ultimoApr || 0) <= 0;
     const maxHoldingExit = (agora - (vp.positionOpenedAt || agora)) >= MAX_HOLDING_MS;   // política de RISCO
-    const fundingDeterioration = (vp.ciclosFundingDeteriorado || 0) >= INVERSION_CICLOS;
+    const fundingDeterioration = (vp.ciclosFundingDeteriorado || 0) >= limiarInversao;
     const exchangeFailure = !!(sourceHealthPorExchange && (sourceHealthPorExchange[vp.long] === 'EXCHANGE_UNAVAILABLE' || sourceHealthPorExchange[vp.short] === 'EXCHANGE_UNAVAILABLE'));
     const latestEconomicEvaluationAgeMs = agora - (vp.latestEconomicEvaluationTs || agora);
     // zumbi: scanner sumiu (não é só um piscar — scannerStale já exige >=STALE_CICLOS faltas
