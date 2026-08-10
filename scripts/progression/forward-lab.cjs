@@ -52,6 +52,19 @@ const SPOTPERP_NOTIONAL = args.includes('--spotperp-notional') ? Number(opt('--s
 const SPOTPERP_MINVOL = args.includes('--spotperp-minvol') ? Number(opt('--spotperp-minvol', 5e6)) : 5e6;       // perfil B
 const SPOTPERP_MAXPOS = args.includes('--spotperp-maxpos') ? Number(opt('--spotperp-maxpos', 2)) : 2;
 const SPOTPERP_FEED = opt('--spotperp-feed', path.join(L.ROOT, 'vigilancia', 'arquivo-spotperp.jsonl'));
+// achados medindo Fase 1 (2026-08-10): das 5 posições spot-perp fechadas até então, as 5
+// perderam dinheiro — abria com `funding>0` sem checar se cobria o custo fixo de ida-e-volta
+// (~0,33% do notional), e sem exigir que o sinal se sustentasse (uma leitura só do coletor
+// bastava pra abrir). Os dois filtros abaixo espelham o que o lado cross-exchange já faz
+// (economia() com custo, --persist-min com sustentação) — mesma disciplina, aplicada aqui.
+// --spotperp-payback-periods N: exige que `funding` (por período de `iv` horas) cubra o custo
+// de entrada+saída dentro de N períodos. custo total ~0,33%/notional; N=3 períodos de 8h (~1 dia)
+// é o piso conservador — abaixo disso o trade estruturalmente não tem como pagar o próprio custo.
+const SP_PAYBACK_PERIODS = args.includes('--spotperp-payback-periods') ? Number(opt('--spotperp-payback-periods', 3)) : 3;
+// --spotperp-persist-min N: só abre depois de N minutos vendo a MESMA oportunidade acima do piso
+// de custo — evita abrir num pico de uma leitura só do coletor-spotperp que já vai ter sumido
+// na leitura seguinte (o coletor roda a cada 10min; 15min = pelo menos 2 leituras confirmando).
+const SP_PERSIST_MIN = args.includes('--spotperp-persist-min') ? Number(opt('--spotperp-persist-min', 15)) : 15;
 // custos REAIS do spot-perp (frações do notional). spot é caro; perp maker barato; basis = gap na entrada.
 const SP_SPOT_TAKER = 0.001, SP_PERP_MAKER = 0.0002, SP_SLIP = 0.0002, SP_BASIS = 0.0005;
 const SP_CUSTO_ENTRADA_FRAC = SP_SPOT_TAKER + SP_SLIP + SP_PERP_MAKER + SP_BASIS; // entra: spot+perp+basis
@@ -70,6 +83,14 @@ const INVERSION_CICLOS = 2;                // econômico: fecha após N ciclos c
 const MAX_HOLDING_MS = 7 * 86400000;       // política de RISCO: não manter posição indefinidamente (maxHoldingExit)
 const FUNDING_DETERIORATION_FRAC = 0.5;    // funding cai a <50% do apr de entrada por INVERSION_CICLOS → deterioração
 const EVAL_STALE_MS = 30 * 60000;          // avaliação econômica considerada "velha" além disto
+// TETO PRA POSIÇÃO ZUMBI (achado medindo Fase 1, 2026-08-10): a política economic_inversion
+// nunca fecha só por sumiço do scanner (de propósito — ver comentário abaixo), mas isso deixava
+// uma posição presa até 7 DIAS (MAX_HOLDING_MS) se o scanner parasse de vê-la de vez — caso real
+// medido: HOME/bitget/bybit ficou 15h+ sem ser reavaliada (ciclosSemVer>100), ocupando 1 de 5
+// slots de maxpos sem acumular funding nenhum. 2h é generoso o bastante pra nunca confundir com
+// os "piscares" que a vigilância já tolera (TOLERANCIA_FALTAS=3 × 5min = 15min) — só fecha o que
+// está genuinamente sumido, bem antes do teto de risco de 7 dias.
+const ZOMBIE_STALE_MS = 2 * 3600000;
 const BURST_GAP_MS = 120000, EPISODE_GAP_MS = 30 * 60000; // ranking cycle (scan burst) e episódio de oportunidade (causal, por contiguidade)
 const SCHEMA_VERSION = 'forward.v1_8';                  // v1.8: identidade causal + close policy
 const COMPAT_SCHEMAS = ['forward.v1_7', 'forward.v1_8']; // durabilitySoak v1.7 sobrevive a restart sob código v1.8
@@ -349,9 +370,25 @@ function processaSpotPerp(est, decisoes, cycleId) {
   const cands = [...oport.values()].filter((o) => !est.virtuais[`sp:${o.sym}|${o.exchange}`]).sort((a, b) => (b.funding / b.iv) - (a.funding / a.iv));
   for (const o of cands) {
     if (abertos >= SPOTPERP_MAXPOS) break;
-    const E = o.exchange; est.contadores.avaliadas++;
+    const E = o.exchange; const k = `sp:${o.sym}|${E}`; est.contadores.avaliadas++;
+    // filtro de custo (payback): funding do período tem de cobrir o round-trip em até N períodos.
+    if (o.funding * SP_PAYBACK_PERIODS < (SP_CUSTO_ENTRADA_FRAC + SP_CUSTO_SAIDA_FRAC)) {
+      est.bloqueios.spotperpSemPayback = (est.bloqueios.spotperpSemPayback || 0) + 1;
+      if (est.spotperpCandidatoDesde) delete est.spotperpCandidatoDesde[k];
+      continue;
+    }
+    // filtro de persistência: exige ver a MESMA oportunidade acima do piso de custo por N minutos
+    // seguidos antes de abrir — não entra na primeira leitura do coletor-spotperp.
+    if (SP_PERSIST_MIN > 0) {
+      est.spotperpCandidatoDesde = est.spotperpCandidatoDesde || {};
+      if (!est.spotperpCandidatoDesde[k]) est.spotperpCandidatoDesde[k] = agora;
+      if ((agora - est.spotperpCandidatoDesde[k]) < SP_PERSIST_MIN * 60000) {
+        est.bloqueios.spotperpPersistencePending = (est.bloqueios.spotperpPersistencePending || 0) + 1;
+        continue;
+      }
+    }
     if ((est.saldosPorExchange[E] || 0) - footprint < CAP_POR_EX * RESERVA) { est.bloqueios.spotperpSemCapital = (est.bloqueios.spotperpSemCapital || 0) + 1; continue; }
-    const k = `sp:${o.sym}|${E}`;
+    if (SP_PERSIST_MIN > 0 && est.spotperpCandidatoDesde) delete est.spotperpCandidatoDesde[k];
     const custoEntrada = SPOTPERP_NOTIONAL * SP_CUSTO_ENTRADA_FRAC;
     est.saldosPorExchange[E] -= footprint; est.custosAcum += custoEntrada; est.custosPorExchange[E] = (est.custosPorExchange[E] || 0) + custoEntrada; est.contadores.abertas++; abertos++;
     est.virtuais[k] = { tipo: 'spotperp', k, sym: o.sym, exchange: E, notional: SPOTPERP_NOTIONAL, footprint, margemPerp: SPOTPERP_NOTIONAL / L.ALAVANCAGEM, fundingAcum: 0, custoEntrada, fundingEntrada: o.funding, ultimoFunding: o.funding, ciclosSemFunding: 0, positionOpenedAt: agora, latestEconomicEvaluationTs: agora, entryCycle: cycleId };
@@ -513,14 +550,20 @@ function umCiclo() {
     const fundingDeterioration = (vp.ciclosFundingDeteriorado || 0) >= INVERSION_CICLOS;
     const exchangeFailure = !!(sourceHealthPorExchange && (sourceHealthPorExchange[vp.long] === 'EXCHANGE_UNAVAILABLE' || sourceHealthPorExchange[vp.short] === 'EXCHANGE_UNAVAILABLE'));
     const latestEconomicEvaluationAgeMs = agora - (vp.latestEconomicEvaluationTs || agora);
+    // zumbi: scanner sumiu (não é só um piscar — scannerStale já exige >=STALE_CICLOS faltas
+    // seguidas) E faz tempo de verdade que não é reavaliada. Risco de capital preso, não sinal
+    // econômico — por isso é riskExit, igual ao maxHoldingExit, e não conta como 'inversão'.
+    const zombieExit = scannerStale && latestEconomicEvaluationAgeMs > ZOMBIE_STALE_MS;
     let closeReason = null, riskExit = false;
     if (CLOSE_POLICY === 'scanner_stale') { if (scannerStale) closeReason = 'scanner_stale'; else if (aprNaoPositivo) closeReason = 'apr_nonpositive'; }
     else if (CLOSE_POLICY === 'economic_inversion') {
-      // NÃO fecha por scanner stale. Fecha por economia/risco EXPLÍCITO.
+      // NÃO fecha por scanner stale (piscar normal). Fecha por economia/risco EXPLÍCITO —
+      // zumbi (sumiço PROLONGADO) entra como risco, não como sinal econômico.
       if (inversion) closeReason = 'economic_inversion';
       else if (fundingDeterioration) closeReason = 'funding_deterioration';
       else if (exchangeFailure) { closeReason = 'exchange_failure'; riskExit = true; }
       else if (maxHoldingExit) { closeReason = 'max_holding_exit'; riskExit = true; }
+      else if (zombieExit) { closeReason = 'zombie_scanner_gone'; riskExit = true; }
     }
     if (!closeReason) continue;
     const custoSaida = vp.notional * (2 * TAKER + 2 * SLIP);
@@ -530,7 +573,7 @@ function umCiclo() {
     append(F.diario, { ts: agora, evento: 'fecha', k, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: agora, closeCycle: cycleId, closeReason, closePolicy: CLOSE_POLICY,
       scannerVisible: !!vp.scannerVisible, scannerLastSeen: vp.scannerLastSeen || vp.scannerEpisodeLastSeen,
       latestEconomicEvaluation: vp.economicEV, latestEconomicEvaluationAgeMs, evalStale: latestEconomicEvaluationAgeMs > EVAL_STALE_MS,
-      inversion, riskExit, maxHoldingExit, fundingDeterioration, exchangeFailure, sourceChampionClose: false, policyClose: true, policyCloseReason: closeReason,
+      inversion, riskExit, maxHoldingExit, fundingDeterioration, exchangeFailure, zombieExit, sourceChampionClose: false, policyClose: true, policyCloseReason: closeReason,
       sourceDecisionId: vp.sourceDecisionId, sourcePositionId: vp.sourcePositionId, sourceOpportunityEpisodeId: vp.sourceOpportunityEpisodeId });
     decisoes.push({ k, acao: 'fecha', sym: vp.sym, long: vp.long, short: vp.short, funding: L.r4(vp.fundingAcum), custo: L.r4(vp.custoEntrada + custoSaida), pnl: L.r4(pnl), closeReason, sourcePositionId: vp.sourcePositionId }); delete est.virtuais[k];
   }
