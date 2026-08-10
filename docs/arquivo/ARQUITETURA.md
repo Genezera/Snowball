@@ -1,5 +1,8 @@
 # Arquitetura
 
+> **📦 Arquivado — pré-refactor.** Este documento descreve a fase anterior do projeto (pesquisa multi-estratégia: backtest, 5 estratégias, ML meta-labeling, pares/momentum ao vivo, Auditor, servidor MCP local). Boa parte do código citado aqui foi removida no refactor de 2026-08 que focou o projeto só em funding-arb de 2 exchanges. Mantido como histórico/registro de decisões — não reflete o estado atual. Para o estado atual, ver [CONTEXTO.md](../../CONTEXTO.md) e [README.md](../../README.md).
+
+
 Cada módulo, por que existe, e as decisões de projeto que não são óbvias.
 
 ---
@@ -33,7 +36,7 @@ antes de rodar 3.000 backtests em cima deles.
 ## `src/backtest/engine.ts`
 
 O coração. Oito regras que existem especificamente para impedir o autoengano —
-listadas no [README](../README.md). As três que mais mudam resultado:
+listadas no [README](../../README.md). As três que mais mudam resultado:
 
 **Sinal na barra `i` executa na abertura da barra `i+1`.** Sem isso, a
 estratégia negocia dentro da barra que usou para decidir, e todo backtest fica

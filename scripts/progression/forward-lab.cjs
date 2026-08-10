@@ -306,8 +306,10 @@ function lerSpotPerp() {
     const parsed = buf.toString('utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
     const ultimoTs = parsed.reduce((mx, o) => Math.max(mx, o.ts || 0), 0);
     for (const o of parsed) {
-      if (o.ts !== ultimoTs || !EXCHS.includes(o.exchange) || (o.vol || 0) < SPOTPERP_MINVOL || (o.funding || 0) <= 0) continue;
-      m.set(`sp:${o.sym}|${o.exchange}`, { sym: o.sym, exchange: o.exchange, funding: o.funding, iv: o.iv || 8, vol: o.vol });
+      // volSpot exige a mesma barra de liquidez do perfil (perna spot precisa encher também —
+      // feed antigo ao coletor não tinha esse campo, então (o.volSpot||0)=0 reprova por padrão, de propósito).
+      if (o.ts !== ultimoTs || !EXCHS.includes(o.exchange) || (o.vol || 0) < SPOTPERP_MINVOL || (o.volSpot || 0) < SPOTPERP_MINVOL || (o.funding || 0) <= 0) continue;
+      m.set(`sp:${o.sym}|${o.exchange}`, { sym: o.sym, exchange: o.exchange, funding: o.funding, iv: o.iv || 8, vol: o.vol, volSpot: o.volSpot });
     }
   } catch { /* feed pode não existir ainda */ }
   return m;

@@ -1,5 +1,8 @@
 # Pedidos — rastreamento completo
 
+> **📦 Arquivado — pré-refactor.** Este documento descreve a fase anterior do projeto (pesquisa multi-estratégia: backtest, 5 estratégias, ML meta-labeling, pares/momentum ao vivo, Auditor, servidor MCP local). Boa parte do código citado aqui foi removida no refactor de 2026-08 que focou o projeto só em funding-arb de 2 exchanges. Mantido como histórico/registro de decisões — não reflete o estado atual. Para o estado atual, ver [CONTEXTO.md](../../CONTEXTO.md) e [README.md](../../README.md).
+
+
 Registro de tudo que foi pedido, na ordem em que foi pedido, com o que foi feito
 em resposta e o status atual. Nada sai desta lista sem estar concluído ou
 explicitamente marcado como pendente.
@@ -137,7 +140,7 @@ implícitos e correm risco de se perder.
 
 | Documento | Cobre |
 |---|---|
-| [../README.md](../README.md) | O que é o projeto, como usar, arquitetura |
+| [../../README.md](../../README.md) | O que é o projeto, como usar, arquitetura |
 | PEDIDOS.md (este) | Tudo que você pediu, item a item |
 | [EVOLUCAO.md](EVOLUCAO.md) | Diário: cada descoberta, quando, e o que mudou por causa dela |
 | [RESULTADOS.md](RESULTADOS.md) | Todos os números medidos, com a configuração que os produziu |

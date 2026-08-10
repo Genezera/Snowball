@@ -1,5 +1,8 @@
 # As 5 estratégias
 
+> **📦 Arquivado — pré-refactor.** Este documento descreve a fase anterior do projeto (pesquisa multi-estratégia: backtest, 5 estratégias, ML meta-labeling, pares/momentum ao vivo, Auditor, servidor MCP local). Boa parte do código citado aqui foi removida no refactor de 2026-08 que focou o projeto só em funding-arb de 2 exchanges. Mantido como histórico/registro de decisões — não reflete o estado atual. Para o estado atual, ver [CONTEXTO.md](../../CONTEXTO.md) e [README.md](../../README.md).
+
+
 Regras transcritas **das capturas de tela do vídeo**, não da transcrição em
 texto — a transcrição contém erros que mudam o comportamento das estratégias.
 Onde os dois divergem, a tela vence e a divergência está anotada.

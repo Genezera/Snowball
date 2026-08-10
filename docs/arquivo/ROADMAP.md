@@ -1,5 +1,8 @@
 # Roadmap
 
+> **📦 Arquivado — pré-refactor.** Este documento descreve a fase anterior do projeto (pesquisa multi-estratégia: backtest, 5 estratégias, ML meta-labeling, pares/momentum ao vivo, Auditor, servidor MCP local). Boa parte do código citado aqui foi removida no refactor de 2026-08 que focou o projeto só em funding-arb de 2 exchanges. Mantido como histórico/registro de decisões — não reflete o estado atual. Para o estado atual, ver [CONTEXTO.md](../../CONTEXTO.md) e [README.md](../../README.md).
+
+
 Estado em 2026-08-02. Ordenado por **valor-tempo**, não por importância — o
 critério é "atrasar isto custa quanto?".
 
@@ -113,7 +116,7 @@ completo. Adicionar candidatos gera trabalho, não lucro.
 **Mais machine learning.** Três tentativas, três falhas: meta-labeling (removia
 trades lucrativos), alocador adaptativo (perdeu em 5 de 5), ML de volatilidade
 (previu 37% melhor, operou pior). O único que funcionou foi um EWMA de uma
-linha. O padrão está documentado em [O-QUE-FALHOU.md](O-QUE-FALHOU.md): prever
+linha. O padrão está documentado em [O-QUE-FALHOU.md](../O-QUE-FALHOU.md): prever
 falhou 3 de 3, reagir funcionou 3 de 3.
 
 **Dashboard.** Gráfico não melhora estratégia.

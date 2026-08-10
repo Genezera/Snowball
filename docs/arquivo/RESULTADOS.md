@@ -1,5 +1,8 @@
 # Resultados medidos
 
+> **📦 Arquivado — pré-refactor.** Este documento descreve a fase anterior do projeto (pesquisa multi-estratégia: backtest, 5 estratégias, ML meta-labeling, pares/momentum ao vivo, Auditor, servidor MCP local). Boa parte do código citado aqui foi removida no refactor de 2026-08 que focou o projeto só em funding-arb de 2 exchanges. Mantido como histórico/registro de decisões — não reflete o estado atual. Para o estado atual, ver [CONTEXTO.md](../../CONTEXTO.md) e [README.md](../../README.md).
+
+
 Todos os números desta página foram produzidos pelo código deste repositório,
 com a configuração indicada. Nenhum número foi copiado do vídeo, exceto onde
 está explicitamente marcado como "afirmado no vídeo".

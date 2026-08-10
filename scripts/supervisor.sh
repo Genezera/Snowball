@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Watchdog: verifica os 7 processos do Snowball (motor + vigilância +
-# custódia + coletor + momentum + preenchimento + pares) a cada 30s e religa
-# automaticamente qualquer um que tiver caído. O dashboard LEGADO (8787) foi
+# Watchdog: verifica o(s) processo(s) compartilhados do Snowball a cada 30s e
+# religa automaticamente qualquer um que tiver caído. Hoje só supervisiona o
+# `coletor` (scanner de mercado que alimenta o motor real snowball-2ex, via
+# scripts/supervisor-competidores.sh). O Champion (motor 6-ex + vigilância +
+# custódia) e o Paper Profit Lab foram ARQUIVADOS (ver arquivo-6-exchanges/) —
+# não rodam mais nem são supervisionados aqui. O dashboard LEGADO (8787) foi
 # arquivado na unificação e NÃO é mais supervisionado aqui (ver bloco CMD).
 # O dashboard canônico (V2, :5183/:5184) tem supervisores próprios. Existe porque o
 # motor caiu uma vez (bug de import faltando) e ficou 3h30 sem ninguém
@@ -19,9 +22,6 @@ source scripts/lib/supervisor-lock.sh
 source scripts/lib/process-manifest.sh
 
 declare -A CMD=(
-  [vigilancia]="node src/cli/vigilancia.ts --equity 100 --intervalo 5"
-  [custodia]="node src/cli/custodia.ts --intervalo 15"
-  [motor]="node --env-file-if-exists=.env src/cli/spread-live.ts --porExchange 100 --alavancagem 5 --exchanges binanceusdm,bybit,okx,gate,bitget,bingx"
   # UNIFICAÇÃO (Snowball Dashboard): o dashboard LEGADO (src/dashboard/server.ts,
   # porta 8787) foi ARQUIVADO — não é mais iniciado nem supervisionado
   # automaticamente. O dashboard canônico é o V2 (frontend :5183 + API :5184),
@@ -31,13 +31,13 @@ declare -A CMD=(
   # para o rollback/detecção — nunca como processo supervisionado aqui.
   [coletor]="node src/cli/coletor.ts --intervalo 5"
   # FOCO 2-EXCHANGE (refactor 2026-08): as outras estratégias (momentum, pares,
-  # preenchimento, renda) foram removidas do projeto. O sistema agora é só o
-  # funding-arb delta-neutro: scanner do mercado inteiro + motor + custódia.
+  # preenchimento, renda) foram removidas do projeto. ARQUIVO 6-EXCHANGE
+  # (posterior): Champion (vigilancia/custodia/motor) e Paper Profit Lab foram
+  # movidos pra arquivo-6-exchanges/ e não rodam mais — ver README lá.
+  # O sistema agora é só o coletor (alimenta o motor real snowball-2ex, que
+  # tem supervisor próprio em scripts/supervisor-competidores.sh).
 )
 declare -A LOG=(
-  [vigilancia]="vigilancia/live.log"
-  [custodia]="vigilancia/custodia.log"
-  [motor]="spread/live.log"
   [coletor]="vigilancia/coletor.log"
 )
 

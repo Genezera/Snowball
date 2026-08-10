@@ -2,7 +2,6 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { Sidebar } from '../components/navigation/Sidebar';
 import { Ticker } from '../components/navigation/Ticker';
 import { LangToggle } from '../components/navigation/LangToggle';
-import { useLiveStore } from '../stores/liveStore';
 import { useT, useLang, localeDe } from '../i18n';
 
 /** Relógio local + UTC (item 6) — dado, atualiza a cada segundo, sem piscar. */
@@ -23,27 +22,6 @@ function Relogio() {
   );
 }
 
-const STATUS_LABEL: Record<string, string> = { conectando: 'conectando', aoVivo: 'ao vivo', reconectando: 'reconectando' };
-const STATUS_COLOR: Record<string, string> = { conectando: 'var(--warn-500)', aoVivo: 'var(--gain-500)', reconectando: 'var(--loss-500)' };
-
-/** LED pulsante (identidade Snowball) só quando ao vivo; estático nos demais estados. */
-function Pill({ label, status }: { label: string; status: string }) {
-  const t = useT();
-  const aoVivo = status === 'aoVivo';
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 'var(--radius-full)',
-      background: 'var(--surface-glass)', border: '1px solid var(--border-subtle)', fontSize: 'var(--text-2xs)', fontWeight: 700, color: 'var(--ink-1)',
-    }}>
-      <span style={{
-        width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[status] ?? 'var(--ink-3)',
-        animation: aoVivo ? 'snow-pulse 1.8s infinite' : 'none',
-      }} />
-      {label} · {t(STATUS_LABEL[status] ?? status)}
-    </div>
-  );
-}
-
 /** Detecta viewport mobile (matchMedia) — nav própria, nunca "sidebar desktop comprimida". */
 function useEhMobile(): boolean {
   const [ehMobile, setEhMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 899px)').matches);
@@ -57,14 +35,10 @@ function useEhMobile(): boolean {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const iniciar = useLiveStore((s) => s.iniciar);
-  const championStatus = useLiveStore((s) => s.championStatus);
-  const profitLabStatus = useLiveStore((s) => s.profitLabStatus);
   const ehMobile = useEhMobile();
   const [drawerAberto, setDrawerAberto] = useState(false);
   const t = useT();
 
-  useEffect(() => iniciar(), [iniciar]);
   // ao voltar pra desktop, garante o drawer fechado
   useEffect(() => { if (!ehMobile) setDrawerAberto(false); }, [ehMobile]);
   // Escape fecha o drawer
@@ -120,9 +94,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div style={{ flex: 1 }} />
           <Relogio />
           <LangToggle />
-          <span style={{ width: 1, height: 20, background: 'var(--border-subtle)', flex: 'none' }} aria-hidden />
-          <Pill label="Champion" status={championStatus} />
-          <Pill label="Profit Lab" status={profitLabStatus} />
         </header>
         <Ticker />
         {/* tabIndex=0: o <main> é o container de scroll vertical. Em páginas

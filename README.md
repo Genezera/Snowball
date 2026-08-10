@@ -26,23 +26,22 @@
 
 ---
 
-## 🎯 O plano atual: 2 melhores exchanges
+## 🎯 O plano atual: motor único de 2 exchanges + spot-perp
 
-O sistema começou com **6 exchanges** (o "Champion", que rende **+US$ 17,48 em 6 dias ≈ +0,49%/dia** em paper). Mas o dinheiro real vai começar com **2 exchanges, US$ 100 em cada** — então todo o foco agora é **descobrir qual par de 2 exchanges rende mais** e migrar pra ele.
+O sistema começou com **6 exchanges** (o "Champion") como referência/benchmark — depois de servir pra descobrir os levers de lucro, ele foi **arquivado** (ver [`arquivo-6-exchanges/README.md`](arquivo-6-exchanges/README.md); código preservado, só não roda mais). O foco 100% agora é **2 exchanges, US$ 100 em cada**: o head-to-head entre pares já terminou.
 
-**Como se decide:** dois competidores paper rodam ao vivo no motor reconciliado, cada um com US$ 200:
+**Decisão tomada:** `bybit + bitget` venceu o head-to-head contra `gate + okx` (que ficou faminto — quase nenhuma posição aberta). Os dois competidores foram consolidados num **motor único**, `snowball-2ex`, com todos os levers de maximização já embutidos:
 
-| Competidor | Capital | Política |
-|---|---|---|
-| **bybit + bitget** | US$ 100 + US$ 100 | maker + filtro de persistência |
-| **gate + okx** | US$ 100 + US$ 100 | maker + filtro de persistência |
+| Lever | O que faz |
+|---|---|
+| **Ordens maker (limite)** | custo cai de ~40% do funding para ~15% — matemática exata dos presets reais (`--cost-model maker`) |
+| **Filtro de persistência** | só entra após 30min de sinal positivo — corta entradas prematuras, a causa nº1 do vazamento de custo (`--persist-min 30`) |
+| **Utilização de capital** | 5 posições, 20% de reserva (`--maxpos 5 --reserva 0.20`) |
+| **Rendimento da reserva ociosa** | reserva rende ~6%/ano no livro-caixa, neutro (`--stable-yield 0.06`) |
+| **Compounding** | o lucro vira notional maior, bola de neve |
 
-Em alguns dias o head-to-head crava o vencedor, e o **mesmo motor** (`spread-live`) é reconfigurado de 6 → 2 exchanges pro dinheiro real.
-
-### Os 3 levers de maximização (todos com base em dados)
-1. **Ordens maker (limite)** em vez de market → custo cai a ~36% (de 40% do funding para ~15%). **+27% de lucro**, matemática exata dos presets reais.
-2. **Filtro de persistência** → só entra após 30min de sinal positivo, cortando entradas prematuras (a causa nº1 do vazamento de custo).
-3. **Compounding** → o lucro vira notional maior, bola de neve.
+### Spot-perp — segunda superfície de captura (mesma exchange)
+Além do cross-exchange (capta o **diferencial** de funding entre 2 exchanges), o motor também opera **cash-and-carry**: compra spot + shorta perp **na mesma exchange**, capturando o funding **absoluto** — acessa oportunidades que o cross-exchange perde. Delta-neutro, mesmo livro-caixa, reconciliado ao centavo. Um coletor dedicado (`coletor-spotperp.cjs`) varre o mercado real via ccxt e só aceita oportunidades com liquidez real **nos dois lados** (perp e spot).
 
 ---
 
@@ -51,27 +50,32 @@ Em alguns dias o head-to-head crava o vencedor, e o **mesmo motor** (`spread-liv
 ```
    ┌─────────────┐   varre o mercado inteiro    ┌──────────────────────────┐
    │  COLETOR    │  ~4.750 pares / 6 exchanges   │  arquivo-observacoes     │
-   │ + universo  │ ────────────────────────────▶ │  (feed, {k,apr,spread})  │
    └─────────────┘        a cada ~5 min          └───────────┬──────────────┘
-                                                             │
-                    ┌────────────────────────────────────────┼───────────────┐
-                    ▼                                         ▼               ▼
-          ┌──────────────────┐              ┌──────────────────────┐   ┌──────────────┐
-          │ MOTOR (spread-   │              │ COMPETIDORES (paper) │   │  DASHBOARD   │
-          │ live) — Champion │              │ bybit+bitget /       │   │  (React,     │
-          │ 6-ex → futuro    │              │ gate+okx, maker      │   │  tempo real) │
-          │ 2-ex. dinheiro   │              │ + persistência       │   │              │
-          │ real + Telegram  │              │ (forward-lab)        │   │              │
-          └──────────────────┘              └──────────────────────┘   └──────────────┘
-                    ▲                                   ▲                      ▲
-                    └───────── supervisão + blindagem (auto-restart, boot) ────┘
+                                                              │
+   ┌──────────────────┐  oportunidades spot+perp    ┌─────────┴────────────────┐
+   │ COLETOR SPOT-PERP │  (mesma exchange, liquidez  │  arquivo-spotperp        │
+   │ (ccxt, real)       │  real nos 2 lados)          │  (feed do radar)         │
+   └────────┬───────────┘ ────────────────────────▶  └─────────┬────────────────┘
+            │                                                  │
+            └──────────────────────┬───────────────────────────┘
+                                    ▼
+                     ┌───────────────────────────────────┐   ┌──────────────┐
+                     │ snowball-2ex (forward-lab)        │   │  DASHBOARD   │
+                     │ bybit+bitget · MOTOR REAL         │   │  Command     │
+                     │ maker + persistência 30min +       │   │  Center      │
+                     │ cross-exchange + spot-perp juntos  │   │  (React, ao  │
+                     └───────────────────────────────────┘   │  vivo)        │
+                                    ▲                          └──────────────┘
+                                    └── supervisão + blindagem (auto-restart) ──▲
 ```
 
-- **Scanner** (`src/cli/coletor.ts`, `src/funding/universo.ts`): varre o **mercado inteiro** (~4.750 pares nas 6 exchanges) via `fetchFundingRates` em massa, sem viés de seleção.
-- **Motor** (`src/cli/spread-live.ts`, `src/funding/`): abre/gere/fecha posições delta-neutras, com funding, custos, marcação, liquidação, compounding e avisos no Telegram. É o mesmo motor do dinheiro real.
-- **Competidores** (`scripts/progression/forward-lab.cjs`): réplicas paper isoladas por par de 2 exchanges, com custo maker + filtro de persistência.
-- **Dashboard** (`dashboard-v2/`): React + API read-only. Páginas de Champion, Maximização e Competidores (dupla lado a lado).
-- **Supervisão** (`scripts/supervisor.sh`, `supervisor-competidores.sh`, `blindagem.ps1`): auto-restart + sobrevivência a reboot, tudo windowless.
+- **Scanner** (`src/cli/coletor.ts`): varre o **mercado inteiro** (~4.750 pares nas 6 exchanges) via `fetchFundingRates` em massa, sem viés de seleção.
+- **snowball-2ex** (`scripts/progression/forward-lab.cjs`): o motor do dinheiro real — bybit+bitget, maker, filtro de persistência, cross-exchange **e** spot-perp no mesmo livro-caixa reconciliado.
+- **Coletor spot-perp** (`scripts/progression/coletor-spotperp.cjs`): varre spot+perp na mesma exchange via ccxt (dado real), só aceita liquidez real dos dois lados.
+- **Dashboard** (`dashboard-v2/`): React + API read-only. Command Center com o motor real + radar spot-perp.
+- **Supervisão** (`scripts/supervisor.sh`, `scripts/supervisor-competidores.sh`, `scripts/blindagem.ps1`): auto-restart em crash, tudo windowless.
+
+> O **Champion** (referência de 6 exchanges) foi **arquivado** depois de servir pra descobrir os levers de lucro acima — ver [`arquivo-6-exchanges/README.md`](arquivo-6-exchanges/README.md). Código preservado, não roda mais.
 
 ---
 
@@ -111,11 +115,9 @@ npm run telegram:chatid
 powershell -File scripts/blindagem.ps1
 ```
 
-O `blindagem.ps1` é idempotente (não duplica) e está registrado na pasta Startup
-do Windows — o sistema **volta sozinho após reboot**.
+O `blindagem.ps1` é idempotente (não duplica). **Auto-start no boot está desabilitado a pedido** — precisa subir à mão depois de reiniciar o PC.
 
-- **Dashboard:** http://localhost:5183 → aba **Competidores 2-Ex** (a dupla, cada um com dinheiro, gráfico, ordens abertas, o que está pensando e histórico).
-- **Placar rápido no terminal:** `node scripts/analise/compare-competidores.cjs`
+- **Dashboard:** http://localhost:5183 → **Command Center** (o motor real, capital, posições cross-exchange + spot-perp, radar de oportunidades, o que está pensando).
 - **Testar mensagens do Telegram:** `node scripts/telegram-teste-todos.cjs`
 
 ---
@@ -142,7 +144,8 @@ Escritos pra qualquer pessoa entender (emojis + separadores + explicação):
 
 | | |
 |---|---|
-| Champion (6-ex, referência) | **US$ 617,48** · +US$ 17,48 · ~0,49%/dia |
-| Competidores 2-ex | bybit+bitget vs gate+okx (head-to-head ao vivo) |
+| Champion (6-ex) | **arquivado** — último estado: +US$ 17,52 em ~6,3 dias. Ver `arquivo-6-exchanges/` |
+| snowball-2ex (bybit+bitget, motor real) | US$ 200 · cross-exchange + spot-perp juntos |
 | Scanner | mercado inteiro, ~4.750 pares, a cada 5 min |
-| Próximo passo | cravar o par vencedor → dinheiro real (US$ 100 + US$ 100) |
+| Radar spot-perp | ~120 oportunidades reais (bybit+bitget), perfil vol > US$5M nos 2 lados |
+| Próximo passo | observar dias de operação contínua e medir quanto o spot-perp soma ao funding/dia |

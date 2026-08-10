@@ -1,0 +1,132 @@
+{
+  "schema": "snowball.counterfactual-maximizacao.v1",
+  "geradoEm": 1786295158011,
+  "modeloCusto": {
+    "takerRoundTrip": 0.0028,
+    "makerRoundTrip": 0.001,
+    "ratio": 0.3571,
+    "fonte": "src/config.ts (presets reais das corretoras)",
+    "haircutExecucao": 0.6
+  },
+  "lever1_makerOrders": {
+    "atual6ex": {
+      "capital": 600,
+      "funding": 29.5251,
+      "custo": 12.0415,
+      "net": 17.4836,
+      "pctDia": 0.47,
+      "custoSobreFunding": 40.78
+    },
+    "comMakerBest": {
+      "custo": 4.3005,
+      "net": 25.2246,
+      "ganhoVsAtual": 7.741,
+      "ganhoPct": 44.28,
+      "custoSobreFunding": 14.57
+    },
+    "comMakerRealista": {
+      "net": 22.1282,
+      "ganhoVsAtual": 4.6446,
+      "ganhoPct": 26.57,
+      "nota": "haircut de execução 60% (maker nem sempre enche; parte cai pra taker)"
+    }
+  },
+  "lever2_paresTakerVsMaker": [
+    {
+      "par": "gate+okx",
+      "capital": 200,
+      "pos": 5,
+      "funding": 8.3733,
+      "custoTaker": 2.2415,
+      "netTaker": 6.1318,
+      "custoMaker": 0.8005,
+      "netMakerBest": 7.5728,
+      "netMakerRealista": 6.9964,
+      "ganhoMakerPct": 23.5
+    },
+    {
+      "par": "bitget+bybit",
+      "capital": 200,
+      "pos": 7,
+      "funding": 7.5726,
+      "custoTaker": 1.6599,
+      "netTaker": 5.9127,
+      "custoMaker": 0.5928,
+      "netMakerBest": 6.9798,
+      "netMakerRealista": 6.553,
+      "ganhoMakerPct": 18.05
+    },
+    {
+      "par": "bingx+bybit",
+      "capital": 200,
+      "pos": 6,
+      "funding": 6.9212,
+      "custoTaker": 2.3919,
+      "netTaker": 4.5293,
+      "custoMaker": 0.8543,
+      "netMakerBest": 6.0669,
+      "netMakerRealista": 5.4519,
+      "ganhoMakerPct": 33.95
+    },
+    {
+      "par": "binanceusdm+bybit",
+      "capital": 200,
+      "pos": 4,
+      "funding": 3.1802,
+      "custoTaker": 2.3224,
+      "netTaker": 0.8578,
+      "custoMaker": 0.8294,
+      "netMakerBest": 2.3508,
+      "netMakerRealista": 1.7536,
+      "ganhoMakerPct": 174.05
+    },
+    {
+      "par": "bybit+okx",
+      "capital": 200,
+      "pos": 2,
+      "funding": 1.061,
+      "custoTaker": 0.7909,
+      "netTaker": 0.2702,
+      "custoMaker": 0.2825,
+      "netMakerBest": 0.7785,
+      "netMakerRealista": 0.5752,
+      "ganhoMakerPct": 188.12
+    },
+    {
+      "par": "bybit+gate",
+      "capital": 200,
+      "pos": 5,
+      "funding": 1.5494,
+      "custoTaker": 1.3514,
+      "netTaker": 0.198,
+      "custoMaker": 0.4826,
+      "netMakerBest": 1.0668,
+      "netMakerRealista": 0.7193,
+      "ganhoMakerPct": 438.79
+    },
+    {
+      "par": "bingx+gate",
+      "capital": 200,
+      "pos": 1,
+      "funding": 0.7908,
+      "custoTaker": 0.7414,
+      "netTaker": 0.0494,
+      "custoMaker": 0.2648,
+      "netMakerBest": 0.526,
+      "netMakerRealista": 0.3354,
+      "ganhoMakerPct": 964.78
+    }
+  ],
+  "melhorCaminho": {
+    "config": "gate+okx + ordens maker + filtro de persistência",
+    "raciocinio": "O lever de custo (taker→maker) é o de maior impacto e é matemática exata do config.ts. A concentração em 2 exchanges mantém a MESMA taxa/dólar (não é mais lucro absoluto, é o formato do dinheiro real).",
+    "projecaoMelhorPar2ex": {
+      "par": "gate+okx",
+      "capital": 200,
+      "netTakerAtual": 6.1318,
+      "netComMaker": 6.9964,
+      "ganhoPct": 23.5
+    }
+  },
+  "honestidade": "Counterfactual sobre dados RECONCILIADOS (Champion real + replay auditado). O lever maker é matemática exata dos presets; o haircut de execução é conservador. Amostra por par pequena (5-7 trades). O real confirma os fills."
+}

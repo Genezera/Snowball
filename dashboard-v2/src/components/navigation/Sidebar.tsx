@@ -8,9 +8,12 @@ interface NavGroup { titulo: string; itens: NavItem[] }
 
 /**
  * SIDEBAR — navegação agrupada com a identidade Snowball (marca com brilho
- * ciano, estado ativo em ciano glacial, grupos recolhíveis). Focada no plano
- * de 2 exchanges: núcleo (Command Center, Competidores, Maximização, Champion)
- * + operação/mercado + sistema. Todas as páginas listadas são reais.
+ * ciano, estado ativo em ciano glacial, grupos recolhíveis). Focada no motor
+ * real de 2 exchanges (Command Center, Competidores, Maximização). As páginas
+ * do bloco "6 exchanges" (Champion, mercado/custos/risco/settlements do Lab,
+ * Histórico do Champion, Saúde do Sistema antiga) foram ARQUIVADAS — ver
+ * arquivo-6-exchanges/README.md. Saúde do Sistema será recriada pro sistema
+ * atual numa fase separada.
  */
 const GRUPOS: NavGroup[] = [
   {
@@ -19,23 +22,6 @@ const GRUPOS: NavGroup[] = [
       { to: '/', label: 'Command Center', glyph: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
       { to: '/competidores', label: 'Competidores 2-Ex', glyph: 'M8 6h8M8 12h8M8 18h8M4 6h.01M4 12h.01M4 18h.01' },
       { to: '/maximizacao', label: 'Maximização de Lucro', glyph: 'M3 17l6-6 4 4 8-8M21 7v6h-6' },
-      { to: '/champion', label: 'Champion (referência)', glyph: 'M12 2 L20 12 L12 22 L4 12 Z' },
-    ],
-  },
-  {
-    titulo: 'Operação & Mercado',
-    itens: [
-      { to: '/opportunities', label: 'Varredura do Mercado', glyph: 'M5 12a7 7 0 1114 0 7 7 0 01-14 0zM12 5v2M12 17v2M5 12h2M17 12h2' },
-      { to: '/costs', label: 'Custos & Maker', glyph: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
-      { to: '/risk', label: 'Risco (liquidação)', glyph: 'M12 2l9 5v6c0 5-3.8 8-9 9-5.2-1-9-4-9-9V7z' },
-      { to: '/capture', label: 'Funding & Settlements', glyph: 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2' },
-    ],
-  },
-  {
-    titulo: 'Sistema',
-    itens: [
-      { to: '/historico', label: 'Histórico', glyph: 'M3 3v5h5M3.05 13a9 9 0 105-8.5L3 8M12 7v5l4 2' },
-      { to: '/system', label: 'Saúde do Sistema', glyph: 'M12 2a5 5 0 00-5 5v3H5a2 2 0 00-2 2v8a2 2 0 002 2h14a2 2 0 002-2v-8a2 2 0 00-2-2h-2V7a5 5 0 00-5-5z' },
     ],
   },
 ];

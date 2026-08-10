@@ -33,16 +33,20 @@ function pollLoop<T>(
 ): () => void {
   let ativo = true;
   let tentativa = 0;
+  let teveSucesso = false; // já recebeu ao menos um dado bom nesta sessão de poll
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   async function tick() {
     if (!ativo) return;
-    onStatus(tentativa === 0 ? 'conectando' : 'reconectando');
+    // "conectando" só na primeira tentativa de verdade (antes do 1º sucesso) — depois disso,
+    // um re-poll normal NUNCA volta pra "conectando"/"reconectando" só por estar buscando de
+    // novo. Só sai de "aoVivo" se o fetch FALHAR (senão fica cintilando a cada re-poll).
+    if (!teveSucesso) onStatus('conectando');
     const r = await buscar();
     if (!ativo) return;
     onDado(r);
-    if (r.estado === 'sucesso') { tentativa = 0; onStatus('aoVivo'); }
-    else { tentativa++; }
+    if (r.estado === 'sucesso') { tentativa = 0; teveSucesso = true; onStatus('aoVivo'); }
+    else { tentativa++; onStatus(teveSucesso ? 'reconectando' : 'conectando'); }
     timer = setTimeout(tick, intervaloMs);
   }
   tick();

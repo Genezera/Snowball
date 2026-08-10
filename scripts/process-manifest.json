@@ -1,13 +1,9 @@
 {
-  "vigilancia": { "entrypoint": "src/cli/vigilancia.ts", "port": null },
-  "custodia": { "entrypoint": "src/cli/custodia.ts", "port": null },
-  "motor": { "entrypoint": "src/cli/spread-live.ts", "port": null },
   "dashboard": { "entrypoint": "src/dashboard/server.ts", "port": 8787 },
   "coletor": { "entrypoint": "src/cli/coletor.ts", "port": null },
   "momentum": { "entrypoint": "src/cli/momentum-live.ts", "port": null },
   "preenchimento": { "entrypoint": "src/cli/preenchimento-live.ts", "port": null },
   "pares": { "entrypoint": "src/cli/pares-live.ts", "port": null },
-  "profitLab": { "entrypoint": "src/cli/paper-profit-lab.ts", "port": null },
   "dashboardV2Api": { "entrypoint": "dashboard-v2/api/server.ts", "port": 5184 },
   "dashboardV2Frontend": { "entrypoint": "dashboard-v2", "port": 5183, "nota": "processo vite, não um entrypoint .ts — identificado por porta, não por manifesto de caminho" }
 }

@@ -6,12 +6,16 @@
  *   - NUNCA chama fs.writeFileSync/appendFileSync/qualquer escrita.
  *   - NUNCA importa nem depende de `src/dashboard/server.ts` (o servidor
  *     antigo) — lê os MESMOS arquivos do Snowball diretamente.
- *   - Só importa `CHALLENGERS_APROVADOS` de `src/inteligencia/
- *     challengers.ts` — é uma lista de config estática, sem efeito
- *     colateral, mesmo padrão que o servidor antigo já usava.
  *   - Roda em porta própria (padrão 5184), PID próprio, log próprio.
- *   - Não faz parte dos 8 processos supervisionados pelo watchdog do
- *     champion — tem supervisão própria (scripts/supervisor-dashboard-v2).
+ *   - Não faz parte dos processos supervisionados pelo watchdog principal —
+ *     tem supervisão própria (scripts/supervisor-dashboard-v2).
+ *
+ * ARQUIVO 6-EXCHANGES: as rotas /api/v2/champion, /api/v2/profit-lab,
+ * /api/v2/opportunities, /api/v2/waterfall e /api/v2/events (e os serviços
+ * que só existiam pra elas: champion.ts, captura.ts, oportunidades.ts,
+ * cobertura.ts, waterfall.ts, eventos.ts) foram ARQUIVADAS — ver
+ * arquivo-6-exchanges/README.md. Devolvem `{ok:true, arquivado:true}`
+ * abaixo em vez de tentar ler arquivos/processos que não existem mais.
  *
  * Fluxo: arquivos/agregadores do Snowball → (somente leitura) → esta API
  * → frontend do Dashboard 2.0. Nunca o caminho inverso.
@@ -20,14 +24,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CHALLENGERS_APROVADOS } from '../../src/inteligencia/challengers.ts';
-import { lerJsonSeguro, caminhoAgregadoLab, lerJsonlComNumeroDeLinha } from './readers/arquivos.ts';
-import { buscarEventosIncremental } from './services/eventos.ts';
-import { montarManifestoCobertura } from './services/cobertura.ts';
-import { lerTotaisAutoritativos, construirDecomposicao } from './services/waterfall.ts';
-import { montarChampionCompleto } from './services/champion.ts';
-import { montarCapturaStatus } from './services/captura.ts';
-import { montarOportunidades } from './services/oportunidades.ts';
+import { lerJsonSeguro, lerJsonlComNumeroDeLinha } from './readers/arquivos.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..'); // raiz do repositório Snowball
@@ -37,7 +34,6 @@ const PORTA = Number(process.env.PORTA_V2_API ?? 5184);
 // uma instância ISOLADA de teste (porta 5199) que nunca clobber o heartbeat
 // de produção que o supervisor lê. Nada de leitura de estado do Snowball muda.
 const DIR_LOGS = process.env.API_V2_LOG_DIR ? path.resolve(process.env.API_V2_LOG_DIR) : path.join(__dirname, 'logs');
-const JANELA_COBERTURA_MS = 6 * 3_600_000;
 
 fs.mkdirSync(DIR_LOGS, { recursive: true });
 function log(msg: string) {
@@ -80,29 +76,6 @@ function enviarJson(res: http.ServerResponse, status: number, corpo: unknown) {
   res.end(JSON.stringify(corpo));
 }
 
-const FONTES_EVENTOS = [
-  { fonte: 'champion', ehChampion: true },
-  ...CHALLENGERS_APROVADOS.map((c) => ({ fonte: c.challengerId, ehChampion: false })),
-];
-
-/**
- * Status geral do Profit Lab — mesma derivação pura que o servidor antigo
- * já fazia (idade do heartbeat + taxa de erro recente), reimplementada aqui
- * pra `/api/v2/profit-lab` não depender do campo equivalente da porta 8787.
- * Achado ao vivo: esse campo tinha ficado de fora da rota V2 desde sempre —
- * o frontend validava contra o schema e falhava com "dado corrompido"
- * porque `status`/`statusMotivo` nunca vinham na resposta.
- */
-function statusProfitLabV2(hb: any): { status: string; motivo: string } {
-  if (!hb) return { status: 'parado', motivo: 'nenhum heartbeat encontrado — o Lab nunca rodou ou o arquivo foi apagado' };
-  const idadeMin = hb.ultimoCiclo ? (Date.now() - hb.ultimoCiclo) / 60_000 : Infinity;
-  if (idadeMin === Infinity) return { status: 'parado', motivo: 'heartbeat existe mas nenhum ciclo foi processado ainda' };
-  if (idadeMin > 15) return { status: 'parado', motivo: `sem ciclo processado há ${idadeMin.toFixed(0)}min` };
-  if (idadeMin > 6) return { status: 'stale', motivo: `último ciclo há ${idadeMin.toFixed(1)}min — mais lento que o esperado (5min)` };
-  if (hb.ciclosComErro > 0 && hb.ciclosProcessados > 0 && hb.ciclosComErro / hb.ciclosProcessados > 0.2) return { status: 'degradado', motivo: 'mais de 20% dos ciclos recentes com erro' };
-  return { status: 'saudavel', motivo: 'ciclos recentes e sem erro relevante' };
-}
-
 const servidor = http.createServer((req, res) => {
   heartbeat.ultimaRequisicao = Date.now();
   heartbeat.totalRequisicoes++;
@@ -122,36 +95,13 @@ const servidor = http.createServer((req, res) => {
       return enviarJson(res, 200, { ok: true, ...heartbeat, uptimeMs: Date.now() - heartbeat.startedAt });
     }
 
-    // ── champion completo (Parte 2 — paridade com o /api/dados antigo, mas
-    // sem NENHUMA dependência da porta 8787: cada campo é lido direto da
-    // fonte, documentado campo a campo em services/champion.ts) ──────────
-    if (url.pathname === '/api/v2/champion') {
-      montarChampionCompleto(ROOT)
-        .then((dados) => enviarJson(res, 200, { ok: dados.estado != null, ...dados }))
-        .catch((e) => { log(`ERRO em /api/v2/champion: ${(e as Error).stack}`); enviarJson(res, 500, { ok: false, erro: (e as Error).message }); });
-      return;
-    }
-
-    // ── Profit Lab: agregados já prontos (o Lab calcula, esta API só lê) ─
-    if (url.pathname === '/api/v2/profit-lab') {
-      const dir = path.join(ROOT, 'inteligencia', 'dashboard');
-      const hb = lerJsonSeguro<any>(path.join(ROOT, 'inteligencia', 'heartbeat.json'), null);
-      const st = statusProfitLabV2(hb);
-      return enviarJson(res, 200, {
-        ok: true,
-        status: st.status, statusMotivo: st.motivo,
-        resumo: lerJsonSeguro(path.join(dir, 'resumo.json'), null),
-        leaderboard: lerJsonSeguro(path.join(dir, 'leaderboard.json'), null),
-        leaderboardMulti: lerJsonSeguro(path.join(dir, 'leaderboard-multi.json'), null),
-        janelaComum: lerJsonSeguro(path.join(dir, 'janela-comum.json'), null),
-        custos: lerJsonSeguro(path.join(dir, 'custos.json'), null),
-        riscos: lerJsonSeguro(path.join(dir, 'riscos.json'), null),
-        telemetria: lerJsonSeguro(path.join(dir, 'telemetria.json'), null),
-        championVsControl: lerJsonSeguro(path.join(dir, 'champion-vs-control.json'), null),
-        capturaStatus: montarCapturaStatus(ROOT),
-        heartbeat: lerJsonSeguro(path.join(ROOT, 'inteligencia', 'heartbeat.json'), null),
-        geradoEm: Date.now(),
-      });
+    // ── ARQUIVO 6-EXCHANGES: Champion e Paper Profit Lab foram isolados em
+    // arquivo-6-exchanges/ e não rodam mais — ver README lá. Estas rotas
+    // existem só pra qualquer cliente antigo não quebrar com 404 silencioso.
+    if (url.pathname === '/api/v2/champion' || url.pathname === '/api/v2/profit-lab'
+      || url.pathname === '/api/v2/opportunities' || url.pathname === '/api/v2/waterfall'
+      || url.pathname === '/api/v2/events') {
+      return enviarJson(res, 200, { ok: true, arquivado: true, motivo: 'Champion/Paper Profit Lab (bloco "6 exchanges") foram arquivados — ver arquivo-6-exchanges/README.md. Esta rota não serve mais dado.' });
     }
 
     // ── maximização de lucro: Champion + ranking 2-exchanges + head-to-head ao vivo ──
@@ -164,7 +114,9 @@ const servidor = http.createServer((req, res) => {
         base.headToHead.competidores = (base.headToHead.competidores || []).map((c: any) => {
           const est = lerJsonSeguro<any>(path.join(compDir, c.label, 'estado.json'), null);
           const hb = lerJsonSeguro<any>(path.join(compDir, c.label, 'heartbeat.json'), null);
-          if (!est) return c;
+          // diretório não existe mais (competidor aposentado pós-consolidação) — nunca herdar o
+          // "vivo:true" congelado do JSON estático, senão a página mente que ainda está rodando.
+          if (!est) return { ...c, vivo: false, disponivel: false };
           const funding = est.fundingAcum || 0, custos = est.custosAcum || 0, rend = est.yieldAcum || 0, net = funding + rend - custos;
           const vivo = !!(hb && hb.ultimoCiclo && Date.now() - hb.ultimoCiclo < 15 * 60000);
           return { ...c, fundingAcum: Math.round(funding * 1e4) / 1e4, custosAcum: Math.round(custos * 1e4) / 1e4, net: Math.round(net * 1e4) / 1e4,
@@ -237,42 +189,6 @@ const servidor = http.createServer((req, res) => {
         pctDia: r2((o.fundingDia || 0) * 100, 3), fundingIntervalo: r2((o.funding || 0) * 100, 4), iv: o.iv,
         paybackDias: r2(o.paybackDias || 0, 1), vol: o.vol }));
       return enviarJson(res, 200, { ok: true, total: ops.length, porExchange, geradoEm: ops[0]?.ts || null, top });
-    }
-
-    // ── transporte incremental de eventos (Parte 4) ──────────────────────
-    if (url.pathname === '/api/v2/events') {
-      const cursor = url.searchParams.get('after');
-      const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit') ?? 200)));
-      const resultado = buscarEventosIncremental(ROOT, FONTES_EVENTOS, cursor, limit);
-
-      // cobertura (Parte 3/7) reusa as contagens por fonte que este request
-      // já computou — nunca lê o diário duas vezes só pra montar o manifesto
-      const cobertura = montarManifestoCobertura(ROOT, CHALLENGERS_APROVADOS, resultado.disponivelPorFonte, resultado.entreguePorFonte, JANELA_COBERTURA_MS);
-
-      return enviarJson(res, 200, { ok: true, ...resultado, cobertura });
-    }
-
-    // ── oportunidades: AGREGA a fonte persistente do motor
-    // (inteligencia/oportunidades/YYYY-MM-DD.jsonl), read-only. A coleta é
-    // do processo do motor, não do dashboard — sobrevive a fechar navegador,
-    // trocar página, reiniciar frontend/API. Filtros opcionais por query. ──
-    if (url.pathname === '/api/v2/opportunities') {
-      const resultado = montarOportunidades(ROOT);
-      const status = url.searchParams.get('status'); // 'eligible' | 'blocked'
-      const symbol = url.searchParams.get('symbol');
-      const limit = Math.min(2000, Math.max(1, Number(url.searchParams.get('limit') ?? 1000)));
-      let items = resultado.items;
-      if (status === 'eligible') items = items.filter((i) => i.eligible);
-      else if (status === 'blocked') items = items.filter((i) => i.blocked);
-      if (symbol) items = items.filter((i) => i.symbol.toLowerCase().includes(symbol.toLowerCase()));
-      return enviarJson(res, 200, { ...resultado, items: items.slice(0, limit), hasMore: items.length > limit });
-    }
-
-    // ── waterfall reconciliado (Parte 8) ─────────────────────────────────
-    if (url.pathname === '/api/v2/waterfall') {
-      const autoritativo = lerTotaisAutoritativos(ROOT);
-      const decomposicao = construirDecomposicao(ROOT, autoritativo);
-      return enviarJson(res, 200, { ok: true, autoritativo, decomposicao, geradoEm: Date.now() });
     }
 
     enviarJson(res, 404, { ok: false, erro: 'rota não encontrada', rota: url.pathname });

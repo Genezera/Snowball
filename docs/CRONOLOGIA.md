@@ -330,7 +330,7 @@ estável entre regimes opostos.
 **Correção importante:** eu havia afirmado em três documentos que o trader.dev
 força comissão zero. Testei e **estava errado** — a API rejeita override e
 aplica 0,05% por lado. O que produz os números absurdos é `percent_of_equity:
-100` e slippage zero, não a comissão. Ver [MCP.md](MCP.md).
+100` e slippage zero, não a comissão. Ver [MCP.md](arquivo/MCP.md).
 
 ---
 
@@ -571,4 +571,4 @@ ativos numa varredura sistemática — não mais em 5 ativos escolhidos a dedo.
 qualquer ativo testado fica documentado como experimento e **fora da produção**.
 
 **Único papel da equipe ainda vazio:** o Auditor, que fecha o laço de rotação.
-Ver [ARQUITETURA-DECISORIA.md](ARQUITETURA-DECISORIA.md) e [BACKLOG.md](BACKLOG.md).
+Ver [ARQUITETURA-DECISORIA.md](arquivo/ARQUITETURA-DECISORIA.md) e [BACKLOG.md](arquivo/BACKLOG.md).

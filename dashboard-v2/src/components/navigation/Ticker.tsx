@@ -1,41 +1,33 @@
-import { useLiveStore } from '../../stores/liveStore';
+import { useCompetidores } from '../../hooks/useCompetidores';
 
 /**
- * TICKER (item 7 da reconstrução desktop) — barra horizontal de ativos,
- * herdada do dashboard antigo. Movimento contínuo e suave (marquee), nunca
- * pisca nem muda largura bruscamente. Dados REAIS: cada posição aberta do
- * champion vira dois itens (uma perna por exchange), com preço ao vivo e a
- * variação desde a entrada. Nada é fabricado — se não há posição, o ticker
- * mostra um estado honesto de "sem posições".
+ * TICKER (item 7 da reconstrução desktop) — barra horizontal de ativos.
+ * Movimento contínuo e suave (marquee), nunca pisca nem muda largura
+ * bruscamente. Dados REAIS: cada posição aberta do motor real (snowball-2ex)
+ * vira um item, com o par de exchanges e o APR/funding acumulado — o motor
+ * não rastreia preço ao vivo por posição (só funding/economia), então o
+ * ticker mostra o que ele de fato mede, não um preço fabricado. Retargetado
+ * pro motor atual depois do arquivamento do Champion (6 exchanges) — ver
+ * arquivo-6-exchanges/README.md. Nada é fabricado — se não há posição, o
+ * ticker mostra um estado honesto de "sem posições".
  */
-interface ItemTicker { sym: string; exchange: string; preco: number | null; variacao: number | null }
+interface ItemTicker { sym: string; par: string; apr: number | null; funding: number | null }
 
-function nomeCurto(symbol: string): string {
-  return symbol.replace('/USDT:USDT', '').replace('/USDT', '');
+function fmtApr(n: number): string {
+  return (n >= 0 ? '+' : '') + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '% a.a.';
 }
-function fmtPreco(n: number): string {
-  const casas = n < 1 ? 5 : n < 100 ? 3 : 2;
-  return 'US$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: casas });
-}
-function fmtVar(n: number): string {
-  return (n >= 0 ? '+' : '') + (n * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+function fmtFunding(n: number): string {
+  return 'US$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 }
 
 export function Ticker() {
-  const champion = useLiveStore((s) => s.champion);
-  const posicoes = champion?.estado === 'sucesso' ? champion.dado.posicoes ?? [] : [];
+  const competidores = useCompetidores();
+  const abertas = competidores?.estado === 'sucesso' ? (competidores.dado?.competidores ?? []).flatMap((c: any) => c.abertas ?? []) : [];
 
-  const itens: ItemTicker[] = [];
-  for (const p of posicoes) {
-    const sym = nomeCurto(p.symbol);
-    const entrada = p.precoEntrada;
-    const precoS = p.precoAoVivoShort ?? p.precoUltimo ?? null;
-    const precoL = p.precoAoVivoLong ?? p.precoUltimo ?? null;
-    const varS = p.variacaoShort ?? (precoS != null && entrada ? (precoS - entrada) / entrada : null);
-    const varL = p.variacaoLong ?? (precoL != null && entrada ? (precoL - entrada) / entrada : null);
-    itens.push({ sym, exchange: p.exchangeShort, preco: precoS, variacao: varS });
-    itens.push({ sym, exchange: p.exchangeLong, preco: precoL, variacao: varL });
-  }
+  const itens: ItemTicker[] = abertas.map((p: any) => ({
+    sym: p.symbol, par: p.tipo === 'spot-perp' ? `${p.long} spot+perp` : `${p.long}/${p.short}`,
+    apr: p.aprEntrada ?? null, funding: p.fundingAcum ?? null,
+  }));
 
   const vazio = itens.length === 0;
   // duplicar a lista dá o loop contínuo sem "salto" ao reiniciar o marquee
@@ -58,13 +50,13 @@ export function Ticker() {
       ) : (
         <div className="ticker-track" style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', willChange: 'transform' }}>
           {linha.map((it, i) => {
-            const cor = it.variacao == null ? 'var(--ink-3)' : it.variacao >= 0 ? 'var(--gain-500)' : 'var(--loss-500)';
+            const cor = it.apr == null ? 'var(--ink-3)' : it.apr >= 0 ? 'var(--gain-500)' : 'var(--loss-500)';
             return (
               <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 var(--space-5)', fontSize: 'var(--text-2xs)' }}>
                 <span style={{ fontWeight: 800, color: 'var(--ink-0)', letterSpacing: '0.02em' }}>{it.sym}</span>
-                <span style={{ color: 'var(--ink-3)' }}>· {it.exchange}</span>
-                <span className="tabular" style={{ color: 'var(--ink-1)' }}>{it.preco != null ? fmtPreco(it.preco) : '—'}</span>
-                {it.variacao != null && <span className="tabular" style={{ color: cor, fontWeight: 700 }}>{fmtVar(it.variacao)}</span>}
+                <span style={{ color: 'var(--ink-3)' }}>· {it.par}</span>
+                {it.apr != null && <span className="tabular" style={{ color: cor, fontWeight: 700 }}>{fmtApr(it.apr)}</span>}
+                <span className="tabular" style={{ color: 'var(--ink-1)' }}>{it.funding != null ? fmtFunding(it.funding) : '—'}</span>
               </span>
             );
           })}

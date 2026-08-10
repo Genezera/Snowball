@@ -54,8 +54,11 @@ async function umCiclo() {
       const ex = new ccxt[id]({ enableRateLimit: true });
       const spot = await mercadosSpot(ex);
       const taxas = await ex.fetchFundingRates();
-      let tickers = {};
+      let tickers = {}, tickersSpot = {};
       try { tickers = await Promise.race([ex.fetchTickers(undefined, { type: 'swap' }).catch(() => ({})), new Promise((r) => setTimeout(() => r({}), 8000))]); } catch {}
+      // liquidez do lado SPOT (item pendente do CONTEXTO.md): a perna spot precisa encher também,
+      // senão o footprint inteiro (spot cheio) sofre slippage muito maior que o SP_SLIP assumido.
+      try { tickersSpot = await Promise.race([ex.fetchTickers(undefined, { type: 'spot' }).catch(() => ({})), new Promise((r) => setTimeout(() => r({}), 8000))]); } catch {}
       let vistos = 0, comSpot = 0, positivas = 0;
       for (const [sym, fr] of Object.entries(taxas)) {
         if (!sym.endsWith('/USDT:USDT') || fr?.fundingRate == null) continue;
@@ -70,11 +73,14 @@ async function umCiclo() {
         const t = tickers[sym] || {};
         const vol = Number(t.quoteVolume ?? (t.baseVolume && t.last ? t.baseVolume * t.last : 0)) || 0;
         if (vol < MIN_VOL) continue;
+        const ts_ = tickersSpot[base + '/USDT'] || {};
+        const volSpot = Number(ts_.quoteVolume ?? (ts_.baseVolume && ts_.last ? ts_.baseVolume * ts_.last : 0)) || 0;
+        if (volSpot < MIN_VOL) continue;           // spot ilíquido: footprint spot cheio não enche direito
         const fundingDia = funding * (24 / iv);    // funding capturado por dia (fração)
         // EV/dia sobre US$100 de notional, líquido do custo de entrada amortizado num payback alvo
         const custoEntrada = CUSTO_RT;             // fração do notional, uma vez
         const evDiaBruto = fundingDia;             // fração/dia
-        oportunidades.push({ ts, exchange: id, sym: base, funding, iv, fundingDia, custoEntrada, evDiaBruto, vol: Math.round(vol) });
+        oportunidades.push({ ts, exchange: id, sym: base, funding, iv, fundingDia, custoEntrada, evDiaBruto, vol: Math.round(vol), volSpot: Math.round(volSpot) });
       }
       resumo[id] = { perpsUSDT: vistos, comSpot, fundingPositivo: positivas };
     } catch (e) { resumo[id] = { erro: String(e.message).slice(0, 60) }; }

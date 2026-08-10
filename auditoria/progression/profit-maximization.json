@@ -1,29 +1,23 @@
 {
   "schema": "snowball.profit-maximization.v1",
-  "geradoEm": 1786282899863,
+  "geradoEm": 1786295270676,
   "titulo": "Maximização de Lucro — Champion & escolha das 2 exchanges para dinheiro real",
   "oQueEstamosFazendo": [
-    "O Champion (bot real em paper) rende de verdade. Objetivo: extrair MAIS lucro e escolher as 2 melhores exchanges para o dinheiro real (US$100 em cada).",
-    "Dois competidores paper isolados rodam AO VIVO no engine reconciliado — bybit+bitget vs gate+okx — cada um com US$200, filtro de persistência ligado. Eles acumulam o número calibrado para a decisão.",
+    "O Champion (6 exchanges) foi ARQUIVADO (ver arquivo-6-exchanges/README.md) — serviu pra descobrir os levers de lucro abaixo, mas não roda mais. O foco 100% agora é o motor real de 2 exchanges (snowball-2ex).",
+    "Decisão já tomada: bybit+bitget venceu o head-to-head contra gate+okx (que ficou faminto). Os dois competidores foram consolidados no motor único snowball-2ex, que hoje roda com cross-exchange + spot-perp no mesmo capital.",
     "O maior lever de lucro identificado: cortar o vazamento de custo (hoje 40% do funding) sendo mais seletivo, segurando os vencedores e filtrando entradas prematuras."
   ],
   "champion": {
     "capitalInicial": 600,
-    "capital": 617.592,
+    "capital": 617.4836,
     "fundingTotal": 29.5251,
-    "custosTotal": 11.9331,
-    "lucroLiquido": 17.592,
-    "dias": 6.07,
-    "lucroPorDia": 2.8994,
-    "pctPorDia": 0.48,
-    "custoSobreFunding": 40.42,
+    "custosTotal": 12.0415,
+    "lucroLiquido": 17.4836,
+    "dias": 6.21,
+    "lucroPorDia": 2.8151,
+    "pctPorDia": 0.47,
+    "custoSobreFunding": 40.78,
     "posicoesAbertas": [
-      {
-        "symbol": "ZBT/USDT:USDT",
-        "par": "bybit/bingx",
-        "fundingAcum": 1.0119,
-        "estagio": 2
-      },
       {
         "symbol": "KAITO/USDT:USDT",
         "par": "bybit/bingx",
@@ -107,14 +101,14 @@
         "fundingAcum": 0,
         "custosAcum": 0,
         "net": 0,
-        "dias": 0.01,
+        "dias": 0,
         "pctPorDia": 0,
         "abertas": 0,
         "fechadas": 0,
-        "avaliadas": 38,
-        "persistencePending": 6,
+        "avaliadas": 0,
+        "persistencePending": 0,
         "vivo": true,
-        "idadeS": 242
+        "idadeS": 22
       },
       {
         "label": "compete-gate-okx",
@@ -125,18 +119,18 @@
         "fundingAcum": 0,
         "custosAcum": 0,
         "net": 0,
-        "dias": 0.01,
+        "dias": 0,
         "pctPorDia": 0,
         "abertas": 0,
         "fechadas": 0,
-        "avaliadas": 2,
+        "avaliadas": 0,
         "persistencePending": 0,
         "vivo": true,
-        "idadeS": 242
+        "idadeS": 22
       }
     ],
-    "lider": null,
-    "acumulando": true
+    "lider": "bybit+bitget",
+    "acumulando": false
   },
   "leversDeMaximizacao": [
     {
@@ -164,6 +158,38 @@
       "impacto": "Médio (acelera)"
     }
   ],
+  "comoVaiMelhorar": {
+    "nota": "Quanto cada lever melhora o lucro — dados reconciliados + matemática exata dos presets reais (src/config.ts).",
+    "lever1_maker": {
+      "titulo": "Ordens maker (limite) em vez de market",
+      "champion6exAtual": 17.4836,
+      "champion6exComMaker": 22.1282,
+      "ganhoPct": 26.57,
+      "custoAtualPct": 40.78,
+      "explicacao": "Corta o custo de ~41% do funding para ~15%. É o maior lever. O código já suporta."
+    },
+    "lever2_paresMaker": [
+      {
+        "par": "gate+okx",
+        "netTaker": 6.1318,
+        "netMaker": 6.9964,
+        "ganhoPct": 23.5
+      },
+      {
+        "par": "bitget+bybit",
+        "netTaker": 5.9127,
+        "netMaker": 6.553,
+        "ganhoPct": 18.05
+      },
+      {
+        "par": "bingx+bybit",
+        "netTaker": 4.5293,
+        "netMaker": 5.4519,
+        "ganhoPct": 33.95
+      }
+    ],
+    "melhorCaminho": "gate+okx + ordens maker + filtro de persistência"
+  },
   "ml": {
     "veredito": "O alvo certo de ML é um classificador de sobrevivência (\"esta oportunidade persiste até o break-even?\"). Precisa de outcomes rotulados por posição — os competidores estão gerando. Agora: filtro heurístico (80% do ganho, sem overfit). Depois: treinar o modelo.",
     "prontoParaTreinar": false

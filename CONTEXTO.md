@@ -2,6 +2,14 @@
 
 > Documento vivo de contexto: **o que é o projeto, o que foi feito, o que está no meio, e como parar/iniciar tudo.**
 > Atualizado ao pausar o projeto (processos parados, auto-start desabilitado a pedido).
+>
+> **Nota (09/08, sessão seguinte):** o **Champion (6 exchanges)** foi **arquivado** —
+> ver [`arquivo-6-exchanges/README.md`](arquivo-6-exchanges/README.md). Já tinha
+> cumprido seu papel (validar a estratégia e medir os levers de lucro); a seção 2
+> abaixo descreve o estado de ANTES do arquivamento, mantido como registro
+> histórico. O motor real agora é só o `snowball-2ex`. Também nesta sessão: fix de
+> liquidez do lado spot no coletor spot-perp, `SPOTPERP_NOTIONAL` reduzido, e o
+> flicker "conectando/ao vivo" do dashboard corrigido.
 
 ---
 

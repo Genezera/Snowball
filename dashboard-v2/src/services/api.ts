@@ -10,10 +10,7 @@
  * antiga — se a variável de ambiente não estiver setada, toda chamada
  * retorna erro explícito em vez de tentar um fallback silencioso.
  */
-import { ChampionDadosSchema, type ChampionDados } from '../schemas/champion';
-import { ProfitLabDadosSchema, type ProfitLabDados } from '../schemas/profitLab';
 import { EventosRecentesRespostaSchema, type EventosRecentesResposta } from '../schemas/events';
-import { OportunidadesRespostaSchema, type OportunidadesResposta } from '../schemas/opportunities';
 
 export type Resultado<T> =
   | { estado: 'sucesso'; dado: T; recebidoEm: number }
@@ -54,12 +51,10 @@ async function buscarValidado<T>(url: string, schema: { parse: (v: unknown) => T
   }
 }
 
-export function buscarChampion(): Promise<Resultado<ChampionDados>> {
-  return buscarValidado('/api/v2/champion', ChampionDadosSchema);
-}
-export function buscarProfitLab(): Promise<Resultado<ProfitLabDados>> {
-  return buscarValidado('/api/v2/profit-lab', ProfitLabDadosSchema);
-}
+// Champion e Profit Lab (bloco "6 exchanges") foram ARQUIVADOS — ver
+// arquivo-6-exchanges/README.md. buscarChampion/buscarProfitLab/
+// buscarOportunidades saíram junto (só existiam pra alimentar páginas que
+// não existem mais).
 // Maximização de lucro: schema lenient (o builder é a fonte da verdade; a página é só leitura).
 export function buscarMaximizacao(): Promise<Resultado<{ dados: any } | null>> {
   return buscarValidado('/api/v2/profit-maximization', { parse: (v: unknown) => v as { dados: any } | null });
@@ -78,11 +73,7 @@ export function buscarEventosIncremental(cursor: string | null, limit: number): 
   return buscarValidado(`/api/v2/events?${qs.toString()}`, EventosRecentesRespostaSchema);
 }
 
-export function buscarOportunidades(): Promise<Resultado<OportunidadesResposta>> {
-  return buscarValidado('/api/v2/opportunities', OportunidadesRespostaSchema);
-}
-
 /** Lista de chamadas de rede que este arquivo pode fazer — auditável (Parte 13, item 5). */
 export const CHAMADAS_DE_REDE_PERMITIDAS = [
-  '/api/v2/champion', '/api/v2/profit-lab', '/api/v2/events', '/api/v2/waterfall', '/api/v2/opportunities', '/api/v2/health',
+  '/api/v2/events', '/api/v2/health', '/api/v2/profit-maximization', '/api/v2/competidores', '/api/v2/spotperp',
 ] as const;

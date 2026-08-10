@@ -57,15 +57,16 @@ if ($tradingRodando -gt 0) {
   Write-Host "Watchdog de trading ja rodando ($tradingRodando) -- nao subi outra instancia."
 } else {
   if ((Start-Supervisor 'supervisor.sh') -ne 0) { Write-Host "Falha ao criar supervisor.sh via WMI."; exit 1 }
-  Write-Host "Watchdog de trading iniciado (7 processos: motor, vigilancia, custodia, coletor, momentum, preenchimento, pares)."
+  Write-Host "Watchdog de trading iniciado (coletor -- motor/vigilancia/custodia/Profit Lab foram arquivados, ver arquivo-6-exchanges/; momentum/preenchimento/pares ja tinham sido removidos antes)."
 }
 
-# Dashboard canonico (V2) + agregador do Profit Lab. Cada um tem lock proprio,
-# entao e seguro sempre tentar: se ja estiver vivo, o supervisor loga e sai.
+# ATENCAO: este launcher (iniciar.ps1/iniciar.cmd) e o ANTIGO -- nunca iniciou
+# o motor real (supervisor-competidores.sh) nem o coletor-spotperp. Use
+# scripts/blindagem.ps1 pra subir o sistema atual completo. Mantido aqui so
+# pelo dashboard canonico, que continua valendo.
 Start-Supervisor 'supervisor-dashboard-v2-api'      | Out-Null
 Start-Supervisor 'supervisor-dashboard-v2-frontend' | Out-Null
-Start-Supervisor 'supervisor-profit-lab'            | Out-Null
-Write-Host "Supervisores do Snowball Dashboard (API :5184, frontend :5183) e Profit Lab iniciados."
+Write-Host "Supervisores do Snowball Dashboard (API :5184, frontend :5183) iniciados. Profit Lab arquivado -- nao inicia mais aqui."
 Write-Host ""
 Write-Host "Aguardando o Snowball Dashboard responder..."
 

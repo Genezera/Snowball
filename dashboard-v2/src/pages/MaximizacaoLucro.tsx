@@ -36,35 +36,58 @@ export function MaximizacaoLucro() {
         </ul>
       </Section>
 
-      {/* CHAMPION — economia real */}
-      <Section titulo="Champion (real, em paper)" sub={ch ? `${fmt.int(ch.dias)} dias rodando · custo consome ${ch.custoSobreFunding}% do funding` : 'Carregando…'}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-3)' }}>
-          <Stat rotulo="Lucro líquido" valor={fmt.usd(ch?.lucroLiquido ?? null)} cor={fmt.corPnl(ch?.lucroLiquido ?? null)} sub={`de $${ch?.capitalInicial ?? 600}`} />
-          <Stat rotulo="Retorno / dia" valor={ch ? `${ch.pctPorDia}%` : '—'} cor={fmt.corPnl(ch?.pctPorDia ?? null)} sub={ch ? `$${ch.lucroPorDia}/dia` : ''} />
-          <Stat rotulo="Funding bruto" valor={fmt.usd(ch?.fundingTotal ?? null)} cor="var(--engine-funding)" />
-          <Stat rotulo="Custos" valor={fmt.usd(ch ? -ch.custosTotal : null)} cor="var(--loss-500)" sub={ch ? `${ch.custoSobreFunding}% do funding` : ''} />
-          <Stat rotulo="Capital atual" valor={fmt.usd(ch?.capital ?? null)} />
+      {/* CHAMPION — ARQUIVADO (bloco "6 exchanges"). Os números abaixo são o último
+          estado conhecido antes de arquivar, congelados — não são lidos de nenhum
+          processo vivo (Champion não roda mais). Ver arquivo-6-exchanges/README.md. */}
+      <Section titulo="Champion (arquivado)" sub={ch ? `arquivado após ${fmt.int(ch.dias)} dias · último estado conhecido, congelado` : 'Carregando…'}>
+        <div style={{ marginBottom: 10, fontSize: 'var(--text-sm)', color: 'var(--ink-3)' }}>
+          O Champion (6 exchanges) foi arquivado — ver <code>arquivo-6-exchanges/README.md</code>. Os números abaixo não são mais atualizados.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-3)', opacity: 0.6 }}>
+          <Stat rotulo="Lucro líquido (congelado)" valor={fmt.usd(ch?.lucroLiquido ?? null)} cor={fmt.corPnl(ch?.lucroLiquido ?? null)} sub={`de $${ch?.capitalInicial ?? 600}`} />
+          <Stat rotulo="Retorno / dia (congelado)" valor={ch ? `${ch.pctPorDia}%` : '—'} cor={fmt.corPnl(ch?.pctPorDia ?? null)} sub={ch ? `$${ch.lucroPorDia}/dia` : ''} />
+          <Stat rotulo="Funding bruto (congelado)" valor={fmt.usd(ch?.fundingTotal ?? null)} cor="var(--engine-funding)" />
+          <Stat rotulo="Custos (congelado)" valor={fmt.usd(ch ? -ch.custosTotal : null)} cor="var(--loss-500)" sub={ch ? `${ch.custoSobreFunding}% do funding` : ''} />
+          <Stat rotulo="Capital atual (congelado)" valor={fmt.usd(ch?.capital ?? null)} />
         </div>
       </Section>
 
-      {/* HEAD-TO-HEAD ao vivo */}
-      <Section titulo="Head-to-head ao vivo — qual par de 2 exchanges" sub={h2h?.acumulando ? 'Competidores prospectivos — entram só após 30min de sinal persistente. Volte em algumas horas.' : `Líder: ${h2h?.lider ?? '—'}`}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-          {(h2h?.competidores ?? []).map((c: any) => (
-            <Section key={c.label} style={{ borderColor: c.vivo ? 'var(--engine-funding)' : 'var(--border-hairline)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 800, fontSize: 'var(--text-base)' }}>{c.par}</span>
-                <StatusBadge label={c.vivo ? 'vivo' : 'parado'} tom={c.vivo ? 'info' : 'neutral'} />
+      {/* HEAD-TO-HEAD — decidido: mostra o resultado, não finge que ainda está rodando */}
+      {(() => {
+        const competidores = h2h?.competidores ?? [];
+        const algumVivo = competidores.some((c: any) => c.vivo);
+        if (!algumVivo && competidores.length > 0) {
+          return (
+            <Section titulo="Head-to-head — decisão já tomada" sub="Os competidores paper foram consolidados num motor único depois do resultado abaixo.">
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-2)' }}>
+                <strong style={{ color: 'var(--snow-primary)' }}>Vencedor: {ranking?.recomendacaoPrimaria ?? 'bybit + bitget'}</strong> — {ranking?.motivoPrimaria ?? 'bybit+bitget venceu o head-to-head; o outro par ficou faminto (quase nenhuma posição aberta).'}
               </div>
-              <div className="tabular" style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: fmt.corPnl(c.net ?? null) }}>{fmt.usd(c.net ?? null)}</div>
-              <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>
-                net · capital {fmt.usd(c.capital ?? null)} · {c.abertas ?? 0} abertas / {c.fechadas ?? 0} fechadas
+              <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)', marginTop: 6 }}>
+                O motor rodando hoje com dinheiro (paper) é o <strong>snowball-2ex</strong> — ver Command Center para capital, posições e histórico ao vivo.
               </div>
-              <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>funding +{c.fundingAcum ?? 0} · custos -{c.custosAcum ?? 0} · aguardando persistência: {c.persistencePending ?? 0}</div>
             </Section>
-          ))}
-        </div>
-      </Section>
+          );
+        }
+        return (
+          <Section titulo="Head-to-head ao vivo — qual par de 2 exchanges" sub={h2h?.acumulando ? 'Competidores prospectivos — entram só após 30min de sinal persistente. Volte em algumas horas.' : `Líder: ${h2h?.lider ?? '—'}`}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              {competidores.map((c: any) => (
+                <Section key={c.label} style={{ borderColor: c.vivo ? 'var(--engine-funding)' : 'var(--border-hairline)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 800, fontSize: 'var(--text-base)' }}>{c.par}</span>
+                    <StatusBadge label={c.vivo ? 'vivo' : 'parado'} tom={c.vivo ? 'info' : 'neutral'} />
+                  </div>
+                  <div className="tabular" style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: fmt.corPnl(c.net ?? null) }}>{fmt.usd(c.net ?? null)}</div>
+                  <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>
+                    net · capital {fmt.usd(c.capital ?? null)} · {c.abertas ?? 0} abertas / {c.fechadas ?? 0} fechadas
+                  </div>
+                  <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--ink-3)' }}>funding +{c.fundingAcum ?? 0} · custos -{c.custosAcum ?? 0} · aguardando persistência: {c.persistencePending ?? 0}</div>
+                </Section>
+              ))}
+            </div>
+          </Section>
+        );
+      })()}
 
       {/* RANKING 2-exchanges */}
       <Section titulo="Ranking das 2 exchanges (dados reconciliados)" sub={ranking?.nota}>

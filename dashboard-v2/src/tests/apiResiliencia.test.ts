@@ -1,9 +1,18 @@
 /**
- * TESTE D (independência) — a API V2 pode retornar JSON inválido, schema
- * incompatível, HTTP 500 ou falha de rede. Em NENHUM desses casos o
- * cliente pode: fabricar zero, tentar outra URL (fallback pra 8787), ou
- * lançar uma exceção não tratada. Sempre um `Resultado` tipado
- * ('erro' | 'corrompido'), nunca 'sucesso' com dado inventado.
+ * TESTE D (independência) — a API V2 pode retornar JSON inválido, HTTP 500 ou
+ * falha de rede. Em NENHUM desses casos o cliente pode: fabricar zero, tentar
+ * outra URL (fallback pra 8787), ou lançar uma exceção não tratada. Sempre um
+ * `Resultado` tipado ('erro' | 'corrompido'), nunca 'sucesso' com dado inventado.
+ *
+ * Retargetado pra `buscarCompetidores` (ARQUIVO 6-EXCHANGES): os testes
+ * originais usavam `buscarChampion`, que foi arquivado junto com o Champion —
+ * ver arquivo-6-exchanges/README.md. As 2 verificações de rejeição por schema
+ * ESTRITO ("campo obrigatório faltando", "resposta parcial") não têm mais alvo
+ * válido: todo endpoint que sobrou (`buscarCompetidores`/`buscarMaximizacao`/
+ * `buscarSpotperp`) usa schema deliberadamente leniente (`{ parse: v => v as X }`
+ * — "o builder é a fonte da verdade, a página é só leitura"), então nenhum JSON
+ * bem-formado é rejeitado por forma. A cobertura de schema estrito continua
+ * arquivada junto com `buscarChampion`/`ChampionDadosSchema`.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -30,42 +39,31 @@ describe('resiliência da camada de API contra respostas inválidas da V2', () =
 
   it('JSON inválido: nunca lança, retorna estado corrompido, nunca chama outra URL', async () => {
     globalThis.fetch = vi.fn(async () => new Response('isto não é json{{{', { status: 200 })) as any;
-    const { buscarChampion } = await importApiFresco();
-    const r = await buscarChampion();
+    const { buscarCompetidores } = await importApiFresco();
+    const r = await buscarCompetidores();
     expect(r.estado).toBe('corrompido');
     expect((globalThis.fetch as any).mock.calls.length).toBe(1);
     expect((globalThis.fetch as any).mock.calls[0][0]).toContain(URL_BASE);
   });
 
-  it('schema incompatível: campo obrigatório faltando vira corrompido, nunca sucesso fabricado', async () => {
-    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ estado: null }), { status: 200 })) as any;
-    const { buscarChampion } = await importApiFresco();
-    const r = await buscarChampion();
-    expect(r.estado).toBe('corrompido');
-  });
-
   it('HTTP 500: vira estado de erro, nunca finge sucesso com zero', async () => {
     globalThis.fetch = vi.fn(async () => new Response('erro interno', { status: 500 })) as any;
-    const { buscarChampion } = await importApiFresco();
-    const r = await buscarChampion();
+    const { buscarCompetidores } = await importApiFresco();
+    const r = await buscarCompetidores();
     expect(r.estado).toBe('erro');
     if (r.estado === 'erro') expect(r.motivo).toContain('500');
   });
 
   it('timeout/falha de rede: vira estado de erro, nunca lança exceção não tratada', async () => {
     globalThis.fetch = vi.fn(async () => { throw new TypeError('Failed to fetch'); }) as any;
-    const { buscarChampion } = await importApiFresco();
-    await expect(buscarChampion()).resolves.toMatchObject({ estado: 'erro' });
+    const { buscarCompetidores } = await importApiFresco();
+    await expect(buscarCompetidores()).resolves.toMatchObject({ estado: 'erro' });
   });
 
-  it('resposta parcial (faltando campos opcionais mas presentes os obrigatórios): ainda é sucesso — schema não deveria exigir mais do que o necessário', async () => {
-    const corpoMinimo = {
-      estado: { capital: 1, capitalInicial: 1, pico: 1, fundingTotal: 0, custosTotal: 0, pagamentos: 0 },
-      processos: [], vigilancia: {}, atualizadoEm: Date.now(),
-    };
-    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(corpoMinimo), { status: 200 })) as any;
-    const { buscarChampion } = await importApiFresco();
-    const r = await buscarChampion();
+  it('JSON válido porém vazio: sucesso — schema leniente não deveria exigir forma nenhuma (builder é a fonte da verdade)', async () => {
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({}), { status: 200 })) as any;
+    const { buscarCompetidores } = await importApiFresco();
+    const r = await buscarCompetidores();
     expect(r.estado).toBe('sucesso');
   });
 
@@ -73,8 +71,8 @@ describe('resiliência da camada de API contra respostas inválidas da V2', () =
     vi.unstubAllEnvs();
     vi.stubEnv('VITE_DASHBOARD_V2_API_URL', '');
     globalThis.fetch = vi.fn(async () => new Response('{}', { status: 200 })) as any;
-    const { buscarChampion } = await importApiFresco();
-    const r = await buscarChampion();
+    const { buscarCompetidores } = await importApiFresco();
+    const r = await buscarCompetidores();
     expect(r.estado).toBe('erro');
     expect((globalThis.fetch as any).mock.calls.length).toBe(0); // nem tenta a requisição sem BASE configurada
   });

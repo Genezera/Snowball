@@ -27,6 +27,12 @@ node_modules/
 # segurança da migração do Dashboard 2.0 (nunca deveria ter chance de ser
 # commitado por engano).
 /inteligencia/
+# estado/runtime do bloco "6 exchanges" arquivado (Champion/Lab/challengers-
+# timing) — mesma categoria dos padrões acima, só que movido pra dentro do
+# arquivo. Código-fonte do arquivo (arquivo-6-exchanges/src/, .../scripts/,
+# .../dashboard-v2-src|api/) fica FORA deste padrão, de propósito — é código
+# preservado, tem que continuar rastreado pelo git.
+/arquivo-6-exchanges/estado/
 
 # relatórios gerados
 /reports/

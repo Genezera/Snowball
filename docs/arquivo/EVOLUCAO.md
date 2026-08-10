@@ -1,5 +1,8 @@
 # Evolução do projeto
 
+> **📦 Arquivado — pré-refactor.** Este documento descreve a fase anterior do projeto (pesquisa multi-estratégia: backtest, 5 estratégias, ML meta-labeling, pares/momentum ao vivo, Auditor, servidor MCP local). Boa parte do código citado aqui foi removida no refactor de 2026-08 que focou o projeto só em funding-arb de 2 exchanges. Mantido como histórico/registro de decisões — não reflete o estado atual. Para o estado atual, ver [CONTEXTO.md](../../CONTEXTO.md) e [README.md](../../README.md).
+
+
 Diário cronológico. Cada entrada registra o que foi descoberto, com que
 evidência, e **o que mudou no projeto por causa disso**. A ideia é que daqui a
 três meses seja possível reconstruir o raciocínio inteiro sem depender de
