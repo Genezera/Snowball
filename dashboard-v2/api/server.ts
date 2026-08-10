@@ -319,6 +319,7 @@ const servidor = http.createServer((req, res) => {
           itens: estMotor ? [
             { nome: 'Bloqueios do ciclo (cross)', sev: 'info', detalhe: `persistência ${estMotor.bloqueios?.persistencePending ?? 0} · sem EV ${estMotor.bloqueios?.evNaoPositivo ?? 0} · sem capacidade ${(estMotor.bloqueios?.maxPositionsBlocked ?? 0) + (estMotor.bloqueios?.localBalanceBlocked ?? 0)}` },
             { nome: 'Bloqueios do ciclo (spot-perp)', sev: (estMotor.bloqueios?.spotperpSemCapital ?? 0) > 0 ? 'warn' : 'ok', detalhe: `sem capital: ${estMotor.bloqueios?.spotperpSemCapital ?? 0} · sem payback: ${estMotor.bloqueios?.spotperpSemPayback ?? 0} · aguardando persistência: ${estMotor.bloqueios?.spotperpPersistencePending ?? 0}` },
+            { nome: 'Bloqueios do ciclo (settlement-capture)', sev: 'info', detalhe: `sem payback (1 período): ${estMotor.bloqueios?.captureSemPayback ?? 0} · sem capital: ${(estMotor.bloqueios?.captureLocalBalanceBlocked ?? 0) + (estMotor.bloqueios?.captureReserveBlocked ?? 0)}` },
           ] : [],
         },
         {

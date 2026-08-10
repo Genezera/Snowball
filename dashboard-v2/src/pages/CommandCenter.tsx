@@ -53,7 +53,7 @@ function PosicaoAberta({ a }: { a: any }) {
         style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 8, alignItems: 'center', padding: '6px 0', fontSize: 'var(--text-2xs)', cursor: 'pointer' }}
       >
         <span>
-          <span title={a.tipo === 'spot-perp' ? 'spot-perp (mesma exchange)' : 'cross-exchange'}>{a.tipo === 'spot-perp' ? '📡' : '🔀'}</span> <b>{a.symbol}</b>
+          <span title={a.tipo === 'spot-perp' ? 'spot-perp (mesma exchange)' : a.tipo === 'settlement-capture' ? 'settlement-capture (aposta pontual no horário de liquidação)' : 'cross-exchange'}>{a.tipo === 'spot-perp' ? '📡' : a.tipo === 'settlement-capture' ? '⏱️' : '🔀'}</span> <b>{a.symbol}</b>
           <span style={{ color: 'var(--ink-3)' }}> · {a.long}{a.short ? '/' + a.short : ''}</span>
           {stale && <span title={`sem dado novo do scanner há ${a.scannerAgeMin}min`} style={{ marginLeft: 4, color: 'var(--warn-500)' }}>⚠️</span>}
         </span>
