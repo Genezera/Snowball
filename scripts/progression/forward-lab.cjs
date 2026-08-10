@@ -61,6 +61,11 @@ const STABLE_YIELD = args.includes('--stable-yield') ? Number(opt('--stable-yiel
 // tamanho da aposta por posição é decisão separada, mais arriscada, fica pra outra rodada). Só
 // libera capital ocioso pro maxpos existente abrir MAIS posições, não posições MAIORES. 0 = desligado.
 const SETTLE_INTERVAL_MS = args.includes('--settle-interval-h') ? Number(opt('--settle-interval-h', 24)) * 3600000 : 24 * 3600000;
+// --funding-settlement-h N : período REAL de liquidação de funding assumido pro cross-exchange
+// (padrão 8h — o que ~95% dos perpétuos usa; UTC 00h/08h/16h). bitget não expõe o intervalo real
+// no endpoint em massa (bybit expõe); 8h é a aproximação honesta até termos esse dado por símbolo.
+// Ver boundariesCruzados() — substitui o acúmulo contínuo suavizado por crédito só em liquidação real.
+const FUNDING_SETTLEMENT_H = args.includes('--funding-settlement-h') ? Number(opt('--funding-settlement-h', 8)) : 8;
 // ── SPOT-PERP (cash-and-carry no perp): compra spot + short perp na MESMA exchange, capta funding
 // ABSOLUTO. Segunda superfície de captura nas mesmas 2 exchanges. Um contador de capital só. ──
 const SPOTPERP_ON = args.includes('--spotperp');
@@ -309,6 +314,22 @@ function computeCausal(est, epochId, physicalEventId, ts, k, sym, long, short) {
 }
 
 function economia(apr, spread) { const c = CUSTO_FRAC + Math.max(0, spread || 0); return apr * 24 / 8760 - c; }
+// LIQUIDAÇÃO REAL DE FUNDING (achado medindo Fase 1 vs Champion arquivado, 2026-08-10): funding
+// não é contínuo — liquida em horários FIXOS alinhados a UTC (padrão 00h/08h/16h pra período de
+// 8h; époch Unix já começa em 00:00 UTC, então basta dividir o timestamp pelo período e comparar
+// o índice do balde). O motor antes acumulava `NOTIONAL*(apr/8760)*horas_do_ciclo` A CADA CICLO
+// (a cada 5min), suavizando como se qualquer fração de tempo já "contasse" — uma posição que
+// nunca sobrevive até um horário real de liquidação, na vida real, recebe ZERO, não uma fração
+// suavizada. Confirmado comparando com o Champion arquivado: ele creditava funding em eventos
+// discretos reais (ex.: KMNO recebeu 3 pagamentos, ~8h um do outro — o intervalo real medido).
+// `boundariesCruzados` conta quantos horários de liquidação foram cruzados entre duas marcas de
+// tempo — 0 na maioria dos ciclos (o período é 8h, o ciclo é 5min), 1 quando cruza um horário, 2+
+// só se o motor ficou fora do ar por um período inteiro (usa o rate mais recente disponível pra
+// cada boundary perdido — aproximação aceitável pra downtime, que já é raro e logado à parte).
+function boundariesCruzados(tsDe, tsAte, intervaloHoras) {
+  const ms = (intervaloHoras || 8) * 3600000;
+  return Math.max(0, Math.floor(tsAte / ms) - Math.floor(tsDe / ms));
+}
 function margemLivre(est, ex) { return (est.saldosPorExchange[ex] || 0) * (1 - RESERVA); }
 function stateHash(est) { return sha(JSON.stringify({ so: est.cursor.byteOffset, ec: est.eventCount, aeh: est.accumulatedEventHash, sal: est.saldosPorExchange, vi: Object.keys(est.virtuais).sort(), fu: L.r4(est.fundingAcum), cu: L.r4(est.custosAcum) })).slice(0, 24); }
 
@@ -389,7 +410,16 @@ function processaSpotPerp(est, decisoes, cycleId) {
   for (const k of Object.keys(est.virtuais)) {
     const vp = est.virtuais[k]; if (vp.tipo !== 'spotperp') continue;
     const o = oport.get(k);
-    if (o) { const inc = vp.notional * (o.funding / o.iv) * (INTERVALO_S / 3600); vp.fundingAcum += inc; est.fundingAcum += inc; est.fundingPorExchange[vp.exchange] = (est.fundingPorExchange[vp.exchange] || 0) + inc; vp.ultimoFunding = o.funding; vp.ciclosSemFunding = 0; vp.latestEconomicEvaluationTs = agora; }
+    if (o) {
+      // mesmo modelo discreto do cross (ver boundariesCruzados) — spot-perp já tem o.iv REAL
+      // por símbolo (do coletor-spotperp), então usa o intervalo de verdade, não o default 8h.
+      if (!vp.ultimoBoundaryTs) vp.ultimoBoundaryTs = vp.positionOpenedAt;
+      const n = boundariesCruzados(vp.ultimoBoundaryTs, agora, o.iv);
+      let inc = 0;
+      if (n > 0) { vp.ultimoBoundaryTs = Math.floor(agora / (o.iv * 3600000)) * (o.iv * 3600000); inc = vp.notional * o.funding * n; }
+      vp.fundingAcum += inc; est.fundingAcum += inc; est.fundingPorExchange[vp.exchange] = (est.fundingPorExchange[vp.exchange] || 0) + inc;
+      vp.ultimoFunding = o.funding; vp.ciclosSemFunding = 0; vp.latestEconomicEvaluationTs = agora;
+    }
     else { vp.ciclosSemFunding = (vp.ciclosSemFunding || 0) + 1; vp.ultimoFunding = 0; }
   }
   // 2) FECHA as que perderam o funding por N ciclos (devolve footprint = spot + margem)
@@ -493,6 +523,18 @@ function umCiclo() {
     if (est.custosPorExchange[e] == null) est.custosPorExchange[e] = 0;
     if (est.yieldPorExchange[e] == null) est.yieldPorExchange[e] = 0;
   }
+  // migração do modelo de funding discreto: posições JÁ abertas antes deste deploy não têm
+  // `ultimoBoundaryTs` — se deixasse o lazy-init do ciclo normal usar `positionOpenedAt`, uma
+  // posição que já tinha cruzado um horário de liquidação sob o modelo contínuo antigo receberia
+  // o MESMO período creditado de novo agora (dupla contagem). Ancora no MOMENTO DESTE DEPLOY —
+  // zero retroativo, só acumula liquidações novas dali em diante. Posições abertas DEPOIS deste
+  // deploy nunca passam por aqui (já nascem sem o campo, e o lazy-init usa positionOpenedAt, como
+  // deveria — não têm passado sob o modelo antigo pra duplicar).
+  if (!est._migradoFundingDiscreto) {
+    const agoraMigracao = now();
+    for (const vp of Object.values(est.virtuais)) if (!vp.ultimoBoundaryTs) vp.ultimoBoundaryTs = agoraMigracao;
+    est._migradoFundingDiscreto = true;
+  }
   if (r.recoveryState === 'REPLAYED_PREPARED_CYCLE') append(F.diario, { ts: now(), evento: 'recovery', recoveryState: r.recoveryState, cycleId: (est.lastCycleId || 0) + 1 });
   const cur = est.cursor; const fi = fileIdentity(); let rotouTailcopy = false;
   if (fi.id == null) { est.sourceStatus = 'SOURCE_UNAVAILABLE'; persistir(est); return; }
@@ -566,18 +608,34 @@ function umCiclo() {
   const virtSemVer = new Set(Object.keys(est.virtuais).filter((k) => est.virtuais[k].tipo !== 'spotperp')); const decisoes = [];
   for (const c of candidatas) {
     est.contadores.avaliadas++;
-    if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.latestEconomicEvaluationTs = now(); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0;
-      vp.ciclosFundingDeteriorado = (c.apr < (vp.aprEntrada || c.apr) * FUNDING_DETERIORATION_FRAC) ? (vp.ciclosFundingDeteriorado || 0) + 1 : 0; est.fundingAcum += inc;
-      // decomposição EXATA do `inc` acima por exchange (incCol - incPag == inc, ver nota em k):
-      // k = symbol|exchangeShort|exchangeLong (chave() de vigilancia.ts) — exCol é onde estamos
-      // SHORT (recebe funding quando a taxa é positiva), exPag onde estamos LONG (paga).
-      if (c.fundingShort != null && c.fundingLong != null) {
-        const [, exCol, exPag] = c.k.split('|');
-        const incCol = NOTIONAL * (c.fundingShort / 8) * (INTERVALO_S / 3600);
-        const incPag = NOTIONAL * (c.fundingLong / 8) * (INTERVALO_S / 3600);
-        est.fundingPorExchange[exCol] = (est.fundingPorExchange[exCol] || 0) + incCol;
-        est.fundingPorExchange[exPag] = (est.fundingPorExchange[exPag] || 0) - incPag;
+    if (est.virtuais[c.k]) {
+      const vp = est.virtuais[c.k];
+      if (!vp.ultimoBoundaryTs) vp.ultimoBoundaryTs = vp.positionOpenedAt;
+      const n = boundariesCruzados(vp.ultimoBoundaryTs, c.ts, FUNDING_SETTLEMENT_H);
+      let inc = 0;
+      if (n > 0) {
+        vp.ultimoBoundaryTs = Math.floor(c.ts / (FUNDING_SETTLEMENT_H * 3600000)) * (FUNDING_SETTLEMENT_H * 3600000);
+        // decomposição EXATA por exchange (incCol - incPag == inc, ver nota em k): k =
+        // symbol|exchangeShort|exchangeLong (chave() de vigilancia.ts) — exCol é onde estamos
+        // SHORT (recebe funding quando a taxa é positiva), exPag onde estamos LONG (paga).
+        // fundingShort/fundingLong já são taxas POR PERÍODO (f8h de universo.ts) — multiplicam
+        // direto por `n` liquidações cruzadas, sem dividir por hora (não é mais contínuo).
+        if (c.fundingShort != null && c.fundingLong != null) {
+          const [, exCol, exPag] = c.k.split('|');
+          const incCol = NOTIONAL * c.fundingShort * n;
+          const incPag = NOTIONAL * c.fundingLong * n;
+          inc = incCol - incPag;
+          est.fundingPorExchange[exCol] = (est.fundingPorExchange[exCol] || 0) + incCol;
+          est.fundingPorExchange[exPag] = (est.fundingPorExchange[exPag] || 0) - incPag;
+        } else {
+          // fallback sem split por exchange: apr == spread*3*365 sempre (verificado no dado
+          // real) => um período de FUNDING_SETTLEMENT_H horas vale apr*FUNDING_SETTLEMENT_H/8760.
+          inc = NOTIONAL * (c.apr * FUNDING_SETTLEMENT_H / 8760) * n;
+        }
       }
+      vp.fundingAcum += inc; est.fundingAcum += inc;
+      vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.latestEconomicEvaluationTs = now(); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0;
+      vp.ciclosFundingDeteriorado = (c.apr < (vp.aprEntrada || c.apr) * FUNDING_DETERIORATION_FRAC) ? (vp.ciclosFundingDeteriorado || 0) + 1 : 0;
       virtSemVer.delete(c.k); continue; }
     if (c.apr <= 0 || c.score <= 0) { est.contadores.bloqueadas++; est.bloqueios.evNaoPositivo++; if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; continue; }
     // margem de segurança SÓ na entrada (ver nota em ENTRY_SAFETY_MULT) — exige que o apr de

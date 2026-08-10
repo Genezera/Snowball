@@ -27,8 +27,15 @@ mkdir -p "$BASE"
 # margem, nunca em P&L. O "bola de neve" nunca girava. Liquidação a cada 24h dobra o lucro
 # acumulado pro capitalInicial/saldos — libera mais capital pro maxpos existente abrir MAIS
 # posições conforme o lucro cresce. Não muda o tamanho de cada aposta (NOTIONAL continua $100).
+# --funding-settlement-h 8 (2026-08-10): comparando com o Champion arquivado (bybit+bitget deu
+# +US$6,15 em 7 posições lá, 100% de acerto — igual ou melhor era o esperado, mas o motor atual
+# vinha perdendo) achei a causa: o motor suavizava funding continuamente a cada ciclo de 5min,
+# como se qualquer fração de tempo já "contasse" — o Champion creditava só em horário REAL de
+# liquidação (medido: KMNO recebeu 3 pagamentos, ~8h um do outro). Posições que fecham antes de
+# cruzar um horário real de liquidação agora recebem US$0 de funding, não uma fração suavizada —
+# igual à vida real.
 declare -A CMD=(
-  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --settle-interval-h 24 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --settle-interval-h 24 --funding-settlement-h 8 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }
