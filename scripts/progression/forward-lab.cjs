@@ -45,6 +45,22 @@ const RESERVA = args.includes('--reserva') ? Number(opt('--reserva', L.RESERVA))
 // --stable-yield APR : rendimento anual sobre o capital LIVRE (reserva ociosa), tipo Earn/stablecoin do CEX.
 // Neutro, sem risco de preço — o colchão rende enquanto espera. 0 = desligado. Ex.: 0.06 = 6%/ano.
 const STABLE_YIELD = args.includes('--stable-yield') ? Number(opt('--stable-yield', 0)) : 0;
+// COMPOUNDING (achado medindo Fase 1, 2026-08-10): o motor NUNCA dobrava o lucro de volta pro
+// capital deployável. fundingAcum/custosAcum/yieldAcum sempre foram um contador "de vitrine"
+// (só entra em capitalAtual = capitalInicial + esses termos, pra reportar) — saldosPorExchange
+// (o que o motor de fato pode comprometer em margem) só se move em MARGEM, nunca em P&L. Ou
+// seja: o "bola de neve" do nome do projeto nunca girou — o motor ficava travado pra sempre no
+// capitalInicial original ($200), com todo lucro acumulando só como número de tela, mesmo que o
+// PLANO-2-EXCHANGES.md já listasse "Compounding — (no motor)" como se já estivesse embutido.
+// --settle-interval-h N : de quanto em quanto tempo o lucro acumulado (fundingAcum+yieldAcum-
+// custosAcum) é "liquidado" — dobrado pro capitalInicial e para saldosPorExchange (capital de
+// verdade, disponível pra abrir mais posições via maxpos) — e os acumuladores zeram. 24h por
+// padrão: liquidação discreta e auditável (evento 'settlement' no diário), não contínua a cada
+// ciclo — mais simples de raciocinar/testar e mais parecido com liquidação real de funding.
+// NÃO mexe em NOTIONAL/CAP_POR_EX (tamanho de cada aposta continua fixo em $100 — aumentar o
+// tamanho da aposta por posição é decisão separada, mais arriscada, fica pra outra rodada). Só
+// libera capital ocioso pro maxpos existente abrir MAIS posições, não posições MAIORES. 0 = desligado.
+const SETTLE_INTERVAL_MS = args.includes('--settle-interval-h') ? Number(opt('--settle-interval-h', 24)) * 3600000 : 24 * 3600000;
 // ── SPOT-PERP (cash-and-carry no perp): compra spot + short perp na MESMA exchange, capta funding
 // ABSOLUTO. Segunda superfície de captura nas mesmas 2 exchanges. Um contador de capital só. ──
 const SPOTPERP_ON = args.includes('--spotperp');
@@ -418,6 +434,40 @@ function processaSpotPerp(est, decisoes, cycleId) {
   }
 }
 
+// LIQUIDAÇÃO PERIÓDICA (compounding): dobra o lucro acumulado pro capital deployável de verdade.
+// Feita em passo DISCRETO (não a cada ciclo) pra ficar simples de auditar: soma exatamente
+// fundingAcum+yieldAcum-custosAcum (o mesmo termo que já compõe capitalAtual em todo lugar —
+// snapshots, Telegram, persistir()), credita capitalInicial pelo total, distribui esse total
+// por exchange usando fundingPorExchange/yieldPorExchange/custosPorExchange (o que já é
+// rastreado desde a instrumentação de P&L-por-exchange) + o resíduo não-atribuído (posições
+// abertas antes daquela instrumentação) dividido igualmente — a soma bate exata com o agregado
+// por construção, então reconciliar() (que compara contra capitalInicial, intocado) não pode
+// quebrar por causa disto. Zera os acumuladores depois — capitalAtual não muda, só REPRESENTA
+// diferente (o lucro "sai da vitrine" e vira capital real).
+function liquidar(est, cycleId) {
+  if (SETTLE_INTERVAL_MS <= 0) return;
+  const agora = now();
+  if (!est.ultimoSettlementTs) est.ultimoSettlementTs = est.iniciadoEm || agora;
+  if (agora - est.ultimoSettlementTs < SETTLE_INTERVAL_MS) return;
+  const lucroLiquido = (est.fundingAcum || 0) + (est.yieldAcum || 0) - (est.custosAcum || 0);
+  const somaFPE = EXCHS.reduce((s, e) => s + (est.fundingPorExchange?.[e] || 0), 0);
+  const somaYPE = EXCHS.reduce((s, e) => s + (est.yieldPorExchange?.[e] || 0), 0);
+  const somaCPE = EXCHS.reduce((s, e) => s + (est.custosPorExchange?.[e] || 0), 0);
+  const residuo = ((est.fundingAcum || 0) - somaFPE) + ((est.yieldAcum || 0) - somaYPE) - ((est.custosAcum || 0) - somaCPE);
+  const porExchange = {};
+  for (const e of EXCHS) {
+    const netE = (est.fundingPorExchange?.[e] || 0) + (est.yieldPorExchange?.[e] || 0) - (est.custosPorExchange?.[e] || 0) + residuo / EXCHS.length;
+    est.saldosPorExchange[e] = (est.saldosPorExchange[e] || 0) + netE;
+    porExchange[e] = L.r4(netE);
+  }
+  est.capitalInicial += lucroLiquido;
+  est.fundingAcum = 0; est.custosAcum = 0; est.yieldAcum = 0;
+  for (const e of EXCHS) { est.fundingPorExchange[e] = 0; est.yieldPorExchange[e] = 0; est.custosPorExchange[e] = 0; }
+  est.ultimoSettlementTs = agora;
+  append(F.diario, { ts: agora, evento: 'settlement', cycleId, lucroLiquido: L.r4(lucroLiquido), novoCapitalInicial: L.r4(est.capitalInicial), porExchange });
+  console.log(`[forward-lab ${LABEL}] LIQUIDAÇÃO: US$ ${lucroLiquido.toFixed(4)} dobrado pro capital — capitalInicial agora US$ ${est.capitalInicial.toFixed(2)}`);
+}
+
 // GARANTIA anti-número-falso: livro de margem tem de fechar ao centavo a cada ciclo.
 // saldos livres + capital comprometido (margens cross + footprints spot-perp) == capitalInicial.
 function reconciliar(est) {
@@ -617,6 +667,8 @@ function umCiclo() {
     for (const e of EXCHS) { const idleE = est.saldosPorExchange[e] || 0; idleTotal += idleE; const incY = idleE * (STABLE_YIELD / 8760) * (INTERVALO_S / 3600); est.yieldPorExchange[e] = (est.yieldPorExchange[e] || 0) + incY; }
     est.yieldAcum = (est.yieldAcum || 0) + idleTotal * (STABLE_YIELD / 8760) * (INTERVALO_S / 3600);
   }
+  // ── LIQUIDAÇÃO PERIÓDICA (compounding) — antes de reconciliar, pra pegar qualquer erro no mesmo ciclo ──
+  liquidar(est, cycleId);
   // ── GARANTIA: reconciliação do livro de margem ao centavo (trava número falso) ──
   reconciliar(est);
   est.lastCycleId = cycleId;

@@ -21,8 +21,14 @@ mkdir -p "$BASE"
 # maxPositionsBlocked com capital sobrando na reserva (saldos ficavam em 42/42, bem acima do
 # piso de 20) — degrau seguinte do próprio roadmap (3→5→6). Reserva (colchão de liquidação)
 # NÃO foi tocada — só o número de posições simultâneas que o capital já suportava.
+# --settle-interval-h 24 (2026-08-10, MAIOR achado da Fase 1): até aqui o lucro NUNCA virava
+# capital de verdade — fundingAcum/custosAcum/yieldAcum só existiam pra reportar "capitalAtual"
+# na tela; saldosPorExchange (o que o motor pode de fato comprometer em margem) só se movia em
+# margem, nunca em P&L. O "bola de neve" nunca girava. Liquidação a cada 24h dobra o lucro
+# acumulado pro capitalInicial/saldos — libera mais capital pro maxpos existente abrir MAIS
+# posições conforme o lucro cresce. Não muda o tamanho de cada aposta (NOTIONAL continua $100).
 declare -A CMD=(
-  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --settle-interval-h 24 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }
