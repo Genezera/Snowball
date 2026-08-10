@@ -14,10 +14,15 @@ mkdir -p "$BASE"
 
 # BOT ÚNICO — a configuração do DINHEIRO REAL (2 exchanges, foco total). Sem várias frentes.
 # bybit+bitget (par vencedor do head-to-head; gate+okx ficou faminto, 0 posições) + todos os
-# levers seguros embutidos: maker + persistência 30min + utilização máxima (5 pos · reserva 20%)
+# levers seguros embutidos: maker + persistência 30min + utilização máxima (6 pos · reserva 20%)
 # + rendimento na reserva ociosa (6%/ano, neutro). É isto que vai virar dinheiro real.
+# maxpos 5→6 (2026-08-10, achado medindo Fase 1): BICO e TUT (cross-exchange, 100% de
+# consistência, US$39M/US$206M de volume, 7h+ vivos) foram bloqueados 74x e 72x por
+# maxPositionsBlocked com capital sobrando na reserva (saldos ficavam em 42/42, bem acima do
+# piso de 20) — degrau seguinte do próprio roadmap (3→5→6). Reserva (colchão de liquidação)
+# NÃO foi tocada — só o número de posições simultâneas que o capital já suportava.
 declare -A CMD=(
-  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 5 --reserva 0.20 --stable-yield 0.06 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }
