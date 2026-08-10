@@ -17,6 +17,8 @@ export interface ObservacaoBruta {
   spread: number;
   apr: number;
   vol: number;
+  fundingShort?: number;
+  fundingLong?: number;
 }
 
 /**

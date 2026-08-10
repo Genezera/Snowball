@@ -150,6 +150,11 @@ function estadoInicial(epoch) {
   return { modo: MODE, label: LABEL, maxPos: MAXPOS, closePolicy: CLOSE_POLICY, iniciadoEm: now(), forwardEpochId: epoch ? epoch.forwardEpochId : null,
     cursor: { sourceFileId: OBS, fileIdentity: fi.id, byteOffset: epoch ? epoch.byteOffset : fi.size, lineNumber: epoch ? epoch.lineNumber : 0, lastCompleteLineHash: null, lastTimestamp: epoch ? epoch.timestamp : now(), lastOpportunityKey: null, partial: '', tailLogicalHashes: [], lastGlobalTs: null, burstAnchorId: null },
     saldosPorExchange: saldos, capitalInicial: EXCHS.length * CAP_POR_EX, virtuais: {}, fundingAcum: 0, custosAcum: 0, yieldAcum: 0,
+    // P&L POR EXCHANGE (aditivo, não afeta saldosPorExchange/reconciliar()) — decomposição exata do
+    // agregado acima, pra garantir que NENHUMA exchange fica no negativo (exigência do usuário).
+    fundingPorExchange: Object.fromEntries(EXCHS.map((e) => [e, 0])),
+    custosPorExchange: Object.fromEntries(EXCHS.map((e) => [e, 0])),
+    yieldPorExchange: Object.fromEntries(EXCHS.map((e) => [e, 0])),
     episodios: {},   // v1.8 identidade causal: por chave { episodeSeq, anchorObsId, episodeId, lastTs }
     eventCount: 0, accumulatedEventHash: '', lastCycleId: 0, walSequence: 0, sourceStatus: 'OK', lateEvents: 0,
     contadores: { avaliadas: 0, abertas: 0, fechadas: 0, bloqueadas: 0, dedupIgnorados: 0, rotationOverlapSkipped: 0 },
@@ -326,14 +331,14 @@ function processaSpotPerp(est, decisoes, cycleId) {
   for (const k of Object.keys(est.virtuais)) {
     const vp = est.virtuais[k]; if (vp.tipo !== 'spotperp') continue;
     const o = oport.get(k);
-    if (o) { const inc = vp.notional * (o.funding / o.iv) * (INTERVALO_S / 3600); vp.fundingAcum += inc; est.fundingAcum += inc; vp.ultimoFunding = o.funding; vp.ciclosSemFunding = 0; vp.latestEconomicEvaluationTs = agora; }
+    if (o) { const inc = vp.notional * (o.funding / o.iv) * (INTERVALO_S / 3600); vp.fundingAcum += inc; est.fundingAcum += inc; est.fundingPorExchange[vp.exchange] = (est.fundingPorExchange[vp.exchange] || 0) + inc; vp.ultimoFunding = o.funding; vp.ciclosSemFunding = 0; vp.latestEconomicEvaluationTs = agora; }
     else { vp.ciclosSemFunding = (vp.ciclosSemFunding || 0) + 1; vp.ultimoFunding = 0; }
   }
   // 2) FECHA as que perderam o funding por N ciclos (devolve footprint = spot + margem)
   for (const k of Object.keys(est.virtuais)) {
     const vp = est.virtuais[k]; if (vp.tipo !== 'spotperp' || (vp.ciclosSemFunding || 0) < INVERSION_CICLOS) continue;
     const custoSaida = vp.notional * SP_CUSTO_SAIDA_FRAC;
-    est.saldosPorExchange[vp.exchange] += vp.footprint; est.custosAcum += custoSaida; est.contadores.fechadas++;
+    est.saldosPorExchange[vp.exchange] += vp.footprint; est.custosAcum += custoSaida; est.custosPorExchange[vp.exchange] = (est.custosPorExchange[vp.exchange] || 0) + custoSaida; est.contadores.fechadas++;
     const pnl = vp.fundingAcum - vp.custoEntrada - custoSaida;
     append(F.diario, { ts: agora, evento: 'fecha', tipo: 'spotperp', k, exchange: vp.exchange, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: agora, closeCycle: cycleId, closeReason: 'funding_gone' });
     decisoes.push({ k, acao: 'fecha', tipo: 'spotperp', sym: vp.sym, exchange: vp.exchange, funding: L.r4(vp.fundingAcum), custo: L.r4(vp.custoEntrada + custoSaida), pnl: L.r4(pnl), closeReason: 'funding_gone' });
@@ -348,7 +353,7 @@ function processaSpotPerp(est, decisoes, cycleId) {
     if ((est.saldosPorExchange[E] || 0) - footprint < CAP_POR_EX * RESERVA) { est.bloqueios.spotperpSemCapital = (est.bloqueios.spotperpSemCapital || 0) + 1; continue; }
     const k = `sp:${o.sym}|${E}`;
     const custoEntrada = SPOTPERP_NOTIONAL * SP_CUSTO_ENTRADA_FRAC;
-    est.saldosPorExchange[E] -= footprint; est.custosAcum += custoEntrada; est.contadores.abertas++; abertos++;
+    est.saldosPorExchange[E] -= footprint; est.custosAcum += custoEntrada; est.custosPorExchange[E] = (est.custosPorExchange[E] || 0) + custoEntrada; est.contadores.abertas++; abertos++;
     est.virtuais[k] = { tipo: 'spotperp', k, sym: o.sym, exchange: E, notional: SPOTPERP_NOTIONAL, footprint, margemPerp: SPOTPERP_NOTIONAL / L.ALAVANCAGEM, fundingAcum: 0, custoEntrada, fundingEntrada: o.funding, ultimoFunding: o.funding, ciclosSemFunding: 0, positionOpenedAt: agora, latestEconomicEvaluationTs: agora, entryCycle: cycleId };
     append(F.diario, { ts: agora, evento: 'abre', tipo: 'spotperp', k, sym: o.sym, exchange: E, funding: L.r4(o.funding), iv: o.iv, custoEntrada: L.r4(custoEntrada), entryCycle: cycleId });
     decisoes.push({ k, acao: 'abre', tipo: 'spotperp', sym: o.sym, exchange: E, funding: L.r4(o.funding), iv: o.iv });
@@ -370,6 +375,16 @@ function umCiclo() {
   const r = recuperar();
   if (r.suspenso) { registrarRecovery(r); append(F.diario, { ts: now(), evento: 'recovery', recoveryState: r.recoveryState, detalhe: r.detalhe }); console.log(`[forward-lab ${LABEL}] ${r.recoveryState} — SUSPENSO (não processa; não zera)`); return; }
   const est = r.est; registrarRecovery(r);
+  // migração aditiva: estado gravado antes do P&L-por-exchange não tem estes campos — inicializa
+  // em 0 na primeira vez, nunca mexe em saldosPorExchange/capitalInicial (reconciliar() intocado).
+  est.fundingPorExchange = est.fundingPorExchange || {};
+  est.custosPorExchange = est.custosPorExchange || {};
+  est.yieldPorExchange = est.yieldPorExchange || {};
+  for (const e of EXCHS) {
+    if (est.fundingPorExchange[e] == null) est.fundingPorExchange[e] = 0;
+    if (est.custosPorExchange[e] == null) est.custosPorExchange[e] = 0;
+    if (est.yieldPorExchange[e] == null) est.yieldPorExchange[e] = 0;
+  }
   if (r.recoveryState === 'REPLAYED_PREPARED_CYCLE') append(F.diario, { ts: now(), evento: 'recovery', recoveryState: r.recoveryState, cycleId: (est.lastCycleId || 0) + 1 });
   const cur = est.cursor; const fi = fileIdentity(); let rotouTailcopy = false;
   if (fi.id == null) { est.sourceStatus = 'SOURCE_UNAVAILABLE'; persistir(est); return; }
@@ -419,7 +434,7 @@ function umCiclo() {
     if (lateEvent) est.lateEvents++;
     const causal = computeCausal(est, est.forwardEpochId || '', physicalEventId, o.ts, o.k, sym, long, short);
     if (process.env.FORWARD_EMIT_CAUSAL === '1') append(path.join(DIR, 'causal.jsonl'), { ts: o.ts, k: o.k, sym, long, short, ...causal }); // hook de teste de identidade
-    batch.push({ physicalEventId, logicalObservationHash, ts: o.ts, ingestionTime, latenessMs, lateEvent, sourceOffset: byteStart, k: o.k, sym, long, short, apr: o.apr, spread: o.spread || 0, vol: o.vol || 0, ...causal });
+    batch.push({ physicalEventId, logicalObservationHash, ts: o.ts, ingestionTime, latenessMs, lateEvent, sourceOffset: byteStart, k: o.k, sym, long, short, apr: o.apr, spread: o.spread || 0, vol: o.vol || 0, fundingShort: o.fundingShort, fundingLong: o.fundingLong, ...causal });
     cur.lastCompleteLineHash = lineHash; cur.lastTimestamp = o.ts; cur.lastOpportunityKey = o.k;
     est.accumulatedEventHash = sha(est.accumulatedEventHash + physicalEventId).slice(0, 32); est.eventCount++;
   }
@@ -444,7 +459,18 @@ function umCiclo() {
   for (const c of candidatas) {
     est.contadores.avaliadas++;
     if (est.virtuais[c.k]) { const vp = est.virtuais[c.k]; const inc = NOTIONAL * (c.apr / 8760) * (INTERVALO_S / 3600); vp.fundingAcum += inc; vp.ultimoApr = c.apr; vp.ciclosSemVer = 0; vp.scannerEpisodeLastSeen = c.ts; vp.scannerLastSeen = c.ts; vp.scannerVisible = true; vp.economicEV = L.r4(economia(c.apr, c.spread)); vp.latestEconomicEvaluationTs = now(); vp.ciclosInversao = vp.economicEV <= 0 ? (vp.ciclosInversao || 0) + 1 : 0;
-      vp.ciclosFundingDeteriorado = (c.apr < (vp.aprEntrada || c.apr) * FUNDING_DETERIORATION_FRAC) ? (vp.ciclosFundingDeteriorado || 0) + 1 : 0; est.fundingAcum += inc; virtSemVer.delete(c.k); continue; }
+      vp.ciclosFundingDeteriorado = (c.apr < (vp.aprEntrada || c.apr) * FUNDING_DETERIORATION_FRAC) ? (vp.ciclosFundingDeteriorado || 0) + 1 : 0; est.fundingAcum += inc;
+      // decomposição EXATA do `inc` acima por exchange (incCol - incPag == inc, ver nota em k):
+      // k = symbol|exchangeShort|exchangeLong (chave() de vigilancia.ts) — exCol é onde estamos
+      // SHORT (recebe funding quando a taxa é positiva), exPag onde estamos LONG (paga).
+      if (c.fundingShort != null && c.fundingLong != null) {
+        const [, exCol, exPag] = c.k.split('|');
+        const incCol = NOTIONAL * (c.fundingShort / 8) * (INTERVALO_S / 3600);
+        const incPag = NOTIONAL * (c.fundingLong / 8) * (INTERVALO_S / 3600);
+        est.fundingPorExchange[exCol] = (est.fundingPorExchange[exCol] || 0) + incCol;
+        est.fundingPorExchange[exPag] = (est.fundingPorExchange[exPag] || 0) - incPag;
+      }
+      virtSemVer.delete(c.k); continue; }
     if (c.apr <= 0 || c.score <= 0) { est.contadores.bloqueadas++; est.bloqueios.evNaoPositivo++; if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; continue; }
     // filtro de persistência (só quando ligado): exige N min de EV positivo contínuo antes de entrar.
     if (PERSIST_MIN > 0) { est.candidatoPositivoDesde = est.candidatoPositivoDesde || {};
@@ -460,6 +486,8 @@ function umCiclo() {
     if (motivo) { est.contadores.bloqueadas++; est.bloqueios[motivo]++; append(F.diario, { ts: now(), evento: 'bloqueada', k: c.k, exchangeLong: c.long, exchangeShort: c.short, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]), margemLivreLong: L.r2(livreLong), margemLivreShort: L.r2(livreShort), motivo }); decisoes.push({ k: c.k, acao: 'bloqueada', motivo }); continue; }
     const custoEntrada = NOTIONAL * (2 * TAKER + 2 * SLIP);
     est.saldosPorExchange[c.long] -= MARGEM_PERNA; est.saldosPorExchange[c.short] -= MARGEM_PERNA; est.custosAcum += custoEntrada;
+    // custo de execução é simétrico (mesma notional, mesmo modelo, nas 2 pontas) — metade pra cada exchange real.
+    { const [, exCol, exPag] = c.k.split('|'); est.custosPorExchange[exCol] = (est.custosPorExchange[exCol] || 0) + custoEntrada / 2; est.custosPorExchange[exPag] = (est.custosPorExchange[exPag] || 0) + custoEntrada / 2; }
     est.virtuais[c.k] = { k: c.k, sym: c.sym, long: c.long, short: c.short, notional: NOTIONAL, margemPorPerna: MARGEM_PERNA, fundingAcum: 0, custoEntrada, aprEntrada: c.apr, ultimoApr: c.apr, ciclosSemVer: 0, ciclosInversao: 0, ciclosFundingDeteriorado: 0, economicEV: L.r4(c.score), latestEconomicEvaluationTs: now(), scannerVisible: true, scannerLastSeen: c.ts, scannerEpisodeFirstSeen: c.ts, scannerEpisodeLastSeen: c.ts, economicPositiveFirstSeen: c.ts, positionOpenedAt: now(),
       sourceObservationEventId: c.sourceObservationEventId, sourceRankingCycleId: c.sourceRankingCycleId, sourceOpportunityEpisodeId: c.sourceOpportunityEpisodeId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId, entryCycle: cycleId };
     est.contadores.abertas++; virtSemVer.delete(c.k); if (PERSIST_MIN > 0 && est.candidatoPositivoDesde) delete est.candidatoPositivoDesde[c.k]; decisoes.push({ k: c.k, acao: 'abre', sym: c.sym, long: c.long, short: c.short, apr: L.r4(c.apr), physicalEventId: c.physicalEventId, sourceDecisionId: c.sourceDecisionId, sourcePositionId: c.sourcePositionId });
@@ -497,6 +525,7 @@ function umCiclo() {
     if (!closeReason) continue;
     const custoSaida = vp.notional * (2 * TAKER + 2 * SLIP);
     est.saldosPorExchange[vp.long] += vp.margemPorPerna; est.saldosPorExchange[vp.short] += vp.margemPorPerna; est.custosAcum += custoSaida; est.contadores.fechadas++;
+    { const [, exCol, exPag] = k.split('|'); est.custosPorExchange[exCol] = (est.custosPorExchange[exCol] || 0) + custoSaida / 2; est.custosPorExchange[exPag] = (est.custosPorExchange[exPag] || 0) + custoSaida / 2; }
     const pnl = vp.fundingAcum - vp.custoEntrada - custoSaida;
     append(F.diario, { ts: agora, evento: 'fecha', k, funding: L.r4(vp.fundingAcum), pnl: L.r4(pnl), positionOpenedAt: vp.positionOpenedAt, positionClosedAt: agora, closeCycle: cycleId, closeReason, closePolicy: CLOSE_POLICY,
       scannerVisible: !!vp.scannerVisible, scannerLastSeen: vp.scannerLastSeen || vp.scannerEpisodeLastSeen,
@@ -509,7 +538,11 @@ function umCiclo() {
   // ── SPOT-PERP: segunda superfície de captura, mesmo livro-caixa (abre/acumula/fecha) ──
   processaSpotPerp(est, decisoes, cycleId);
   // ── rendimento da reserva ociosa (stablecoin yield) — neutro, sem risco de preço ──
-  if (STABLE_YIELD > 0) { const idle = EXCHS.reduce((s, e) => s + (est.saldosPorExchange[e] || 0), 0); est.yieldAcum = (est.yieldAcum || 0) + idle * (STABLE_YIELD / 8760) * (INTERVALO_S / 3600); }
+  if (STABLE_YIELD > 0) {
+    let idleTotal = 0;
+    for (const e of EXCHS) { const idleE = est.saldosPorExchange[e] || 0; idleTotal += idleE; const incY = idleE * (STABLE_YIELD / 8760) * (INTERVALO_S / 3600); est.yieldPorExchange[e] = (est.yieldPorExchange[e] || 0) + incY; }
+    est.yieldAcum = (est.yieldAcum || 0) + idleTotal * (STABLE_YIELD / 8760) * (INTERVALO_S / 3600);
+  }
   // ── GARANTIA: reconciliação do livro de margem ao centavo (trava número falso) ──
   reconciliar(est);
   est.lastCycleId = cycleId;

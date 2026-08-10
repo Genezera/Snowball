@@ -49,6 +49,10 @@ export interface Observacao {
   spread: number;
   apr: number;
   vol: number;
+  /** funding cru (por-8h) de cada perna — necessário pra atribuir P&L por exchange, não só o
+   * spread agregado. `k` já codifica a ordem: symbol|exchangeShort|exchangeLong (ver `chave()`). */
+  fundingShort?: number;
+  fundingLong?: number;
 }
 
 export interface CicloVida {
@@ -135,7 +139,7 @@ export async function observar(opts: {
   const linhas: string[] = [];
   for (const o of ops) {
     const k = chave(o);
-    linhas.push(JSON.stringify({ ts: agora, k, spread: o.spread, apr: o.aprSpread, vol: o.volumeMinimo }));
+    linhas.push(JSON.stringify({ ts: agora, k, spread: o.spread, apr: o.aprSpread, vol: o.volumeMinimo, fundingShort: o.fundingShort, fundingLong: o.fundingLong }));
 
     const c = estado.ciclos[k];
     if (!c || c.fechadoEm) {

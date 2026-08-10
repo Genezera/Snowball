@@ -258,6 +258,20 @@ const servidor = http.createServer((req, res) => {
       // 3) spot-perp: feed do coletor dedicado (roda a cada 10min)
       const idadeSpotperp = mtimeMin(path.join(ROOT, 'vigilancia', 'arquivo-spotperp.jsonl'));
 
+      // 4) LUCRO POR EXCHANGE — exigência explícita: nenhuma exchange pode ficar no negativo,
+      // as duas têm de dar lucro. fundingPorExchange/custosPorExchange/yieldPorExchange são
+      // instrumentação nova (adicionada nesta sessão) — decompõem exatamente os agregados
+      // fundingAcum/custosAcum/yieldAcum por exchange; não mudam capital nem reconciliação.
+      // Posições abertas ANTES desta instrumentação só passam a contribuir aqui a partir do
+      // primeiro ciclo em que o scanner reenxerga cada símbolo com o feed novo (fundingShort/
+      // fundingLong) — por isso os primeiros ciclos após o deploy podem mostrar líquido ~0.
+      const lucroPorExchange = estMotor && estMotor.fundingPorExchange
+        ? ['bybit', 'bitget'].map((ex) => {
+            const funding = estMotor.fundingPorExchange?.[ex] || 0, custos = estMotor.custosPorExchange?.[ex] || 0, yieldE = estMotor.yieldPorExchange?.[ex] || 0;
+            return { exchange: ex, net: r2(funding + yieldE - custos), funding: r2(funding), custos: r2(custos), yield: r2(yieldE) };
+          })
+        : [];
+
       const dominios = [
         {
           titulo: 'Motor snowball-2ex',
@@ -265,6 +279,13 @@ const servidor = http.createServer((req, res) => {
             { nome: 'Motor (ciclo)', sev: sev(idadeMotor, 10, 15), detalhe: idadeMotor != null ? `último ciclo há ${idadeMotor} min · ${hbMotor.abertas} abertas · sourceStatus=${hbMotor.sourceStatus}` : 'sem heartbeat' },
             { nome: 'Reconciliação (livro-caixa)', sev: erroReconciliacao == null ? 'loss' : erroReconciliacao > 0.01 ? 'loss' : 'ok', detalhe: erroReconciliacao == null ? 'sem estado lido' : `erro = US$ ${erroReconciliacao.toFixed(6)} (limite 0.01) — garantia anti-número-falso` },
           ],
+        },
+        {
+          titulo: 'Lucro por exchange (bybit vs bitget — as duas têm de dar lucro)',
+          itens: lucroPorExchange.length ? lucroPorExchange.map((e) => ({
+            nome: `${e.exchange}`, sev: e.net >= 0 ? 'ok' : 'warn',
+            detalhe: `net US$ ${e.net.toFixed(4)} (funding ${e.funding >= 0 ? '+' : ''}${e.funding.toFixed(4)} + yield +${e.yield.toFixed(4)} − custos ${e.custos.toFixed(4)})`,
+          })) : [{ nome: 'sem dado ainda', sev: 'info', detalhe: 'instrumentação nova — aguardando o motor reavaliar as posições com o feed enriquecido' }],
         },
         {
           titulo: 'Scanner (infraestrutura compartilhada — o motor depende disto pra ter dado)',
