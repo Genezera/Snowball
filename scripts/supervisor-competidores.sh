@@ -39,8 +39,13 @@ mkdir -p "$BASE"
 # minutos antes do horário real de liquidação e desmontava minutos depois (holds de 10-15min
 # medidos). Reusa o mesmo livro-caixa/margem do cross sustentado; maxpos próprio (2), piso de
 # entrada mais alto (1,5x — só um período pra pagar o custo fixo, sem diluir por várias liquidações).
+# --cross-reserva-extra 0.20 (2026-08-10, medido ao vivo com só US$100/exchange): o cross roda
+# ANTES das outras 2 superfícies a cada ciclo e satura sozinho em EXATAMENTE 4 posições (usa os
+# US$80 deployáveis inteiros) — spotperpSemCapital bloqueou 968x, não por falta de oportunidade
+# boa, só porque nunca sobrava capital. Reserva uma faixa adicional (20%-40% do capital) exclusiva
+# pras outras 2 superfícies — cross agora satura em 3, deixando US$20/exchange sempre disponível.
 declare -A CMD=(
-  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --stable-yield 0.06 --settle-interval-h 24 --funding-settlement-h 8 --settlement-capture --settlement-capture-window-min 20 --settlement-capture-maxpos 2 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --cross-reserva-extra 0.20 --stable-yield 0.06 --settle-interval-h 24 --funding-settlement-h 8 --settlement-capture --settlement-capture-window-min 20 --settlement-capture-maxpos 2 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }

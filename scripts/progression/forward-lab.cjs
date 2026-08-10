@@ -42,6 +42,19 @@ const PERSIST_MIN = args.includes('--persist-min') ? Number(opt('--persist-min',
 // --reserva F : fração do capital mantida em reserva (não usada como margem). Default = L.RESERVA (0.30).
 // Reduzir (ex.: 0.20) coloca mais capital ocioso pra trabalhar → mais posições → mais funding. Lever de UTILIZAÇÃO.
 const RESERVA = args.includes('--reserva') ? Number(opt('--reserva', L.RESERVA)) : L.RESERVA;
+// FAIXA RESERVADA pra spot-perp/settlement-capture (achado medindo ao vivo, 2026-08-10, com só
+// US$100/exchange): o cross sustentado roda ANTES das outras 2 superfícies a cada ciclo — com
+// $100/exchange e reserva de 20%, ele satura sozinho em EXATAMENTE 4 posições (usa os $80
+// deployáveis inteiros), sem nunca sobrar nada pro spot-perp ou settlement-capture avaliarem.
+// Medido: spotperpSemCapital bloqueou 968 vezes — não é falta de oportunidade boa, é o cross
+// sempre chegar primeiro no MESMO capital. --cross-reserva-extra reserva uma faixa ADICIONAL
+// (em cima da reserva de segurança normal) que só o cross respeita — spot-perp e
+// settlement-capture continuam podendo usar até o piso de segurança original (RESERVA sozinho).
+// Não mexe na reserva de segurança em si (ainda 20% por padrão) — só desenha onde a fronteira
+// entre "cross pode usar" e "só as outras 2 superfícies podem usar" fica dentro do capital
+// deployável. Default 0.20 = reserva mais US$20/exchange na faixa 20%-40% do capital, exclusiva
+// pras outras 2 superfícies — dá espaço real pra pelo menos 1 posição não-cross por exchange.
+const CROSS_RESERVA_EXTRA = args.includes('--cross-reserva-extra') ? Number(opt('--cross-reserva-extra', 0.20)) : 0.20;
 // --stable-yield APR : rendimento anual sobre o capital LIVRE (reserva ociosa), tipo Earn/stablecoin do CEX.
 // Neutro, sem risco de preço — o colchão rende enquanto espera. 0 = desligado. Ex.: 0.06 = 6%/ano.
 const STABLE_YIELD = args.includes('--stable-yield') ? Number(opt('--stable-yield', 0)) : 0;
@@ -252,7 +265,7 @@ function estadoInicial(epoch) {
     episodios: {},   // v1.8 identidade causal: por chave { episodeSeq, anchorObsId, episodeId, lastTs }
     eventCount: 0, accumulatedEventHash: '', lastCycleId: 0, walSequence: 0, sourceStatus: 'OK', lateEvents: 0,
     contadores: { avaliadas: 0, abertas: 0, fechadas: 0, bloqueadas: 0, dedupIgnorados: 0, rotationOverlapSkipped: 0 },
-    bloqueios: { aggregateCapitalBlocked: 0, localBalanceBlocked: 0, reserveBlocked: 0, maxPositionsBlocked: 0, minOrderBlocked: 0, evNaoPositivo: 0 },
+    bloqueios: { aggregateCapitalBlocked: 0, localBalanceBlocked: 0, reserveBlocked: 0, maxPositionsBlocked: 0, minOrderBlocked: 0, evNaoPositivo: 0, crossFaixaReservada: 0 },
     recentEventIds: [] };
 }
 
@@ -746,8 +759,12 @@ function umCiclo() {
     if (abertas >= MAXPOS) motivo = 'maxPositionsBlocked';
     else if (MARGEM_PERNA > livreLong || MARGEM_PERNA > livreShort) motivo = 'localBalanceBlocked';
     else if (est.saldosPorExchange[c.long] < CAP_POR_EX * RESERVA || est.saldosPorExchange[c.short] < CAP_POR_EX * RESERVA) motivo = 'reserveBlocked';
+    // faixa reservada pras outras 2 superfícies (ver nota em CROSS_RESERVA_EXTRA) — cross respeita
+    // um piso MAIOR que o piso de segurança normal, deixando espaço exclusivo pro spot-perp e
+    // settlement-capture (que continuam podendo usar até o piso de segurança original).
+    else if (est.saldosPorExchange[c.long] - MARGEM_PERNA < CAP_POR_EX * (RESERVA + CROSS_RESERVA_EXTRA) || est.saldosPorExchange[c.short] - MARGEM_PERNA < CAP_POR_EX * (RESERVA + CROSS_RESERVA_EXTRA)) motivo = 'crossFaixaReservada';
     else if (2 * MARGEM_PERNA > EXCHS.reduce((s, e) => s + margemLivre(est, e), 0)) motivo = 'aggregateCapitalBlocked';
-    if (motivo) { est.contadores.bloqueadas++; est.bloqueios[motivo]++; append(F.diario, { ts: now(), evento: 'bloqueada', k: c.k, exchangeLong: c.long, exchangeShort: c.short, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]), margemLivreLong: L.r2(livreLong), margemLivreShort: L.r2(livreShort), motivo }); decisoes.push({ k: c.k, acao: 'bloqueada', motivo }); continue; }
+    if (motivo) { est.contadores.bloqueadas++; est.bloqueios[motivo] = (est.bloqueios[motivo] || 0) + 1; append(F.diario, { ts: now(), evento: 'bloqueada', k: c.k, exchangeLong: c.long, exchangeShort: c.short, saldoLong: L.r2(est.saldosPorExchange[c.long]), saldoShort: L.r2(est.saldosPorExchange[c.short]), margemLivreLong: L.r2(livreLong), margemLivreShort: L.r2(livreShort), motivo }); decisoes.push({ k: c.k, acao: 'bloqueada', motivo }); continue; }
     const custoEntrada = NOTIONAL * (2 * TAKER + 2 * SLIP);
     est.saldosPorExchange[c.long] -= MARGEM_PERNA; est.saldosPorExchange[c.short] -= MARGEM_PERNA; est.custosAcum += custoEntrada;
     // custo de execução é simétrico (mesma notional, mesmo modelo, nas 2 pontas) — metade pra cada exchange real.
