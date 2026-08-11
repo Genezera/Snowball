@@ -44,8 +44,19 @@ mkdir -p "$BASE"
 # US$80 deployáveis inteiros) — spotperpSemCapital bloqueou 968x, não por falta de oportunidade
 # boa, só porque nunca sobrava capital. Reserva uma faixa adicional (20%-40% do capital) exclusiva
 # pras outras 2 superfícies — cross agora satura em 3, deixando US$20/exchange sempre disponível.
+# --settlement-capture-maxpos 2→3 e --settlement-capture-window-min 20→30 (2026-08-11, pedido
+# explícito do usuário de empurrar mais lucro sem mexer na margem de segurança do cross — o
+# invariante bybit/bitget ainda não está resolvido, ver PLANO-2-EXCHANGES.md, então NÃO se toca
+# em --entry-safety-mult nem em --persist-min do cross). settlement_capture é a superfície mais
+# segura pra esse tipo de expansão: horário de liquidação é conhecido de antemão (não é aposta em
+# direção), hold curto (10-20min medido no Champion), piso de entrada próprio (1,5x) intocado —
+# só dá mais capacidade (2→3 posições) e mais tempo de janela pra montar (20→30min) pro mesmo piso.
+# --spotperp-payback-periods 3→4: spotperpSemPayback bloqueou 1234x (maior motivo de bloqueio do
+# spot-perp) — muitas oportunidades reais ficavam de fora só por levarem 1 período extra pra pagar
+# o custo fixo de entrada+saída. Ainda exige payback real (4 períodos = ~32h com funding de 8h),
+# só deixa de exigir 3.
 declare -A CMD=(
-  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --cross-reserva-extra 0.20 --stable-yield 0.06 --settle-interval-h 24 --funding-settlement-h 8 --settlement-capture --settlement-capture-window-min 20 --settlement-capture-maxpos 2 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --intervalo 300"
+  [snowball-2ex]="node scripts/progression/forward-lab.cjs --mode control --exchanges bybit,bitget --label snowball-2ex --close-policy economic_inversion --persist-min 30 --cost-model maker --maxpos 6 --reserva 0.20 --cross-reserva-extra 0.20 --stable-yield 0.06 --settle-interval-h 24 --funding-settlement-h 8 --settlement-capture --settlement-capture-window-min 30 --settlement-capture-maxpos 3 --spotperp --spotperp-minvol 5000000 --spotperp-notional 15 --spotperp-payback-periods 4 --intervalo 300"
 )
 
 campo() { node -e "try{console.log(JSON.parse(require('fs').readFileSync(process.argv[1]))[process.argv[2]]||0)}catch(e){console.log(0)}" "$1" "$2" 2>/dev/null; }
