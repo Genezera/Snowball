@@ -272,6 +272,11 @@ function estadoInicial(epoch) {
     fundingPorExchange: Object.fromEntries(EXCHS.map((e) => [e, 0])),
     custosPorExchange: Object.fromEntries(EXCHS.map((e) => [e, 0])),
     yieldPorExchange: Object.fromEntries(EXCHS.map((e) => [e, 0])),
+    // vitalício (NUNCA zerado) — liquidar() zera as três acima a cada 24h pra compounding,
+    // o que apagava a visibilidade do invariante "nenhuma exchange no negativo" bem na hora
+    // que mais importa (logo após cada liquidação). Isto acumula o net já liquidado por
+    // exchange pra sempre; o painel soma isto + a janela aberta atual.
+    netPorExchangeVida: Object.fromEntries(EXCHS.map((e) => [e, 0])),
     episodios: {},   // v1.8 identidade causal: por chave { episodeSeq, anchorObsId, episodeId, lastTs }
     eventCount: 0, accumulatedEventHash: '', lastCycleId: 0, walSequence: 0, sourceStatus: 'OK', lateEvents: 0,
     contadores: { avaliadas: 0, abertas: 0, fechadas: 0, bloqueadas: 0, dedupIgnorados: 0, rotationOverlapSkipped: 0 },
@@ -612,9 +617,11 @@ function liquidar(est, cycleId) {
   const somaCPE = EXCHS.reduce((s, e) => s + (est.custosPorExchange?.[e] || 0), 0);
   const residuo = ((est.fundingAcum || 0) - somaFPE) + ((est.yieldAcum || 0) - somaYPE) - ((est.custosAcum || 0) - somaCPE);
   const porExchange = {};
+  est.netPorExchangeVida = est.netPorExchangeVida || Object.fromEntries(EXCHS.map((e) => [e, 0]));
   for (const e of EXCHS) {
     const netE = (est.fundingPorExchange?.[e] || 0) + (est.yieldPorExchange?.[e] || 0) - (est.custosPorExchange?.[e] || 0) + residuo / EXCHS.length;
     est.saldosPorExchange[e] = (est.saldosPorExchange[e] || 0) + netE;
+    est.netPorExchangeVida[e] = (est.netPorExchangeVida[e] || 0) + netE;
     porExchange[e] = L.r4(netE);
   }
   est.capitalInicial += lucroLiquido;
@@ -652,10 +659,12 @@ function umCiclo() {
   est.fundingPorExchange = est.fundingPorExchange || {};
   est.custosPorExchange = est.custosPorExchange || {};
   est.yieldPorExchange = est.yieldPorExchange || {};
+  est.netPorExchangeVida = est.netPorExchangeVida || {};
   for (const e of EXCHS) {
     if (est.fundingPorExchange[e] == null) est.fundingPorExchange[e] = 0;
     if (est.custosPorExchange[e] == null) est.custosPorExchange[e] = 0;
     if (est.yieldPorExchange[e] == null) est.yieldPorExchange[e] = 0;
+    if (est.netPorExchangeVida[e] == null) est.netPorExchangeVida[e] = 0;
   }
   // migração do modelo de funding discreto: posições JÁ abertas antes deste deploy não têm
   // `ultimoBoundaryTs` — se deixasse o lazy-init do ciclo normal usar `positionOpenedAt`, uma

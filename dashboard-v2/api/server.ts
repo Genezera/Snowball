@@ -282,10 +282,15 @@ const servidor = http.createServer((req, res) => {
       // Posições abertas ANTES desta instrumentação só passam a contribuir aqui a partir do
       // primeiro ciclo em que o scanner reenxerga cada símbolo com o feed novo (fundingShort/
       // fundingLong) — por isso os primeiros ciclos após o deploy podem mostrar líquido ~0.
+      // liquidar() zera fundingPorExchange/custosPorExchange/yieldPorExchange a cada 24h (compounding)
+      // — por isso o net por exchange soma a janela aberta atual + netPorExchangeVida, que é o
+      // acumulado de todas as liquidações passadas e nunca é zerado (ver forward-lab.cjs liquidar()).
       const lucroPorExchange = estMotor && estMotor.fundingPorExchange
         ? ['bybit', 'bitget'].map((ex) => {
             const funding = estMotor.fundingPorExchange?.[ex] || 0, custos = estMotor.custosPorExchange?.[ex] || 0, yieldE = estMotor.yieldPorExchange?.[ex] || 0;
-            return { exchange: ex, net: r2(funding + yieldE - custos), funding: r2(funding), custos: r2(custos), yield: r2(yieldE) };
+            const netJanela = funding + yieldE - custos;
+            const netVida = estMotor.netPorExchangeVida?.[ex] || 0;
+            return { exchange: ex, net: r2(netVida + netJanela), netJanelaAtual: r2(netJanela), netVida: r2(netVida), funding: r2(funding), custos: r2(custos), yield: r2(yieldE) };
           })
         : [];
 
@@ -302,7 +307,7 @@ const servidor = http.createServer((req, res) => {
           titulo: 'Lucro por exchange (bybit vs bitget — as duas têm de dar lucro)',
           itens: lucroPorExchange.length ? lucroPorExchange.map((e) => ({
             nome: `${e.exchange}`, sev: e.net >= 0 ? 'ok' : 'warn',
-            detalhe: `net US$ ${e.net.toFixed(4)} (funding ${e.funding >= 0 ? '+' : ''}${e.funding.toFixed(4)} + yield +${e.yield.toFixed(4)} − custos ${e.custos.toFixed(4)})`,
+            detalhe: `net vitalício US$ ${e.net.toFixed(4)} (liquidado ${e.netVida >= 0 ? '+' : ''}${e.netVida.toFixed(4)} + janela atual ${e.netJanelaAtual >= 0 ? '+' : ''}${e.netJanelaAtual.toFixed(4)}: funding ${e.funding >= 0 ? '+' : ''}${e.funding.toFixed(4)} + yield +${e.yield.toFixed(4)} − custos ${e.custos.toFixed(4)})`,
           })) : [{ nome: 'sem dado ainda', sev: 'info', detalhe: 'instrumentação nova — aguardando o motor reavaliar as posições com o feed enriquecido' }],
         },
         {
