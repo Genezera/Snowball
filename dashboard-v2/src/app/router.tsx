@@ -38,4 +38,4 @@ export const router = createBrowserRouter([
       { path: '/saude', element: comSuspense(SystemHealth) },
     ],
   },
-]);
+], { basename: import.meta.env.BASE_URL });
