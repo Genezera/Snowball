@@ -6,148 +6,174 @@
 </p>
 
 <p align="center">
-  <img alt="Paper trading" src="https://img.shields.io/badge/modo-paper%20trading-38bdf8?style=flat-square">
+  <img alt="Paper trading" src="https://img.shields.io/badge/mode-paper%20trading-38bdf8?style=flat-square">
   <img alt="Node" src="https://img.shields.io/badge/node-24%2B-38bdf8?style=flat-square">
-  <img alt="Foco" src="https://img.shields.io/badge/foco-2%20exchanges-36e3a0?style=flat-square">
-  <img alt="Estratégia" src="https://img.shields.io/badge/estrat%C3%A9gia-funding%20arb-8b5cf6?style=flat-square">
+  <img alt="Focus" src="https://img.shields.io/badge/focus-2%20exchanges-36e3a0?style=flat-square">
+  <img alt="Strategy" src="https://img.shields.io/badge/strategy-funding%20arb-8b5cf6?style=flat-square">
 </p>
 
-# ❄️ Snowball — Funding-Rate Arbitrage (delta-neutro)
+# ❄️ Snowball — Funding-Rate Arbitrage (delta-neutral)
 
-> Um robô que fica **comprado numa exchange e vendido em outra**, no mesmo ativo,
-> ao mesmo tempo. A exposição a preço é **zero por construção** — se o ativo sobe
-> ou cai, as duas pernas se cancelam. O lucro vem do **funding rate**: o
-> pagamento que uma exchange transfere à outra a cada 8h. Não se aposta em
-> direção — se **cobra pela liquidez**.
+> A bot that stays **long on one exchange and short on another**, on the same
+> asset, at the same time. Price exposure is **zero by construction** — if the
+> asset goes up or down, the two legs cancel out. The profit comes from the
+> **funding rate**: the payment one exchange transfers to the other every 8h.
+> It doesn't bet on direction — it **charges for liquidity**.
 
-> ⚠️ **Tudo é paper trading.** Nenhuma ordem real é emitida. O objetivo é validar
-> a estratégia com dados reais de mercado (taxas, funding, liquidez reais) antes
-> de arriscar dinheiro de verdade.
+> ⚠️ **Everything is paper trading.** No real order is ever placed. The goal is
+> to validate the strategy against real market data (real fees, funding and
+> liquidity) before risking any real money.
 
 ---
 
-## 🎯 O plano atual: motor único de 2 exchanges + spot-perp
+## 🎯 Current plan: single 2-exchange engine + spot-perp
 
-O sistema começou com **6 exchanges** (o "Champion") como referência/benchmark — depois de servir pra descobrir os levers de lucro, ele foi **arquivado** (ver [`arquivo-6-exchanges/README.md`](arquivo-6-exchanges/README.md); código preservado, só não roda mais). O foco 100% agora é **2 exchanges, US$ 100 em cada**: o head-to-head entre pares já terminou.
+The system started with **6 exchanges** (the "Champion") as a reference/benchmark
+— after serving to discover the profit levers, it was **archived** (see
+[`arquivo-6-exchanges/README.md`](arquivo-6-exchanges/README.md); code preserved,
+just no longer running). The focus is now 100% on **2 exchanges, US$100 on each**:
+the head-to-head between pairs is over.
 
-**Decisão tomada:** `bybit + bitget` venceu o head-to-head contra `gate + okx` (que ficou faminto — quase nenhuma posição aberta). Os dois competidores foram consolidados num **motor único**, `snowball-2ex`, com todos os levers de maximização já embutidos:
+**Decision made:** `bybit + bitget` won the head-to-head against `gate + okx`
+(which starved — almost no positions opened). The two competitors were
+consolidated into a **single engine**, `snowball-2ex`, with every maximization
+lever already built in:
 
-| Lever | O que faz |
+| Lever | What it does |
 |---|---|
-| **Ordens maker (limite)** | custo cai de ~40% do funding para ~15% — matemática exata dos presets reais (`--cost-model maker`) |
-| **Filtro de persistência** | só entra após 30min de sinal positivo — corta entradas prematuras, a causa nº1 do vazamento de custo (`--persist-min 30`) |
-| **Utilização de capital** | 6 posições, 20% de reserva (`--maxpos 6 --reserva 0.20`) |
-| **Rendimento da reserva ociosa** | reserva rende ~6%/ano no livro-caixa, neutro (`--stable-yield 0.06`) |
-| **Margem de segurança na entrada** | exige apr cobrir 2,5× o custo fixo antes de abrir (`--entry-safety-mult 2.5`) |
-| **Compounding** | lucro liquidado pro capital deployável a cada 24h — libera mais posições simultâneas, não posições maiores (`--settle-interval-h 24`) |
+| **Maker (limit) orders** | cost drops from ~40% of funding to ~15% — exact math from the real presets (`--cost-model maker`) |
+| **Persistence filter** | only enters after 30min of a positive signal — cuts premature entries, the #1 cause of cost leakage (`--persist-min 30`) |
+| **Capital utilization** | 6 positions, 20% reserve (`--maxpos 6 --reserva 0.20`) |
+| **Idle-reserve yield** | the reserve earns ~6%/year in the cash ledger, neutral (`--stable-yield 0.06`) |
+| **Entry safety margin** | requires APR to cover 2.5× the fixed cost before opening (`--entry-safety-mult 2.5`) |
+| **Compounding** | profit settled to deployable capital every 24h — frees up more simultaneous positions, not bigger ones (`--settle-interval-h 24`) |
 
-### Spot-perp — segunda superfície de captura (mesma exchange)
-Além do cross-exchange (capta o **diferencial** de funding entre 2 exchanges), o motor também opera **cash-and-carry**: compra spot + shorta perp **na mesma exchange**, capturando o funding **absoluto** — acessa oportunidades que o cross-exchange perde. Delta-neutro, mesmo livro-caixa, reconciliado ao centavo. Um coletor dedicado (`coletor-spotperp.cjs`) varre o mercado real via ccxt e só aceita oportunidades com liquidez real **nos dois lados** (perp e spot).
+### Spot-perp — a second capture surface (same exchange)
+Beyond the cross-exchange leg (which captures the funding **differential** between
+2 exchanges), the engine also runs **cash-and-carry**: buy spot + short perp **on
+the same exchange**, capturing the **absolute** funding — reaching opportunities
+the cross-exchange leg misses. Delta-neutral, same cash ledger, reconciled to the
+cent. A dedicated collector (`coletor-spotperp.cjs`) scans the real market via ccxt
+and only accepts opportunities with real liquidity **on both sides** (perp and spot).
 
 ---
 
-## 🏗️ Arquitetura
+## 🏗️ Architecture
 
 ```
-   ┌─────────────┐   varre o mercado inteiro    ┌──────────────────────────┐
-   │  COLETOR    │  ~4.750 pares / 6 exchanges   │  arquivo-observacoes     │
-   └─────────────┘        a cada ~5 min          └───────────┬──────────────┘
+   ┌─────────────┐   scans the whole market     ┌──────────────────────────┐
+   │  COLLECTOR  │  ~4,750 pairs / 6 exchanges   │  arquivo-observacoes     │
+   └─────────────┘        every ~5 min           └───────────┬──────────────┘
                                                               │
-   ┌──────────────────┐  oportunidades spot+perp    ┌─────────┴────────────────┐
-   │ COLETOR SPOT-PERP │  (mesma exchange, liquidez  │  arquivo-spotperp        │
-   │ (ccxt, real)       │  real nos 2 lados)          │  (feed do radar)         │
+   ┌──────────────────┐  spot+perp opportunities    ┌─────────┴────────────────┐
+   │ SPOT-PERP COLLECTOR│  (same exchange, real       │  arquivo-spotperp        │
+   │ (ccxt, real)       │  liquidity on both sides)   │  (radar feed)            │
    └────────┬───────────┘ ────────────────────────▶  └─────────┬────────────────┘
             │                                                  │
             └──────────────────────┬───────────────────────────┘
                                     ▼
                      ┌───────────────────────────────────┐   ┌──────────────┐
                      │ snowball-2ex (forward-lab)        │   │  DASHBOARD   │
-                     │ bybit+bitget · MOTOR REAL         │   │  Command     │
-                     │ maker + persistência 30min +       │   │  Center      │
-                     │ cross-exchange + spot-perp juntos  │   │  (React, ao  │
-                     └───────────────────────────────────┘   │  vivo)        │
+                     │ bybit+bitget · REAL ENGINE        │   │  Command     │
+                     │ maker + 30min persistence +        │   │  Center      │
+                     │ cross-exchange + spot-perp together │   │  (React,     │
+                     └───────────────────────────────────┘   │  live)        │
                                     ▲                          └──────────────┘
-                                    └── supervisão + blindagem (auto-restart) ──▲
+                                    └── supervision + hardening (auto-restart) ──▲
 ```
 
-- **Scanner** (`src/cli/vigilancia.ts`): varre o **mercado inteiro** (~4.750 pares nas 6 exchanges) via `fetchFundingRates` em massa, sem viés de seleção — escreve `vigilancia/historico.jsonl`.
-- **Arquivador** (`src/cli/coletor.ts`): só lê o que a vigilância/custódia escrevem e arquiva pra sempre em `arquivo-observacoes.jsonl` (nunca consulta exchange) — é este arquivo que o `snowball-2ex` lê.
-- **snowball-2ex** (`scripts/progression/forward-lab.cjs`): o motor do dinheiro real — bybit+bitget, maker, filtro de persistência, cross-exchange **e** spot-perp no mesmo livro-caixa reconciliado.
-- **Coletor spot-perp** (`scripts/progression/coletor-spotperp.cjs`): varre spot+perp na mesma exchange via ccxt (dado real), só aceita liquidez real dos dois lados.
-- **Dashboard** (`dashboard-v2/`): React + API read-only. Command Center com o motor real + radar spot-perp.
-- **Supervisão** (`scripts/supervisor.sh`, `scripts/supervisor-competidores.sh`, `scripts/blindagem.ps1`): auto-restart em crash, tudo windowless.
+- **Scanner** (`src/cli/vigilancia.ts`): scans the **whole market** (~4,750 pairs
+  across the 6 exchanges) via bulk `fetchFundingRates`, with no selection bias —
+  writes `vigilancia/historico.jsonl`.
+- **Archiver** (`src/cli/coletor.ts`): only reads what the scanner/custody write and
+  archives it forever in `arquivo-observacoes.jsonl` (never queries an exchange) —
+  this is the file `snowball-2ex` reads.
+- **snowball-2ex** (`scripts/progression/forward-lab.cjs`): the real-money engine —
+  bybit+bitget, maker, persistence filter, cross-exchange **and** spot-perp in the
+  same reconciled cash ledger.
+- **Spot-perp collector** (`scripts/progression/coletor-spotperp.cjs`): scans
+  spot+perp on the same exchange via ccxt (real data), only accepts real liquidity
+  on both sides.
+- **Dashboard** (`dashboard-v2/`): React + read-only API. Command Center with the
+  real engine + spot-perp radar.
+- **Supervision** (`scripts/supervisor.sh`, `scripts/supervisor-competidores.sh`,
+  `scripts/blindagem.ps1`): auto-restart on crash, all windowless.
 
-> O **Champion** (referência de 6 exchanges) foi **arquivado** depois de servir pra descobrir os levers de lucro acima — ver [`arquivo-6-exchanges/README.md`](arquivo-6-exchanges/README.md). Código preservado, não roda mais.
+> The **Champion** (6-exchange reference) was **archived** after serving to discover
+> the profit levers above — see [`arquivo-6-exchanges/README.md`](arquivo-6-exchanges/README.md).
+> Code preserved, no longer running.
 
 ---
 
-## 📁 Estrutura do projeto
+## 📁 Project structure
 
 ```
 src/
-  cli/          spread-live · coletor · vigilancia · custodia   (pontos de entrada)
-  funding/      motor delta-neutro: engine, spread, universo, compound, marcacao,
-                liquidacao, telegram, custos-reais, execucao (maker)…
-  config.ts     presets reais de taxa por exchange (taker/maker)
-  ml/           prontidão do scanner (readiness)
+  cli/          spread-live · coletor · vigilancia · custodia   (entry points)
+  funding/      delta-neutral engine: engine, spread, universe, compound, marking,
+                settlement, telegram, real-costs, execution (maker)…
+  config.ts     real fee presets per exchange (taker/maker)
+  ml/           scanner readiness
 scripts/
-  progression/  forward-lab.cjs + lib-progression.cjs           (competidores paper)
-  analise/      counterfactual, backtest, comparador dos competidores
-  supervisor.sh · supervisor-competidores.sh · blindagem.ps1    (blindagem)
-dashboard-v2/   frontend React (:5183) + API read-only (:5184)
+  progression/  forward-lab.cjs + lib-progression.cjs           (paper competitors)
+  analise/      counterfactual, backtest, competitor comparator
+  supervisor.sh · supervisor-competidores.sh · blindagem.ps1    (hardening)
+dashboard-v2/   React frontend (:5183) + read-only API (:5184)
 ```
 
-> O projeto foi **enxugado** (refactor 2026-08): removidas ~256 arquivos de
-> estratégias antigas e pesquisa shadow que não serviam ao plano de 2 exchanges.
-> Ficou só o que melhora o funding-arb. O histórico do git preserva tudo.
+> The project was **trimmed down** (2026-08 refactor): ~256 files of old strategies
+> and shadow research that didn't serve the 2-exchange plan were removed. Only what
+> improves the funding-arb stayed. Git history preserves everything.
 
 ---
 
-## ▶️ Como rodar
+## ▶️ How to run
 
 ```bash
-# 1. dependências
+# 1. dependencies
 npm install
 
-# 2. configurar Telegram (opcional — avisos de abre/fecha/lucro)
-cp .env.example .env   # preencher TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID
+# 2. configure Telegram (optional — open/close/profit alerts)
+cp .env.example .env   # fill in TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID
 npm run telegram:chatid
 
-# 3. subir tudo (motor + scanner + competidores + dashboard), windowless + blindado
+# 3. bring everything up (engine + scanner + competitors + dashboard), windowless + hardened
 powershell -File scripts/blindagem.ps1
 ```
 
-O `blindagem.ps1` é idempotente (não duplica). **Auto-start no boot está desabilitado a pedido** — precisa subir à mão depois de reiniciar o PC.
+`blindagem.ps1` is idempotent (won't duplicate). **Auto-start on boot is disabled by
+request** — you have to bring it up by hand after restarting the PC.
 
-- **Dashboard:** http://localhost:5183 → **Command Center** (o motor real, capital, posições cross-exchange + spot-perp, radar de oportunidades, o que está pensando).
-- **Testar mensagens do Telegram:** `node scripts/telegram-teste-todos.cjs`
-
----
-
-## 📱 Avisos no Telegram
-
-Escritos pra qualquer pessoa entender (emojis + separadores + explicação):
-`🟢 nova operação` · `✅ lucro` / `⚠️ prejuízo` · `🔁 lucro reinvestido (bola de neve)`
-· `📊 resumo do dia` · `🛑 robô pausado`.
+- **Dashboard:** http://localhost:5183 → **Command Center** (the real engine, capital,
+  cross-exchange + spot-perp positions, the opportunity radar, what it's thinking).
+- **Test Telegram messages:** `node scripts/telegram-teste-todos.cjs`
 
 ---
 
-## 🛡️ Segurança
+## 📱 Telegram alerts
 
-- **Paper trading:** nenhuma ordem real é emitida.
-- **Delta-neutro:** exposição a preço zero por construção.
-- **Guardião de risco:** fecha posição se o preço se aproximar da liquidação.
-- **Blindagem:** auto-restart em crash + sobrevivência a reboot, windowless.
-- **Sem segredos versionados:** token do Telegram só via `.env` (fora do git).
+Written so anyone can understand them (emojis + separators + explanation):
+`🟢 new trade` · `✅ profit` / `⚠️ loss` · `🔁 profit reinvested (snowball)`
+· `📊 daily summary` · `🛑 bot paused`.
 
 ---
 
-## 📊 Status atual (paper)
+## 🛡️ Safety
+
+- **Paper trading:** no real order is ever placed.
+- **Delta-neutral:** zero price exposure by construction.
+- **Risk guardian:** closes a position if the price gets close to liquidation.
+- **Hardening:** auto-restart on crash + survives reboot, windowless.
+- **No committed secrets:** the Telegram token only lives in `.env` (outside git).
+
+---
+
+## 📊 Current status (paper)
 
 | | |
 |---|---|
-| Champion (6-ex) | **arquivado** — último estado: +US$ 17,52 em ~6,3 dias. Ver `arquivo-6-exchanges/` |
-| snowball-2ex (bybit+bitget, motor real) | US$ 200 · cross-exchange + spot-perp juntos |
-| Scanner | mercado inteiro, ~4.750 pares, a cada 5 min |
-| Radar spot-perp | ~120 oportunidades reais (bybit+bitget), perfil vol > US$5M nos 2 lados |
-| Próximo passo | observar dias de operação contínua e medir quanto o spot-perp soma ao funding/dia |
+| Champion (6-ex) | **archived** — last state: +US$17.52 in ~6.3 days. See `arquivo-6-exchanges/` |
+| snowball-2ex (bybit+bitget, real engine) | US$200 · cross-exchange + spot-perp together |
+| Scanner | whole market, ~4,750 pairs, every 5 min |
+| Spot-perp radar | ~120 real opportunities (bybit+bitget), profile vol > US$5M on both sides |
+| Next step | observe days of continuous operation and measure how much spot-perp adds to funding/day |
